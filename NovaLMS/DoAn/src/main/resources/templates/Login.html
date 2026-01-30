@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Đăng nhập - Nova LMS</title>
+    <meta name="description" content="Đăng nhập hệ thống Nova LMS">
+
+    <!-- Favicons -->
+    <link href="assets/img/favicon.png" rel="icon">
+    <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+    <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+    <!-- Main CSS File -->
+    <link href="assets/css/main.css" rel="stylesheet">
+
+    <!-- Custom CSS for Login -->
+    <style>
+        .login-section {
+            padding: 80px 0;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            background-color: #f9f9f9;
+        }
+
+        .login-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h3 {
+            font-weight: 700;
+            color: var(--heading-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(var(--accent-color-rgb), 0.25);
+        }
+
+        .btn-login {
+            background: var(--accent-color);
+            color: #fff;
+            width: 100%;
+            padding: 12px;
+            border-radius: 50px;
+            font-weight: 600;
+            border: none;
+            transition: 0.3s;
+        }
+
+        .btn-login:hover {
+            background: var(--nav-hover-color);
+        }
+
+        .btn-google {
+            width: 100%;
+            padding: 12px;
+            border-radius: 50px;
+            font-weight: 600;
+            border: 1px solid #ddd;
+            background: #fff;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.3s;
+            margin-top: 15px;
+            text-decoration: none;
+        }
+
+        .btn-google:hover {
+            background: #f1f1f1;
+            border-color: #ccc;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 20px 0;
+            color: #888;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .divider:not(:empty)::before {
+            margin-right: .5em;
+        }
+
+        .divider:not(:empty)::after {
+            margin-left: .5em;
+        }
+
+        .forgot-pass {
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .auth-links {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+
+        .auth-links a {
+            color: var(--accent-color);
+            font-weight: 600;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body class="index-page">
+
+<header id="header" class="header d-flex align-items-center sticky-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+
+        <a href="index.html" class="logo d-flex align-items-center me-auto">
+            <h1 class="sitename">Nova LMS</h1>
+        </a>
+
+        <nav id="navmenu" class="navmenu">
+            <ul>
+                <li><a href="index.html">Trang chủ</a></li>
+                <li><a href="courses.html">Khóa học</a></li>
+                <li><a href="about.html">Giới thiệu</a></li>
+                <li><a href="contact.html">Liên hệ</a></li>
+            </ul>
+            <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+        </nav>
+
+        <a class="btn-getstarted" href="register.html">Đăng ký</a>
+
+    </div>
+</header>
+
+<main class="main">
+
+    <section id="login" class="login-section">
+        <div class="container" data-aos="fade-up">
+            <div class="row justify-content-center">
+                <div class="col-lg-5 col-md-8">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <h3>Đăng Nhập</h3>
+                            <p class="text-muted">Chào mừng bạn quay trở lại với Nova LMS</p>
+                        </div>
+
+                        <!-- Alert Messages -->
+                        <div id="loginAlert" class="alert alert-danger d-none" role="alert"></div>
+                        <div id="loginSuccess" class="alert alert-success d-none" role="alert"></div>
+
+                        <!-- Login Form -->
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="example@email.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <label for="password" class="form-label">Mật khẩu</label>
+                                    <a href="#" class="forgot-pass" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Quên mật khẩu?</a>
+                                </div>
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Nhập mật khẩu" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberMe">
+                                <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
+                            </div>
+                            <button type="submit" class="btn-login" id="submitBtn">
+                                <span id="btnText">Đăng nhập</span>
+                                <div id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                            </button>
+                        </form>
+
+                        <div class="divider">hoặc</div>
+
+                        <!-- Google Login Button -->
+                        <!-- URL này mapping với cấu hình Spring Security OAuth2 -->
+                        <a href="/oauth2/authorization/google" class="btn-google">
+                            <i class="bi bi-google"></i> Đăng nhập bằng Google
+                        </a>
+
+                        <div class="auth-links">
+                            Bạn chưa có tài khoản? <a href="register.html">Đăng ký ngay</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="forgotPasswordModalLabel">Quên mật khẩu?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Nhập địa chỉ email đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</p>
+                <form id="forgotPasswordForm">
+                    <div class="mb-3">
+                        <label for="forgotEmail" class="form-label">Email đăng ký</label>
+                        <input type="email" class="form-control" id="forgotEmail" required>
+                    </div>
+                    <div id="forgotAlert" class="alert d-none"></div>
+                    <button type="submit" class="btn btn-primary w-100" id="forgotBtn">Gửi yêu cầu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer id="footer" class="footer accent-background">
+    <div class="container copyright text-center mt-4">
+        <p>© <span>Copyright</span> <strong class="px-1 sitename">Nova LMS</strong> <span>All Rights Reserved</span></p>
+    </div>
+</footer>
+
+<!-- Vendor JS Files -->
+<script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="assets/vendor/aos/aos.js"></script>
+<script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+<!-- Main JS Logic -->
+<script>
+    // --- 1. XỬ LÝ NORMAL LOGIN ---
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const alertBox = document.getElementById('loginAlert');
+        const btn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        // Reset UI
+        alertBox.classList.add('d-none');
+        btn.disabled = true;
+        btnText.textContent = 'Đang xử lý...';
+        btnSpinner.classList.remove('d-none');
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Thành công: Lưu Token và điều hướng
+                localStorage.setItem('jwt_token', data.token);
+                localStorage.setItem('user_role', data.role);
+                localStorage.setItem('user_email', data.email);
+
+                document.getElementById('loginSuccess').textContent = 'Đăng nhập thành công! Đang chuyển hướng...';
+                document.getElementById('loginSuccess').classList.remove('d-none');
+
+                setTimeout(() => {
+                    window.location.href = 'index.html'; // Chuyển về trang chủ hoặc Dashboard
+                }, 1500);
+            } else {
+                // Thất bại: Hiển thị lỗi từ Backend
+                throw new Error(data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+            }
+
+        } catch (error) {
+            alertBox.textContent = error.message;
+            alertBox.classList.remove('d-none');
+
+            // Reset button
+            btn.disabled = false;
+            btnText.textContent = 'Đăng nhập';
+            btnSpinner.classList.add('d-none');
+        }
+    });
+
+    // --- 2. XỬ LÝ FORGOT PASSWORD ---
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail').value;
+        const alertBox = document.getElementById('forgotAlert');
+        const btn = document.getElementById('forgotBtn');
+
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi...';
+
+        try {
+            const response = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: email })
+            });
+
+            // API này thường trả về string text hoặc void
+            const text = await response.text();
+
+            alertBox.className = 'alert alert-success mt-3';
+            alertBox.textContent = 'Đã gửi hướng dẫn! Hãy kiểm tra email của bạn.';
+            alertBox.classList.remove('d-none');
+        } catch (error) {
+            alertBox.className = 'alert alert-danger mt-3';
+            alertBox.textContent = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
+            alertBox.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Gửi yêu cầu';
+        }
+    });
+
+    // --- 3. CHECK GOOGLE LOGIN CALLBACK (Nếu backend redirect về index với token) ---
+    // Đoạn này nên để ở index.html, nhưng nếu login xong redirect về login page thì xử lý ở đây
+    window.addEventListener('load', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            localStorage.setItem('jwt_token', token);
+            // Có thể gọi API /me để lấy info user nếu cần
+            window.location.href = 'index.html';
+        }
+    });
+
+    // Init AOS animation
+    AOS.init();
+</script>
+
+</body>
+
+</html>
