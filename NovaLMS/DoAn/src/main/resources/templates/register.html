@@ -217,11 +217,13 @@
                             </div>
 
                             <!-- Email -->
+
                             <div class="mb-3">
                                 <label class="form-label">Email <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                                    <input type="email" class="form-control form-control-icon" name="email" placeholder="Nhập email tại đây" required>
+                                    <!-- ĐÃ SỬA: Đổi ID thành 'registerEmail' để tránh trùng lặp -->
+                                    <input type="email" class="form-control form-control-icon" id="registerEmail" name="email" placeholder="Nhập email tại đây" required>
                                 </div>
                             </div>
 
@@ -280,13 +282,14 @@
                                 </div>
                             </div>
 
-                            <!-- Mã xác minh (Giả lập) -->
+                            <!-- Mã xác minh -->
                             <div class="mb-3 verify-code-group">
                                 <label class="form-label">Mã xác minh <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
-                                    <input type="text" class="form-control form-control-icon" placeholder="Nhập mã xác minh">
-                                    <button type="button" class="btn-get-code" onclick="alert('Mã xác minh của bạn là: 123456')">Lấy mã xác minh</button>
+                                    <input type="text" class="form-control form-control-icon" name="verificationCode" placeholder="Nhập mã 6 số" required>
+                                    <!-- Nút button type="button" -->
+                                    <button type="button" class="btn-get-code" id="btnGetCode" style="z-index: 10; cursor: pointer;">Lấy mã xác minh</button>
                                 </div>
                             </div>
 
@@ -318,6 +321,88 @@
         </div>
     </section>
 </main>
+
+<script>
+    console.log("Register script loaded v2!");
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const btnGetCode = document.getElementById('btnGetCode');
+        // ĐÃ SỬA: Lấy theo ID mới 'registerEmail'
+        const emailInput = document.getElementById('registerEmail');
+
+        // Debug Log
+        if (!btnGetCode) console.error("LỖI: Không tìm thấy nút btnGetCode");
+        if (!emailInput) console.error("LỖI: Không tìm thấy input registerEmail. Kiểm tra lại HTML!");
+
+        if (btnGetCode && emailInput) {
+            btnGetCode.addEventListener('click', async function(e) {
+                // Ngăn chặn sự kiện nổi bọt (tránh submit form nhầm)
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log("Button clicked!");
+                const email = emailInput.value;
+
+                if (!email || !email.includes('@')) {
+                    alert("Vui lòng nhập địa chỉ email hợp lệ trước khi lấy mã.");
+                    return;
+                }
+
+                // UI Loading
+                btnGetCode.disabled = true;
+                const originalText = btnGetCode.innerText;
+                btnGetCode.innerText = "Đang gửi...";
+                btnGetCode.style.color = "#999";
+
+                try {
+                    const url = '/api/verification/send-code?email=' + encodeURIComponent(email) + '&t=' + new Date().getTime();
+                    console.log("Fetching URL:", url);
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log("Response status:", response.status);
+
+                    if (response.ok) {
+                        alert("Mã xác minh đã được gửi vào email của bạn!");
+                        startCountdown(60);
+                    } else {
+                        const msg = await response.text();
+                        alert("Lỗi: " + msg);
+                        resetButton(originalText);
+                    }
+                } catch (error) {
+                    console.error("Lỗi fetch:", error);
+                    alert("Không thể kết nối đến server. Kiểm tra Console (F12) để biết chi tiết.");
+                    resetButton(originalText);
+                }
+            });
+        }
+
+        function startCountdown(seconds) {
+            let counter = seconds;
+            const interval = setInterval(() => {
+                counter--;
+                btnGetCode.innerText = `Gửi lại (${counter}s)`;
+
+                if (counter <= 0) {
+                    clearInterval(interval);
+                    resetButton("Lấy mã xác minh");
+                }
+            }, 1000);
+        }
+
+        function resetButton(text) {
+            btnGetCode.disabled = false;
+            btnGetCode.innerText = text || "Lấy mã xác minh";
+            btnGetCode.style.color = "#26a69a";
+        }
+    });
+</script>
 
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
