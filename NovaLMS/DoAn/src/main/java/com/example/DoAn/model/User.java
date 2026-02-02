@@ -21,12 +21,31 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    // --- CÁC TRƯỜNG MỚI THÊM VÀO ---
+
+    @Column(name = "full_name")
+    private String fullName;
+
+    @Column(name = "phone_number")
+    private String phone;
+
+    @Column(length = 20)
+    private String gender; // Male, Female, Other
+
+    @Column(length = 100)
+    private String city;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    // --------------------------------
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
     @Column(length = 20)
-    private String status; // 'Active', 'Inactive', 'Banned'
+    private String status;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -37,11 +56,21 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // Xác định provider (Google hay Local)
+    @Column(name = "auth_provider")
+    private String authProvider;
+
+    @Column(name = "provider_id")
+    private String providerId;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         if (this.status == null) {
             this.status = "Active";
+        }
+        if (this.authProvider == null) {
+            this.authProvider = "LOCAL";
         }
     }
 
