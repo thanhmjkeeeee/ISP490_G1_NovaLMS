@@ -1,58 +1,69 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
 <header th:fragment="header-fragment" id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center">
 
-        <a th:href="@{/index}" class="logo d-flex align-items-center me-auto">
-            <h1 class="sitename">Learner</h1>
+        <a th:href="@{/index.html}" class="logo d-flex align-items-center me-auto">
+            <h1 class="sitename">Nova LMS</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
             <ul>
-                <li><a th:href="index.html" th:classappend="${currentPage == 'index'} ? 'active'">Home</a></li>
-                <li><a th:href="about.html" th:classappend="${currentPage == 'about'} ? 'active'">About</a></li>
-                <li><a th:href="courses.html">Courses</a></li>
-                <li><a th:href="instructors.html">Instructors</a></li>
-                <li><a th:href="pricing.html">Pricing</a></li>
-                <li><a th:href="blog.html">Blog</a></li>
+                <li><a th:href="@{/index.html}" th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
+                <li><a th:href="@{/about.html}" th:classappend="${currentPage == 'about'} ? 'active'">Giới thiệu</a></li>
+                <li><a th:href="@{/courses.html}">Khóa học</a></li>
+                <li><a th:href="@{/instructors.html}">Giảng viên</a></li>
+                <li><a th:href="@{/pricing.html}">Học phí</a></li>
+                <li><a th:href="@{/blog.html}">Tin tức</a></li>
 
-                <li class="dropdown"><a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <li class="dropdown"><a href="#"><span>Chức năng</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
                     <ul>
-                        <li><a th:href="course-details.html">Course Details</a></li>
-                        <li><a th:href="instructor-profile.html">Instructor Profile</a></li>
-                        <li><a th:href="events.html">Events</a></li>
-                        <li><a th:href="blog-details.html">Blog Details</a></li>
-                        <li><a th:href="terms.html">Terms</a></li>
-                        <li><a th:href="privacy.html">Privacy</a></li>
-                        <li><a th:href="404.html">404</a></li>
+                        <li><a th:href="@{/contact.html}">Liên hệ</a></li>
+                        <li><a th:href="@{/404.html}">Trợ giúp</a></li>
                     </ul>
                 </li>
 
-                <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <!-- =========================================== -->
+                <!-- LOGIC: HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP -->
+                <!-- =========================================== -->
+                <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left: 15px;">
+                    <a href="#" class="d-flex align-items-center gap-2">
+                        <!-- Avatar placeholder -->
+                        <img th:src="@{/assets/img/person/person-1.jpg}"
+                             style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;"
+                             alt="Avatar">
+                        <!-- Tên user (lấy từ Security Context) -->
+                        <span sec:authentication="name" style="font-weight: 600;">User Name</span>
+                        <i class="bi bi-chevron-down toggle-dropdown"></i>
+                    </a>
                     <ul>
-                        <li><a href="#">Dropdown 1</a></li>
-                        <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                            <ul>
-                                <li><a href="#">Deep Dropdown 1</a></li>
-                                <li><a href="#">Deep Dropdown 2</a></li>
-                                <li><a href="#">Deep Dropdown 3</a></li>
-                                <li><a href="#">Deep Dropdown 4</a></li>
-                                <li><a href="#">Deep Dropdown 5</a></li>
-                            </ul>
+                        <li><a href="#">Hồ sơ cá nhân</a></li>
+                        <li><a href="#">Khóa học của tôi</a></li>
+                        <!-- Chỉ hiện nếu là Admin -->
+                        <li sec:authorize="hasRole('ROLE_ADMIN')"><a th:href="@{/admin/dashboard}">Quản trị hệ thống</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <!-- Form Logout -->
+                            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                <button type="submit" style="background: none; border: none; padding: 10px 20px; width: 100%; text-align: left; font-family: inherit; font-size: 15px; color: #444444; cursor: pointer;">
+                                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                                </button>
+                            </form>
                         </li>
-                        <li><a href="#">Dropdown 2</a></li>
-                        <li><a href="#">Dropdown 3</a></li>
-                        <li><a href="#">Dropdown 4</a></li>
                     </ul>
                 </li>
-                <li><a th:href="contact.html">Contact</a></li>
             </ul>
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
-        <a class="btn-getstarted" th:href="enroll.html">Enroll Now</a>
+        <!-- =========================================== -->
+        <!-- LOGIC: HIỂN THỊ KHI CHƯA ĐĂNG NHẬP -->
+        <!-- =========================================== -->
+        <!-- Chỉ hiện nút "Đăng Nhập" khi chưa auth -->
+        <a sec:authorize="!isAuthenticated()" class="btn-getstarted" th:href="@{/login.html}">Đăng nhập</a>
 
     </div>
 </header>
