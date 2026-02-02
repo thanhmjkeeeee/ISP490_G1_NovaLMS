@@ -37,12 +37,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/verification/**",
                                 "/login/**",
                                 "/oauth2/**",
                                 "/index.html",
+                                "/register.html", "/register",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
+                                "/assets/**",
+                                "/vendor/**",
                                 "/**" // Permit static files
                         ).permitAll()
                         .anyRequest().authenticated()
