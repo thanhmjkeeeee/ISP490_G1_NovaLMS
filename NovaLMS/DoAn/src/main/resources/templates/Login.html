@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<!-- Include Head Fragment -->
 <head th:replace="~{fragments/head :: common-head(pageTitle='Đăng nhập')}"></head>
 
 <body class="index-page">
 
-<!-- Include Header Fragment -->
-<header th:replace="~{fragments/header :: header-fragment}"></header>
+<header th:replace="~{fragments/header :: header-fragment(currentPage='login')}"></header>
 
 <main class="main">
     <section id="login" class="login-section" style="padding: 100px 0; background-color: #f9f9f9;">
@@ -22,30 +20,26 @@
                                 <p class="text-muted">Chào mừng bạn quay trở lại với Nova LMS</p>
                             </div>
 
-                            <!-- Hiển thị lỗi đăng nhập -->
+                            <!-- Thông báo lỗi login -->
                             <div th:if="${param.error}" class="alert alert-danger" role="alert">
                                 Email hoặc mật khẩu không chính xác!
                             </div>
 
-                            <!-- Hiển thị thông báo đăng ký thành công -->
                             <div th:if="${success}" class="alert alert-success" role="alert" th:text="${success}"></div>
 
-                            <!-- FORM ĐĂNG NHẬP -->
-                            <!-- action="@{/perform_login}" khớp với .loginProcessingUrl() trong SecurityConfig -->
+                            <!-- FORM LOGIN -->
                             <form th:action="@{/perform_login}" method="post">
-
                                 <div class="mb-3">
                                     <label for="username" class="form-label">Email</label>
-                                    <!-- name="username" là bắt buộc với cấu hình mặc định -->
                                     <input type="email" class="form-control" id="username" name="username" placeholder="name@example.com" required>
                                 </div>
 
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between">
                                         <label for="password" class="form-label">Mật khẩu</label>
-                                        <a href="#" class="text-decoration-none" style="font-size: 0.9rem;">Quên mật khẩu?</a>
+                                        <!-- Link kích hoạt Modal Quên Mật Khẩu -->
+                                        <a href="#" class="text-decoration-none" style="font-size: 0.9rem;" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Quên mật khẩu?</a>
                                     </div>
-                                    <!-- name="password" là bắt buộc -->
                                     <input type="password" class="form-control" id="password" name="password" placeholder="Nhập mật khẩu" required>
                                 </div>
 
@@ -63,7 +57,6 @@
                                 <hr class="flex-grow-1">
                             </div>
 
-                            <!-- Google Login Button -->
                             <a href="/oauth2/authorization/google" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="border-radius: 50px;">
                                 <i class="bi bi-google"></i> Đăng nhập bằng Google
                             </a>
@@ -80,9 +73,84 @@
     </section>
 </main>
 
-<!-- Include Footer & Scripts -->
+<!-- MODAL QUÊN MẬT KHẨU -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="forgotPasswordModalLabel">Khôi phục mật khẩu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Nhập email đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</p>
+
+                <form id="forgotPasswordForm">
+                    <div class="mb-3">
+                        <label for="forgotEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="forgotEmail" required placeholder="name@example.com">
+                    </div>
+
+                    <!-- Khu vực hiện thông báo -->
+                    <div id="forgotAlert" class="alert d-none"></div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="forgotBtn">
+                        <span id="forgotBtnText">Gửi yêu cầu</span>
+                        <span id="forgotSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<!-- SCRIPT XỬ LÝ QUÊN MẬT KHẨU -->
+<script>
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const email = document.getElementById('forgotEmail').value;
+        const btn = document.getElementById('forgotBtn');
+        const btnText = document.getElementById('forgotBtnText');
+        const spinner = document.getElementById('forgotSpinner');
+        const alertBox = document.getElementById('forgotAlert');
+
+        // Reset UI
+        btn.disabled = true;
+        btnText.textContent = 'Đang gửi...';
+        spinner.classList.remove('d-none');
+        alertBox.classList.add('d-none');
+
+        try {
+            const response = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
+
+            // Backend trả về chuỗi text
+            const message = await response.text();
+
+            if (response.ok) {
+                alertBox.className = 'alert alert-success mt-3';
+                alertBox.textContent = 'Thành công! Vui lòng kiểm tra email của bạn.';
+            } else {
+                alertBox.className = 'alert alert-danger mt-3';
+                alertBox.textContent = 'Lỗi: ' + message;
+            }
+        } catch (error) {
+            alertBox.className = 'alert alert-danger mt-3';
+            alertBox.textContent = 'Không thể kết nối đến server.';
+        } finally {
+            alertBox.classList.remove('d-none');
+            btn.disabled = false;
+            btnText.textContent = 'Gửi yêu cầu';
+            spinner.classList.add('d-none');
+        }
+    });
+</script>
 
 </body>
 </html>
