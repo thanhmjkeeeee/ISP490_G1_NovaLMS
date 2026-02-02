@@ -3,54 +3,317 @@
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Đăng ký')}"></head>
 
+<!-- Custom CSS cho trang Register Riki Style -->
+<style>
+
+    .register-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        overflow: hidden;
+        max-width: 1100px;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+    }
+
+    /* Cột trái: Hình ảnh */
+    .register-left {
+        flex: 1;
+        background-color: #e0f2f1; /* Màu xanh nhạt */
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .register-left img {
+        max-width: 100%;
+        height: auto;
+        margin-bottom: 20px;
+    }
+
+    .register-left h2 {
+        color: #00796b;
+        font-weight: 700;
+        font-size: 2rem;
+        margin-bottom: 15px;
+    }
+
+    .register-left p {
+        color: #555;
+        font-size: 1.1rem;
+    }
+
+    /* Cột phải: Form */
+    .register-right {
+        flex: 1.2;
+        padding: 50px;
+        background: #fff;
+    }
+
+    .register-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #26a69a;
+        box-shadow: 0 0 0 0.2rem rgba(38, 166, 154, 0.25);
+    }
+
+    .input-group-text {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px 0 0 8px;
+        color: #777;
+    }
+
+    .form-control-icon {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .btn-register {
+        background: #26a69a; /* Màu nút xanh đậm */
+        color: #fff;
+        font-weight: 700;
+        padding: 12px;
+        border-radius: 8px;
+        width: 100%;
+        border: none;
+        transition: 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 20px;
+    }
+
+    .btn-register:hover {
+        background: #00897b;
+    }
+
+    .verify-code-group {
+        position: relative;
+    }
+
+    .btn-get-code {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%); /* Căn giữa nút */
+        font-size: 0.8rem;
+        color: #26a69a;
+        font-weight: 600;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .social-login {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .btn-social {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        color: #555;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: 0.3s;
+        text-decoration: none;
+    }
+
+    .btn-social:hover {
+        background: #f5f5f5;
+    }
+
+    .login-link {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 0.9rem;
+    }
+
+    .login-link a {
+        color: #26a69a;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    /* Responsive mobile */
+    @media (max-width: 992px) {
+        .register-card {
+            flex-direction: column;
+            max-width: 600px;
+        }
+        .register-left {
+            display: none; /* Ẩn ảnh trên mobile cho gọn */
+        }
+        .register-right {
+            padding: 30px;
+        }
+    }
+</style>
+
 <body class="index-page">
 
 <header th:replace="~{fragments/header :: header-fragment}"></header>
 
 <main class="main">
-    <section id="register" class="login-section" style="padding: 100px 0; background-color: #f9f9f9;">
-        <div class="container" data-aos="fade-up">
+    <section class="register-container">
+        <div class="container">
             <div class="row justify-content-center">
-                <div class="col-lg-5 col-md-8">
-                    <div class="card shadow-sm border-0" style="border-radius: 15px;">
-                        <div class="card-body p-5">
 
-                            <div class="text-center mb-4">
-                                <h3 style="font-weight: 700; color: var(--heading-color);">Đăng Ký Tài Khoản</h3>
-                                <p class="text-muted">Tham gia cộng đồng học tập Nova LMS</p>
+                <div class="register-card">
+                    <!-- Cột Trái: Banner Image -->
+                    <div class="register-left">
+                        <img th:src="@{/assets/img/hero-img.png}" alt="Nova LMS Mascot">
+                        <h2>Nova LMS</h2>
+                        <p>Hãy đăng ký tài khoản để trải nghiệm<br>cùng Nova ngay nhé!</p>
+                    </div>
+
+                    <!-- Cột Phải: Form Đăng Ký -->
+                    <div class="register-right">
+                        <h3 class="register-title">Đăng ký tài khoản</h3>
+
+                        <!-- Thông báo lỗi/thành công -->
+                        <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+                        <div th:if="${success}" class="alert alert-success" role="alert" th:text="${success}"></div>
+
+                        <form th:action="@{/register}" method="post">
+                            <!-- Họ tên -->
+                            <div class="mb-3">
+                                <label class="form-label">Tên <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control form-control-icon" name="fullName" placeholder="Nhập tên tại đây" required>
+                                </div>
                             </div>
 
-                            <!-- Error Message -->
-                            <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
-
-                            <!-- REGISTER FORM -->
-                            <form th:action="@{/register}" method="post">
-
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label class="form-label">Email <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" class="form-control form-control-icon" name="email" placeholder="Nhập email tại đây" required>
                                 </div>
-
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">Mật khẩu</label>
-                                    <input type="password" class="form-control" id="password" name="password" required>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="confirmPassword" class="form-label">Xác nhận mật khẩu</label>
-                                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary w-100 py-2" style="border-radius: 50px; font-weight: 600;">Đăng ký</button>
-                            </form>
-
-                            <div class="text-center mt-4">
-                                Đã có tài khoản? <a th:href="@{/login.html}" class="text-decoration-none fw-bold">Đăng nhập</a>
                             </div>
 
-                        </div>
+                            <!-- Số điện thoại -->
+                            <div class="mb-3">
+                                <label class="form-label">Số điện thoại</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" class="form-control form-control-icon" name="phone" placeholder="Nhập số điện thoại">
+                                </div>
+                            </div>
+
+                            <!-- Giới tính & Nơi sinh sống (2 cột) -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Giới tính <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-gender-ambiguous"></i></span>
+                                        <select class="form-select form-control-icon" name="gender">
+                                            <option value="Male">Nam</option>
+                                            <option value="Female">Nữ</option>
+                                            <option value="Other">Khác</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Nơi sinh sống <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                        <select class="form-select form-control-icon" name="city">
+                                            <option value="">Chọn tỉnh/thành</option>
+                                            <option value="Hanoi">Hà Nội</option>
+                                            <option value="HCM">Hồ Chí Minh</option>
+                                            <option value="Danang">Đà Nẵng</option>
+                                            <option value="Other">Khác</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mật khẩu -->
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control form-control-icon" name="password" placeholder="Nhập mật khẩu tại đây" required>
+                                </div>
+                            </div>
+
+                            <!-- Nhập lại mật khẩu -->
+                            <div class="mb-3">
+                                <label class="form-label">Nhập lại mật khẩu <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                                    <input type="password" class="form-control form-control-icon" name="confirmPassword" placeholder="Nhập lại mật khẩu tại đây" required>
+                                </div>
+                            </div>
+
+                            <!-- Mã xác minh (Giả lập) -->
+                            <div class="mb-3 verify-code-group">
+                                <label class="form-label">Mã xác minh <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                                    <input type="text" class="form-control form-control-icon" placeholder="Nhập mã xác minh">
+                                    <button type="button" class="btn-get-code" onclick="alert('Mã xác minh của bạn là: 123456')">Lấy mã xác minh</button>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn-register">Đăng Ký</button>
+
+                            <div class="text-center mt-3 text-muted" style="font-size: 0.85rem;">
+                                Hoặc đăng nhập nhanh
+                            </div>
+
+                            <!-- Social Buttons -->
+                            <div class="social-login">
+                                <a href="/oauth2/authorization/google" class="btn-social">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20" alt="Google">
+                                    Google
+                                </a>
+                            </div>
+
+                            <!-- Login Link -->
+                            <div class="login-link">
+                                Bạn đã có tài khoản? <a th:href="@{/login.html}">Đăng nhập</a>
+                            </div>
+
+                        </form>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
