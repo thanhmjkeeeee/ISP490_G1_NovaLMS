@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Đăng ký')}"></head>
+
+<body class="index-page">
+
+<header th:replace="~{fragments/header :: header-fragment}"></header>
+
+<main class="main">
+    <section id="register" class="login-section" style="padding: 100px 0; background-color: #f9f9f9;">
+        <div class="container" data-aos="fade-up">
+            <div class="row justify-content-center">
+                <div class="col-lg-5 col-md-8">
+                    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                        <div class="card-body p-5">
+
+                            <div class="text-center mb-4">
+                                <h3 style="font-weight: 700; color: var(--heading-color);">Đăng Ký Tài Khoản</h3>
+                                <p class="text-muted">Tham gia cộng đồng học tập Nova LMS</p>
+                            </div>
+
+                            <!-- Error Message -->
+                            <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+
+                            <!-- REGISTER FORM -->
+                            <form th:action="@{/register}" method="post">
+
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Mật khẩu</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Xác nhận mật khẩu</label>
+                                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2" style="border-radius: 50px; font-weight: 600;">Đăng ký</button>
+                            </form>
+
+                            <div class="text-center mt-4">
+                                Đã có tài khoản? <a th:href="@{/login.html}" class="text-decoration-none fw-bold">Đăng nhập</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>
