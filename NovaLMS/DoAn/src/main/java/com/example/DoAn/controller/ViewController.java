@@ -69,4 +69,8 @@ public class ViewController {
     public String register() {
         return "register";
     }
+    @GetMapping("/reset-password.html")
+    public String resetPasswordPage() {
+        return "reset-password"; // Trả về templates/reset-password.html
+    }
 }
