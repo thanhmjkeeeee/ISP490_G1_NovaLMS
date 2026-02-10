@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,69 +13,56 @@ import java.time.LocalDateTime;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "full_name", length = 100)
+    private String fullName;
 
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-
-    // --- CÁC TRƯỜNG MỚI THÊM VÀO ---
-
-    @Column(name = "full_name")
-    private String fullName;
-
-    @Column(name = "phone_number")
-    private String phone;
-
     @Column(length = 20)
-    private String gender; // Male, Female, Other
+    private String mobile;
 
-    @Column(length = 100)
-    private String city;
+    @Column(nullable = false)
+    private String password; // DB mới dùng 'password', không phải 'password_hash'
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Setting role; // Trỏ tới bảng setting
 
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    // --------------------------------
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 
     @Column(length = 20)
-    private String status;
+    private String status; // Active, Inactive, Blocked
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(columnDefinition = "TEXT")
+    private String note;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    // --- CÁC TRƯỜNG THÊM MỚI (Hibernate tự sinh thêm) ---
+    // Để hỗ trợ Google Login và thông tin bổ sung từ form đăng ký
 
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
-    // Xác định provider (Google hay Local)
     @Column(name = "auth_provider")
-    private String authProvider;
+    private String authProvider; // LOCAL, GOOGLE
 
     @Column(name = "provider_id")
-    private String providerId;
+    private String providerId; // Google ID
 
+    @Column(length = 10)
+    private String gender; // Male, Female
+
+    @Column(length = 100)
+    private String city;
+
+    // Callbacks
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = "Active";
-        }
-        if (this.authProvider == null) {
-            this.authProvider = "LOCAL";
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        if (this.status == null) this.status = "Active";
+        if (this.authProvider == null) this.authProvider = "LOCAL";
     }
 }

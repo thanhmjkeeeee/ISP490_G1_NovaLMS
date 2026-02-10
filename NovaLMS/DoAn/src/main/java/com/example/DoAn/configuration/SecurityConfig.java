@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/index.html",
                                 "/register.html", "/register",
+                                "/reset-password.html",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
