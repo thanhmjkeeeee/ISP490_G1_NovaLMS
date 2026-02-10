@@ -42,7 +42,7 @@ public class AuthService {
             throw new RuntimeException("Account is inactive or banned");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
 
@@ -113,13 +113,13 @@ public class AuthService {
         PasswordResetToken token = tokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new RuntimeException("Invalid token"));
 
-        if (token.isExpired() || Boolean.TRUE.equals(token.getIsUsed())) {
+        if (token.isExpired() || Boolean.TRUE.equals(token.isUsed())) {
             throw new RuntimeException("Token expired or already used");
         }
 
         User user = token.getUser();
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
 
-        token.setIsUsed(true);
+        token.setUsed(true);
     }
 }
