@@ -17,7 +17,7 @@ public class EmailVerification {
     @Column(nullable = false, length = 255) // Định nghĩa độ dài cho email
     private String email;
 
-    @Column(name = "verification_code", nullable = false, length = 10) // Mã xác nhận chỉ cần ngắn (6-10 ký tự)
+    @Column(name = "verification_code", nullable = false, length = 250) // Mã xác nhận chỉ cần ngắn (6-10 ký tự)
     private String verificationCode;
 
     @Column(name = "expiry_time", nullable = false)

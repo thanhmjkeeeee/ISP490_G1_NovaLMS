@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "password_reset_tokens")
-@Data
+@Getter // Sử dụng Getter/Setter thay vì @Data để kiểm soát tốt hơn
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -26,9 +27,21 @@ public class PasswordResetToken {
     private LocalDateTime expiryDatetime;
 
     @Column(name = "is_used")
-    private Boolean isUsed;
+    private boolean isUsed = false; // Chuyển sang primitive boolean
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiryDatetime);
+    }
+
+    // Lombok sẽ tự tạo:
+    // public boolean isUsed() { return isUsed; }
+    // public void setUsed(boolean used) { this.isUsed = used; }
+
+    public boolean isUsed() {
+        return isUsed;
+    }
+
+    public void setUsed(boolean used) {
+        isUsed = used;
     }
 }
