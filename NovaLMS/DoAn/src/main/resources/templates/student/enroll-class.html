@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Lịch sử đăng ký')}"></head>
+<body class="index-page">
+<header th:replace="~{fragments/header :: header-fragment(currentPage='index')}"></header>
+
+<main class="main">
+    <section class="section">
+        <div class="container">
+            <div class="section-title">
+                <h2>Lịch Sử Đăng Ký</h2>
+                <p>Theo dõi trạng thái các lớp bạn đã đăng ký</p>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+            <div class="table-responsive card shadow-sm p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Khóa Học</th>
+                        <th>Lớp</th>
+                        <th>Ngày Đăng Ký</th>
+                        <th>Trạng Thái</th>
+                        <th>Hành Động</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="reg : ${registrations}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img th:src="@{${reg.course.imageUrl}}" class="rounded me-2" width="50" height="50" style="object-fit: cover;">
+                                <span th:text="${reg.course.title}">Title</span>
+                            </div>
+                        </td>
+                        <td th:text="${reg.clazz.className}">Class Name</td>
+                        <td th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">Date</td>
+                        <td>
+                            <span th:if="${reg.status == 'Submitted'}" class="badge bg-warning text-dark">Chờ duyệt</span>
+                            <span th:if="${reg.status == 'Approved'}" class="badge bg-success">Đã duyệt</span>
+                            <span th:if="${reg.status == 'Cancelled'}" class="badge bg-secondary">Đã hủy</span>
+                            <span th:if="${reg.status == 'Rejected'}" class="badge bg-danger">Bị từ chối</span>
+                        </td>
+                        <td>
+                            <!-- Nút Hủy chỉ hiện khi trạng thái là Submitted -->
+                            <form th:if="${reg.status == 'Submitted'}" th:action="@{/student/cancel-enrollment}" method="post"
+                                  onsubmit="return confirm('Bạn có chắc chắn muốn hủy đăng ký lớp này không?');">
+                                <input type="hidden" name="registrationId" th:value="${reg.registrationId}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Hủy</button>
+                            </form>
+
+                            <a th:if="${reg.status == 'Approved'}" th:href="@{/student/my-courses}" class="btn btn-sm btn-primary">Vào học</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(registrations)}">
+                        <td colspan="5" class="text-center py-4">Bạn chưa đăng ký khóa học nào.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+</body>
+</html>

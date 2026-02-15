@@ -41,7 +41,7 @@
                     </a>
                     <ul>
                         <li><a href="#">Hồ sơ cá nhân</a></li>
-                        <li><a href="#">Khóa học của tôi</a></li>
+                        <li><a th:href="@{/student/my-enrollments}">Khóa học của tôi</a></li>
                         <!-- Chỉ hiện nếu là Admin -->
                         <li sec:authorize="hasRole('ROLE_ADMIN')"><a th:href="@{/admin/dashboard}">Quản trị hệ thống</a></li>
                         <li><hr class="dropdown-divider"></li>
