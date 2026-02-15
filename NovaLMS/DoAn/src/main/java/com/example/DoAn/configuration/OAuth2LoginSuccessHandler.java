@@ -16,25 +16,11 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
-@RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
-
-    @Value("${app.frontend.url}")
-    private String frontendUrl;
-
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        String email = oAuth2User.getAttribute("email");
-
-        // User guaranteed to exist via CustomOAuth2UserService
-        User user = userRepository.findByEmail(email).orElseThrow();
-        String token = jwtUtil.generateToken(user);
-
-        // Redirect to Frontend with Token
-        getRedirectStrategy().sendRedirect(request, response, frontendUrl + "/index.html?token=" + token);
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+        // Ép buộc điều hướng về trang sạch, không kèm tham số Code của Google
+        getRedirectStrategy().sendRedirect(request, response, "/student/my-enrollments");
     }
 }

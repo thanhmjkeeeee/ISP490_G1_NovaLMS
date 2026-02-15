@@ -35,35 +35,39 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // 1. Cho phép tài nguyên tĩnh (Bắt buộc phải tách rõ)
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/verification/**",
-                                "/login/**",
-                                "/oauth2/**",
-                                "/index.html",
-                                "/register.html", "/register",
-                                "/reset-password.html",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**",
-                                "/assets/**",
-                                "/vendor/**",
-                                "/**" // Permit static files
+                                "/css/**", "/js/**", "/images/**", "/assets/**", "/vendor/**", "/favicon.ico"
                         ).permitAll()
+
+                        // 2. Cho phép các API xác thực và các trang công khai
+                        .requestMatchers(
+                                "/", "/index.html",
+                                "/login.html", "/register.html",
+                                "/api/auth/**", "/api/verification/**",
+                                "/reset-password.html",
+                                "/courses.html", "/course-details.html",
+                                "/instructors.html", "/instructor-profile.html"
+                        ).permitAll()
+
+                        // 3. Bảo vệ các luồng nghiệp vụ của Student (Quan trọng)
+                        .requestMatchers("/student/**").authenticated()
+
+                        // 4. Các yêu cầu còn lại phải đăng nhập
                         .anyRequest().authenticated()
                 )
-                // --- CẤU HÌNH FORM LOGIN (QUAN TRỌNG) ---
                 .formLogin(form -> form
-                        .loginPage("/login.html")          // Trang hiển thị form login
-                        .loginProcessingUrl("/perform_login") // URL nhận request POST từ form (Spring tự xử lý)
-                        .defaultSuccessUrl("/index.html", true) // Login thành công -> Về trang chủ
-                        .failureUrl("/login.html?error=true")   // Login thất bại -> Về trang login kèm lỗi
+                        .loginPage("/login.html")
+                        .loginProcessingUrl("/perform_login")
+                        .defaultSuccessUrl("/index.html", true)
+                        .failureUrl("/login.html?error=true")
                         .permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(info -> info.userService(customOAuth2UserService))
-                        .successHandler(oAuth2LoginSuccessHandler)
-
+                        .successHandler((request, response, authentication) -> {
+                            response.sendRedirect("/student/my-enrollments");
+                        })
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -71,6 +75,7 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 );
+
         return http.build();
     }
     @Bean
