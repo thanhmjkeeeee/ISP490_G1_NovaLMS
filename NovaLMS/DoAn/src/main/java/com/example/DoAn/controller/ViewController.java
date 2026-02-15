@@ -73,4 +73,10 @@ public class ViewController {
     public String resetPasswordPage() {
         return "reset-password"; // Trả về templates/reset-password.html
     }
+
+    @GetMapping("/enroll")
+    public String enrollClassPage() {
+        // Phải khớp chính xác với tên file enroll-class.html (bỏ đuôi .html)
+        return "enroll-class";
+    }
 }
