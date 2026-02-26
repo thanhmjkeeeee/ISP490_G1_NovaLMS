@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 import java.time.LocalDateTime;
 
@@ -36,4 +37,14 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
     private LocalDateTime startDate;
 
     private String status; // Pending, Open, Closed
+
+    @Column(name = "end_date")
+    private LocalDateTime endDate;
+
+    // Thêm quan hệ này để biết lớp này có bao nhiêu học viên đã đăng ký
+    @OneToMany(mappedBy = "clazz")
+    private List<Registration> registrations;
+
+    @Column(name = "schedule") // Ví dụ: "Mon-Wed-Fri"
+    private String schedule;
 }
