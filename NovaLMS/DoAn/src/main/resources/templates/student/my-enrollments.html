@@ -43,13 +43,6 @@
                             <span th:if="${reg.status == 'Rejected'}" class="badge bg-danger">Bị từ chối</span>
                         </td>
                         <td>
-                            <!-- Nút Hủy chỉ hiện khi trạng thái là Submitted -->
-                            <form th:if="${reg.status == 'Submitted'}" th:action="@{/student/cancel-enrollment}" method="post"
-                                  onsubmit="return confirm('Bạn có chắc chắn muốn hủy đăng ký lớp này không?');">
-                                <input type="hidden" name="registrationId" th:value="${reg.registrationId}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Hủy</button>
-                            </form>
-
                             <a th:if="${reg.status == 'Approved'}" th:href="@{/student/my-courses}" class="btn btn-sm btn-primary">Vào học</a>
                         </td>
                     </tr>

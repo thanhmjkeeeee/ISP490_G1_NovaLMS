@@ -46,7 +46,7 @@ public class SecurityConfig {
                                 "/login.html", "/register.html",
                                 "/api/auth/**", "/api/verification/**",
                                 "/reset-password.html",
-                                "/courses.html", "/course-details.html",
+                                "/my-courses.html", "/course-details.html",
                                 "/instructors.html", "/instructor-profile.html"
                         ).permitAll()
 

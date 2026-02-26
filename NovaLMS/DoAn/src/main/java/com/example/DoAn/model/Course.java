@@ -29,6 +29,8 @@ public class Course {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Mapping Setting category nếu cần
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Setting category;
 }
 
