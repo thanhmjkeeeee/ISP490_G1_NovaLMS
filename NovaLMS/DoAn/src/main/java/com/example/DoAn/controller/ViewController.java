@@ -19,7 +19,7 @@ public class ViewController {
     }
 
     // 3. Các trang khác (Mapping tương tự)
-    @GetMapping("/courses.html")
+    @GetMapping("/my-courses.html")
     public String courses() {
         return "courses";
     }
@@ -76,7 +76,7 @@ public class ViewController {
 
     @GetMapping("/enroll")
     public String enrollClassPage() {
-        // Phải khớp chính xác với tên file enroll-class.html (bỏ đuôi .html)
-        return "enroll-class";
+        // Phải khớp chính xác với tên file my-enrollments.html (bỏ đuôi .html)
+        return "my-enrollments";
     }
 }

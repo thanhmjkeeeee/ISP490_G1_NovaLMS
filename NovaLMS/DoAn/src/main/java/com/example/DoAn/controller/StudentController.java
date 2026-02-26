@@ -1,17 +1,22 @@
 package com.example.DoAn.controller;
 
-
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.example.DoAn.dto.MyCourseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -26,36 +31,45 @@ public class StudentController {
     private final ClassRepository classRepository;
     private final RegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final StudentService studentService;
 
-    // Helper: Lấy User hiện tại từ Session
+    // ĐÃ FIX: Hàm dùng chung để lấy User an toàn cho cả Google và form thường
     private User getCurrentUser(Principal principal) {
         if (principal == null) return null;
-        return userRepository.findByEmail(principal.getName()).orElse(null);
+
+        String email;
+        if (principal instanceof OAuth2AuthenticationToken token) {
+            email = token.getPrincipal().getAttribute("email");
+        } else {
+            email = principal.getName();
+        }
+
+        return userRepository.findByEmail(email).orElse(null);
     }
 
     // ======================================================
     // 1. ENROLL COURSE FLOW
     // ======================================================
 
-    // Màn hình chọn lớp để đăng ký (Từ trang Course Details bấm vào)
     @GetMapping("/enroll/{courseId}")
-    public String showEnrollPage(@PathVariable Integer courseId, Model model) {
+    public String showEnrollPage(@PathVariable Integer courseId, Model model, Principal principal) {
+        if (principal == null) return "redirect:/login.html";
+
         Course course = courseRepository.findById(courseId).orElseThrow();
-        // Chỉ lấy các lớp đang mở (Open)
         List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
 
         model.addAttribute("course", course);
         model.addAttribute("classes", openClasses);
-        return "student/enroll-class"; // Trả về view chọn lớp
+        return "student/enroll-class";
     }
 
-    // Xử lý hành động Đăng ký
     @PostMapping("/enroll")
     public String processEnroll(@RequestParam Integer classId, Principal principal, RedirectAttributes ra) {
         User user = getCurrentUser(principal);
+        if (user == null) return "redirect:/login.html";
+
         Clazz clazz = classRepository.findById(classId).orElseThrow();
 
-        // Check: Đã đăng ký chưa?
         boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
                 user.getUserId(), classId, "Cancelled");
 
@@ -64,13 +78,12 @@ public class StudentController {
             return "redirect:/student/enroll/" + clazz.getCourse().getCourseId();
         }
 
-        // Tạo Registration mới
         Registration reg = Registration.builder()
                 .user(user)
                 .clazz(clazz)
                 .course(clazz.getCourse())
-                .status("Submitted") // Trạng thái chờ duyệt/thanh toán
-                .registrationPrice(new BigDecimal("5000000")) // Giả định giá, thực tế lấy từ Class/Course
+                .status("Submitted")
+                .registrationPrice(new BigDecimal("5000000"))
                 .note("Đăng ký trực tuyến")
                 .build();
 
@@ -86,48 +99,12 @@ public class StudentController {
 
     @GetMapping("/my-enrollments")
     public String viewMyEnrollments(Principal principal, Model model) {
-        if (principal == null) return "redirect:/login.html";
-
-        // 1. Lấy Email chuẩn từ Principal (Xử lý cả OAuth2 và Local)
-        String email;
-        if (principal instanceof OAuth2AuthenticationToken token) {
-            email = token.getPrincipal().getAttribute("email");
-        } else {
-            email = principal.getName();
-        }
-
-        // 2. Tìm User trong DB
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Tài khoản chưa tồn tại trong hệ thống!"));
-
-        // 3. Lấy dữ liệu đăng ký
-        List<Registration> list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
-
-        model.addAttribute("registrations", list);
-        return "student/enroll-class"; // Trả về templates/enroll-class.html
-    }
-
-    @PostMapping("/cancel-enrollment")
-    public String cancelEnrollment(@RequestParam Integer registrationId, Principal principal, RedirectAttributes ra) {
         User user = getCurrentUser(principal);
-        Registration reg = registrationRepository.findById(registrationId).orElseThrow();
+        if (user == null) return "redirect:/login.html";
 
-        // Security check: Phải là đơn của chính mình
-        if (!reg.getUser().getUserId().equals(user.getUserId())) {
-            ra.addFlashAttribute("error", "Không có quyền thực hiện!");
-            return "redirect:/student/my-enrollments";
-        }
-
-        // Logic check: Chỉ cho hủy khi mới Submitted
-        if ("Submitted".equals(reg.getStatus()) || "Pending".equals(reg.getStatus())) {
-            reg.setStatus("Cancelled");
-            registrationRepository.save(reg);
-            ra.addFlashAttribute("success", "Đã hủy đăng ký thành công.");
-        } else {
-            ra.addFlashAttribute("error", "Không thể hủy khi lớp đã duyệt hoặc đang học.");
-        }
-
-        return "redirect:/student/my-enrollments";
+        List<Registration> list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
+        model.addAttribute("registrations", list);
+        return "student/my-enrollments";
     }
 
     // ======================================================
@@ -135,11 +112,37 @@ public class StudentController {
     // ======================================================
 
     @GetMapping("/my-courses")
-    public String viewMyCourses(Principal principal, Model model) {
+    public String viewMyCourses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(defaultValue = "registrationTime_desc") String sort,
+            Principal principal, Model model) {
+
         User user = getCurrentUser(principal);
-        // Chỉ lấy những khóa đã Approved (Đã đóng tiền/được duyệt)
-        List<Registration> activeRegs = registrationRepository.findActiveRegistrations(user.getUserId());
-        model.addAttribute("myCourses", activeRegs);
+        if (user == null) return "redirect:/login.html";
+
+        try {
+            // Setup phân trang và sắp xếp
+            String[] sortParams = sort.split("_");
+            Sort.Direction direction = sortParams[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+
+            // Gọi Service
+            Page<MyCourseDTO> coursePage = studentService.getMyCourses(user.getUserId(), keyword, categoryId, pageable);
+            model.addAttribute("coursePage", coursePage);
+
+            // Giữ lại trạng thái UI
+            model.addAttribute("keyword", keyword);
+            model.addAttribute("categoryId", categoryId);
+            model.addAttribute("currentSort", sort);
+
+        } catch (Exception e) {
+            e.printStackTrace(); // In lỗi ra Console để Dev đọc
+            model.addAttribute("error", "Lỗi tải dữ liệu: " + e.getMessage());
+        }
+
         return "student/my-courses";
     }
 }
