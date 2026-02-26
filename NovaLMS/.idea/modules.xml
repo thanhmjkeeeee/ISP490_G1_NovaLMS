@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/DoAn/DoAn.iml" filepath="$PROJECT_DIR$/DoAn/DoAn.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/NovaLMS.iml" filepath="$PROJECT_DIR$/.idea/NovaLMS.iml" />
     </modules>
   </component>

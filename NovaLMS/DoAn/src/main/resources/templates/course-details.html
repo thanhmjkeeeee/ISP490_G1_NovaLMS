@@ -1,626 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Course Details - Learner Bootstrap Template</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
-
-  <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-
-  <!-- Main CSS File -->
-  <link href="assets/css/main.css" rel="stylesheet">
-
-  <!-- =======================================================
-  * Template Name: Learner
-  * Template URL: https://bootstrapmade.com/learner-bootstrap-course-template/
-  * Updated: Jul 08 2025 with Bootstrap v5.3.7
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
+<head th:replace="~{fragments/head :: common-head(${course.title})}">
 </head>
 
 <body class="course-details-page">
 
-  <header id="header" class="header d-flex align-items-center sticky-top">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+<header th:replace="~{fragments/header :: header-fragment('course-details')}"></header>
 
-      <a href="index.html" class="logo d-flex align-items-center me-auto">
-        <!-- Uncomment the line below if you also wish to use an image logo -->
-        <!-- <img src="assets/img/logo.webp" alt=""> -->
-        <h1 class="sitename">Learner</h1>
-      </a>
+<main class="main">
 
-      <nav id="navmenu" class="navmenu">
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="about.html">About</a></li>
-          <li><a href="courses.html">Courses</a></li>
-          <li><a href="instructors.html">Instructors</a></li>
-          <li><a href="pricing.html">Pricing</a></li>
-          <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>More Pages</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-            <ul>
-              <li><a href="course-details.html" class="active">Course Details</a></li>
-              <li><a href="instructor-profile.html">Instructor Profile</a></li>
-              <li><a href="events.html">Events</a></li>
-              <li><a href="blog-details.html">Blog Details</a></li>
-              <li><a href="terms.html">Terms</a></li>
-              <li><a href="privacy.html">Privacy</a></li>
-              <li><a href="404.html">404</a></li>
-            </ul>
-          </li>
-
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-            <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
-            </ul>
-          </li>
-          <li><a href="contact.html">Contact</a></li>
-        </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+  <div class="page-title light-background">
+    <div class="container d-lg-flex justify-content-between align-items-center">
+      <h1 class="mb-2 mb-lg-0" th:text="${course != null ? course.title : 'Course Details'}">Course Details</h1>
+      <nav class="breadcrumbs">
+        <ol>
+          <li><a th:href="@{/}">Home</a></li>
+          <li><a th:href="@{/courses}">Courses</a></li>
+          <li class="current" th:text="${course != null ? course.title : 'Details'}">Details</li>
+        </ol>
       </nav>
-
-      <a class="btn-getstarted" href="enroll.html">Enroll Now</a>
-
     </div>
-  </header>
+  </div>
 
-  <main class="main">
+  <section id="course-details" class="course-details section">
+    <div class="container" data-aos="fade-up">
+      <div class="row" th:if="${course != null}">
 
-    <!-- Page Title -->
-    <div class="page-title light-background">
-      <div class="container d-lg-flex justify-content-between align-items-center">
-        <h1 class="mb-2 mb-lg-0">Course Details</h1>
-        <nav class="breadcrumbs">
-          <ol>
-            <li><a href="index.html">Home</a></li>
-            <li class="current">Course Details</li>
-          </ol>
-        </nav>
-      </div>
-    </div><!-- End Page Title -->
+        <div class="col-lg-8">
 
-    <!-- Course Details Section -->
-    <section id="course-details" class="course-details section">
+          <div class="course-hero mb-4">
+            <div class="hero-content p-4 border rounded bg-white shadow-sm">
+              <div class="course-badge mb-3">
+                <span class="badge bg-primary me-2" th:text="${course.category != null ? course.category.name : 'Uncategorized'}">Category</span>
+                <span class="badge bg-info text-dark" th:text="${course.status}">Status</span>
+              </div>
+              <h2 class="fw-bold mb-3" th:text="${course.title}">Course Title</h2>
 
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-        <div class="row">
-          <div class="col-lg-8">
-
-            <!-- Course Hero -->
-            <div class="course-hero" data-aos="fade-up" data-aos-delay="200">
-              <div class="hero-content">
-                <div class="course-badge">
-                  <span class="category">Web Development</span>
-                  <span class="level">Advanced</span>
-                </div>
-                <h1>Full Stack JavaScript Mastery</h1>
-                <p class="course-subtitle">Master modern web development with React, Node.js, and MongoDB in this comprehensive hands-on course</p>
-
-                <div class="instructor-card">
-                  <img src="assets/img/person/person-m-8.webp" alt="Instructor" class="instructor-image">
-                  <div class="instructor-details">
-                    <h5>Prof. Michael Rodriguez</h5>
-                    <span>Senior Full Stack Developer</span>
-                    <div class="instructor-rating">
-                      <i class="bi bi-star-fill"></i>
-                      <i class="bi bi-star-fill"></i>
-                      <i class="bi bi-star-fill"></i>
-                      <i class="bi bi-star-fill"></i>
-                      <i class="bi bi-star-half"></i>
-                      <span>4.8 (1,247 reviews)</span>
-                    </div>
-                  </div>
+              <div class="instructor-info d-flex align-items-center mt-4" th:if="${course.expert != null}">
+                <img th:src="${course.expert.avatarUrl != null ? course.expert.avatarUrl : '/assets/img/default-avatar.png'}"
+                     alt="Instructor" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                <div>
+                  <h6 class="mb-0 fw-bold" th:text="${course.expert.fullName}">Expert Name</h6>
+                  <small class="text-muted">Lead Instructor</small>
                 </div>
               </div>
-              <div class="hero-image">
-                <img src="assets/img/education/courses-8.webp" alt="Course Preview" class="img-fluid">
-                <div class="play-overlay">
-                  <button class="play-btn">
-                    <i class="bi bi-play-fill"></i>
-                  </button>
-                  <span>Watch Preview</span>
-                </div>
-              </div>
-            </div><!-- End Course Hero -->
-
-            <!-- Course Navigation Tabs -->
-            <div class="course-nav-tabs" data-aos="fade-up" data-aos-delay="300">
-              <ul class="nav nav-tabs" id="course-detailsCourseTab" role="tablist">
-                <li class="nav-item">
-                  <button class="nav-link active" id="course-detailsoverview-tab" data-bs-toggle="tab" data-bs-target="#course-detailsoverview" type="button" role="tab">
-                    <i class="bi bi-layout-text-window-reverse"></i>
-                    Overview
-                  </button>
-                </li>
-                <li class="nav-item">
-                  <button class="nav-link" id="course-detailscurriculum-tab" data-bs-toggle="tab" data-bs-target="#course-detailscurriculum" type="button" role="tab">
-                    <i class="bi bi-list-ul"></i>
-                    Curriculum
-                  </button>
-                </li>
-                <li class="nav-item">
-                  <button class="nav-link" id="course-detailsreviews-tab" data-bs-toggle="tab" data-bs-target="#course-detailsreviews" type="button" role="tab">
-                    <i class="bi bi-star"></i>
-                    Reviews
-                  </button>
-                </li>
-              </ul>
-
-              <div class="tab-content" id="course-detailsCourseTabContent">
-
-                <!-- Overview Tab -->
-                <div class="tab-pane fade show active" id="course-detailsoverview" role="tabpanel">
-
-                  <div class="overview-section">
-                    <h3>Course Description</h3>
-                    <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-                    <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
-                  </div>
-
-                  <div class="skills-grid">
-                    <h3>Skills You'll Gain</h3>
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="skill-item">
-                          <div class="skill-icon">
-                            <i class="bi bi-code-slash"></i>
-                          </div>
-                          <div class="skill-content">
-                            <h5>Frontend Development</h5>
-                            <p>React, JavaScript ES6+, HTML5 &amp; CSS3</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="skill-item">
-                          <div class="skill-icon">
-                            <i class="bi bi-server"></i>
-                          </div>
-                          <div class="skill-content">
-                            <h5>Backend Development</h5>
-                            <p>Node.js, Express.js, RESTful APIs</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="skill-item">
-                          <div class="skill-icon">
-                            <i class="bi bi-database"></i>
-                          </div>
-                          <div class="skill-content">
-                            <h5>Database Management</h5>
-                            <p>MongoDB, Mongoose, Data Modeling</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="skill-item">
-                          <div class="skill-icon">
-                            <i class="bi bi-shield-check"></i>
-                          </div>
-                          <div class="skill-content">
-                            <h5>Security &amp; Testing</h5>
-                            <p>Authentication, JWT, Unit Testing</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="requirements-section">
-                    <h3>Requirements</h3>
-                    <ul class="requirements-list">
-                      <li><i class="bi bi-check2"></i>Basic understanding of HTML and CSS</li>
-                      <li><i class="bi bi-check2"></i>Familiarity with JavaScript fundamentals</li>
-                      <li><i class="bi bi-check2"></i>Computer with internet connection</li>
-                      <li><i class="bi bi-check2"></i>Text editor or IDE installed</li>
-                    </ul>
-                  </div>
-
-                </div><!-- End Overview Tab -->
-
-                <!-- Curriculum Tab -->
-                <div class="tab-pane fade" id="course-detailscurriculum" role="tabpanel">
-
-                  <div class="curriculum-overview">
-                    <div class="curriculum-stats">
-                      <div class="stat">
-                        <i class="bi bi-collection-play"></i>
-                        <span>12 Sections</span>
-                      </div>
-                      <div class="stat">
-                        <i class="bi bi-play-circle"></i>
-                        <span>89 Lectures</span>
-                      </div>
-                      <div class="stat">
-                        <i class="bi bi-clock"></i>
-                        <span>45h 32m</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="accordion" id="curriculumAccordion">
-
-                    <div class="accordion-item curriculum-module">
-                      <h2 class="accordion-header">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#module1">
-                          <div class="module-info">
-                            <span class="module-title">JavaScript Fundamentals &amp; ES6+</span>
-                            <span class="module-meta">8 lessons • 4h 15m</span>
-                          </div>
-                        </button>
-                      </h2>
-                      <div id="module1" class="accordion-collapse collapse show" data-bs-parent="#curriculumAccordion">
-                        <div class="accordion-body">
-                          <div class="lessons-list">
-                            <div class="lesson">
-                              <i class="bi bi-play-circle"></i>
-                              <span class="lesson-title">Variables, Functions and Scope</span>
-                              <span class="lesson-time">28 min</span>
-                            </div>
-                            <div class="lesson">
-                              <i class="bi bi-play-circle"></i>
-                              <span class="lesson-title">Arrow Functions and Destructuring</span>
-                              <span class="lesson-time">35 min</span>
-                            </div>
-                            <div class="lesson">
-                              <i class="bi bi-file-earmark-text"></i>
-                              <span class="lesson-title">Promises and Async/Await</span>
-                              <span class="lesson-time">42 min</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="accordion-item curriculum-module">
-                      <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#module2">
-                          <div class="module-info">
-                            <span class="module-title">React Development Deep Dive</span>
-                            <span class="module-meta">12 lessons • 7h 45m</span>
-                          </div>
-                        </button>
-                      </h2>
-                      <div id="module2" class="accordion-collapse collapse" data-bs-parent="#curriculumAccordion">
-                        <div class="accordion-body">
-                          <div class="lessons-list">
-                            <div class="lesson">
-                              <i class="bi bi-play-circle"></i>
-                              <span class="lesson-title">Components and JSX Syntax</span>
-                              <span class="lesson-time">32 min</span>
-                            </div>
-                            <div class="lesson">
-                              <i class="bi bi-play-circle"></i>
-                              <span class="lesson-title">State Management with Hooks</span>
-                              <span class="lesson-time">48 min</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="accordion-item curriculum-module">
-                      <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#module3">
-                          <div class="module-info">
-                            <span class="module-title">Node.js &amp; Server Development</span>
-                            <span class="module-meta">15 lessons • 8h 20m</span>
-                          </div>
-                        </button>
-                      </h2>
-                      <div id="module3" class="accordion-collapse collapse" data-bs-parent="#curriculumAccordion">
-                        <div class="accordion-body">
-                          <div class="lessons-list">
-                            <div class="lesson">
-                              <i class="bi bi-play-circle"></i>
-                              <span class="lesson-title">Express.js Server Setup</span>
-                              <span class="lesson-time">25 min</span>
-                            </div>
-                            <div class="lesson">
-                              <i class="bi bi-file-earmark-text"></i>
-                              <span class="lesson-title">Building RESTful APIs</span>
-                              <span class="lesson-time">55 min</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div><!-- End Curriculum Tab -->
-
-                <!-- Reviews Tab -->
-                <div class="tab-pane fade" id="course-detailsreviews" role="tabpanel">
-
-                  <div class="reviews-summary">
-                    <div class="rating-overview">
-                      <div class="overall-rating">
-                        <div class="rating-number">4.8</div>
-                        <div class="rating-stars">
-                          <i class="bi bi-star-fill"></i>
-                          <i class="bi bi-star-fill"></i>
-                          <i class="bi bi-star-fill"></i>
-                          <i class="bi bi-star-fill"></i>
-                          <i class="bi bi-star-half"></i>
-                        </div>
-                        <div class="rating-text">1,247 reviews</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="reviews-list">
-                    <div class="review-item">
-                      <div class="reviewer-info">
-                        <img src="assets/img/person/person-f-12.webp" alt="Reviewer" class="reviewer-avatar">
-                        <div class="reviewer-details">
-                          <h6>Jessica Chen</h6>
-                          <div class="review-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                          </div>
-                        </div>
-                        <span class="review-date">2 weeks ago</span>
-                      </div>
-                      <p class="review-text">Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. The instructor explains complex concepts very clearly.</p>
-                    </div>
-
-                    <div class="review-item">
-                      <div class="reviewer-info">
-                        <img src="assets/img/person/person-m-5.webp" alt="Reviewer" class="reviewer-avatar">
-                        <div class="reviewer-details">
-                          <h6>David Thompson</h6>
-                          <div class="review-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star"></i>
-                          </div>
-                        </div>
-                        <span class="review-date">1 month ago</span>
-                      </div>
-                      <p class="review-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Great practical examples and real-world projects that helped me understand the concepts better.</p>
-                    </div>
-
-                  </div>
-
-                </div><!-- End Reviews Tab -->
-
-              </div>
-            </div><!-- End Course Navigation Tabs -->
-
+            </div>
           </div>
 
-          <div class="col-lg-4">
+          <div class="course-tabs mt-4">
+            <ul class="nav nav-tabs border-bottom-0" id="courseTab" role="tablist">
+              <li class="nav-item">
+                <button class="nav-link active fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link fw-bold" id="curriculum-tab" data-bs-toggle="tab" data-bs-target="#curriculum" type="button">Curriculum</button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link fw-bold text-primary" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button">Schedules</button>
+              </li>
+            </ul>
 
-            <!-- Enrollment Card -->
-            <div class="enrollment-card" data-aos="fade-up" data-aos-delay="200">
+            <div class="tab-content border p-4 bg-white rounded-bottom shadow-sm" id="courseTabContent">
 
-              <div class="card-header">
-                <div class="price-display">
-                  <span class="current-price">$149</span>
-                  <span class="original-price">$249</span>
-                  <span class="discount">40% OFF</span>
-                </div>
-                <div class="enrollment-count">
-                  <i class="bi bi-people"></i>
-                  <span>3,892 students enrolled</span>
+              <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <h4 class="fw-bold mb-3">About This Course</h4>
+                <p style="white-space: pre-line;" th:text="${course.description != null ? course.description : 'No description available.'}">Description...</p>
+              </div>
+
+              <div class="tab-pane fade" id="curriculum" role="tabpanel">
+                <h4 class="fw-bold mb-4">Course Content</h4>
+                <div class="accordion" id="accordionCurriculum">
+                  <div class="accordion-item" th:each="module, state : ${curriculum}">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button collapsed fw-bold" type="button"
+                              data-bs-toggle="collapse" th:data-bs-target="'#mod' + ${module.moduleId}">
+                        <span th:text="${'Module ' + (state.index + 1) + ': ' + (module.moduleName != null ? module.moduleName : 'Untitled Module')}">Module Title</span>
+                      </button>
+                    </h2>
+                    <div th:id="'mod' + ${module.moduleId}" class="accordion-collapse collapse" data-bs-parent="#accordionCurriculum">
+                      <div class="accordion-body p-0">
+                        <ul class="list-group list-group-flush">
+                          <li class="list-group-item d-flex justify-content-between align-items-center py-3" th:each="lesson : ${module.lessons}">
+                            <div>
+                              <i class="bi bi-play-circle me-2 text-primary"></i>
+                              <span th:text="${lesson.lessonName != null ? lesson.lessonName : 'Untitled Lesson'}">Lesson Title</span>
+                            </div>
+                            <small class="text-muted" th:text="${lesson.duration != null ? lesson.duration + ' mins' : '0 mins'}">0 mins</small>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  <div th:if="${#lists.isEmpty(curriculum)}" class="text-center py-4">
+                    <p class="text-muted">Curriculum is being updated...</p>
+                  </div>
                 </div>
               </div>
 
-              <div class="card-body">
-                <div class="course-highlights">
-                  <div class="highlight-item">
-                    <i class="bi bi-trophy"></i>
-                    <span>Certificate included</span>
-                  </div>
-                  <div class="highlight-item">
-                    <i class="bi bi-clock-history"></i>
-                    <span>45 hours content</span>
-                  </div>
-                  <div class="highlight-item">
-                    <i class="bi bi-download"></i>
-                    <span>Downloadable resources</span>
-                  </div>
-                  <div class="highlight-item">
-                    <i class="bi bi-infinity"></i>
-                    <span>Lifetime access</span>
-                  </div>
-                  <div class="highlight-item">
-                    <i class="bi bi-phone"></i>
-                    <span>Mobile access</span>
-                  </div>
+              <div class="tab-pane fade" id="classes" role="tabpanel">
+                <h4 class="fw-bold mb-4">Available Classes</h4>
+                <div th:if="${#lists.isEmpty(activeClasses)}" class="alert alert-warning">
+                  No classes are currently open for registration.
                 </div>
-
-                <div class="action-buttons">
-                  <button class="btn-primary">Enroll Now</button>
-                  <button class="btn-secondary">Add to Wishlist</button>
-                </div>
-
-                <div class="guarantee">
-                  <i class="bi bi-shield-check"></i>
-                  <span>30-day money-back guarantee</span>
+                <div class="class-item border rounded p-3 mb-3 shadow-sm" th:each="clazz : ${activeClasses}">
+                  <div class="row align-items-center">
+                    <div class="col-md-8">
+                      <h5 class="fw-bold text-primary mb-1" th:text="${clazz.className}">Class Name</h5>
+                      <p class="mb-0 small text-muted" th:if="${clazz.teacher != null}">
+                        <i class="bi bi-person-fill"></i> Instructor: <span th:text="${clazz.teacher.fullName}">Teacher</span>
+                      </p>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                      <button class="btn btn-primary px-4 rounded-pill">Enroll Now</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-            </div><!-- End Enrollment Card -->
-
-            <!-- Course Details -->
-            <div class="course-details-card" data-aos="fade-up" data-aos-delay="300">
-              <h4>Course Details</h4>
-
-              <div class="detail-grid">
-                <div class="detail-row">
-                  <span class="detail-label">Duration</span>
-                  <span class="detail-value">16 weeks</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Skill Level</span>
-                  <span class="detail-value">Intermediate</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Language</span>
-                  <span class="detail-value">English</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Quizzes</span>
-                  <span class="detail-value">24</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Assignments</span>
-                  <span class="detail-value">8 projects</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Updated</span>
-                  <span class="detail-value">December 2024</span>
-                </div>
-              </div>
-            </div><!-- End Course Details -->
-
-            <!-- Share Course -->
-            <div class="share-course-card" data-aos="fade-up" data-aos-delay="400">
-              <h4>Share This Course</h4>
-              <div class="social-links">
-                <a href="#" class="social-link facebook">
-                  <i class="bi bi-facebook"></i>
-                </a>
-                <a href="#" class="social-link twitter">
-                  <i class="bi bi-twitter"></i>
-                </a>
-                <a href="#" class="social-link linkedin">
-                  <i class="bi bi-linkedin"></i>
-                </a>
-                <a href="#" class="social-link email">
-                  <i class="bi bi-envelope"></i>
-                </a>
-              </div>
-            </div><!-- End Share Course -->
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section><!-- /Course Details Section -->
-
-  </main>
-
-  <footer id="footer" class="footer accent-background">
-
-    <div class="container footer-top">
-      <div class="row gy-4">
-        <div class="col-lg-5 col-md-12 footer-about">
-          <a href="index.html" class="logo d-flex align-items-center">
-            <span class="sitename">Learner</span>
-          </a>
-          <p>Cras fermentum odio eu feugiat lide par naso tierra. Justo eget nada terra videa magna derita valies darta donna mare fermentum iaculis eu non diam phasellus.</p>
-          <div class="social-links d-flex mt-4">
-            <a href=""><i class="bi bi-twitter-x"></i></a>
-            <a href=""><i class="bi bi-facebook"></i></a>
-            <a href=""><i class="bi bi-instagram"></i></a>
-            <a href=""><i class="bi bi-linkedin"></i></a>
+            </div>
           </div>
         </div>
 
-        <div class="col-lg-2 col-6 footer-links">
-          <h4>Useful Links</h4>
-          <ul>
-            <li><a href="#">Home</a></li>
-            <li><a href="#">About us</a></li>
-            <li><a href="#">Services</a></li>
-            <li><a href="#">Terms of service</a></li>
-            <li><a href="#">Privacy policy</a></li>
-          </ul>
-        </div>
+        <div class="col-lg-4 mt-4 mt-lg-0">
+          <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 100px;">
+            <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/course-default.jpg'}" class="card-img-top p-2 rounded" alt="Course Image">
+            <div class="card-body text-center">
 
-        <div class="col-lg-2 col-6 footer-links">
-          <h4>Our Services</h4>
-          <ul>
-            <li><a href="#">Web Design</a></li>
-            <li><a href="#">Web Development</a></li>
-            <li><a href="#">Product Management</a></li>
-            <li><a href="#">Marketing</a></li>
-            <li><a href="#">Graphic Design</a></li>
-          </ul>
-        </div>
+              <div class="mb-3">
+                <h3 class="text-primary fw-bold mb-0"
+                    th:if="${course.price != null && course.price > 0}"
+                    th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                  500.000 đ
+                </h3>
 
-        <div class="col-lg-3 col-md-12 footer-contact text-center text-md-start">
-          <h4>Contact Us</h4>
-          <p>A108 Adam Street</p>
-          <p>New York, NY 535022</p>
-          <p>United States</p>
-          <p class="mt-4"><strong>Phone:</strong> <span>+1 5589 55488 55</span></p>
-          <p><strong>Email:</strong> <span>info@example.com</span></p>
+                <h3 class="text-success fw-bold mb-0"
+                    th:if="${course.price == null || course.price == 0}">
+                  Free
+                </h3>
+              </div>
+              <button class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow"
+                      onclick="document.getElementById('classes-tab').click()">
+                ENROLL NOW
+              </button>
+
+              <div class="course-specs mt-4 text-start">
+                <div class="d-flex justify-content-between border-bottom py-2">
+                  <span class="text-muted"><i class="bi bi-people me-2"></i>Students</span>
+                  <span class="fw-bold" th:text="${studentCount}">0</span>
+                </div>
+                <div class="d-flex justify-content-between border-bottom py-2">
+                  <span class="text-muted"><i class="bi bi-layers me-2"></i>Modules</span>
+                  <span class="fw-bold" th:text="${#lists.size(curriculum)}">0</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                  <span class="text-muted"><i class="bi bi-clock me-2"></i>Access</span>
+                  <span class="fw-bold">Lifetime</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
     </div>
+  </section>
+</main>
 
-    <div class="container copyright text-center mt-4">
-      <p>© <span>Copyright</span> <strong class="px-1 sitename">Learner</strong> <span>All Rights Reserved</span></p>
-      <div class="credits">
-        <!-- All the links in the footer should remain intact. -->
-        <!-- You can delete the links only if you've purchased the pro version. -->
-        <!-- Licensing information: https://bootstrapmade.com/license/ -->
-        <!-- Purchase the pro version with working PHP/AJAX contact form: [buy-url] -->
-        Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> | <a href="https://bootstrapmade.com/tools/">DevTools</a>
-      </div>
-    </div>
-
-  </footer>
-
-  <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-
-  <!-- Preloader -->
-  <div id="preloader"></div>
-
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/vendor/purecounter/purecounter_vanilla.js"></script>
-  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
-
-  <!-- Main JS File -->
-  <script src="assets/js/main.js"></script>
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 </body>
-
 </html>

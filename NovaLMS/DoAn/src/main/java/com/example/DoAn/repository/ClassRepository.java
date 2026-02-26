@@ -10,4 +10,6 @@ import java.util.List;
 public interface ClassRepository extends JpaRepository<Clazz, Integer> {
     // Tìm các lớp theo Course ID và trạng thái (ví dụ: tìm lớp đang mở 'Open')
     List<Clazz> findByCourse_CourseIdAndStatus(Integer courseId, String status);
+
+
 }
