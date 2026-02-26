@@ -3,10 +3,10 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
-<header th:fragment="header-fragment" id="header" class="header d-flex align-items-center sticky-top">
+<header th:fragment="header-fragment(currentPage)" id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center">
 
-        <a th:href="@{/index.html}" class="logo d-flex align-items-center me-auto">
+        <a th:href="@{/index}" class="logo d-flex align-items-center me-auto">
             <h1 class="sitename">Nova LMS</h1>
         </a>
 
@@ -26,27 +26,27 @@
                     </ul>
                 </li>
 
-                <!-- =========================================== -->
-                <!-- LOGIC: HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP -->
-                <!-- =========================================== -->
                 <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left: 15px;">
                     <a href="#" class="d-flex align-items-center gap-2">
-                        <!-- Avatar placeholder -->
                         <img th:src="@{/assets/img/person/person-1.jpg}"
                              style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%;"
                              alt="Avatar">
-                        <!-- Tên user (lấy từ Security Context) -->
                         <span sec:authentication="name" style="font-weight: 600;">User Name</span>
                         <i class="bi bi-chevron-down toggle-dropdown"></i>
                     </a>
                     <ul>
-                        <li><a href="#">Hồ sơ cá nhân</a></li>
-                        <li><a th:href="@{/student/my-enrollments}">Khóa học của tôi</a></li>
-                        <!-- Chỉ hiện nếu là Admin -->
-                        <li sec:authorize="hasRole('ROLE_ADMIN')"><a th:href="@{/admin/dashboard}">Quản trị hệ thống</a></li>
+                        <li><a th:href="@{/student/profile}">Hồ sơ cá nhân</a></li>
+
+                        <li><a th:href="@{/student/my-courses}">Khóa học của tôi</a></li>
+
+                        <li><a th:href="@{/student/my-enrollments}">Lịch sử đăng ký</a></li>
+
+                        <li sec:authorize="hasRole('ROLE_ADMIN')">
+                            <a th:href="@{/admin/dashboard}">Quản trị hệ thống</a>
+                        </li>
+
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <!-- Form Logout -->
                             <form th:action="@{/logout}" method="post" style="margin: 0;">
                                 <button type="submit" style="background: none; border: none; padding: 10px 20px; width: 100%; text-align: left; font-family: inherit; font-size: 15px; color: #444444; cursor: pointer;">
                                     <i class="bi bi-box-arrow-right"></i> Đăng xuất
@@ -59,10 +59,6 @@
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
-        <!-- =========================================== -->
-        <!-- LOGIC: HIỂN THỊ KHI CHƯA ĐĂNG NHẬP -->
-        <!-- =========================================== -->
-        <!-- Chỉ hiện nút "Đăng Nhập" khi chưa auth -->
         <a sec:authorize="!isAuthenticated()" class="btn-getstarted" th:href="@{/login.html}">Đăng nhập</a>
 
     </div>
