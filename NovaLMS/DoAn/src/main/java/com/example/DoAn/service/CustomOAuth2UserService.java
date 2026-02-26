@@ -37,11 +37,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         if (user == null) {
             // Case: User mới -> Tạo User
 
-            // --- SỬA LỖI TẠI ĐÂY: Đổi "Student" thành "ROLE_STUDENT" ---
             Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
                     .orElseThrow(() -> new RuntimeException("Default Role 'ROLE_STUDENT' not found. Hãy chạy DataInitializer hoặc insert vào DB."));
 
-            // SQL bắt buộc password NOT NULL -> tạo dummy password
             user = User.builder()
                     .email(email)
                     .fullName(name) // Map thêm tên từ Google
@@ -55,7 +53,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
             userRepository.save(user);
         } else {
-            // Nếu user đã tồn tại, kiểm tra xem có bị khóa không
             if ("Banned".equals(user.getStatus())) {
                 throw new OAuth2AuthenticationException("Account is banned");
             }

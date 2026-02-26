@@ -50,12 +50,10 @@ public class AuthService {
         return new LoginResponse(token, user.getEmail(), user.getRole().getName());
     }
 
-    // 3. Forgot Password (ĐÃ CẬP NHẬT GỬI MAIL THẬT)
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
-        // Bảo mật: Nếu email không tồn tại, vẫn return OK để hacker không dò được email nào đã đăng ký
         if (user == null) {
             System.out.println("Email not found: " + request.getEmail());
             return;
@@ -81,8 +79,6 @@ public class AuthService {
 
     private void sendResetEmail(String toEmail, String token) {
         try {
-            // Trong thực tế bạn nên tạo trang reset-password.html riêng
-            // Ở đây mình tạm dùng link demo trỏ về frontend
             String resetLink = frontendUrl + "/reset-password.html?token=" + token;
 
             SimpleMailMessage message = new SimpleMailMessage();
@@ -103,7 +99,7 @@ public class AuthService {
         } catch (Exception e) {
             System.err.println(">>> LỖI GỬI MAIL: " + e.getMessage());
             e.printStackTrace();
-            // Lưu ý: Không throw exception ra ngoài để tránh crash luồng chính
+
         }
     }
 
