@@ -19,7 +19,7 @@ public class ViewController {
     }
 
     // 3. Các trang khác (Mapping tương tự)
-    @GetMapping("/my-courses.html")
+    @GetMapping("/courses.html")
     public String courses() {
         return "courses";
     }
