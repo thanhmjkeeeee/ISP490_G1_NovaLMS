@@ -1,206 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Account Details - Admin Learner</title>
-
-    <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-
-    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-
-    <link href="assets/css/main.css" rel="stylesheet">
-
-    <style>
-        /* --- ADMIN THEME CONFIGURATION --- */
-        :root {
-            --sidebar-bg-color: #136ad5;
-            --sidebar-width: 280px;
-            --bg-body: #f5f7fa;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            font-family: 'Roboto', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* --- SIDEBAR STYLE --- */
-        .sidebar {
-            position: fixed; top: 0; left: 0; bottom: 0;
-            width: var(--sidebar-width);
-            background-color: var(--sidebar-bg-color);
-            box-shadow: 4px 0 20px rgba(19, 106, 213, 0.2);
-            padding: 25px 20px;
-            display: flex; flex-direction: column; z-index: 999;
-            color: #fff;
-        }
-
-        .sidebar-brand { display: flex; align-items: center; text-decoration: none; margin-bottom: 40px; padding-left: 10px; }
-        .sidebar-brand i { font-size: 28px; margin-right: 10px; color: #fff; }
-        .sidebar-brand span { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
-
-        .nav-link { display: flex; align-items: center; font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.9); padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; text-decoration: none; }
-        .nav-link i { font-size: 19px; margin-right: 12px; color: rgba(255, 255, 255, 0.9); }
-        .nav-link:hover { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
-
-        /* Active State */
-        .nav-link.active { background-color: #ffffff; color: var(--sidebar-bg-color); font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-        .nav-link.active i { color: var(--sidebar-bg-color); }
-
-        .nav-heading { font-size: 11px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: 700; margin: 25px 0 10px 15px; }
-
-        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
-        .user-profile { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
-        .user-info div { color: #fff; font-weight: bold; } .user-info small { color: rgba(255,255,255,0.8); }
-        .btn-logout { width: 100%; background-color: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; font-weight: 500; text-align: center; text-decoration: none; display: block; }
-        .btn-logout:hover { background-color: #ffffff; color: #dc3545; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; }
-
-        /* --- PAGE SPECIFIC CSS (Giữ lại style bạn cần) --- */
-        .page-title { padding: 0 0 20px 0; margin-bottom: 20px; background: transparent; border: none; }
-        .page-title h1 { color: #223a58; font-weight: 700; font-size: 24px; }
-
-        /* Card Styles */
-        .card { border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: none; background: #fff; margin-bottom: 25px; }
-        .card-header { background-color: #fff; border-bottom: 1px solid #f0f0f0; padding: 20px; border-radius: 12px 12px 0 0 !important; }
-
-        @media (max-width: 991px) { .sidebar { left: -100%; transition: 0.3s; } .main-content { margin-left: 0; } }
-    </style>
-</head>
+<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
 
 <body>
 
-<aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-        <i class="bi bi-book-half"></i> <span>Learner</span>
-    </a>
-    <nav class="nav flex-column flex-grow-1">
-        <div class="nav-heading">Overview</div>
-        <a class="nav-link" href="admin-dashboard.html"><i class="bi bi-grid-fill"></i> Dashboard</a>
-
-        <div class="nav-heading">Management</div>
-        <a class="nav-link active" href="account-list.html"><i class="bi bi-people"></i> Accounts</a>
-        <a class="nav-link" href="course-list.html"><i class="bi bi-journal-text"></i> Courses</a>
-        <a class="nav-link" href="#"><i class="bi bi-gear"></i> Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-        <div class="user-profile">
-            <img src="assets/img/testimonials/testimonials-1.jpg" class="rounded-circle me-3 border border-2 border-white" width="40" height="40" alt="Admin">
-            <div class="user-info">
-                <div>Super Admin</div><small>admin@learner.com</small>
-            </div>
-        </div>
-        <a href="index.html" class="btn-logout">Log Out</a>
-    </div>
-</aside>
+<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='accounts')}"></div>
 
 <main class="main-content">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="account-list.html" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Back to List</a>
+            <a th:href="@{/admin/accounts}" class="text-decoration-none text-muted small">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
             <h3 class="fw-bold text-dark m-0 mt-1">Account Details</h3>
         </div>
     </div>
 
     <section id="account-details" class="section">
-        <div class="container-fluid p-0"> <div class="row gx-4">
-            <div class="col-lg-4 mb-4">
-                <div class="card shadow-sm border-0 text-center p-4 h-100">
-                    <div class="card-body">
-                        <div class="mb-3 position-relative d-inline-block">
-                            <img src="assets/img/testimonials/testimonials-1.jpg" alt="Profile" class="rounded-circle img-fluid bg-secondary" style="width: 150px; height: 150px; object-fit: cover;">
+        <div class="container-fluid p-0">
+            <div class="row gx-4">
+
+                <div class="col-lg-4 mb-4">
+                    <div class="card shadow-sm border-0 text-center p-4 h-100">
+                        <div class="card-body">
+                            <div class="mb-3 position-relative d-inline-block">
+                                <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" alt="Profile"
+                                     class="rounded-circle img-fluid bg-secondary"
+                                     style="width: 150px; height: 150px; object-fit: cover;">
+                            </div>
+                            <h4 class="mt-2 text-dark fw-bold">John Doe</h4>
+                            <p class="text-muted">Student</p>
+                            <div class="d-grid gap-2 mt-3">
+                                <p class="small text-muted mb-0">User ID: 101</p>
+                            </div>
                         </div>
-                        <h4 class="mt-2 text-dark fw-bold">John Doe</h4>
-                        <p class="text-muted">Student</p>
-                        <div class="d-grid gap-2 mt-3">
-                            <p class="small text-muted mb-0">User ID: 101</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="mb-0 text-primary fw-bold">User Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/admin/accounts/save}" method="POST">
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Full Name</label>
+                                    <input type="text" class="form-control" name="full_name" value="John Doe">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Email Address</label>
+                                    <input type="email" class="form-control" name="email" value="john@example.com">
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-secondary">Mobile</label>
+                                        <input type="tel" class="form-control" name="mobile" value="0901234567">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-secondary">Role</label>
+                                        <select class="form-select" name="role_id">
+                                            <option value="5" selected>Student</option>
+                                            <option value="6">Instructor</option>
+                                            <option value="7">Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Note</label>
+                                    <textarea class="form-control" name="note" rows="3">Student requested course change.</textarea>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-secondary">Status</label>
+                                        <select class="form-select" name="status">
+                                            <option value="Active" selected>Active</option>
+                                            <option value="Blocked">Blocked</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-secondary">Last Login</label>
+                                        <input type="text" class="form-control bg-light" value="2023-10-25 14:30" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold small text-secondary">Password</label>
+                                    <input type="password" class="form-control" placeholder="New password...">
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a th:href="@{/admin/accounts}" class="btn btn-secondary text-white">Cancel</a>
+                                    <button type="submit" class="btn btn-primary" style="background-color: var(--sidebar-bg-color); border:none;">
+                                        Save Changes
+                                    </button>
+                                </div>
+
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h5 class="mb-0 text-primary fw-bold">User Information</h5>
-                    </div>
-                    <div class="card-body">
-                        <form action="#" method="POST">
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">Full Name</label>
-                                <input type="text" class="form-control" name="full_name" value="John Doe">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">Email Address</label>
-                                <input type="email" class="form-control" name="email" value="john@example.com">
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Mobile</label>
-                                    <input type="tel" class="form-control" name="mobile" value="0901234567">
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Role</label>
-                                    <select class="form-select" name="role_id">
-                                        <option value="5" selected>Student</option>
-                                        <option value="6">Instructor</option>
-                                        <option value="7">Admin</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary">Note</label>
-                                <textarea class="form-control" name="note" rows="3">Student requested course change.</textarea>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Status</label>
-                                    <select class="form-select" name="status">
-                                        <option value="Active" selected>Active</option>
-                                        <option value="Blocked">Blocked</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-secondary">Last Login</label>
-                                    <input type="text" class="form-control bg-light" value="2023-10-25 14:30" readonly>
-                                </div>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label fw-bold small text-secondary">Password</label>
-                                <input type="password" class="form-control" placeholder="New password...">
-                            </div>
-
-                            <div class="d-flex justify-content-end gap-2">
-                                <a href="account-list.html" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" class="btn btn-primary" style="background-color: var(--sidebar-bg-color); border:none;">Save Changes</button>
-                            </div>
-
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         </div>
     </section>
 
 </main>
 
-<script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
+
 </body>
 </html>

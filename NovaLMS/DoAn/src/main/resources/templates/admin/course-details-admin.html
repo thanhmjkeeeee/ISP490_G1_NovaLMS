@@ -1,166 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Admin Course Details - Learner</title>
-
-    <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="static.assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="static.assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-
-    <link href="static.assets/css/main.css" rel="stylesheet">
-
-    <style>
-        /* --- ADMIN THEME CONFIGURATION --- */
-        :root {
-            --sidebar-bg-color: #136ad5;
-            --sidebar-width: 280px;
-            --bg-body: #f5f7fa;
-            --accent-color: #136ad5; /* Đảm bảo biến này tồn tại cho các style cũ */
-        }
-
-        body {
-            background-color: var(--bg-body);
-            font-family: 'Roboto', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* --- SIDEBAR STYLE (Mới) --- */
-        .sidebar {
-            position: fixed; top: 0; left: 0; bottom: 0;
-            width: var(--sidebar-width);
-            background-color: var(--sidebar-bg-color);
-            box-shadow: 4px 0 20px rgba(19, 106, 213, 0.2);
-            padding: 25px 20px;
-            display: flex; flex-direction: column; z-index: 999;
-            color: #fff;
-        }
-
-        .sidebar-brand { display: flex; align-items: center; text-decoration: none; margin-bottom: 40px; padding-left: 10px; }
-        .sidebar-brand i { font-size: 28px; margin-right: 10px; color: #fff; }
-        .sidebar-brand span { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
-
-        .nav-link { display: flex; align-items: center; font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.9); padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; text-decoration: none; }
-        .nav-link i { font-size: 19px; margin-right: 12px; color: rgba(255, 255, 255, 0.9); }
-        .nav-link:hover { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
-
-        /* Active State */
-        .nav-link.active { background-color: #ffffff; color: var(--sidebar-bg-color); font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-        .nav-link.active i { color: var(--sidebar-bg-color); }
-
-        .nav-heading { font-size: 11px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: 700; margin: 25px 0 10px 15px; }
-
-        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
-        .user-profile { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
-        .user-info div { color: #fff; font-weight: bold; } .user-info small { color: rgba(255,255,255,0.8); }
-        .btn-logout { width: 100%; background-color: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; font-weight: 500; text-align: center; text-decoration: none; display: block; }
-        .btn-logout:hover { background-color: #ffffff; color: #dc3545; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; }
-
-        /* --- CONTENT SPECIFIC STYLES (Giữ lại từ file gốc của bạn) --- */
-        .card { border: none; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); background: #fff; margin-bottom: 25px; }
-
-        .card-header-custom {
-            background: white;
-            border-bottom: 1px solid #eee;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 12px 12px 0 0;
-        }
-        .card-header-custom h5 { margin: 0; font-weight: 700; color: #136ad5; } /* Chỉnh màu title theo theme mới */
-
-        /* Read Only Styles */
-        .read-only-box {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        @media (max-width: 991px) { .sidebar { left: -100%; transition: 0.3s; } .main-content { margin-left: 0; } }
-    </style>
-</head>
+<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
 
 <body>
 
-<aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-        <i class="bi bi-book-half"></i> <span>Learner</span>
-    </a>
-    <nav class="nav flex-column flex-grow-1">
-        <div class="nav-heading">Overview</div>
-        <a class="nav-link" href="admin-dashboard.html"><i class="bi bi-grid-fill"></i> Dashboard</a>
-
-        <div class="nav-heading">Management</div>
-        <a class="nav-link" href="account-list.html"><i class="bi bi-people"></i> Accounts</a>
-        <a class="nav-link active" href="course-list.html"><i class="bi bi-journal-text"></i> Courses</a>
-        <a class="nav-link" href="#"><i class="bi bi-gear"></i> Settings</a>
-    </nav>
-    <div class="sidebar-footer">
-        <div class="user-profile">
-            <img src="assets/img/testimonials/testimonials-1.jpg" class="rounded-circle me-3 border border-2 border-white" width="40" height="40" alt="Admin">
-            <div class="user-info">
-                <div>Super Admin</div><small>admin@learner.com</small>
-            </div>
-        </div>
-        <a href="index.html" class="btn-logout">Log Out</a>
-    </div>
-</aside>
+<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='courses')}"></div>
 
 <main class="main-content">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <a href="course-list.html" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left"></i> Back to List</a>
+            <a th:href="@{/admin/courses}" class="text-decoration-none text-muted small">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
             <h3 class="fw-bold text-dark m-0 mt-1">Add / Edit Course</h3>
         </div>
-        <button type="submit" form="courseForm" class="btn btn-success fw-bold shadow-sm">
+        <button type="submit" form="courseForm" class="btn btn-success fw-bold shadow-sm px-4">
             <i class="bi bi-check-lg me-1"></i> Save Changes
         </button>
     </div>
 
-    <form id="courseForm">
+    <form id="courseForm" th:action="@{/admin/courses/save}" method="POST" enctype="multipart/form-data">
         <div class="row">
             <div class="col-lg-8">
 
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header-custom">
-                        <h5>General Information</h5>
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-primary">General Information</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Course Title</label>
+                            <label class="form-label fw-bold small">Course Title</label>
                             <input type="text" class="form-control" name="title" value="Java Programming for Beginners" required>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Course Code</label>
+                                <label class="form-label fw-bold small">Course Code</label>
                                 <input type="text" class="form-control" name="code" value="C-JAVA-01">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Slug (URL)</label>
+                                <label class="form-label fw-bold small">Slug (URL)</label>
                                 <input type="text" class="form-control" name="slug" value="java-programming-101">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
+                            <label class="form-label fw-bold small">Description</label>
                             <textarea class="form-control" rows="5">Learn Java from scratch. This course covers basics to advanced topics including OOP, Data Structures, and Algorithms.</textarea>
                         </div>
                     </div>
                 </div>
 
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header-custom">
-                        <h5 class="text-dark">Active Classes (Read Only)</h5>
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-dark">Active Classes (Read Only)</h5>
                         <span class="badge bg-secondary">2 Classes</span>
                     </div>
                     <div class="card-body p-4">
@@ -179,7 +72,7 @@
                                     <td class="fw-bold">#C-1001</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="assets/img/trainers/trainer-1.jpg" class="rounded-circle me-2" width="25" height="25" onerror="this.src='assets/img/testimonials/testimonials-1.jpg'">
+                                            <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" class="rounded-circle me-2" width="25" height="25">
                                             <span>Mr. Anderson</span>
                                         </div>
                                     </td>
@@ -190,7 +83,7 @@
                                     <td class="fw-bold">#C-1002</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="assets/img/trainers/trainer-2.jpg" class="rounded-circle me-2" width="25" height="25" onerror="this.src='assets/img/testimonials/testimonials-2.jpg'">
+                                            <img th:src="@{/assets/img/testimonials/testimonials-2.jpg}" class="rounded-circle me-2" width="25" height="25">
                                             <span>Ms. Emily</span>
                                         </div>
                                     </td>
@@ -211,12 +104,12 @@
             <div class="col-lg-4">
 
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header-custom">
-                        <h5>Settings</h5>
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-primary">Settings</h5>
                     </div>
                     <div class="card-body p-4">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Category</label>
+                            <label class="form-label fw-bold small">Category</label>
                             <select class="form-select" name="category">
                                 <option value="1">Programming</option>
                                 <option value="2">Business</option>
@@ -224,11 +117,11 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Price ($)</label>
+                            <label class="form-label fw-bold small">Price ($)</label>
                             <input type="number" class="form-control" name="price" value="199">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Status</label>
+                            <label class="form-label fw-bold small">Status</label>
                             <select class="form-select" name="status">
                                 <option value="active" selected>Active</option>
                                 <option value="draft">Draft</option>
@@ -239,15 +132,16 @@
                 </div>
 
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header-custom">
-                        <h5>Thumbnail</h5>
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-primary">Thumbnail</h5>
                     </div>
                     <div class="card-body p-4 text-center">
-                        <img src="assets/img/course-1.jpg" class="img-fluid rounded mb-3 border" style="max-height: 180px; width: 100%; object-fit: cover;" alt="Course Thumbnail">
+                        <img th:src="@{/assets/img/course-1.jpg}" class="img-fluid rounded mb-3 border shadow-sm"
+                             style="max-height: 180px; width: 100%; object-fit: cover;" alt="Course Thumbnail">
                         <div class="d-grid">
                             <label class="btn btn-outline-primary btn-sm" style="cursor: pointer;">
                                 <i class="bi bi-upload me-1"></i> Upload Image
-                                <input type="file" class="form-control form-control-sm" hidden>
+                                <input type="file" name="thumbnail" class="form-control form-control-sm" hidden>
                             </label>
                         </div>
                     </div>
@@ -259,6 +153,7 @@
 
 </main>
 
-<script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
+
 </body>
 </html>

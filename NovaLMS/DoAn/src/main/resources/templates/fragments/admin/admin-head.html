@@ -1,0 +1,56 @@
+<head th:fragment="admin-head">
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Learner - Admin Panel</title>
+
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet">
+    <link th:href="@{/assets/css/main.css}" rel="stylesheet">
+
+    <style>
+        :root {
+            --sidebar-bg-color: #136ad5;
+            --sidebar-width: 280px;
+            --bg-body: #f5f7fa;
+        }
+
+        body { background-color: var(--bg-body); font-family: 'Roboto', sans-serif; overflow-x: hidden; }
+
+        /* Sidebar Styles */
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background-color: var(--sidebar-bg-color); box-shadow: 4px 0 20px rgba(19, 106, 213, 0.2); padding: 25px 20px; display: flex; flex-direction: column; z-index: 999; color: #fff; }
+        .sidebar-brand { display: flex; align-items: center; text-decoration: none; margin-bottom: 40px; padding-left: 10px; color: #fff; }
+        .sidebar-brand i { font-size: 28px; margin-right: 10px; }
+        .sidebar-brand span { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
+
+        /* Nav Links */
+        .nav-link { display: flex; align-items: center; font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.9); padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; transition: all 0.2s ease-in-out; text-decoration: none; }
+        .nav-link i { font-size: 19px; margin-right: 12px; }
+        .nav-link:hover { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
+        .nav-link.active { background-color: #ffffff; color: var(--sidebar-bg-color); font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .nav-link.active i { color: var(--sidebar-bg-color); }
+        .nav-heading { font-size: 11px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: 700; margin: 25px 0 10px 15px; letter-spacing: 1px; }
+
+        /* Main Content */
+        .main-content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05); background: #fff; margin-bottom: 25px; }
+
+        /* Tables & Badges */
+        .table-hover tbody tr:hover { background-color: #f8f9fa; }
+        .account-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .status-badge { font-weight: 500; padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; }
+        .action-btn { cursor: pointer; transition: 0.2s; padding: 5px; border-radius: 4px; }
+        .action-btn:hover { background-color: rgba(0,0,0,0.05); }
+
+        /* Footer Sidebar */
+        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+        .user-profile { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
+        .btn-logout { width: 100%; background-color: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; text-align: center; text-decoration: none; display: block; border: none; }
+        .btn-logout:hover { background-color: #ffffff; color: #dc3545; }
+
+        @media (max-width: 991px) { .sidebar { left: -100%; transition: 0.3s; } .main-content { margin-left: 0; } }
+    </style>
+</head>

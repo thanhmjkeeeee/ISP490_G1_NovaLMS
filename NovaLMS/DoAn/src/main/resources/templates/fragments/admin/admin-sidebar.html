@@ -1,0 +1,39 @@
+<aside th:fragment="admin-sidebar" class="sidebar">
+    <a th:href="@{/admin/dashboard}" class="sidebar-brand">
+        <i class="bi bi-book-half"></i>
+        <span>Learner</span>
+    </a>
+
+    <nav class="nav flex-column flex-grow-1">
+        <div class="nav-heading">Overview</div>
+        <a class="nav-link" th:classappend="${activePage == 'dashboard' ? 'active' : ''}" th:href="@{/admin/dashboard}">
+            <i class="bi bi-grid-fill"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <div class="nav-heading">Management</div>
+        <a class="nav-link" th:classappend="${activePage == 'accounts' ? 'active' : ''}" th:href="@{/admin/accounts}">
+            <i class="bi bi-people"></i>
+            <span>Accounts</span>
+        </a>
+        <a class="nav-link" th:classappend="${activePage == 'courses' ? 'active' : ''}" th:href="@{/admin/courses}">
+            <i class="bi bi-journal-text"></i>
+            <span>Courses</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-profile">
+            <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" class="rounded-circle me-3 border border-2 border-white" width="40" height="40" style="object-fit: cover;">
+            <div class="user-info" style="line-height: 1.2;">
+                <div class="fw-bold small">Super Admin</div>
+                <small>admin@learner.com</small>
+            </div>
+        </div>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="btn btn-logout btn-sm d-flex align-items-center justify-content-center">
+                <i class="bi bi-box-arrow-right me-2"></i> Log Out
+            </button>
+        </form>
+    </div>
+</aside>
