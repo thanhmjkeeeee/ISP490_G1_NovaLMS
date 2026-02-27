@@ -1,123 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 
-<head>
-    <meta charset="utf-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Course Management - Admin Learner</title>
-
-    <link href="https://fonts.googleapis.com" rel="preconnect">
-    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-
-    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-
-    <link href="assets/css/main.css" rel="stylesheet">
-
-    <style>
-        /* --- ADMIN THEME CONFIGURATION --- */
-        :root {
-            --sidebar-bg-color: #136ad5; /* Màu xanh tươi theo yêu cầu */
-            --sidebar-width: 280px;
-            --bg-body: #f5f7fa;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            font-family: 'Roboto', sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* --- SIDEBAR STYLE --- */
-        .sidebar {
-            position: fixed; top: 0; left: 0; bottom: 0;
-            width: var(--sidebar-width);
-            background-color: var(--sidebar-bg-color);
-            box-shadow: 4px 0 20px rgba(19, 106, 213, 0.2);
-            padding: 25px 20px;
-            display: flex; flex-direction: column; z-index: 999;
-            color: #fff;
-        }
-
-        .sidebar-brand { display: flex; align-items: center; text-decoration: none; margin-bottom: 40px; padding-left: 10px; }
-        .sidebar-brand i { font-size: 28px; margin-right: 10px; color: #fff; }
-        .sidebar-brand span { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
-
-        .nav-link { display: flex; align-items: center; font-size: 15px; font-weight: 500; color: rgba(255, 255, 255, 0.9); padding: 12px 15px; border-radius: 8px; margin-bottom: 8px; transition: 0.2s; text-decoration: none; }
-        .nav-link i { font-size: 19px; margin-right: 12px; color: rgba(255, 255, 255, 0.9); }
-        .nav-link:hover { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
-
-        /* Active State */
-        .nav-link.active { background-color: #ffffff; color: var(--sidebar-bg-color); font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-        .nav-link.active i { color: var(--sidebar-bg-color); }
-
-        .nav-heading { font-size: 11px; text-transform: uppercase; color: rgba(255, 255, 255, 0.6); font-weight: 700; margin: 25px 0 10px 15px; }
-
-        .sidebar-footer { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2); }
-        .user-profile { display: flex; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
-        .user-info div { color: #fff; font-weight: bold; } .user-info small { color: rgba(255,255,255,0.8); }
-        .btn-logout { width: 100%; background-color: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 6px; font-weight: 500; text-align: center; text-decoration: none; display: block; }
-        .btn-logout:hover { background-color: #ffffff; color: #dc3545; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content { margin-left: var(--sidebar-width); padding: 30px; min-height: 100vh; }
-
-        /* --- USER'S CUSTOM STYLES (Giữ lại style bạn đã gửi) --- */
-        .page-title { padding: 20px 0; margin-bottom: 20px; background: transparent; border: none; }
-        /* Override card style để khớp với nền admin */
-        .card { border-radius: 12px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05); border: none; background: #fff; margin-bottom: 25px; }
-
-        /* Table optimizations for Admin */
-        .table-admin th { font-size: 0.85rem; text-transform: uppercase; color: #899bbd; font-weight: 600; background: #f8f9fa; border-bottom: 2px solid #e9ecef; }
-        .table-admin td { font-size: 0.95rem; vertical-align: middle; }
-        .avatar-xs { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-
-        /* Responsive */
-        @media (max-width: 991px) { .sidebar { left: -100%; transition: 0.3s; } .main-content { margin-left: 0; } }
-    </style>
-</head>
+<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
 
 <body>
 
-<aside class="sidebar">
-    <a href="index.html" class="sidebar-brand">
-        <i class="bi bi-book-half"></i> <span>Learner</span>
-    </a>
-
-    <nav class="nav flex-column flex-grow-1">
-        <div class="nav-heading">Overview</div>
-
-        <a class="nav-link" href="admin-dashboard.html">
-            <i class="bi bi-grid-fill"></i> <span>Dashboard</span>
-        </a>
-
-        <div class="nav-heading">Management</div>
-
-        <a class="nav-link" href="account-list.html">
-            <i class="bi bi-people"></i> <span>Accounts</span>
-        </a>
-
-        <a class="nav-link active" href="course-list.html">
-            <i class="bi bi-journal-text"></i> <span>Courses</span>
-        </a>
-
-        <a class="nav-link" href="#">
-            <i class="bi bi-gear"></i> <span>Settings</span>
-        </a>
-    </nav>
-
-    <div class="sidebar-footer">
-        <div class="user-profile">
-            <img src="assets/img/testimonials/testimonials-1.jpg" class="rounded-circle me-3 border border-2 border-white" width="40" height="40" alt="Admin">
-            <div class="user-info">
-                <div>Super Admin</div><small>admin@learner.com</small>
-            </div>
-        </div>
-        <a href="index.html" class="btn-logout">Log Out</a>
-    </div>
-</aside>
+<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='courses')}"></div>
 
 <main class="main-content">
 
@@ -126,24 +14,24 @@
             <h3 class="fw-bold text-dark m-0">Course Management</h3>
             <p class="text-muted small m-0">Manage courses, assign experts/managers & content.</p>
         </div>
-        <a href="course-details-admin.html" class="btn btn-primary shadow-sm fw-bold" style="background-color: #136ad5; border: none;">
+        <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-3" style="background-color: #136ad5; border: none;">
             <i class="bi bi-plus-lg me-1"></i> Create New Course
         </a>
     </div>
 
-    <div class="card mb-4">
+    <div class="card mb-4 border-0 shadow-sm">
         <div class="card-body">
-            <form class="row g-3">
+            <form class="row g-3" th:action="@{/admin/courses}" method="get">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-secondary">Search</label>
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="ID, Name, Code...">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" name="keyword" class="form-control border-start-0 bg-light" placeholder="ID, Name, Code...">
                     </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Category</label>
-                    <select class="form-select form-select-sm">
+                    <select name="category" class="form-select form-select-sm bg-light">
                         <option value="">All Categories</option>
                         <option value="1">IT / Software</option>
                         <option value="2">Business</option>
@@ -151,7 +39,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Status</label>
-                    <select class="form-select form-select-sm">
+                    <select name="status" class="form-select form-select-sm bg-light">
                         <option value="">All Status</option>
                         <option value="active">Active</option>
                         <option value="draft">Draft</option>
@@ -159,31 +47,31 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-secondary">Manager</label>
-                    <select class="form-select form-select-sm">
+                    <select name="manager" class="form-select form-select-sm bg-light">
                         <option value="">All Managers</option>
                         <option value="8">Admin Sarah</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-sm btn-secondary w-100">Reset</button>
+                    <a th:href="@{/admin/courses}" class="btn btn-sm btn-secondary w-100">Reset</a>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-admin mb-0">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                     <tr>
-                        <th class="ps-4 py-3">ID</th>
-                        <th class="py-3">Course Info</th>
-                        <th class="py-3">Category</th>
-                        <th class="py-3">Expert / Manager</th>
-                        <th class="py-3">Stats</th>
-                        <th class="py-3">Status</th>
-                        <th class="text-end pe-4 py-3">Actions</th>
+                        <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
+                        <th class="py-3 text-uppercase small text-muted">Course Info</th>
+                        <th class="py-3 text-uppercase small text-muted">Category</th>
+                        <th class="py-3 text-uppercase small text-muted">Expert / Manager</th>
+                        <th class="py-3 text-uppercase small text-muted">Stats</th>
+                        <th class="py-3 text-uppercase small text-muted">Status</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -191,7 +79,7 @@
                         <td class="ps-4 text-muted small">#101</td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
                                     <i class="bi bi-code-slash text-primary fs-5"></i>
                                 </div>
                                 <div>
@@ -200,7 +88,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td><span class="badge bg-light text-dark border">IT/Software</span></td>
+                        <td><span class="badge bg-light text-dark border fw-normal">IT/Software</span></td>
                         <td>
                             <div class="d-flex flex-column small">
                                 <div class="mb-1" title="Expert">
@@ -217,56 +105,16 @@
                                 <div><i class="bi bi-people me-1"></i> 2 Classes</div>
                             </div>
                         </td>
-                        <td><span class="badge bg-success-subtle text-success px-2 py-1">Active</span></td>
+                        <td><span class="badge bg-success bg-opacity-10 text-success px-2 py-1 fw-semibold">Active</span></td>
                         <td class="text-end pe-4">
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown">
+                                <button class="btn btn-sm btn-light border shadow-sm" type="button" data-bs-toggle="dropdown">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="course-details-admin.html"><i class="bi bi-pencil me-2"></i>Edit Details</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="bi bi-people me-2"></i>View Classes</a></li>
+                                <ul class="dropdown-menu shadow-sm border-0">
+                                    <li><a class="dropdown-item" th:href="@{/admin/courses/edit/101}"><i class="bi bi-pencil me-2 text-primary"></i>Edit Details</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-people me-2 text-info"></i>View Classes</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td class="ps-4 text-muted small">#102</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                    <i class="bi bi-graph-up text-success fs-5"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark">SEO Marketing</div>
-                                    <div class="small text-muted">Code: MKT101</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-light text-dark border">Business</span></td>
-                        <td>
-                            <div class="d-flex flex-column small">
-                                <div class="mb-1"><i class="bi bi-mortarboard text-info me-1"></i> Mr. John</div>
-                                <div><i class="bi bi-briefcase text-secondary me-1"></i> Admin Sarah</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="small text-muted">
-                                <div><i class="bi bi-layers me-1"></i> 2 Modules</div>
-                                <div><i class="bi bi-people me-1"></i> 0 Classes</div>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-warning-subtle text-warning px-2 py-1">Draft</span></td>
-                        <td class="text-end pe-4">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="course-details-admin.html"><i class="bi bi-pencil me-2"></i>Edit Details</a></li>
                                     <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
                                 </ul>
                             </div>
@@ -277,23 +125,23 @@
             </div>
         </div>
 
-        <div class="card-footer bg-white py-3">
+        <div class="card-footer bg-white py-3 border-0">
             <div class="d-flex justify-content-between align-items-center small text-muted">
                 <span>Showing 1 to 5 of 12 entries</span>
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#">Prev</a></li>
-                        <li class="page-item active"><a class="page-link" href="#" style="background-color: var(--sidebar-bg-color); border-color: var(--sidebar-bg-color);">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                        <li class="page-item disabled"><a class="page-link shadow-none" href="#">Prev</a></li>
+                        <li class="page-item active"><a class="page-link shadow-none border-0" href="#" style="background-color: var(--sidebar-bg-color);">1</a></li>
+                        <li class="page-item"><a class="page-link shadow-none" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link shadow-none" href="#">Next</a></li>
                     </ul>
                 </nav>
             </div>
         </div>
     </div>
-
 </main>
 
-<script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
+
 </body>
 </html>
