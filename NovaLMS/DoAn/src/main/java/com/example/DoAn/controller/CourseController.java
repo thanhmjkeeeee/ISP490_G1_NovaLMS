@@ -2,7 +2,6 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.service.CourseService;
 import com.example.DoAn.model.Course;
-import com.example.DoAn.model.Setting;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,7 +38,7 @@ public class CourseController {
         model.addAttribute("categories", settingService.getCourseCategories());
         model.addAttribute("selectedCat", categoryId); // Để giữ trạng thái đã chọn trên giao diện
 
-        return "courses";
+        return "public/courses";
     }
 
     @GetMapping("/course/details/{id}")
@@ -61,7 +60,7 @@ public class CourseController {
         // 4. Đưa thông tin khóa học sang HTML
         model.addAttribute("course", course);
         model.addAttribute("curriculum", courseService.getCourseCurriculum(id));
-        return "course-details";
+        return "public/course-details";
     }
 
     @GetMapping("/courses/filter")
@@ -79,7 +78,7 @@ public class CourseController {
 
         // 3. Trả về Fragment (Phần HTML danh sách khóa học trong file courses.html)
         // Lưu ý: "courses" là tên file html, "courseListFragment" là tên th:fragment
-        return "courses :: courseListFragment";
+        return "public/courses :: courseListFragment";
     }
 
 }
