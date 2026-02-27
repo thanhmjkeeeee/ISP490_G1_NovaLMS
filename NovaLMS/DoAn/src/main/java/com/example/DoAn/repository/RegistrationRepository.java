@@ -48,4 +48,5 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     boolean existsByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
     //Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
     List<Registration> findByCourse_CourseId(Integer courseId);
+
 }
