@@ -49,6 +49,20 @@ public class CourseService {
         return classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
     }
 
+    private List<Course> populateStudentCounts(List<Course> courses) {
+        if (courses != null) {
+            for (Course course : courses) {
+                if (course != null) {
+                    // Gọi hàm getStudentCount để đếm số lượng bản ghi "Approved" trong DB
+                    long count = getStudentCount(course.getCourseId());
+                    // Gán vào thuộc tính ảo (Transient) của Course
+                    course.setStudentCount((int) count);
+                }
+            }
+        }
+        return courses;
+    }
+
     public long getStudentCount(Integer courseId) {
         return registrationRepository.countByCourse_CourseIdAndStatus(courseId, "Approved");
     }

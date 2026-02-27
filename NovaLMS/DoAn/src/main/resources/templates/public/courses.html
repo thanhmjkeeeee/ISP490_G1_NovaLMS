@@ -104,15 +104,6 @@
                             Free
                         </span>
                     </div>
-                    <div class="course-stats">
-                      <div class="stat">
-                        <i class="bi bi-clock"></i> <span>3 Months</span>
-                      </div>
-                      <div class="stat">
-                        <i class="bi bi-people"></i>
-                        <span th:text="${course.registrations != null ? course.registrations.size() : 0} + ' students'">0 students</span>
-                      </div>
-                    </div>
 
                     <div class="instructor-info" th:if="${course.expert != null}">
                       <img th:src="${course.expert.avatarUrl != null ? course.expert.avatarUrl : '/assets/img/default-avatar.png'}"
@@ -124,12 +115,15 @@
                   </div>
                 </div>
               </div>
+
               <div class="col-12 text-center mt-5" th:if="${#lists.isEmpty(courseList)}">
                 <h3>No courses found matching your criteria.</h3>
                 <p>Try adjusting your search or filter to find what you're looking for.</p>
               </div>
 
-            </div> </div> </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
