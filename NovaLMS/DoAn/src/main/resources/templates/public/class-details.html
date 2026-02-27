@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<!-- Sử dụng head chung, truyền tên lớp học vào title -->
+<head th:replace="~{fragments/head :: common-head(${clazz.className != null ? clazz.className : 'Chi tiết lớp học'})}">
+</head>
+
+<body class="class-details-page">
+
+<!-- Header: Vẫn giữ active ở menu Khóa học -->
+<header th:replace="~{fragments/header :: header-fragment('courses')}"></header>
+
+<main class="main">
+
+    <!-- Tiêu đề trang & Breadcrumbs -->
+    <div class="page-title light-background">
+        <div class="container d-lg-flex justify-content-between align-items-center">
+            <h1 class="mb-2 mb-lg-0" th:text="${clazz.className != null ? clazz.className : ''}"></h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a th:href="@{/}">Trang chủ</a></li>
+                    <li><a th:href="@{/courses}">Khóa học</a></li>
+                    <!-- Tên khóa học gốc -->
+                    <li>
+                        <a th:if="${clazz.course != null}"
+                           th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
+                           th:text="${clazz.course.title != null ? clazz.course.title : ''}"></a>
+                        <span th:if="${clazz.course == null}"></span>
+                    </li>
+                    <li class="current">Chi tiết lớp</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <section id="class-details" class="class-details section">
+        <div class="container" data-aos="fade-up">
+            <div class="row">
+
+                <!-- CỘT TRÁI: THÔNG TIN CHI TIẾT LỚP HỌC -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body p-4">
+                            <h3 class="fw-bold text-primary mb-3" th:text="${clazz.className != null ? clazz.className : ''}"></h3>
+
+                            <!-- Giảng viên -->
+                            <div class="d-flex align-items-center mb-4 text-muted">
+                                <i class="bi bi-person-video3 me-2 fs-5"></i>
+                                <span class="me-1">Giảng viên:</span>
+                                <strong class="text-dark" th:text="${clazz.teacher != null ? clazz.teacher.fullName : ''}"></strong>
+                            </div>
+
+                            <hr>
+
+                            <!-- Hiển thị toàn bộ các trường trong bảng class -->
+                            <h5 class="fw-bold mt-4 mb-3">Thông tin chi tiết</h5>
+                            <div class="row g-3">
+
+                                <!-- Lịch học (schedule) -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <small class="text-muted d-block mb-1">Lịch học</small>
+                                        <strong th:text="${clazz.schedule != null ? clazz.schedule : ''}"></strong>
+                                    </div>
+                                </div>
+
+                                <!-- Thuộc khóa học (course_id) -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <small class="text-muted d-block mb-1">Thuộc khóa học</small>
+                                        <strong th:text="${clazz.course != null ? clazz.course.title : ''}"></strong>
+                                    </div>
+                                </div>
+
+                                <!-- Ngày bắt đầu (start_date) -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <small class="text-muted d-block mb-1">Ngày khai giảng</small>
+                                        <strong th:text="${clazz.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : ''}"></strong>
+                                    </div>
+                                </div>
+
+                                <!-- Ngày kết thúc (end_date) -->
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <small class="text-muted d-block mb-1">Ngày kết thúc</small>
+                                        <strong th:text="${clazz.endDate != null ? #temporals.format(clazz.endDate, 'dd/MM/yyyy') : ''}"></strong>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Mô tả (Lấy từ khóa học gốc) -->
+                            <h5 class="fw-bold mt-4 mb-3">Mô tả khóa học</h5>
+                            <p th:text="${clazz.course != null && clazz.course.description != null ? clazz.course.description : ''}" style="white-space: pre-line;">
+                            </p>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CỘT PHẢI: HÀNH ĐỘNG (ĐĂNG KÝ) -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm border-0 sticky-top" style="top: 100px;">
+                        <div class="card-body p-4 text-center">
+
+                            <!-- Trạng thái lớp học (status) -->
+                            <div class="mb-3" th:if="${clazz.status != null}">
+                 <span class="badge bg-success px-3 py-2 rounded-pill fs-6"
+                       th:text="${clazz.status}"></span>
+                            </div>
+
+                            <!-- Giá tiền (Lấy từ bảng Course) -->
+                            <div class="mb-4">
+                                <h2 class="fw-bold text-primary mt-2"
+                                    th:if="${clazz.course != null && clazz.course.price != null && clazz.course.price > 0}"
+                                    th:text="${#numbers.formatDecimal(clazz.course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                                </h2>
+                                <h2 class="fw-bold text-success mt-2"
+                                    th:if="${clazz.course != null && (clazz.course.price == null || clazz.course.price == 0)}">
+                                    Miễn phí
+                                </h2>
+                            </div>
+
+                            <!-- Nút Đăng ký -->
+                            <a href="#" class="btn btn-primary w-100 py-3 fw-bold shadow mb-3">
+                                ĐĂNG KÝ NGAY
+                            </a>
+
+                            <!-- Nút quay lại -->
+                            <a th:if="${clazz.course != null}"
+                               th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
+                               class="btn btn-outline-secondary w-100 fw-bold">
+                                Quay lại Khóa Học
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>

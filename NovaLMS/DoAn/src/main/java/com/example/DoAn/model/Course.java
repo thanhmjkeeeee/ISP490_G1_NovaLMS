@@ -27,6 +27,9 @@ public class Course {
     @Column(name = "price")
     private Double price;
 
+    @Transient // Đánh dấu đây là cột ảo, không lưu vào Database
+    private Integer studentCount = 0;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -52,6 +55,10 @@ public class Course {
     @OneToMany(mappedBy = "course")
     @OrderBy("orderIndex ASC")
     private List<Module> modules;
+
+    public Integer getStudentCount() { return studentCount; }
+
+    public void setStudentCount(Integer studentCount) { this.studentCount = studentCount; }
 
     @Override
     public String toString() {

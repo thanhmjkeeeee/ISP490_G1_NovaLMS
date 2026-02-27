@@ -112,7 +112,12 @@
                       </p>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                      <button class="btn btn-primary px-4 rounded-pill">Enroll Now</button>
+
+                      <a th:href="@{/class/details/{id}(id=${clazz.classId})}"
+                         class="btn btn-outline-primary px-4 rounded-pill fw-bold">
+                        View Details
+                      </a>
+
                     </div>
                   </div>
                 </div>
