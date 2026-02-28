@@ -145,4 +145,22 @@ public class StudentController {
 
         return "student/my-courses";
     }
+    // ======================================================
+    // MÀN HÌNH DASHBOARD CHO HỌC VIÊN
+    // ======================================================
+    @GetMapping("/dashboard")
+    public String viewDashboard(Principal principal, Model model) {
+        // Bắt buộc kiểm tra đăng nhập
+        if (principal == null) return "redirect:/login.html";
+
+        User user = getCurrentUser(principal);
+        if (user == null) {
+            return "redirect:/login.html";
+        }
+
+        // Tạm thời truyền user xuống để hiển thị tên (nếu cần), sau này bạn có thể truyền thêm dữ liệu thống kê vào đây
+        model.addAttribute("user", user);
+
+        return "student/dashboard";
+    }
 }

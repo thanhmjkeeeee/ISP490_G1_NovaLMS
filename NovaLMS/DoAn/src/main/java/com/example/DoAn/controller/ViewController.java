@@ -18,11 +18,11 @@ public class ViewController {
         return "auth/login"; // Trả về templates/login.html
     }
 
-//    // 3. Các trang khác (Mapping tương tự)
-////    @GetMapping("/courses.html")
-////    public String courses() {
-////        return "courses";
-////    }
+//
+//    @GetMapping("/courses.html")
+//    public String courses() {
+//        return "public/courses";
+//    }
 //
 //    @GetMapping("/course-details.html")
 //    public String courseDetails() {
