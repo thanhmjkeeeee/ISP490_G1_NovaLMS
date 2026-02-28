@@ -21,8 +21,6 @@ public class DataInitializerAuth {
     @Bean
     public CommandLineRunner initAuthData() {
         return args -> {
-            // 1. Tạo Roles (Là Setting với type = 'USER_ROLE')
-            // Role Admin
             Setting adminRole = settingRepository.findRoleByValue("ROLE_ADMIN")
                     .orElseGet(() -> settingRepository.save(
                             Setting.builder()
@@ -35,7 +33,6 @@ public class DataInitializerAuth {
                                     .build()
                     ));
 
-            // Role Student
             Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
                     .orElseGet(() -> settingRepository.save(
                             Setting.builder()
@@ -48,7 +45,6 @@ public class DataInitializerAuth {
                                     .build()
                     ));
 
-            // Role Teacher (Thêm nếu cần)
             Setting teacherRole = settingRepository.findRoleByValue("ROLE_TEACHER")
                     .orElseGet(() -> settingRepository.save(
                             Setting.builder()
@@ -61,15 +57,14 @@ public class DataInitializerAuth {
                                     .build()
                     ));
 
-            // 2. Tạo Default Admin
             if (!userRepository.existsByEmail("admin@novalms.edu.vn")) {
                 User admin = User.builder()
                         .email("admin@novalms.edu.vn")
-                        .password(passwordEncoder.encode("admin123")) // DB mới dùng 'password'
+                        .password(passwordEncoder.encode("admin123"))
                         .fullName("System Administrator")
-                        .role(adminRole) // Role là Setting
+                        .role(adminRole)
                         .status("Active")
-                        .authProvider("LOCAL") // Mặc định là LOCAL
+                        .authProvider("LOCAL")
                         .build();
 
                 userRepository.save(admin);

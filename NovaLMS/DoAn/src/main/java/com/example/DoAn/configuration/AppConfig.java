@@ -12,16 +12,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 @Configuration
-// BỎ @Profile("!prod") ở đây để PasswordEncoder luôn được khởi tạo
 public class AppConfig {
 
-    // 1. Chuyển PasswordEncoder sang đây để phá vỡ vòng lặp
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 2. Giữ cấu hình CORS chỉ chạy ở môi trường Dev (!prod)
     @Bean
     @Profile("!prod")
     public FilterRegistrationBean<CorsFilter> corsFilter() {

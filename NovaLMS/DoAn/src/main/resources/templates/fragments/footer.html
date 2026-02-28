@@ -2,7 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Footer Fragment -->
+<!-- ================================================================
+     FRAGMENT 1: PUBLIC FOOTER
+     Gọi: th:replace="~{fragments/footer :: common-footer}"
+     ================================================================ -->
 <footer th:fragment="common-footer" id="footer" class="footer accent-background">
     <div class="container footer-top">
         <div class="row gy-4">
@@ -12,24 +15,22 @@
                 </a>
                 <p>Hệ thống quản lý học tập và đào tạo Tiếng Anh hàng đầu. Chúng tôi cung cấp giải pháp công nghệ giáo dục tiên tiến giúp học viên và giáo viên kết nối hiệu quả.</p>
                 <div class="social-links d-flex mt-4">
-                    <a href=""><i class="bi bi-twitter-x"></i></a>
-                    <a href=""><i class="bi bi-facebook"></i></a>
-                    <a href=""><i class="bi bi-instagram"></i></a>
-                    <a href=""><i class="bi bi-linkedin"></i></a>
+                    <a href="#"><i class="bi bi-twitter-x"></i></a>
+                    <a href="#"><i class="bi bi-facebook"></i></a>
+                    <a href="#"><i class="bi bi-instagram"></i></a>
+                    <a href="#"><i class="bi bi-linkedin"></i></a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-6 footer-links">
                 <h4>Liên Kết Nhanh</h4>
                 <ul>
-                    <li><a th:href="@{/index.html}">Trang chủ</a></li>
+                    <li><a th:href="@{/}">Trang chủ</a></li>
                     <li><a th:href="@{/about.html}">Về chúng tôi</a></li>
-                    <li><a th:href="@{/courses.html}">Khóa học</a></li>
+                    <li><a th:href="@{/courses}">Khóa học</a></li>
                     <li><a href="#">Điều khoản sử dụng</a></li>
                     <li><a href="#">Chính sách bảo mật</a></li>
                 </ul>
             </div>
-
             <div class="col-lg-2 col-6 footer-links">
                 <h4>Chương Trình Học</h4>
                 <ul>
@@ -40,44 +41,58 @@
                     <li><a href="#">Placement Test</a></li>
                 </ul>
             </div>
-
             <div class="col-lg-3 col-md-12 footer-contact text-center text-md-start">
                 <h4>Liên Hệ</h4>
-                <p>Khu Công nghệ cao Hòa Lạc</p>
-                <p>Thạch Thất, Hà Nội</p>
-                <p>Việt Nam</p>
-                <p class="mt-4"><strong>Hotline:</strong> <span>+84 987 654 321</span></p>
+                <p>Khu Công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội</p>
+                <p class="mt-3"><strong>Hotline:</strong> <span>+84 987 654 321</span></p>
                 <p><strong>Email:</strong> <span>contact@novalms.edu.vn</span></p>
             </div>
-
         </div>
     </div>
-
     <div class="container copyright text-center mt-4">
-        <p>© <span>Copyright</span> <strong class="px-1 sitename">Nova LMS</strong> <span>All Rights Reserved</span></p>
-        <div class="credits">
-            Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
-        </div>
+        <p>© <span>Copyright</span>
+            <strong class="px-1 sitename">Nova LMS</strong>
+            <span>All Rights Reserved</span></p>
+        <div class="credits">Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a></div>
     </div>
 </footer>
 
-<!-- Scripts Fragment -->
+
+<!-- =
+     FRAGMENT 2: PUBLIC SCRIPTS
+     Gọi: th:replace="~{fragments/footer :: common-scripts}"
+    -->
 <th:block th:fragment="common-scripts">
     <!-- Scroll Top -->
-    <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-
+    <a href="#" id="scroll-top"
+       class="scroll-top d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-up-short"></i>
+    </a>
     <!-- Preloader -->
     <div id="preloader"></div>
 
-    <!-- Vendor JS Files -->
     <script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
     <script th:src="@{/assets/vendor/php-email-form/validate.js}"></script>
     <script th:src="@{/assets/vendor/aos/aos.js}"></script>
     <script th:src="@{/assets/vendor/purecounter/purecounter_vanilla.js}"></script>
     <script th:src="@{/assets/vendor/swiper/swiper-bundle.min.js}"></script>
-
-    <!-- Main JS File -->
     <script th:src="@{/assets/js/main.js}"></script>
+</th:block>
+
+
+<!--
+     FRAGMENT 3: DASHBOARD SCRIPTS
+     Chỉ load bootstrap. Không cần AOS, Swiper, purecounter.
+     Đặt TRƯỚC fragment header :: dash-scripts
+
+     Gọi: th:replace="~{fragments/footer :: dash-scripts}"
+     ================================================================ -->
+<th:block th:fragment="dash-scripts">
+    <script th:src="@{/assets/vendor/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <!--
+        Thêm thư viện chart hoặc datatable tại đây nếu cần:
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    -->
 </th:block>
 
 </body>

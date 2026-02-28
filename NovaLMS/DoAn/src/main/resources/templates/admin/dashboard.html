@@ -1,14 +1,27 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
 
-<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
+<!-- 1. Gọi Head Fragment (Mới) -->
+<head th:replace="~{fragments/head :: common-head(pageTitle='Admin Dashboard')}"></head>
 
-<body>
+<!-- Thêm class chuẩn cho thẻ body -->
+<body class="dashboard-body">
 
-<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='dashboard')}"></div>
+<!-- 2. Gọi Header (Topbar) -->
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Dashboard Overview', breadcrumb='Admin')}"></header>
 
-<main class="main-content">
+<!-- 3. Gọi Sidebar & Overlay (Mới) -->
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
+<!-- 4. Thẻ main đổi thành class dash-main và thêm id -->
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <!-- ========================================== -->
+    <!-- GIỮ NGUYÊN 100% NỘI DUNG CODE GỐC CỦA BẠN  -->
+    <!-- ========================================== -->
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
             <h3 class="fw-bold m-0" style="color: #223a58;">Dashboard Overview</h3>
@@ -52,7 +65,8 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
+    <!-- Thêm mb-auto để đẩy các thành phần nếu có xuống đáy -->
+    <div class="card border-0 shadow-sm mb-auto">
         <div class="card-header bg-white py-3 border-bottom">
             <h6 class="m-0 fw-bold" style="color: #223a58;">New Registrations</h6>
         </div>
@@ -60,9 +74,12 @@
             <p class="text-muted text-center py-4">Table content here...</p>
         </div>
     </div>
+
 </main>
 
-<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
+<!-- 5. Gọi Script Components thay cho admin-footer cũ -->
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 </body>
 </html>
