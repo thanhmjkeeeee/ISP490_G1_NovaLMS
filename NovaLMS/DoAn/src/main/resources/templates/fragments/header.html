@@ -6,13 +6,15 @@
 <header th:fragment="header-fragment(currentPage)" id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center">
 
-        <a th:href="@{/index}" class="logo d-flex align-items-center me-auto">
+        <!-- ĐÃ FIX: Sửa /index thành / -->
+        <a th:href="@{/}" class="logo d-flex align-items-center me-auto">
             <h1 class="sitename">Nova LMS</h1>
         </a>
 
         <nav id="navmenu" class="navmenu">
             <ul>
-                <li><a th:href="@{/index}" th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
+                <!-- ĐÃ FIX: Sửa /index thành / -->
+                <li><a th:href="@{/}" th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
                 <li><a th:href="@{/about.html}" th:classappend="${currentPage == 'about'} ? 'active'">Giới thiệu</a></li>
                 <li><a th:href="@{/courses}" th:classappend="${currentPage == 'courses'} ? 'active'">Khóa học</a></li>
                 <li><a th:href="@{/instructors.html}">Giảng viên</a></li>
@@ -35,7 +37,7 @@
                         <i class="bi bi-chevron-down toggle-dropdown"></i>
                     </a>
                     <ul>
-                        <li><a th:href="@{/student/profile}">Hồ sơ cá nhân</a></li>
+                        <li><a th:href="@{/profile}">Hồ sơ cá nhân</a></li>
 
                         <li><a th:href="@{/student/my-courses}">Khóa học của tôi</a></li>
 
