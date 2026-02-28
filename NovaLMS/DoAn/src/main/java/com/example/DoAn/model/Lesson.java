@@ -21,10 +21,21 @@ public class Lesson {
     @Column(name = "video_url")
     private String videoUrl;
 
-    @Column(name = "duration") // Thời lượng bài học (phút)
-    private Integer duration;
+    @Column(name = "duration")
+    private String duration;
 
-    @Column(name = "order_index") // Thứ tự bài học trong chương
+    @Column(name = "type")
+    private String type;
+
+    @Column(name = "content_text")
+    private String content_text;
+
+    @Column(name = "quiz_id")
+    private Integer quiz_id;
+
+
+
+    @Column(name = "order_index")
     private Integer orderIndex;
 
     @ManyToOne
