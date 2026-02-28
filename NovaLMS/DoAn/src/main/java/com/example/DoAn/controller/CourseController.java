@@ -20,7 +20,7 @@ public class CourseController {
     @Autowired
     private SettingService settingService;
 
-    @GetMapping("/courses")
+    @GetMapping({"/courses"})
     public String listCourses(
             @RequestParam(value = "categoryId", required = false) Integer categoryId,
             Model model) {

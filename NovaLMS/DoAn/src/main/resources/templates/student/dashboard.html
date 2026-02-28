@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Tổng quan học tập')}"></head>
+
+<body class="dashboard-page">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='dashboard')}"></header>
+
+<main class="main">
+    <div class="page-title light-background">
+        <div class="container d-lg-flex justify-content-between align-items-center">
+            <h1 class="mb-2 mb-lg-0">Tổng quan học tập</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a th:href="@{/}">Trang chủ</a></li>
+                    <li class="current">Dashboard</li>
+                </ol>
+            </nav>
+        </div>
+    </div><section class="section dashboard" style="min-height: 60vh; padding-top: 60px;">
+    <div class="container" data-aos="fade-up" data-aos-delay="100">
+        <div class="row">
+            <div class="col-12 text-center py-5">
+                <img th:src="@{/assets/img/hero-img.png}" alt="Welcome" style="width: 200px; opacity: 0.8; margin-bottom: 20px;">
+                <h2 class="fw-bold" style="color: var(--heading-color);">Chào mừng bạn quay trở lại!</h2>
+                <p class="text-muted mb-4">Đây là bảng điều khiển dành cho học viên. Dữ liệu tiến độ học tập của bạn sẽ được hiển thị tại đây.</p>
+
+                <div>
+                    <a th:href="@{/student/my-courses}" class="btn btn-primary px-4 py-2 me-2" style="border-radius: 8px;">
+                        <i class="bi bi-play-circle me-1"></i> Tiếp tục học
+                    </a>
+                    <a th:href="@{/courses.html}" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 8px;">
+                        Khám phá khóa học
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>

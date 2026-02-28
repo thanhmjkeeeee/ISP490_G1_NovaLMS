@@ -42,16 +42,26 @@ public class SecurityConfig {
 
                         // 2. Cho phép các API xác thực và các trang công khai
                         .requestMatchers(
-                                "/", "/index.html",
-                                "/login.html", "/register.html",
+                                "/", "/index", "/index.html",
+                                "/login", "/login.html",
+                                "/register", "/register.html",
                                 "/api/auth/**", "/api/verification/**",
-                                "/reset-password.html",
-                                "/my-courses.html", "/course-details.html",
-                                "/instructors.html", "/instructor-profile.html"
+                                "/reset-password", "/reset-password.html",
+                                "/courses", "/courses.html",
+                                "/course-details", "/course-details.html",
+                                "/instructors", "/instructors.html",
+                                "/instructor-profile", "/instructor-profile.html",
+                                "/about", "/about.html",
+                                "/pricing", "/pricing.html",
+                                "/blog", "/blog.html",
+                                "/contact", "/contact.html",
+                                "/404", "/404.html",
+                                "/error"
                         ).permitAll()
 
                         // 3. Bảo vệ các luồng nghiệp vụ của Student (Quan trọng)
                         .requestMatchers("/student/**").authenticated()
+                        .requestMatchers("/profile/**").authenticated()
 
                         // 4. Các yêu cầu còn lại phải đăng nhập
                         .anyRequest().authenticated()

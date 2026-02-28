@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Hồ sơ cá nhân')}"></head>
+
+<body class="profile-page">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='profile')}"></header>
+
+<main class="main">
+    <div class="page-title light-background">
+        <div class="container">
+            <h1 class="mb-0">Hồ sơ cá nhân</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a th:href="@{/}">Trang chủ</a></li>
+                    <li><a th:href="@{/student/dashboard}">Dashboard</a></li>
+                    <li class="current">Hồ sơ</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <section class="section profile mt-4" style="min-height: 60vh;">
+        <div class="container" data-aos="fade-up">
+
+            <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${successMsg}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${errorMsg}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            <div class="row">
+                <div class="col-xl-4">
+                    <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px;">
+                        <div class="card-body profile-card pt-4 d-flex flex-column align-items-center text-center">
+                            <img th:src="@{${userProfile.avatarUrl != null ? userProfile.avatarUrl : '/assets/img/person/person-1.jpg'}}"
+                                 alt="Profile" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover; border: 3px solid var(--accent-color);">
+                            <h4 th:text="${userProfile.fullName}" class="fw-bold mb-1">Tên User</h4>
+                            <p class="text-muted mb-3">Học viên</p>
+                            <button class="btn btn-outline-primary btn-sm" style="border-radius: 20px;"><i class="bi bi-upload"></i> Đổi ảnh đại diện</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-8">
+                    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+                        <div class="card-body pt-4">
+                            <h5 class="card-title fw-bold border-bottom pb-3 mb-4">Chi tiết hồ sơ</h5>
+
+                            <form th:action="@{/profile/update}" th:object="${userProfile}" method="post">
+
+                                <div class="row mb-3">
+                                    <label for="email" class="col-md-4 col-lg-3 col-form-label text-muted">Email <span class="text-danger">*</span></label>
+                                    <div class="col-md-8 col-lg-9">
+                                        <input name="email" type="email" class="form-control bg-light" id="email" th:field="*{email}" readonly>
+                                        <small class="text-muted">Email dùng để đăng nhập nên không thể thay đổi.</small>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="fullName" class="col-md-4 col-lg-3 col-form-label text-muted">Họ và Tên</label>
+                                    <div class="col-md-8 col-lg-9">
+                                        <input name="fullName" type="text" class="form-control" id="fullName" th:field="*{fullName}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="mobile" class="col-md-4 col-lg-3 col-form-label text-muted">Số điện thoại</label>
+                                    <div class="col-md-8 col-lg-9">
+                                        <input name="mobile" type="text" class="form-control" id="mobile" th:field="*{mobile}">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label for="note" class="col-md-4 col-lg-3 col-form-label text-muted">Giới thiệu bản thân</label>
+                                    <div class="col-md-8 col-lg-9">
+                                        <textarea name="note" class="form-control" id="note" style="height: 100px" th:field="*{note}" placeholder="Vài nét về bạn..."></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="text-end mt-4">
+                                    <button type="submit" class="btn btn-primary px-4 py-2" style="border-radius: 8px;">
+                                        <i class="bi bi-save me-1"></i> Lưu thay đổi
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>
