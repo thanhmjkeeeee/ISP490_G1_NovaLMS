@@ -1,626 +1,149 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Khóa học của tôi')}">
-</head>
+<head th:replace="~{fragments/head :: common-head(pageTitle='Khóa học của tôi')}"></head>
 
-<style>
-  /* =============================================
-     MY-COURSES PAGE — SCOPED STYLES
-  ============================================= */
+<body class="dashboard-body">
 
-  /* --- Page Title --- */
-  .page-title {
-    padding: 28px 0 24px;
-    border-bottom: 1px solid #e8edf2;
-  }
-  .page-title h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1a2332;
-    margin: 0;
-  }
-  .breadcrumbs ol {
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0; padding: 0;
-    font-size: 0.85rem;
-  }
-  .breadcrumbs ol li a { color: #1d6de5; text-decoration: none; }
-  .breadcrumbs ol li a:hover { text-decoration: underline; }
-  .breadcrumbs ol li.current { color: #7a8899; }
-  .breadcrumbs ol li + li::before { content: '/'; color: #c0cad4; margin-right: 6px; }
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Khóa học của tôi', breadcrumb='Học tập')}"></header>
 
-  /* --- Main Section --- */
-  .courses-2.section { padding: 48px 0 72px; }
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-  /* --- Filter Panel --- */
-  .course-filters {
-    background: #fff;
-    border: 1px solid #e4e9f0;
-    border-radius: 14px;
-    padding: 24px 20px;
-    position: sticky;
-    top: 20px;
-  }
-  .filter-title {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #1a2332;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    padding-bottom: 14px;
-    border-bottom: 2px solid #f0f4f8;
-    margin-bottom: 20px !important;
-  }
-  .filter-group h5 {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #5a6778;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-  }
-  .filter-radio {
-    display: flex !important;
-    align-items: center;
-    gap: 9px;
-    font-size: 0.9rem;
-    color: #3d4f63;
-    cursor: pointer;
-    padding: 7px 10px !important;
-    border-radius: 8px;
-    transition: background 0.15s;
-    margin-bottom: 2px !important;
-  }
-  .filter-radio:hover { background: #f0f5ff; }
-  .filter-radio input[type="radio"] {
-    width: 16px; height: 16px;
-    accent-color: #1d6de5;
-    cursor: pointer;
-    flex-shrink: 0;
-    margin: 0 !important;
-  }
+<main class="dash-main d-flex flex-column" id="dashMain">
 
-  /* --- Toolbar (Search + Sort) --- */
-  .courses-header {
-    background: #fff;
-    border: 1px solid #e4e9f0;
-    border-radius: 14px;
-    padding: 14px 18px;
-    margin-bottom: 24px;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px;
-  }
+  <form id="filterForm" method="GET" th:action="@{/student/my-courses}">
+    <div class="row g-4">
 
-  /* ===== FIX: Search box — icon kính lúp căn giữa dọc đúng ===== */
-  .search-box {
-    flex: 1;
-    position: relative;
-    display: flex;
-    align-items: center;
-    min-width: 0;
-  }
-  .search-box .search-icon {
-    /* Dùng flexbox thay vì position absolute để tránh lệch */
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9baab8;
-    font-size: 0.9rem;
-    pointer-events: none;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-  }
-  .search-box input[type="text"] {
-    width: 100%;
-    height: 40px;
-    line-height: 40px;
-    padding: 0 14px 0 38px;
-    border: 1px solid #dde3ec;
-    border-radius: 50px;
-    font-size: 0.88rem;
-    color: #2c3e50;
-    background: #f8fafc;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .search-box input[type="text"]:focus {
-    border-color: #1d6de5;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(29,109,229,0.1);
-  }
-  .search-box input[type="text"]::placeholder { color: #aab4bf; }
+      <div class="col-lg-3">
+        <div class="course-filters">
+          <h4 class="filter-title">Lọc Khóa Học</h4>
 
-  /* ===== Sort dropdown ===== */
-  .sort-dropdown select {
-    height: 40px;
-    padding: 0 12px;
-    border: 1px solid #dde3ec;
-    border-radius: 50px;
-    font-size: 0.88rem;
-    color: #3d4f63;
-    background: #f8fafc;
-    outline: none;
-    cursor: pointer;
-    white-space: nowrap;
-    min-width: 155px;
-    transition: border-color 0.2s;
-    appearance: auto;
-  }
-  .sort-dropdown select:focus {
-    border-color: #1d6de5;
-    box-shadow: 0 0 0 3px rgba(29,109,229,0.1);
-  }
+          <div class="filter-group">
+            <h5>Danh mục</h5>
+            <label class="filter-radio">
+              <input type="radio" name="categoryId" value=""
+                     th:checked="${categoryId == null}"
+                     onchange="this.form.submit()">
+              Tất cả danh mục
+            </label>
+            <label class="filter-radio">
+              <input type="radio" name="categoryId" value="101"
+                     th:checked="${categoryId == 101}"
+                     onchange="this.form.submit()">
+              IELTS
+            </label>
+            <label class="filter-radio">
+              <input type="radio" name="categoryId" value="102"
+                     th:checked="${categoryId == 102}"
+                     onchange="this.form.submit()">
+              TOEIC
+            </label>
+          </div>
+        </div>
+      </div>
 
-  /* --- Result count pill --- */
-  .result-count {
-    font-size: 0.82rem;
-    color: #8899aa;
-    white-space: nowrap;
-    padding: 5px 13px;
-    background: #f3f6fa;
-    border-radius: 50px;
-    border: 1px solid #e4e9f0;
-    flex-shrink: 0;
-  }
-  .result-count strong { color: #1d6de5; font-weight: 700; }
+      <div class="col-lg-9">
 
-  /* --- Course Card --- */
-  .course-card {
-    background: #fff;
-    border: 1px solid #e4e9f0;
-    border-radius: 14px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  }
-  .course-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(29,109,229,0.11);
-    border-color: #b8d0f7;
-  }
-
-  .course-image {
-    position: relative;
-    height: 210px;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .course-image img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transition: transform 0.4s ease;
-    display: block;
-  }
-  .course-card:hover .course-image img { transform: scale(1.04); }
-
-  .badge-class {
-    position: absolute;
-    top: 12px; left: 12px;
-    background: #1d6de5;
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 50px;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    box-shadow: 0 2px 8px rgba(29,109,229,0.35);
-  }
-
-  .badge-status {
-    position: absolute;
-    bottom: 12px; right: 12px;
-    background: rgba(255,255,255,0.92);
-    color: #16a34a;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 50px;
-    display: flex; align-items: center; gap: 5px;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(22,163,74,0.2);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  }
-  .badge-status::before {
-    content: '';
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #16a34a;
-  }
-
-  .course-content {
-    padding: 18px 20px 16px;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-  .course-content h4 {
-    font-size: 0.97rem;
-    font-weight: 700;
-    color: #1a2332;
-    margin-bottom: 7px;
-    line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .course-content p {
-    font-size: 0.84rem;
-    color: #6e7f92;
-    line-height: 1.65;
-    margin-bottom: 0;
-    flex-grow: 1;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Progress */
-  .progress-wrap { margin: 14px 0 15px; }
-  .progress-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.77rem;
-    color: #8899aa;
-    margin-bottom: 6px;
-  }
-  .progress-labels .pct { font-weight: 700; color: #16a34a; }
-  .progress-track {
-    height: 6px;
-    background: #edf2f7;
-    border-radius: 50px;
-    overflow: hidden;
-  }
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #16a34a, #4ade80);
-    border-radius: 50px;
-    transition: width 0.7s ease;
-  }
-
-  /* Card footer row */
-  .card-footer-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 13px;
-    border-top: 1px solid #f0f4f8;
-    gap: 8px;
-  }
-  .date-info {
-    font-size: 0.78rem;
-    color: #8899aa;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .btn-learn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    background: #1d6de5;
-    color: #fff;
-    border: none;
-    border-radius: 50px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background 0.2s, transform 0.15s;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .btn-learn:hover {
-    background: #155ec0;
-    color: #fff;
-    transform: scale(1.03);
-  }
-
-  /* Alert error */
-  .alert-error {
-    border: none;
-    border-left: 4px solid #ef4444;
-    background: #fff5f5;
-    color: #b91c1c;
-    border-radius: 10px;
-    padding: 12px 18px;
-    font-size: 0.88rem;
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 24px;
-  }
-
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    padding: 72px 24px;
-    background: #fff;
-    border: 1.5px dashed #d1dae6;
-    border-radius: 14px;
-  }
-  .empty-state i { font-size: 3.5rem; color: #c8d6e5; }
-  .empty-state h4 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #3d4f63;
-    margin: 16px 0 8px;
-  }
-  .empty-state p { font-size: 0.88rem; color: #8899aa; margin-bottom: 24px; }
-  .btn-clear {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 10px 24px;
-    background: #1d6de5; color: #fff;
-    border-radius: 50px; font-size: 0.88rem; font-weight: 600;
-    text-decoration: none; transition: background 0.2s;
-  }
-  .btn-clear:hover { background: #155ec0; color: #fff; }
-
-  /* Pagination */
-  .pagination-wrapper { margin-top: 44px; }
-  .pagination .page-link {
-    border-radius: 8px !important;
-    margin: 0 3px;
-    font-size: 0.88rem;
-    color: #3d4f63;
-    border-color: #e4e9f0;
-    min-width: 38px;
-    height: 38px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-    background: #fff;
-  }
-  .pagination .page-item.active .page-link {
-    background: #1d6de5; border-color: #1d6de5; color: #fff;
-  }
-  .pagination .page-item.disabled .page-link { opacity: 0.35; pointer-events: none; }
-  .pagination .page-link:hover {
-    background: #f0f5ff; border-color: #b8d0f7; color: #1d6de5;
-  }
-  .pagination .page-item.active .page-link:hover {
-    background: #1d6de5; color: #fff;
-  }
-
-  /* Card entry animation */
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .course-card-wrap { animation: cardIn 0.35s ease both; }
-  .course-card-wrap:nth-child(1) { animation-delay: 0.04s; }
-  .course-card-wrap:nth-child(2) { animation-delay: 0.09s; }
-  .course-card-wrap:nth-child(3) { animation-delay: 0.14s; }
-  .course-card-wrap:nth-child(4) { animation-delay: 0.19s; }
-  .course-card-wrap:nth-child(5) { animation-delay: 0.24s; }
-  .course-card-wrap:nth-child(6) { animation-delay: 0.29s; }
-
-  @media (max-width: 767px) {
-    .courses-header { flex-wrap: wrap; }
-    .sort-dropdown select { min-width: 100%; width: 100%; }
-    .result-count { display: none; }
-    .search-box { width: 100%; }
-  }
-</style>
-
-<body class="courses-page">
-
-<header th:replace="~{fragments/header :: header-fragment(currentPage='my-courses')}"></header>
-
-<main class="main">
-
-  <!-- Page Title -->
-  <div class="page-title light-background">
-    <div class="container d-lg-flex justify-content-between align-items-center">
-      <h1 class="mb-2 mb-lg-0">Khóa Học Của Tôi</h1>
-      <nav class="breadcrumbs">
-        <ol>
-          <li><a th:href="@{/index.html}">Trang chủ</a></li>
-          <li class="current">Khóa học của tôi</li>
-        </ol>
-      </nav>
-    </div>
-  </div>
-
-  <section id="courses-2" class="courses-2 section">
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-
-      <form id="filterForm" method="GET" th:action="@{/student/my-courses}">
-        <div class="row g-4">
-
-          <!-- ======== SIDEBAR FILTER ======== -->
-          <div class="col-lg-3">
-            <div class="course-filters" data-aos="fade-right" data-aos-delay="100">
-              <h4 class="filter-title">Lọc Khóa Học</h4>
-
-              <div class="filter-group">
-                <h5>Danh mục</h5>
-
-                <label class="filter-radio">
-                  <input type="radio" name="categoryId" value=""
-                         th:checked="${categoryId == null}"
-                         onchange="this.form.submit()">
-                  Tất cả danh mục
-                </label>
-                <label class="filter-radio">
-                  <input type="radio" name="categoryId" value="101"
-                         th:checked="${categoryId == 101}"
-                         onchange="this.form.submit()">
-                  IELTS
-                </label>
-                <label class="filter-radio">
-                  <input type="radio" name="categoryId" value="102"
-                         th:checked="${categoryId == 102}"
-                         onchange="this.form.submit()">
-                  TOEIC
-                </label>
-              </div>
-
-            </div>
+        <div class="courses-header">
+          <div class="search-box">
+            <span class="search-icon"><i class="bi bi-search"></i></span>
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="Tìm tên khóa học...">
           </div>
 
-          <!-- ======== MAIN CONTENT ======== -->
-          <div class="col-lg-9">
+          <div class="sort-dropdown">
+            <select name="sort" onchange="this.form.submit()">
+              <option value="registrationTime_desc" th:selected="${currentSort == 'registrationTime_desc'}">Mới đăng ký</option>
+              <option value="registrationTime_asc" th:selected="${currentSort == 'registrationTime_asc'}">Cũ nhất</option>
+            </select>
+          </div>
 
-            <!-- Toolbar -->
-            <div class="courses-header" data-aos="fade-left" data-aos-delay="100">
+          <span class="result-count" th:if="${coursePage != null}">
+              <strong th:text="${coursePage.totalElements}">0</strong> khóa học
+            </span>
+        </div>
 
-              <!--
-                FIX icon kính lúp:
-                - Dùng <span class="search-icon"> với position:absolute + top:50% + translateY(-50%)
-                - Input có padding-left đủ để chữ không đè lên icon
-                - KHÔNG dùng <button> lồng trong search-box (gây lệch)
-              -->
-              <div class="search-box">
-                <span class="search-icon">
-                  <i class="bi bi-search"></i>
-                </span>
-                <input type="text"
-                       name="keyword"
-                       th:value="${keyword}"
-                       placeholder="Tìm tên khóa học...">
+        <div th:if="${error != null}" class="alert-error" role="alert">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span th:text="${error}">Lỗi tải dữ liệu</span>
+        </div>
+
+        <div class="row g-4" th:if="${coursePage != null and coursePage.totalElements > 0}">
+
+          <div class="col-lg-6 col-md-6" th:each="dto : ${coursePage.content}">
+            <div class="course-card">
+
+              <div class="course-image">
+                <img th:src="@{${dto.imageUrl != null ? dto.imageUrl : '/assets/img/course-1.jpg'}}" th:alt="${dto.title}" loading="lazy">
+                <span class="badge-class" th:text="${dto.className ?: 'Lớp học'}">Lớp</span>
+                <span class="badge-status">Đang học</span>
               </div>
 
-              <div class="sort-dropdown">
-                <select name="sort" onchange="this.form.submit()">
-                  <option value="registrationTime_desc"
-                          th:selected="${currentSort == 'registrationTime_desc'}">
-                    Mới đăng ký
-                  </option>
-                  <option value="registrationTime_asc"
-                          th:selected="${currentSort == 'registrationTime_asc'}">
-                    Cũ nhất
-                  </option>
-                </select>
-              </div>
+              <div class="course-content">
+                <h4 th:text="${dto.title ?: 'Khóa học không khả dụng'}">Tên Khóa Học</h4>
+                <p th:text="${#strings.abbreviate(dto.description ?: 'Khóa học chưa có mô tả chi tiết.', 110)}">Mô tả...</p>
 
-              <span class="result-count" th:if="${coursePage != null}">
-                <strong th:text="${coursePage.totalElements}">0</strong> khóa học
-              </span>
-
-            </div>
-            <!-- /Toolbar -->
-
-            <!-- Alert lỗi -->
-            <div th:if="${error != null}" class="alert-error" role="alert">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              <span th:text="${error}">Lỗi tải dữ liệu</span>
-            </div>
-
-            <!-- ===== GRID: CÓ DỮ LIỆU ===== -->
-            <div class="row g-4"
-                 th:if="${coursePage != null and coursePage.totalElements > 0}">
-
-              <div class="col-lg-6 col-md-6 course-card-wrap"
-                   th:each="dto : ${coursePage.content}"
-                   th:attr="data-title=${dto.title ?: ''}">
-
-                <div class="course-card">
-
-                  <!-- Ảnh + badges -->
-                  <div class="course-image">
-                    <img th:src="@{${dto.imageUrl ?: '/assets/img/hero-img.png'}}"
-                         th:alt="${dto.title ?: 'Khóa học'}"
-                         loading="lazy">
-                    <span class="badge-class" th:text="${dto.className ?: 'Lớp học'}">Lớp</span>
-                    <span class="badge-status">Đang học</span>
+                <div class="progress-wrap">
+                  <div class="progress-labels">
+                    <span>Tiến độ học tập</span>
+                    <span class="pct">0%</span>
                   </div>
-
-                  <!-- Nội dung -->
-                  <div class="course-content">
-                    <h4 th:text="${dto.title ?: 'Khóa học không khả dụng'}">Tên Khóa Học</h4>
-                    <p th:text="${#strings.abbreviate(dto.description ?: 'Khóa học chưa có mô tả chi tiết.', 110)}">
-                      Mô tả...
-                    </p>
-
-                    <!-- Thanh tiến độ -->
-                    <div class="progress-wrap">
-                      <div class="progress-labels">
-                        <span>Tiến độ học tập</span>
-                        <span class="pct">0%</span>
-                      </div>
-                      <div class="progress-track">
-                        <div class="progress-fill" style="width: 0%"></div>
-                      </div>
-                    </div>
-
-                    <!-- Footer: ngày + nút -->
-                    <div class="card-footer-row">
-                      <a th:href="@{'/student/learn/' + ${dto.courseId}}" class="btn-learn">
-                        <i class="bi bi-play-circle-fill"></i> Vào học
-                      </a>
-                    </div>
+                  <div class="progress-track">
+                    <div class="progress-fill" style="width: 0%"></div>
                   </div>
+                </div>
 
+                <div class="card-footer-row">
+                  <a th:href="@{'/student/learn/' + ${dto.courseId}}" class="btn-learn">
+                    <i class="bi bi-play-circle-fill"></i> Vào học
+                  </a>
                 </div>
               </div>
-              <!-- /each -->
 
             </div>
-            <!-- /Grid -->
-
-            <!-- ===== EMPTY STATE ===== -->
-            <div th:if="${coursePage != null and coursePage.totalElements == 0}"
-                 class="empty-state">
-              <i class="bi bi-journal-x"></i>
-              <h4>Không tìm thấy khóa học nào</h4>
-              <p>Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc danh mục.</p>
-              <a th:href="@{/student/my-courses}" class="btn-clear">
-                <i class="bi bi-x-circle"></i> Xóa bộ lọc
-              </a>
-            </div>
-
-            <!-- ===== PAGINATION ===== -->
-            <div class="pagination-wrapper"
-                 th:if="${coursePage != null and coursePage.totalPages > 1}">
-              <nav aria-label="Courses pagination">
-                <ul class="pagination justify-content-center">
-                  <li class="page-item" th:classappend="${coursePage.first} ? 'disabled'">
-                    <button type="submit" name="page"
-                            th:value="${coursePage.number - 1}" class="page-link">
-                      <i class="bi bi-chevron-left"></i>
-                    </button>
-                  </li>
-                  <li class="page-item"
-                      th:each="i : ${#numbers.sequence(0, coursePage.totalPages - 1)}"
-                      th:classappend="${coursePage.number == i} ? 'active'">
-                    <button type="submit" name="page"
-                            th:value="${i}" class="page-link" th:text="${i + 1}">1</button>
-                  </li>
-                  <li class="page-item" th:classappend="${coursePage.last} ? 'disabled'">
-                    <button type="submit" name="page"
-                            th:value="${coursePage.number + 1}" class="page-link">
-                      <i class="bi bi-chevron-right"></i>
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
-
           </div>
-          <!-- /col-lg-9 -->
 
         </div>
-      </form>
 
+        <div th:if="${coursePage != null and coursePage.totalElements == 0}" class="empty-state mt-3">
+          <i class="bi bi-journal-x"></i>
+          <h4>Không tìm thấy khóa học nào</h4>
+          <p>Hãy thử thay đổi từ khóa tìm kiếm hoặc xóa bộ lọc danh mục.</p>
+          <a th:href="@{/student/my-courses}" class="btn-clear">
+            <i class="bi bi-x-circle me-1"></i> Xóa bộ lọc
+          </a>
+        </div>
+
+        <div class="mt-4" th:if="${coursePage != null and coursePage.totalPages > 1}">
+          <nav aria-label="Courses pagination">
+            <ul class="pagination justify-content-center">
+              <li class="page-item" th:classappend="${coursePage.first} ? 'disabled'">
+                <button type="submit" name="page" th:value="${coursePage.number - 1}" class="page-link shadow-sm border-0"><i class="bi bi-chevron-left"></i></button>
+              </li>
+              <li class="page-item" th:each="i : ${#numbers.sequence(0, coursePage.totalPages - 1)}" th:classappend="${coursePage.number == i} ? 'active'">
+                <button type="submit" name="page" th:value="${i}" class="page-link shadow-sm border-0 mx-1" th:text="${i + 1}">1</button>
+              </li>
+              <li class="page-item" th:classappend="${coursePage.last} ? 'disabled'">
+                <button type="submit" name="page" th:value="${coursePage.number + 1}" class="page-link shadow-sm border-0"><i class="bi bi-chevron-right"></i></button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+      </div>
     </div>
-  </section>
+  </form>
+
+  <footer class="mt-auto pt-4 pb-2 text-center text-muted" style="font-size: 0.85rem;">
+    &copy; 2026 Nova LMS - Khóa học của tôi
+  </footer>
 
 </main>
 
-<footer th:replace="~{fragments/footer :: common-footer}"></footer>
-<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center">
-  <i class="bi bi-arrow-up-short"></i>
-</a>
-<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 </body>
 </html>

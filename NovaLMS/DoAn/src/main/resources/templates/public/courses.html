@@ -1,14 +1,13 @@
-  <!DOCTYPE html>
-  <html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-  <head th:replace="~{fragments/head :: common-head('Courses')}">
-  </head>
+<head th:replace="~{fragments/head :: common-head('Courses')}">
+</head>
 
-  <body class="courses-page">
+<body class="courses-page">
 
-  <header th:replace="~{fragments/header :: header-fragment('courses')}"></header>
+<header th:replace="~{fragments/header :: header-fragment('courses')}"></header>
 
-<<<<<<< Updated upstream
 <main class="main">
   <div class="page-title light-background">
     <div class="container d-lg-flex justify-content-between align-items-center">
@@ -125,183 +124,59 @@
             </div>
           </div>
         </div>
-=======
-  <main class="main">
-    <div class="page-title light-background">
-      <div class="container d-lg-flex justify-content-between align-items-center">
-        <h1 class="mb-2 mb-lg-0">Courses</h1>
-        <nav class="breadcrumbs">
-          <ol>
-            <li><a th:href="@{/}">Home</a></li>
-            <li class="current">Courses</li>
-          </ol>
-        </nav>
->>>>>>> Stashed changes
       </div>
     </div>
+  </section>
 
-    <section id="courses-2" class="courses-2 section">
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="row">
+</main>
 
-          <div class="col-lg-3">
-            <div class="course-filters" data-aos="fade-right" data-aos-delay="100">
-              <h4 class="filter-title">Filter Courses</h4>
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
-              <div class="filter-group">
-                <h5>Category</h5>
-                <div class="filter-options">
+<script>
+  function loadCourses() {
+    // 1. Lấy giá trị từ giao diện
+    const keyword = document.getElementById('searchInput').value;
+    const sortValue = document.getElementById('sortSelect').value;
 
-                  <label class="filter-checkbox">
-                    <input type="radio" name="categoryId" value=""
-                           th:checked="${selectedCat == null}"
-                           onchange="loadCourses()">
-                    <span class="checkmark"></span>
-                    All Categories
-                  </label>
+    // Lấy radio button category đang được chọn
+    const selectedCategory = document.querySelector('input[name="categoryId"]:checked');
 
-                  <label class="filter-checkbox" th:each="cat : ${categories}">
-                    <input type="radio" name="categoryId"
-                           th:value="${cat.settingId}"
-                           th:checked="${selectedCat == cat.settingId}"
-                           onchange="loadCourses()">
-                    <span class="checkmark"></span>
-                    <span th:text="${cat.name}">Category Name</span>
-                  </label>
+    // 2. Xây dựng URL gọi về Server
+    // Sử dụng encodeURIComponent để mã hóa từ khóa tìm kiếm (ví dụ dấu cách, ký tự đặc biệt)
+    let url = `/courses/filter?keyword=${encodeURIComponent(keyword)}&sortBy=${sortValue}`;
 
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-lg-9">
-
-            <div class="courses-header" data-aos="fade-left" data-aos-delay="100">
-              <div class="search-box">
-                <i class="bi bi-search"></i>
-                <input type="text" id="searchInput" placeholder="Search courses..." oninput="loadCourses()">
-              </div>
-
-              <div class="sort-dropdown">
-                <select id="sortSelect" onchange="loadCourses()">
-                  <option value="newest">Sort by: Newest First</option>
-                  <option value="price_asc">Price: Low to High</option>
-                  <option value="price_desc">Price: High to Low</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="courses-grid">
-
-              <div class="row" id="courseContainer" th:fragment="courseListFragment">
-
-                <div class="col-lg-6 col-md-6" th:each="course : ${courseList}">
-                  <div class="course-card">
-
-                    <div class="course-image">
-                      <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/default-course.jpg'}"
-                           alt="Course Image" class="img-fluid">
-                      <div class="course-badge" th:text="${course.status}">Status</div>
-                    </div>
-
-                    <div class="course-content">
-                      <div class="course-meta">
-                        <span class="category" th:text="${course.category != null ? course.category.name : 'Uncategorized'}">Category</span>
-                      </div>
-
-                      <h3 th:text="${course.title}">Course Title</h3>
-                      <p th:text="${#strings.abbreviate(course.description, 100)}">Short description...</p>
-
-                      <div class="d-flex justify-content-between align-items-center mb-3">
-                          <span class="h5 fw-bold text-primary mb-0"
-                                th:if="${course.price != null && course.price > 0}"
-                                th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                            500.000 đ
-                          </span>
-                        <span class="h5 fw-bold text-success mb-0"
-                              th:if="${course.price == null || course.price == 0}">
-                              Free
-                          </span>
-                      </div>
-                      <div class="course-stats">
-                        <div class="stat">
-                          <i class="bi bi-clock"></i> <span>3 Months</span>
-                        </div>
-                        <div class="stat">
-                          <i class="bi bi-people"></i>
-                          <span th:text="${course.registrations != null ? course.registrations.size() : 0} + ' students'">0 students</span>
-                        </div>
-                      </div>
-
-                      <div class="instructor-info" th:if="${course.expert != null}">
-                        <img th:src="${course.expert.avatarUrl != null ? course.expert.avatarUrl : '/assets/img/default-avatar.png'}"
-                             alt="Instructor" class="instructor-avatar">
-                        <span class="instructor-name" th:text="${course.expert.fullName}">Expert Name</span>
-                      </div>
-
-                      <a th:href="@{/course/details/{id}(id=${course.courseId})}" class="btn-course">View Details</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-12 text-center mt-5" th:if="${#lists.isEmpty(courseList)}">
-                  <h3>No courses found matching your criteria.</h3>
-                  <p>Try adjusting your search or filter to find what you're looking for.</p>
-                </div>
-
-              </div> </div> </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer th:replace="~{fragments/footer :: common-footer}"></footer>
-  <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
-
-  <script>
-    function loadCourses() {
-      // 1. Lấy giá trị từ giao diện
-      const keyword = document.getElementById('searchInput').value;
-      const sortValue = document.getElementById('sortSelect').value;
-
-      // Lấy radio button category đang được chọn
-      const selectedCategory = document.querySelector('input[name="categoryId"]:checked');
-
-      // 2. Xây dựng URL gọi về Server
-      // Sử dụng encodeURIComponent để mã hóa từ khóa tìm kiếm (ví dụ dấu cách, ký tự đặc biệt)
-      let url = `/courses/filter?keyword=${encodeURIComponent(keyword)}&sortBy=${sortValue}`;
-
-      // 3. Logic quan trọng: Chỉ thêm tham số categoryId nếu nó có giá trị thực sự
-      // Nếu chọn "All Categories" (value="") thì KHÔNG gửi tham số này đi để tránh lỗi 400 Bad Request
-      if (selectedCategory && selectedCategory.value !== "") {
-        url += `&categoryId=${selectedCategory.value}`;
-      }
-
-      console.log("Calling Server URL:", url); // Xem link trong Console (F12)
-
-      // 4. Gọi AJAX (Fetch API)
-      fetch(url)
-              .then(response => {
-                if (!response.ok) {
-                  console.error("Server Error:", response.status);
-                  throw new Error('Network response was not ok');
-                }
-                return response.text();
-              })
-              .then(html => {
-                // 5. Thay thế HTML cũ bằng HTML mới
-                const container = document.getElementById('courseContainer');
-                if (container) {
-                  // Dùng outerHTML để thay thế chính thẻ <div id="courseContainer">
-                  // Điều này đảm bảo cấu trúc Grid không bị lồng nhau sai lệch
-                  container.outerHTML = html;
-                }
-              })
-              .catch(error => {
-                console.error('Error loading courses:', error);
-              });
+    // 3. Logic quan trọng: Chỉ thêm tham số categoryId nếu nó có giá trị thực sự
+    // Nếu chọn "All Categories" (value="") thì KHÔNG gửi tham số này đi để tránh lỗi 400 Bad Request
+    if (selectedCategory && selectedCategory.value !== "") {
+      url += `&categoryId=${selectedCategory.value}`;
     }
-  </script>
 
-  </body>
-  </html>
+    console.log("Calling Server URL:", url); // Xem link trong Console (F12)
+
+    // 4. Gọi AJAX (Fetch API)
+    fetch(url)
+            .then(response => {
+              if (!response.ok) {
+                console.error("Server Error:", response.status);
+                throw new Error('Network response was not ok');
+              }
+              return response.text();
+            })
+            .then(html => {
+              // 5. Thay thế HTML cũ bằng HTML mới
+              const container = document.getElementById('courseContainer');
+              if (container) {
+                // Dùng outerHTML để thay thế chính thẻ <div id="courseContainer">
+                // Điều này đảm bảo cấu trúc Grid không bị lồng nhau sai lệch
+                container.outerHTML = html;
+              }
+            })
+            .catch(error => {
+              console.error('Error loading courses:', error);
+            });
+  }
+</script>
+
+</body>
+</html>

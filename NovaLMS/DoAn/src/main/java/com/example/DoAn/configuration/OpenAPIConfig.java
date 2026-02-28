@@ -20,7 +20,7 @@ public class OpenAPIConfig {
     public GroupedOpenApi publicApi(@Value("${openapi.service.api-docs:/v3/api-docs}") String apiDocs) {
         return GroupedOpenApi.builder()
                 .group("public-api")
-                .packagesToScan("com.example.DoAn.controller") // Chú ý: Sửa lại đúng package controller của bạn
+                .packagesToScan("com.example.DoAn.controller")
                 .build();
     }
 

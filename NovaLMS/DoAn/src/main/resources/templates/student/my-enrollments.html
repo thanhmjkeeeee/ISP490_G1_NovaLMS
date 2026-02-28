@@ -1,62 +1,96 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+
 <head th:replace="~{fragments/head :: common-head(pageTitle='Lịch sử đăng ký')}"></head>
-<body class="index-page">
-<header th:replace="~{fragments/header :: header-fragment(currentPage='index')}"></header>
 
-<main class="main">
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2>Lịch Sử Đăng Ký</h2>
-                <p>Theo dõi trạng thái các lớp bạn đã đăng ký</p>
-            </div>
+<body class="dashboard-body">
 
-            <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-            <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Lịch sử đăng ký', breadcrumb='Học tập')}"></header>
 
-            <div class="table-responsive card shadow-sm p-3">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                    <tr>
-                        <th>Khóa Học</th>
-                        <th>Lớp</th>
-                        <th>Ngày Đăng Ký</th>
-                        <th>Trạng Thái</th>
-                        <th>Hành Động</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="reg : ${registrations}">
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <img th:src="@{${reg.course.imageUrl}}" class="rounded me-2" width="50" height="50" style="object-fit: cover;">
-                                <span th:text="${reg.course.title}">Title</span>
-                            </div>
-                        </td>
-                        <td th:text="${reg.clazz.className}">Class Name</td>
-                        <td th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">Date</td>
-                        <td>
-                            <span th:if="${reg.status == 'Submitted'}" class="badge bg-warning text-dark">Chờ duyệt</span>
-                            <span th:if="${reg.status == 'Approved'}" class="badge bg-success">Đã duyệt</span>
-                            <span th:if="${reg.status == 'Cancelled'}" class="badge bg-secondary">Đã hủy</span>
-                            <span th:if="${reg.status == 'Rejected'}" class="badge bg-danger">Bị từ chối</span>
-                        </td>
-                        <td>
-                            <a th:if="${reg.status == 'Approved'}" th:href="@{/student/my-courses}" class="btn btn-sm btn-primary">Vào học</a>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(registrations)}">
-                        <td colspan="5" class="text-center py-4">Bạn chưa đăng ký khóa học nào.</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-enrollments')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="dash-page-header">
+        <h2 class="dash-page-title">Lịch Sử Đăng Ký</h2>
+        <p class="dash-page-subtitle">Theo dõi trạng thái các lớp học bạn đã đăng ký</p>
+    </div>
+
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${success}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="dash-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="border-top-0 py-3">Khóa Học</th>
+                    <th class="border-top-0 py-3">Lớp</th>
+                    <th class="border-top-0 py-3">Ngày Đăng Ký</th>
+                    <th class="border-top-0 py-3">Trạng Thái</th>
+                    <th class="border-top-0 py-3">Hành Động</th>
+                </tr>
+                </thead>
+                <tbody style="border-top: none;">
+                <tr th:each="reg : ${registrations}">
+                    <td class="py-3">
+                        <div class="d-flex align-items-center">
+                            <img th:src="@{${reg.course.imageUrl != null ? reg.course.imageUrl : '/assets/img/course-1.jpg'}}"
+                                 class="rounded me-3 border" width="55" height="40" style="object-fit: cover;">
+                            <span class="fw-bold text-dark" th:text="${reg.course.title}">Tên khóa học</span>
+                        </div>
+                    </td>
+                    <td class="text-muted" th:text="${reg.clazz.className}">Tên lớp</td>
+                    <td class="text-muted" th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">Ngày</td>
+                    <td>
+                        <span th:if="${reg.status == 'Submitted'}" class="badge bg-warning text-dark px-3 py-2 rounded-pill">Chờ duyệt</span>
+                        <span th:if="${reg.status == 'Approved'}" class="badge bg-success px-3 py-2 rounded-pill">Đã duyệt</span>
+                        <span th:if="${reg.status == 'Cancelled'}" class="badge bg-secondary px-3 py-2 rounded-pill">Đã hủy</span>
+                        <span th:if="${reg.status == 'Rejected'}" class="badge bg-danger px-3 py-2 rounded-pill">Bị từ chối</span>
+                    </td>
+                    <td>
+                        <a th:if="${reg.status == 'Approved'}" th:href="@{/student/my-courses}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-play-circle-fill me-1"></i> Vào học
+                        </a>
+                        <button th:unless="${reg.status == 'Approved'}" class="btn btn-sm btn-light rounded-pill px-3 text-muted" disabled>
+                            Chờ xử lý
+                        </button>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(registrations)}">
+                    <td colspan="5" class="text-center py-5">
+                        <div style="font-size: 3rem; color: #cbd5e1; margin-bottom: 10px;">
+                            <i class="bi bi-journal-x"></i>
+                        </div>
+                        <p class="text-muted mb-3">Bạn chưa đăng ký khóa học nào.</p>
+                        <a th:href="@{/courses}" class="btn btn-primary rounded-pill px-4">
+                            <i class="bi bi-search me-1"></i> Tìm khóa học ngay
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
-    </section>
+    </div>
+
+    <footer class="mt-auto pt-4 pb-2 text-center" style="font-size: 0.85rem; color: #9ca3af;">
+        &copy; 2026 Nova LMS - Nền tảng học trực tuyến thông minh.
+    </footer>
+
 </main>
 
-<footer th:replace="~{fragments/footer :: common-footer}"></footer>
-<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
 </body>
 </html>
