@@ -40,4 +40,11 @@ public class UserService {
 
         // Không cần gọi userRepository.save(user) vì có @Transactional, Hibernate tự update
     }
+    public void updateAvatar(String email, String avatarUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+
+        user.setAvatarUrl(avatarUrl); // Tên hàm set phụ thuộc vào entity của bạn
+        userRepository.save(user);
+    }
 }

@@ -1,12 +1,15 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.UserProfileDTO;
+import com.example.DoAn.service.FileUploadService;
 import com.example.DoAn.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
@@ -16,8 +19,9 @@ import java.security.Principal;
 public class ProfileController {
 
     private final UserService userService;
+    @Autowired
+    private FileUploadService fileUploadService;
 
-    // Hàm dùng chung để lấy Email từ Principal (Hỗ trợ cả Form Login & Google Login)
     private String getEmailFromPrincipal(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
             return token.getPrincipal().getAttribute("email");
@@ -25,7 +29,7 @@ public class ProfileController {
         return principal.getName();
     }
 
-    // 1. HIỂN THỊ MÀN HÌNH PROFILE
+    //HIỂN THỊ MÀN HÌNH PROFILE
     @GetMapping("/profile")
     public String viewProfile(Principal principal, Model model) {
         if (principal == null) return "redirect:/login.html";
@@ -39,13 +43,11 @@ public class ProfileController {
 //        if (isAdmin) {
 //            return "admin/account-details"; // Admin thì load layout admin
 //        }
-
-        // Gửi DTO ra giao diện
         model.addAttribute("userProfile", userProfile);
-        return "user/account-details"; // Trỏ đúng tên file HTML của bạn
+        return "user/account-details";
     }
 
-    // 2. XỬ LÝ CẬP NHẬT PROFILE
+    //
     @PostMapping("/profile/update")
     public String updateProfile(@ModelAttribute("userProfile") UserProfileDTO dto,
                                 Principal principal,
@@ -56,10 +58,31 @@ public class ProfileController {
             String email = getEmailFromPrincipal(principal);
             userService.updateUserProfile(email, dto);
 
-            // Gửi thông báo thành công
             ra.addFlashAttribute("successMsg", "Cập nhật hồ sơ thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("errorMsg", "Có lỗi xảy ra: " + e.getMessage());
+        }
+
+        return "redirect:/profile";
+    }
+    @PostMapping("/profile/upload-avatar")
+    public String uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal, RedirectAttributes ra) {
+        if (file.isEmpty()) {
+            ra.addFlashAttribute("error", "Vui lòng chọn một file ảnh hợp lệ.");
+            return "redirect:/profile";
+        }
+
+        try {
+            String email = principal.getName();
+
+            String uploadedAvatarUrl = fileUploadService.uploadImage(file);
+
+            userService.updateAvatar(email, uploadedAvatarUrl);
+
+            ra.addFlashAttribute("success", "Đã cập nhật ảnh đại diện thành công!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            ra.addFlashAttribute("error", "Có lỗi xảy ra trong quá trình tải ảnh lên.");
         }
 
         return "redirect:/profile";
