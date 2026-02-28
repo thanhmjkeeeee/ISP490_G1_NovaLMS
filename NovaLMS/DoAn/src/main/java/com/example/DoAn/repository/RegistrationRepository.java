@@ -9,15 +9,32 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
 
     // 1. Lấy lịch sử đăng ký của user (Mới nhất lên đầu) - Dùng cho màn My Enrollments
-    List<Registration> findByUser_UserIdOrderByRegistrationTimeDesc(Integer userId);
-    boolean existsByUser_UserIdAndClazz_ClassIdAndStatusNot(Integer userId, Integer classId, String status);
+    @Query("SELECT r FROM Registration r WHERE r.user.userId = :userId ORDER BY r.registrationTime DESC")
+    List<Registration> findByUser_UserIdOrderByRegistrationTimeDesc(@Param("userId") Integer userId);
 
+    // 2. Kiểm tra xem User đã đăng ký lớp học này với trạng thái khác status truyền vào chưa
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status <> :status")
+    boolean existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
+            @Param("userId") Integer userId,
+            @Param("classId") Integer classId,
+            @Param("status") String status
+    );
 
+    // 3. Lấy bản ghi đăng ký đầu tiên theo User, Course và Status
+    @Query("SELECT r FROM Registration r WHERE r.user.userId = :userId AND r.course.courseId = :courseId AND r.status = :status")
+    Optional<Registration> findFirstByUserIdAndCourseIdAndStatus(
+            @Param("userId") Integer userId,
+            @Param("courseId") Integer courseId,
+            @Param("status") String status
+    );
+
+    // 4. Tìm kiếm khóa học của tôi với bộ lọc (Phân trang)
     @Query(value = """
         SELECT r FROM Registration r 
         JOIN FETCH r.course c
@@ -42,11 +59,24 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("categoryId") Integer categoryId,
             Pageable pageable
     );
-    //Đếm số lượng học viên đã đăng ký 1 khóa học
-    long countByCourse_CourseIdAndStatus(Integer courseId, String status);
-    //Kiểm tra xem User đã đăng ký KHÓA HỌC này chưa (không chỉ là Lớp - Clazz)
-    boolean existsByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
-    //Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
-    List<Registration> findByCourse_CourseId(Integer courseId);
+
+    // 5. Đếm số lượng học viên đã đăng ký 1 khóa học
+    @Query("SELECT COUNT(r) FROM Registration r WHERE r.course.courseId = :courseId AND r.status = :status")
+    long countByCourse_CourseIdAndStatus(
+            @Param("courseId") Integer courseId,
+            @Param("status") String status
+    );
+
+    // 6. Kiểm tra xem User đã đăng ký KHÓA HỌC này chưa (không chỉ là Lớp - Clazz)
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.course.courseId = :courseId AND r.status = :status")
+    boolean existsByUser_UserIdAndCourse_CourseIdAndStatus(
+            @Param("userId") Integer userId,
+            @Param("courseId") Integer courseId,
+            @Param("status") String status
+    );
+
+    // 7. Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
+    @Query("SELECT r FROM Registration r WHERE r.course.courseId = :courseId")
+    List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
 
 }
