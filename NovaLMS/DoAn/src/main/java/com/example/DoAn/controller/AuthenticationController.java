@@ -36,6 +36,8 @@ public class AuthenticationController {
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
     @Autowired private PasswordResetTokenRepository tokenRepository;
+
+
     // ============================================================
     // 1. XỬ LÝ ĐĂNG KÝ (REGISTER)
     // ============================================================

@@ -1,12 +1,27 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
+<!--
+    ════════════════════════════════════════════════════════
+    head.html — fragment dùng chung cho PUBLIC và DASHBOARD
+
+    CÁCH GỌI:
+      ► Public page  : th:replace="~{fragments/head :: common-head(pageTitle='Tên trang')}"
+      ► Dashboard    : th:replace="~{fragments/head :: common-head(pageTitle='Tên trang')}"
+                       + thêm class="dashboard-body" vào <body>
+                       Controller truyền model.addAttribute("isDashboard", true) nếu cần
+                       HOẶC dùng biến __${isDashboard}__ trong template
+
+    KHÔNG thêm tham số thứ 2 vào fragment để tránh lỗi Thymeleaf
+    khi các trang cũ chỉ truyền 1 tham số.
+    isDashboard được đọc từ biến model (truyền qua controller hoặc th:with).
+    ════════════════════════════════════════════════════════
+-->
+
 <head th:fragment="common-head(pageTitle)">
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-
-    <!-- Dynamic Title -->
     <title th:text="${pageTitle} + ' - Nova LMS'">Nova LMS</title>
-
     <meta name="description" content="Nova LMS - Giải pháp quản lý học tập toàn diện tích hợp AI dành cho trung tâm Anh ngữ.">
     <meta name="keywords" content="LMS, Nova LMS, Tiếng Anh, Quản lý trung tâm, E-learning, AI chấm điểm">
 
@@ -17,16 +32,337 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Raleway:wght@400;500;600;700;800&family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Vendor CSS Files -->
+    <!-- Vendor CSS (dùng chung) -->
     <link th:href="@{/assets/vendor/bootstrap/css/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/assets/vendor/bootstrap-icons/bootstrap-icons.css}" rel="stylesheet">
-    <link th:href="@{/assets/vendor/aos/aos.css}" rel="stylesheet">
-    <link th:href="@{/assets/vendor/swiper/swiper-bundle.min.css}" rel="stylesheet">
 
-    <!-- Main CSS File -->
+    <!-- Public-only CSS: AOS, Swiper (dashboard không cần) -->
+    <th:block th:if="${isDashboard == null or !isDashboard}">
+        <link th:href="@{/assets/vendor/aos/aos.css}" rel="stylesheet">
+        <link th:href="@{/assets/vendor/swiper/swiper-bundle.min.css}" rel="stylesheet">
+    </th:block>
+
+    <!-- Main CSS (dùng chung — tái dụng .header, .footer styles của theme) -->
     <link th:href="@{/assets/css/main.css}" rel="stylesheet">
+
+    <!-- ============================================================
+         DASHBOARD CSS — chỉ inject khi isDashboard = true
+         isDashboard được set trong Controller:
+           model.addAttribute("isDashboard", true);
+         Hoặc trong template dùng th:with="isDashboard=true" trước khi gọi head
+         ============================================================ -->
+    <th:block th:if="${isDashboard != null and isDashboard}">
+        <style>
+            /* ===================================================
+               NOVA LMS — DASHBOARD LAYOUT
+               Cấu trúc:
+               .header (theme, full width, sticky, z-index:997)
+               .dash-sidebar (fixed left, bên dưới header)
+               .dash-main (offset trái = sidebar width)
+               =================================================== */
+
+            :root {
+                --dash-sidebar-width: 255px;
+                --dash-header-height: 64px;
+                --dash-bg: #f0f2f7;
+                --dash-sidebar-bg: #111827;
+                --dash-sidebar-text: #9ca3af;
+                --dash-sidebar-hover: rgba(255,255,255,0.06);
+                --dash-sidebar-active-bg: rgba(59,130,246,0.13);
+                --dash-sidebar-active-text: #60a5fa;
+                --dash-sidebar-active-border: #3b82f6;
+                --dash-card-bg: #ffffff;
+                --dash-card-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+                --dash-text-primary: #111827;
+                --dash-text-secondary: #6b7280;
+                --dash-accent: #3b82f6;
+                --dash-border: #e5e7eb;
+            }
+
+            /* ---- Body ---- */
+            body.dashboard-body {
+                background: var(--dash-bg) !important;
+                font-family: 'Roboto', sans-serif;
+            }
+
+            /* ---- SIDEBAR ---- */
+            /* top bằng height của .header theme */
+            .dash-sidebar {
+                position: fixed;
+                top: var(--dash-header-height);
+                left: 0;
+                width: var(--dash-sidebar-width);
+                height: calc(100vh - var(--dash-header-height));
+                background: var(--dash-sidebar-bg);
+                display: flex;
+                flex-direction: column;
+                z-index: 900;
+                overflow: hidden;
+                transition: width .28s cubic-bezier(.4,0,.2,1),
+                            transform .28s cubic-bezier(.4,0,.2,1);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.18);
+            }
+
+            .dash-sidebar.collapsed {
+                width: 0;
+                transform: translateX(-100%);
+            }
+
+            /* Nav scroll area */
+            .dash-sidebar-nav {
+                flex: 1;
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding: 10px 0 16px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.08) transparent;
+            }
+            .dash-sidebar-nav::-webkit-scrollbar { width: 4px; }
+            .dash-sidebar-nav::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.1); border-radius: 2px;
+            }
+
+            /* Section label */
+            .dash-nav-section-label {
+                font-size: 0.67rem;
+                font-weight: 700;
+                letter-spacing: 1.1px;
+                text-transform: uppercase;
+                color: rgba(255,255,255,0.28);
+                padding: 14px 18px 5px;
+                white-space: nowrap;
+                display: block;
+            }
+
+            /* Nav item */
+            .dash-nav-item {
+                display: flex;
+                align-items: center;
+                gap: 11px;
+                padding: 9px 18px;
+                color: var(--dash-sidebar-text);
+                text-decoration: none !important;
+                font-size: 0.875rem;
+                font-weight: 500;
+                border-left: 3px solid transparent;
+                transition: background .18s, color .18s, border-color .18s;
+                white-space: nowrap;
+            }
+            .dash-nav-item:hover {
+                background: var(--dash-sidebar-hover);
+                color: #e5e7eb;
+            }
+            .dash-nav-item.active {
+                background: var(--dash-sidebar-active-bg);
+                color: var(--dash-sidebar-active-text);
+                border-left-color: var(--dash-sidebar-active-border);
+            }
+            .dash-nav-item i {
+                font-size: 1rem;
+                width: 18px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+            /* Badge số lượng */
+            .dash-nav-badge {
+                margin-left: auto;
+                background: var(--dash-accent);
+                color: white;
+                font-size: 0.62rem;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 20px;
+            }
+
+            /* Sidebar footer */
+            .dash-sidebar-footer {
+                border-top: 1px solid rgba(255,255,255,0.07);
+                padding: 12px 18px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-shrink: 0;
+                background: rgba(0,0,0,0.15);
+            }
+            .dash-sidebar-footer img {
+                width: 32px; height: 32px;
+                border-radius: 50%; object-fit: cover;
+            }
+            .dash-sidebar-footer-name {
+                font-size: 0.82rem; font-weight: 600; color: #e5e7eb;
+                display: block; white-space: nowrap;
+                overflow: hidden; text-overflow: ellipsis;
+            }
+            .dash-sidebar-footer-role {
+                font-size: 0.7rem; color: var(--dash-sidebar-text); display: block;
+            }
+
+            /* ---- MAIN CONTENT ---- */
+            /* margin-left = sidebar width, margin-top KHÔNG cần vì .header đã sticky
+               và body content tự flow xuống dưới header */
+            .dash-main {
+                margin-left: var(--dash-sidebar-width);
+                padding: 28px 30px;
+                min-height: calc(100vh - var(--dash-header-height));
+                transition: margin-left .28s cubic-bezier(.4,0,.2,1);
+            }
+            .dash-main.sidebar-collapsed {
+                margin-left: 0;
+            }
+
+            /* ---- HEADER DASHBOARD INJECTIONS ---- */
+            /* Nút toggle sidebar — thêm vào trong .header của theme */
+            .sidebar-toggle-btn {
+                background: none; border: none;
+                font-size: 1.25rem; color: inherit;
+                cursor: pointer; padding: 5px 8px; margin-right: 6px;
+                border-radius: 6px; line-height: 1;
+                display: flex; align-items: center;
+                transition: background .2s;
+            }
+            .sidebar-toggle-btn:hover { background: rgba(0,0,0,0.06); }
+
+            /* Page info (title + breadcrumb) trong header */
+            .dash-header-page-info {
+                display: flex; flex-direction: column; justify-content: center;
+            }
+            .dash-header-page-title {
+                font-family: 'Raleway', sans-serif;
+                font-size: 0.97rem; font-weight: 700;
+                color: var(--dash-text-primary); margin: 0; line-height: 1.1;
+            }
+            .dash-header-breadcrumb {
+                font-size: 0.75rem; color: var(--dash-text-secondary);
+                display: flex; align-items: center; gap: 4px; margin: 0;
+            }
+            .dash-header-breadcrumb a { color: var(--dash-accent); text-decoration: none; }
+
+            /* User dropdown */
+            .dash-user-menu { position: relative; }
+            .dash-user-btn {
+                display: flex; align-items: center; gap: 8px;
+                background: none; border: 1px solid var(--dash-border);
+                border-radius: 50px; padding: 4px 12px 4px 4px;
+                cursor: pointer; transition: all .2s; font-family: inherit;
+            }
+            .dash-user-btn:hover { border-color: var(--dash-accent); background: #eff6ff; }
+            .dash-user-btn img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+            .dash-user-btn .u-name {
+                font-size: 0.84rem; font-weight: 600; color: var(--dash-text-primary);
+            }
+            .dash-user-btn .u-role {
+                font-size: 0.7rem; color: var(--dash-text-secondary); display: block; text-align: left;
+            }
+
+            .dash-user-dropdown {
+                position: absolute; top: calc(100% + 8px); right: 0;
+                background: white; border: 1px solid var(--dash-border);
+                border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.11);
+                min-width: 190px; display: none; z-index: 1100; overflow: hidden;
+            }
+            .dash-user-dropdown.show { display: block; }
+            .dash-user-dropdown a,
+            .dash-user-dropdown button {
+                display: flex; align-items: center; gap: 9px;
+                padding: 10px 16px; font-size: 0.87rem;
+                color: var(--dash-text-primary); text-decoration: none;
+                background: none; border: none; width: 100%;
+                text-align: left; cursor: pointer;
+                transition: background .15s; font-family: inherit;
+            }
+            .dash-user-dropdown a:hover,
+            .dash-user-dropdown button:hover { background: #f9fafb; }
+            .dash-user-dropdown .logout-item { color: #dc2626; }
+            .dash-user-dropdown hr { margin: 4px 0; border-color: var(--dash-border); }
+
+            /* Notification bell */
+            .dash-notif-btn {
+                position: relative; background: none;
+                border: 1px solid var(--dash-border); border-radius: 8px;
+                width: 38px; height: 38px; font-size: 1.05rem;
+                color: var(--dash-text-secondary); cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .2s;
+            }
+            .dash-notif-btn:hover { border-color: var(--dash-accent); color: var(--dash-accent); background: #eff6ff; }
+            .dash-notif-dot {
+                position: absolute; top: 7px; right: 7px;
+                width: 7px; height: 7px; background: #ef4444;
+                border-radius: 50%; border: 1.5px solid white;
+            }
+
+            /* ---- DASHBOARD COMPONENTS ---- */
+            .dash-card {
+                background: var(--dash-card-bg);
+                border-radius: 12px; box-shadow: var(--dash-card-shadow);
+                border: 1px solid var(--dash-border); padding: 22px 24px;
+            }
+            .dash-card-header {
+                display: flex; align-items: center; justify-content: space-between;
+                margin-bottom: 18px; padding-bottom: 13px;
+                border-bottom: 1px solid #f3f4f6;
+            }
+            .dash-card-title {
+                font-family: 'Raleway', sans-serif;
+                font-size: 0.97rem; font-weight: 700;
+                color: var(--dash-text-primary); margin: 0;
+            }
+            .dash-stat-card {
+                background: var(--dash-card-bg);
+                border-radius: 12px; box-shadow: var(--dash-card-shadow);
+                border: 1px solid var(--dash-border);
+                padding: 18px 22px; display: flex; align-items: center; gap: 14px;
+            }
+            .dash-stat-icon {
+                width: 48px; height: 48px; border-radius: 10px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1.3rem; flex-shrink: 0;
+            }
+            .dash-stat-value {
+                font-family: 'Raleway', sans-serif; font-size: 1.55rem; font-weight: 800;
+                color: var(--dash-text-primary); line-height: 1; display: block;
+            }
+            .dash-stat-label {
+                font-size: 0.78rem; color: var(--dash-text-secondary);
+                display: block; margin-top: 3px;
+            }
+            .dash-page-header { margin-bottom: 22px; }
+            .dash-page-title {
+                font-family: 'Raleway', sans-serif; font-size: 1.4rem; font-weight: 800;
+                color: var(--dash-text-primary); margin: 0 0 3px;
+            }
+            .dash-page-subtitle {
+                font-size: 0.87rem; color: var(--dash-text-secondary); margin: 0;
+            }
+
+            /* ---- OVERLAY mobile ---- */
+            .dash-overlay {
+                display: none; position: fixed; inset: 0;
+                background: rgba(0,0,0,0.45); z-index: 899;
+            }
+            .dash-overlay.show { display: block; }
+
+            /* ---- RESPONSIVE ---- */
+            @media (max-width: 991px) {
+                /* Sidebar ẩn hoàn toàn trên mobile, toggle bằng JS */
+                .dash-sidebar {
+                    transform: translateX(-100%);
+                    width: var(--dash-sidebar-width) !important;
+                }
+                .dash-sidebar.mobile-open { transform: translateX(0); }
+
+                /* Content chiếm full width trên mobile */
+                .dash-main { margin-left: 0 !important; padding: 16px; }
+
+                /* Ẩn breadcrumb trên mobile cho gọn */
+                .dash-header-page-info { display: none; }
+            }
+        </style>
+    </th:block>
+
 </head>
 <body></body>
 </html>

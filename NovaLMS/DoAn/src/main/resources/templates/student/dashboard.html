@@ -1,49 +1,60 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<!-- Dùng th:with="isDashboard=true" ở thẻ html để biến này có hiệu lực trên toàn bộ trang (tự động nạp CSS Dashboard trong head) -->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Tổng quan học tập')}"></head>
+<!-- 1. GỌI HEAD -->
+<head th:replace="~{fragments/head :: common-head(pageTitle='Dashboard Học Viên')}"></head>
 
-<body class="dashboard-page">
+<!-- 2. BODY: Bắt buộc dùng class dashboard-body -->
+<body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: header-fragment(currentPage='dashboard')}"></header>
+<!-- 3. GỌI HEADER (TOPBAR DASHBOARD) -->
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan', breadcrumb='Dashboard')}"></header>
 
-<main class="main">
-    <div class="page-title light-background">
-        <div class="container d-lg-flex justify-content-between align-items-center">
-            <h1 class="mb-2 mb-lg-0">Tổng quan học tập</h1>
-            <nav class="breadcrumbs">
-                <ol>
-                    <li><a th:href="@{/}">Trang chủ</a></li>
-                    <li class="current">Dashboard</li>
-                </ol>
-            </nav>
-        </div>
-    </div><section class="section dashboard" style="min-height: 60vh; padding-top: 60px;">
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="row">
-            <div class="col-12 text-center py-5">
-                <img th:src="@{/assets/img/hero-img.png}" alt="Welcome" style="width: 200px; opacity: 0.8; margin-bottom: 20px;">
-                <h2 class="fw-bold" style="color: var(--heading-color);">Chào mừng bạn quay trở lại!</h2>
-                <p class="text-muted mb-4">Đây là bảng điều khiển dành cho học viên. Dữ liệu tiến độ học tập của bạn sẽ được hiển thị tại đây.</p>
+<!-- 4. GỌI SIDEBAR & OVERLAY (Menu trái) -->
+<!-- activePage='dashboard' sẽ làm sáng menu Tổng quan -->
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-                <div>
-                    <a th:href="@{/student/my-courses}" class="btn btn-primary px-4 py-2 me-2" style="border-radius: 8px;">
-                        <i class="bi bi-play-circle me-1"></i> Tiếp tục học
-                    </a>
-                    <a th:href="@{/courses.html}" class="btn btn-outline-secondary px-4 py-2" style="border-radius: 8px;">
-                        Khám phá khóa học
-                    </a>
-                </div>
-            </div>
-        </div>
+<!-- 5. NỘI DUNG CHÍNH CỦA TRANG -->
+<!-- id="dashMain" bắt buộc phải có để Javascript thụt lề khi đóng/mở sidebar -->
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <!-- Tiêu đề trang nội dung -->
+    <div class="dash-page-header">
+        <h2 class="dash-page-title">Xin chào, <span sec:authentication="name">Học viên</span>! 👋</h2>
+        <p class="dash-page-subtitle">Không gian học tập của bạn đã sẵn sàng.</p>
     </div>
-</section>
+
+    <!-- KHUNG BLANK (Trống) ĐỂ BẠN TỰ CODE SAU NÀY -->
+    <div class="dash-card d-flex flex-column align-items-center justify-content-center text-center mt-3" style="min-height: 50vh;">
+        <div style="font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem;">
+            <i class="bi bi-grid-1x2"></i>
+        </div>
+        <h4 style="color: #475569; font-weight: 700;">Blank Dashboard</h4>
+        <p style="color: #64748b; max-width: 500px;">
+            Cấu trúc Layout (Header, Sidebar, Main) đã được lắp ráp thành công và không còn lỗi.
+            Bạn có thể bắt đầu xây dựng các biểu đồ, thẻ thống kê hoặc danh sách khóa học tại khu vực này.
+        </p>
+        <a th:href="@{/student/my-courses}" class="btn btn-primary mt-3 px-4 rounded-pill">
+            <i class="bi bi-play-btn me-2"></i>Vào khóa học của tôi
+        </a>
+    </div>
+
+    <!-- Footer nhỏ dưới cùng của Main Content -->
+    <footer class="mt-auto pt-4 pb-2 text-center" style="font-size: 0.85rem; color: #9ca3af;">
+        &copy; 2026 Nova LMS - Nền tảng học trực tuyến thông minh.
+    </footer>
 
 </main>
 
-<footer th:replace="~{fragments/footer :: common-footer}"></footer>
-<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+<!-- 6. GỌI SCRIPTS -->
+<!-- Gọi Bootstrap JS và các thư viện khác -->
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<!-- Gọi JS xử lý Đóng/Mở Sidebar và Menu User -->
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 </body>
 </html>
