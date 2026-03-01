@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface UserLessonRepository extends JpaRepository<UserLesson, UserLessonId> {
 
     @Query("SELECT CASE WHEN COUNT(ul) > 0 THEN true ELSE false END FROM UserLesson ul " +
@@ -25,4 +27,18 @@ public interface UserLessonRepository extends JpaRepository<UserLesson, UserLess
             @Param("userId") Integer userId,
             @Param("courseId") Integer courseId
     );
+
+
+    // Tìm danh sách ID các bài chưa học
+    @Query("SELECT l.lessonId FROM Lesson l JOIN l.module m " +
+            "WHERE m.course.courseId = :courseId " +
+            "AND l.lessonId NOT IN (SELECT ul.lesson.lessonId FROM UserLesson ul WHERE ul.user.userId = :userId AND ul.status = 'Completed') " +
+            "ORDER BY m.orderIndex ASC, l.orderIndex ASC")
+    List<Integer> findUncompletedLessonIds(@Param("userId") Integer userId, @Param("courseId") Integer courseId);
+
+    // Tìm danh sách toàn bộ ID bài học của khóa
+    @Query("SELECT l.lessonId FROM Lesson l JOIN l.module m " +
+            "WHERE m.course.courseId = :courseId " +
+            "ORDER BY m.orderIndex ASC, l.orderIndex ASC")
+    List<Integer> findAllLessonIdsOfCourse(@Param("courseId") Integer courseId);
 }

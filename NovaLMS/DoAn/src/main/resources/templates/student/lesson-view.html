@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle=${currentLesson.lessonName})}"></head>
+
+<style>
+  /* Ẩn footer ở màn này để có không gian học Full màn hình */
+  .dashboard-footer { display: none !important; }
+  .dash-main { padding-bottom: 0 !important; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  .learning-container { flex: 1; display: flex; overflow: hidden; margin: -20px; /* Bù trừ padding của main */ }
+
+  /* Cột Content (Giữa) */
+  .content-area { flex: 1; overflow-y: auto; background: #f8fafc; padding: 24px; }
+  .video-wrapper { background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 24px; }
+  .lesson-header { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid var(--dash-border); box-shadow: var(--dash-card-shadow); }
+  .lesson-type-badge { font-size: 0.75rem; font-weight: 700; padding: 5px 12px; border-radius: 50px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Cột Playlist (Phải) */
+  .playlist-area { width: 380px; background: #fff; border-left: 1px solid var(--dash-border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .playlist-header { padding: 20px; border-bottom: 1px solid var(--dash-border); background: #fff; z-index: 10; }
+  .playlist-content { flex: 1; overflow-y: auto; padding: 15px; }
+
+  /* Accordion Custom cho Playlist */
+  .playlist-accordion .accordion-item { border: none; border-bottom: 1px solid #f1f5f9; margin-bottom: 5px; border-radius: 0 !important; }
+  .playlist-accordion .accordion-button { padding: 14px 10px; font-weight: 700; background: transparent; box-shadow: none; font-size: 0.9rem; color: var(--dash-text-primary); }
+  .playlist-accordion .accordion-button:not(.collapsed) { color: var(--dash-accent); background: #f8fafc; }
+
+  .playlist-lesson { display: flex; align-items: flex-start; padding: 12px 10px; border-radius: 8px; text-decoration: none !important; color: var(--dash-text-secondary); transition: all 0.2s; margin-bottom: 4px; }
+  .playlist-lesson:hover { background: #f1f5f9; }
+  .playlist-lesson.active { background: #eff6ff; color: var(--dash-accent); font-weight: 600; border-left: 4px solid var(--dash-accent); }
+
+  .play-icon { font-size: 1.1rem; margin-right: 12px; margin-top: 2px; }
+  .active .play-icon { color: var(--dash-accent); }
+  .text-truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.85rem; line-height: 1.4; }
+
+  @media (max-width: 991px) {
+      .learning-container { flex-direction: column; overflow-y: auto; }
+      .content-area { overflow: visible; padding: 15px; }
+      .playlist-area { width: 100%; border-left: none; border-top: 1px solid var(--dash-border); overflow: visible; }
+  }
+</style>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Đang học', breadcrumb=${courseInfo.title})}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+  <div class="learning-container">
+
+    <div class="content-area">
+
+      <div th:if="${currentLesson.type == 'VIDEO' and currentLesson.videoUrl != null}" class="video-wrapper ratio ratio-16x9">
+        <iframe th:src="${currentLesson.videoUrl}" title="Video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+
+      <div th:if="${currentLesson.type == 'DOC'}" class="lesson-header mb-4 text-center py-5">
+        <div style="font-size: 4rem; color: #f59e0b;"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <h4 class="mt-3">Tài liệu đọc</h4>
+        <p class="text-muted mb-4" th:text="${currentLesson.contentText ?: 'Vui lòng đọc tài liệu đính kèm bên dưới.'}"></p>
+        <a href="#" class="btn btn-outline-warning rounded-pill px-4"><i class="bi bi-download me-1"></i> Tải tài liệu xuống</a>
+      </div>
+
+      <div th:if="${currentLesson.type == 'QUIZ'}" class="lesson-header mb-4 text-center py-5">
+        <div style="font-size: 4rem; color: #10b981;"><i class="bi bi-patch-question-fill"></i></div>
+        <h4 class="mt-3">Bài kiểm tra trắc nghiệm</h4>
+        <p class="text-muted mb-4">Hoàn thành bài kiểm tra để đánh giá kiến thức của bạn.</p>
+        <a th:href="@{'/student/quiz/take/' + ${currentLesson.lessonId}}" class="btn btn-success rounded-pill px-5 fw-bold shadow-sm">Bắt đầu làm bài <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+
+      <div class="lesson-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+          <span class="badge bg-primary lesson-type-badge mb-2" th:classappend="${currentLesson.type == 'VIDEO'} ? 'bg-primary' : (${currentLesson.type == 'DOC'} ? 'bg-warning text-dark' : 'bg-success')" th:text="${currentLesson.type}">TYPE</span>
+          <h3 class="fw-bold mb-1" style="color: var(--dash-text-primary);" th:text="${currentLesson.lessonName}">Tên bài học</h3>
+          <p class="text-muted mb-0 small"><i class="bi bi-clock me-1"></i> Thời lượng: <span th:text="${currentLesson.duration}"></span></p>
+        </div>
+
+        <form method="POST" action="/student/lesson/complete">
+          <input type="hidden" name="lessonId" th:value="${currentLesson.lessonId}">
+          <button type="button" class="btn btn-outline-success rounded-pill fw-bold px-4">
+            <i class="bi bi-check-circle me-1"></i> Đánh dấu hoàn thành
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="playlist-area shadow-sm">
+      <div class="playlist-header">
+        <h6 class="fw-bold mb-1 text-dark text-truncate" th:text="${courseInfo.title}">Tên khóa học</h6>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <span class="small text-muted" th:text="'Tiến độ: ' + ${courseInfo.progressPercent} + '%'">0%</span>
+          <div class="progress flex-grow-1 ms-2" style="height: 6px;">
+            <div class="progress-bar bg-success" th:style="'width: ' + ${courseInfo.progressPercent} + '%'"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="playlist-content">
+        <div class="accordion playlist-accordion" id="playlistAccordion">
+
+          <div class="accordion-item" th:each="module, mStat : ${courseInfo.modules}">
+
+            <h2 class="accordion-header">
+              <button class="accordion-button"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      th:data-bs-target="'#mod' + ${module.moduleId}"
+                      th:classappend="${#lists.contains(module.lessons.![lessonId], currentLesson.lessonId.longValue())} ? '' : 'collapsed'">
+                <span th:text="${module.moduleTitle}">Module 1</span>
+              </button>
+            </h2>
+
+            <div th:id="'mod' + ${module.moduleId}"
+                 class="accordion-collapse collapse"
+                 th:classappend="${#lists.contains(module.lessons.![lessonId], currentLesson.lessonId.longValue())} ? 'show' : ''"
+                 data-bs-parent="#playlistAccordion">
+
+              <div class="accordion-body p-0 py-2">
+                <a th:each="lesson : ${module.lessons}"
+                   th:href="@{'/student/lesson/view/' + ${lesson.lessonId}}"
+                   class="playlist-lesson"
+                   th:classappend="${lesson.lessonId == currentLesson.lessonId.longValue()} ? 'active' : ''">
+
+                  <div class="play-icon">
+                    <i th:if="${lesson.isCompleted}" class="bi bi-check-circle-fill text-success"></i>
+                    <i th:unless="${lesson.isCompleted}"
+                       th:class="${lesson.type == 'VIDEO'} ? 'bi bi-play-circle' : (${lesson.type == 'DOC'} ? 'bi bi-file-earmark-text' : 'bi bi-patch-question')"></i>
+                  </div>
+
+                  <div>
+                    <div class="text-truncate-2" th:text="${lesson.lessonTitle}">Tên bài</div>
+                    <div class="small mt-1" th:style="${lesson.lessonId == currentLesson.lessonId.longValue()} ? 'color: var(--dash-accent);' : 'color: #94a3b8;'">
+                      <i class="bi bi-clock me-1"></i><span th:text="${lesson.duration}"></span>
+                    </div>
+                  </div>
+                </a>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+</body>
+</html>
