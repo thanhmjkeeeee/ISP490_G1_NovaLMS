@@ -53,7 +53,7 @@
       <div class="progress mb-3" style="height: 10px; background-color: rgba(255,255,255,0.2); border-radius: 50px;">
         <div class="progress-bar bg-success" role="progressbar" th:style="'width: ' + ${course.progressPercent} + '%'"></div>
       </div>
-      <a th:href="@{'/student/lesson/' + ${course.courseId} + '/continue'}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+      <a th:href="@{/student/lesson/{id}/continue(id=${course.courseId})}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
         Tiếp tục học <i class="bi bi-play-circle-fill ms-1"></i>
       </a>
     </div>
