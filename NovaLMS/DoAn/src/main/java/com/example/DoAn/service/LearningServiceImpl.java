@@ -19,6 +19,7 @@ public class LearningServiceImpl implements LearningService {
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
     private final UserLessonRepository userLessonRepository;
+    private final LessonRepository lessonRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -59,7 +60,6 @@ public class LearningServiceImpl implements LearningService {
                     List<CourseLearningInfoDTO.LessonDTO> lessonDTOs = m.getLessons().stream()
                             .sorted((l1, l2) -> Integer.compare(l1.getOrderIndex(), l2.getOrderIndex()))
                             .map(l -> {
-                                // Kiểm tra bài học đã hoàn thành chưa trong bảng user_lesson
                                 boolean isDone = userLessonRepository.existsByUserIdAndLessonIdAndStatus(user.getUserId(), l.getLessonId(), "Completed");
 
                                 return CourseLearningInfoDTO.LessonDTO.builder()
@@ -88,9 +88,35 @@ public class LearningServiceImpl implements LearningService {
                 .teacherAvatar(instructor != null ? instructor.getAvatarUrl() : "/assets/img/person/person-1.jpg")
                 .className(clazz != null ? clazz.getClassName() : null)
                 .schedule(clazz != null ? clazz.getSchedule() : "Chưa có lịch cụ thể")
-                // Note: Bảng class trong SQL chưa có cột meeting_link, tạm thời để null
+                // Bảng class trong SQL chưa có cột meeting_link, tạm thời để null
                 .liveMeetingLink(null)
                 .modules(moduleDTOs)
                 .build();
+    }
+
+    @Override
+    public Integer getLessonIdToContinue(Integer courseId, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Integer> uncompletedIds = userLessonRepository.findUncompletedLessonIds(user.getUserId(), courseId);
+
+        if (uncompletedIds != null && !uncompletedIds.isEmpty()) {
+            return uncompletedIds.get(0);
+        }
+
+        List<Integer> allIds = userLessonRepository.findAllLessonIdsOfCourse(courseId);
+
+        if (allIds != null && !allIds.isEmpty()) {
+            return allIds.get(0);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Lesson getLessonEntity(Integer lessonId) {
+        return lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
     }
 }
