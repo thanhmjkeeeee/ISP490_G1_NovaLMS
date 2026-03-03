@@ -1,600 +1,154 @@
 <!DOCTYPE html>
-<!-- Defined currentPage='index' to highlight the menu item in header -->
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<!-- Include Head Fragment (Pass page title) -->
 <head th:replace="~{fragments/head :: common-head(pageTitle='Trang chủ')}">
 </head>
 
 <body class="index-page">
 
-<!-- Include Header Fragment -->
-<!-- Note: We use th:with to pass local variables if needed, though here currentPage is usually passed from Controller -->
 <header th:replace="~{fragments/header :: header-fragment(currentPage='index')}"></header>
 
 <main class="main">
 
-  <!-- Courses Hero Section -->
   <section id="courses-hero" class="courses-hero section light-background">
     <div class="hero-content">
       <div class="container">
         <div class="row align-items-center">
-
-          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-lg-6" data-aos="fade-up">
             <div class="hero-text">
               <h1>Nâng Tầm Đào Tạo Tiếng Anh Với Công Nghệ AI</h1>
-              <p>Nền tảng quản lý học tập toàn diện cho trung tâm Anh ngữ. Tích hợp lộ trình cá nhân hóa, quản lý lớp học hiệu quả và công nghệ AI chấm điểm tự động giúp tối ưu hóa kết quả học tập.</p>
-
-              <div class="hero-stats">
-                <div class="stat-item">
-                  <span class="number purecounter" data-purecounter-start="0" data-purecounter-end="1500" data-purecounter-duration="2"></span>
-                  <span class="label">Học viên Active</span>
-                </div>
-                <div class="stat-item">
-                  <span class="number purecounter" data-purecounter-start="0" data-purecounter-end="50" data-purecounter-duration="2"></span>
-                  <span class="label">Khóa học</span>
-                </div>
-                <div class="stat-item">
-                  <span class="number purecounter" data-purecounter-start="0" data-purecounter-end="95" data-purecounter-duration="2"></span>
-                  <span class="label">% Đạt Target</span>
-                </div>
-              </div>
-
+              <p>Nền tảng quản lý học tập toàn diện cho trung tâm Anh ngữ.</p>
               <div class="hero-buttons">
-                <a href="#courses" class="btn btn-primary">Xem Khóa Học</a>
+                <a th:href="@{/courses}" class="btn btn-primary">Xem Khóa Học</a>
                 <a href="#about" class="btn btn-outline">Tìm Hiểu Thêm</a>
               </div>
-
-              <div class="hero-features">
-                <div class="feature">
-                  <i class="bi bi-robot"></i>
-                  <span>Chấm điểm AI</span>
-                </div>
-                <div class="feature">
-                  <i class="bi bi-graph-up-arrow"></i>
-                  <span>Theo dõi lộ trình</span>
-                </div>
-                <div class="feature">
-                  <i class="bi bi-laptop"></i>
-                  <span>Học Online & Offline</span>
-                </div>
-              </div>
             </div>
           </div>
-
           <div class="col-lg-6" data-aos="fade-up" data-aos-delay="200">
             <div class="hero-image">
-              <div class="main-image">
-                <img th:src="@{/assets/img/education/courses-13.webp}" alt="Học tiếng Anh Online" class="img-fluid">
-              </div>
-
-              <div class="floating-cards">
-                <div class="course-card" data-aos="fade-up" data-aos-delay="300">
-                  <div class="card-icon">
-                    <i class="bi bi-translate"></i>
-                  </div>
-                  <div class="card-content">
-                    <h6>Luyện thi IELTS</h6>
-                    <span>500+ Học viên</span>
-                  </div>
-                </div>
-
-                <div class="course-card" data-aos="fade-up" data-aos-delay="400">
-                  <div class="card-icon">
-                    <i class="bi bi-chat-dots"></i>
-                  </div>
-                  <div class="card-content">
-                    <h6>Giao tiếp phản xạ</h6>
-                    <span>350+ Học viên</span>
-                  </div>
-                </div>
-
-                <div class="course-card" data-aos="fade-up" data-aos-delay="500">
-                  <div class="card-icon">
-                    <i class="bi bi-briefcase"></i>
-                  </div>
-                  <div class="card-content">
-                    <h6>Tiếng Anh Business</h6>
-                    <span>200+ Học viên</span>
-                  </div>
-                </div>
-              </div>
+              <img th:src="@{/assets/img/education/courses-13.webp}" alt="Học tiếng Anh Online" class="img-fluid">
             </div>
           </div>
-
         </div>
-      </div>
-    </div>
-    <div class="hero-background">
-      <div class="bg-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
       </div>
     </div>
   </section>
 
-  <!-- Featured Courses Section -->
   <section id="featured-courses" class="featured-courses section">
     <div class="container section-title" data-aos="fade-up">
       <h2>Khóa Học Nổi Bật</h2>
       <p>Các chương trình đào tạo được thiết kế chuẩn quốc tế, phù hợp với mọi trình độ.</p>
     </div>
 
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
+    <div class="container" data-aos="fade-up">
       <div class="row gy-4">
-        <!-- Course Item 1 -->
-        <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+
+        <div class="col-lg-4 col-md-6" th:each="course : ${featuredCourses}" data-aos="fade-up">
           <div class="course-card">
             <div class="course-image">
-              <img th:src="@{/assets/img/education/students-9.webp}" alt="Course" class="img-fluid">
-              <div class="badge featured">Hot</div>
-              <div class="price-badge">5.500.000đ</div>
+              <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/education/students-9.webp'}" class="img-fluid">
+              <div class="badge featured" th:if="${course.price > 5000000}">Hot</div>
+              <div class="price-badge" th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></div>
             </div>
             <div class="course-content">
               <div class="course-meta">
-                <span class="level">Intermediate</span>
+                <span class="level">English</span>
                 <span class="duration">12 Tuần</span>
               </div>
-              <h3><a href="#">IELTS Foundation (4.5 - 5.5)</a></h3>
-              <p>Xây dựng nền tảng vững chắc cho 4 kỹ năng Nghe, Nói, Đọc, Viết. Phù hợp cho người mới bắt đầu luyện thi.</p>
-              <div class="instructor">
-                <img th:src="@{/assets/img/person/person-f-3.webp}" alt="Instructor" class="instructor-img">
-                <div class="instructor-info">
-                  <h6>Ms. Sarah Linh</h6>
-                  <span>IELTS 8.0</span>
-                </div>
-              </div>
+              <h3><a th:href="@{'/course/details/' + ${course.courseId}}" th:text="${course.title}">IELTS Foundation</a></h3>
+              <p th:text="${course.description}">Mô tả khóa học...</p>
+
               <div class="course-stats">
                 <div class="rating">
                   <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
                   <span>(4.5)</span>
                 </div>
                 <div class="students">
-                  <i class="bi bi-people-fill"></i> <span>342 học viên</span>
+                  <i class="bi bi-people-fill"></i>
+                  <span th:text="${course.studentCount + ' học viên'}">342 học viên</span>
                 </div>
               </div>
-              <a th:href="@{/enroll.html}" class="btn-course">Đăng Ký Ngay</a>
+              <a th:href="@{'/course/details/' + ${course.courseId}}" class="btn-course">Đăng Ký Ngay</a>
             </div>
           </div>
         </div>
 
-        <!-- Course Item 2 -->
-        <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-          <div class="course-card">
-            <div class="course-image">
-              <img th:src="@{/assets/img/education/campus-4.webp}" alt="Course" class="img-fluid">
-              <div class="badge new">Mới</div>
-              <div class="price-badge">3.200.000đ</div>
-            </div>
-            <div class="course-content">
-              <div class="course-meta">
-                <span class="level">Beginner</span>
-                <span class="duration">8 Tuần</span>
-              </div>
-              <h3><a href="#">Tiếng Anh Giao Tiếp Cơ Bản</a></h3>
-              <p>Tự tin giao tiếp trong các tình huống hàng ngày. Tập trung vào phát âm chuẩn và phản xạ tự nhiên.</p>
-              <div class="instructor">
-                <img th:src="@{/assets/img/person/person-m-5.webp}" alt="Instructor" class="instructor-img">
-                <div class="instructor-info">
-                  <h6>Mr. Michael Chen</h6>
-                  <span>Native Speaker</span>
-                </div>
-              </div>
-              <div class="course-stats">
-                <div class="rating">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                  <span>(5.0)</span>
-                </div>
-                <div class="students">
-                  <i class="bi bi-people-fill"></i> <span>156 học viên</span>
-                </div>
-              </div>
-              <a th:href="@{/enroll.html}" class="btn-course">Đăng Ký Ngay</a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Course Item 3 -->
-        <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
-          <div class="course-card">
-            <div class="course-image">
-              <img th:src="@{/assets/img/education/students-7.webp}" alt="Course" class="img-fluid">
-              <div class="badge certificate">Chứng chỉ</div>
-              <div class="price-badge">Miễn phí</div>
-            </div>
-            <div class="course-content">
-              <div class="course-meta">
-                <span class="level">All Levels</span>
-                <span class="duration">1 Tuần</span>
-              </div>
-              <h3><a href="#">Kiểm tra đầu vào (Placement Test)</a></h3>
-              <p>Bài kiểm tra năng lực toàn diện 4 kỹ năng được chấm điểm bởi AI và giáo viên để xác định trình độ chính xác.</p>
-              <div class="instructor">
-                <img th:src="@{/assets/img/person/person-f-7.webp}" alt="Instructor" class="instructor-img">
-                <div class="instructor-info">
-                  <h6>Hệ thống Nova AI</h6>
-                  <span>Assessment Tool</span>
-                </div>
-              </div>
-              <div class="course-stats">
-                <div class="rating">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i>
-                  <span>(4.2)</span>
-                </div>
-                <div class="students">
-                  <i class="bi bi-people-fill"></i> <span>789 lượt thi</span>
-                </div>
-              </div>
-              <a th:href="@{/enroll.html}" class="btn-course">Thi Thử Ngay</a>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div class="more-courses text-center" data-aos="fade-up" data-aos-delay="500">
-        <a th:href="@{/courses.html}" class="btn-more">Xem Tất Cả Khóa Học</a>
+      <div class="more-courses text-center" data-aos="fade-up">
+        <a th:href="@{/courses}" class="btn-more">Xem Tất Cả Khóa Học</a>
       </div>
     </div>
   </section>
-
-  <!-- Course Categories Section -->
-  <section id="course-categories" class="course-categories section">
-    <div class="container section-title" data-aos="fade-up">
-      <h2>Danh Mục Đào Tạo</h2>
-      <p>Lựa chọn lộ trình phù hợp với mục tiêu của bạn</p>
-    </div>
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row g-4">
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="100">
-          <a th:href="@{/courses.html}" class="category-card category-tech">
-            <div class="category-icon"><i class="bi bi-translate"></i></div>
-            <h5>IELTS</h5>
-            <span class="course-count">5 Khóa học</span>
-          </a>
-        </div>
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="150">
-          <a th:href="@{/courses.html}" class="category-card category-business">
-            <div class="category-icon"><i class="bi bi-briefcase"></i></div>
-            <h5>Business English</h5>
-            <span class="course-count">3 Khóa học</span>
-          </a>
-        </div>
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="200">
-          <a th:href="@{/courses.html}" class="category-card category-design">
-            <div class="category-icon"><i class="bi bi-chat-text"></i></div>
-            <h5>Giao tiếp</h5>
-            <span class="course-count">4 Khóa học</span>
-          </a>
-        </div>
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="250">
-          <a th:href="@{/courses.html}" class="category-card category-health">
-            <div class="category-icon"><i class="bi bi-book"></i></div>
-            <h5>Ngữ pháp</h5>
-            <span class="course-count">2 Khóa học</span>
-          </a>
-        </div>
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="300">
-          <a th:href="@{/courses.html}" class="category-card category-language">
-            <div class="category-icon"><i class="bi bi-award"></i></div>
-            <h5>TOEIC</h5>
-            <span class="course-count">3 Khóa học</span>
-          </a>
-        </div>
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6" data-aos="zoom-in" data-aos-delay="350">
-          <a th:href="@{/courses.html}" class="category-card category-science">
-            <div class="category-icon"><i class="bi bi-people"></i></div>
-            <h5>Tiếng Anh Trẻ Em</h5>
-            <span class="course-count">6 Khóa học</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Featured Instructors Section -->
   <section id="featured-instructors" class="featured-instructors section">
+
     <div class="container section-title" data-aos="fade-up">
       <h2>Đội Ngũ Giảng Viên</h2>
-      <p>Học cùng các chuyên gia IELTS 8.0+ và Giáo viên bản ngữ giàu kinh nghiệm</p>
-    </div>
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row gy-4">
-        <!-- Instructor 1 -->
-        <div class="col-xl-3 col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-          <div class="instructor-card">
-            <div class="instructor-image">
-              <img th:src="@{/assets/img/education/teacher-2.webp}" class="img-fluid" alt="">
-              <div class="overlay-content">
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-                  <span>4.8</span>
-                </div>
-                <div class="course-count">
-                  <i class="bi bi-play-circle"></i> <span>5 Khóa học</span>
-                </div>
-              </div>
-            </div>
-            <div class="instructor-info">
-              <h5>Ms. Sarah Linh</h5>
-              <p class="specialty">IELTS Expert (8.5)</p>
-              <p class="description">5 năm kinh nghiệm luyện thi IELTS, chuyên gia kỹ năng Writing & Speaking.</p>
-              <div class="stats-grid">
-                <div class="stat"><span class="number">2.1k</span><span class="label">Học viên</span></div>
-                <div class="stat"><span class="number">4.8</span><span class="label">Rating</span></div>
-              </div>
-              <div class="action-buttons">
-                <a href="#" class="btn-view">Xem Hồ Sơ</a>
-                <div class="social-links">
-                  <a href="#"><i class="bi bi-linkedin"></i></a>
-                  <a href="#"><i class="bi bi-facebook"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Instructor 2 -->
-        <div class="col-xl-3 col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="250">
-          <div class="instructor-card">
-            <div class="instructor-image">
-              <img th:src="@{/assets/img/education/teacher-7.webp}" class="img-fluid" alt="">
-              <div class="overlay-content">
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                  <span>4.9</span>
-                </div>
-                <div class="course-count">
-                  <i class="bi bi-play-circle"></i> <span>8 Khóa học</span>
-                </div>
-              </div>
-            </div>
-            <div class="instructor-info">
-              <h5>Mr. David Nguyen</h5>
-              <p class="specialty">Giao tiếp & Business</p>
-              <p class="description">Thạc sĩ ngôn ngữ học, chuyên đào tạo tiếng Anh doanh nghiệp.</p>
-              <div class="stats-grid">
-                <div class="stat"><span class="number">3.5k</span><span class="label">Học viên</span></div>
-                <div class="stat"><span class="number">4.9</span><span class="label">Rating</span></div>
-              </div>
-              <div class="action-buttons">
-                <a href="#" class="btn-view">Xem Hồ Sơ</a>
-                <div class="social-links">
-                  <a href="#"><i class="bi bi-github"></i></a>
-                  <a href="#"><i class="bi bi-linkedin"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Instructor 3 -->
-        <div class="col-xl-3 col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-          <div class="instructor-card">
-            <div class="instructor-image">
-              <img th:src="@{/assets/img/education/teacher-4.webp}" class="img-fluid" alt="">
-              <div class="overlay-content">
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i>
-                  <span>4.6</span>
-                </div>
-                <div class="course-count">
-                  <i class="bi bi-play-circle"></i> <span>6 Khóa học</span>
-                </div>
-              </div>
-            </div>
-            <div class="instructor-info">
-              <h5>Ms. Amanda Pham</h5>
-              <p class="specialty">TOEIC Trainer</p>
-              <p class="description">Phương pháp dạy độc đáo, giúp học viên tăng 200 điểm TOEIC sau 2 tháng.</p>
-              <div class="stats-grid">
-                <div class="stat"><span class="number">1.8k</span><span class="label">Học viên</span></div>
-                <div class="stat"><span class="number">4.6</span><span class="label">Rating</span></div>
-              </div>
-              <div class="action-buttons">
-                <a href="#" class="btn-view">Xem Hồ Sơ</a>
-                <div class="social-links">
-                  <a href="#"><i class="bi bi-dribbble"></i></a>
-                  <a href="#"><i class="bi bi-behance"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Instructor 4 -->
-        <div class="col-xl-3 col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="350">
-          <div class="instructor-card">
-            <div class="instructor-image">
-              <img th:src="@{/assets/img/education/teacher-9.webp}" class="img-fluid" alt="">
-              <div class="overlay-content">
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-                  <span>4.7</span>
-                </div>
-                <div class="course-count">
-                  <i class="bi bi-play-circle"></i> <span>10 Khóa học</span>
-                </div>
-              </div>
-            </div>
-            <div class="instructor-info">
-              <h5>Mr. James Wilson</h5>
-              <p class="specialty">Native Speaker</p>
-              <p class="description">Giáo viên bản ngữ đến từ Anh Quốc, chuyên luyện phát âm và ngữ điệu.</p>
-              <div class="stats-grid">
-                <div class="stat"><span class="number">2.9k</span><span class="label">Học viên</span></div>
-                <div class="stat"><span class="number">4.7</span><span class="label">Rating</span></div>
-              </div>
-              <div class="action-buttons">
-                <a href="#" class="btn-view">Xem Hồ Sơ</a>
-                <div class="social-links">
-                  <a href="#"><i class="bi bi-instagram"></i></a>
-                  <a href="#"><i class="bi bi-facebook"></i></a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+      <p>Học cùng các chuyên gia hàng đầu, tận tâm và giàu kinh nghiệm sư phạm</p>
+    </div><div class="container" data-aos="fade-up" data-aos-delay="100">
 
-  <!-- Testimonials Section -->
-  <section id="testimonials" class="testimonials section">
-    <div class="container section-title" data-aos="fade-up">
-      <h2>Cảm Nhận Học Viên</h2>
-      <p>Những câu chuyện thành công từ cộng đồng Nova LMS</p>
-    </div>
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row">
-        <div class="col-12">
-          <div class="testimonials-container">
-            <div class="swiper testimonials-slider init-swiper" data-aos="fade-up" data-aos-delay="400">
-              <script type="application/json" class="swiper-config">
-                {
-                  "loop": true,
-                  "speed": 600,
-                  "autoplay": { "delay": 5000 },
-                  "slidesPerView": 1,
-                  "spaceBetween": 30,
-                  "pagination": { "el": ".swiper-pagination", "type": "bullets", "clickable": true },
-                  "breakpoints": {
-                    "768": { "slidesPerView": 2 },
-                    "992": { "slidesPerView": 3 }
-                  }
-                }
-              </script>
-              <div class="swiper-wrapper">
-                <!-- Testimonial 1 -->
-                <div class="swiper-slide">
-                  <div class="testimonial-item">
-                    <div class="stars">
-                      <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    </div>
-                    <p>"Hệ thống Nova LMS giúp mình theo dõi tiến độ học tập rất dễ dàng. Tính năng AI chấm bài Writing thực sự hữu ích, giúp mình sửa lỗi sai ngay lập tức."</p>
-                    <div class="testimonial-profile">
-                      <img th:src="@{/assets/img/person/person-f-1.webp}" alt="Reviewer" class="img-fluid rounded-circle">
-                      <div>
-                        <h3>Nguyễn Thị Lan</h3>
-                        <h4>IELTS 7.5</h4>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Testimonial 2 -->
-                <div class="swiper-slide">
-                  <div class="testimonial-item">
-                    <div class="stars">
-                      <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-                    </div>
-                    <p>"Các khóa học giao tiếp tại đây rất thực tế. Giảng viên nhiệt tình và nền tảng học online mượt mà, không bị giật lag."</p>
-                    <div class="testimonial-profile">
-                      <img th:src="@{/assets/img/person/person-m-2.webp}" alt="Reviewer" class="img-fluid rounded-circle">
-                      <div>
-                        <h3>Trần Văn Minh</h3>
-                        <h4>Nhân viên văn phòng</h4>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Testimonial 3 -->
-                <div class="swiper-slide">
-                  <div class="testimonial-item">
-                    <div class="stars">
-                      <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-                    </div>
-                    <p>"Mình thích nhất là tính năng làm bài tập về nhà trên app. Rất tiện lợi và có thể học mọi lúc mọi nơi."</p>
-                    <div class="testimonial-profile">
-                      <img th:src="@{/assets/img/person/person-f-3.webp}" alt="Reviewer" class="img-fluid rounded-circle">
-                      <div>
-                        <h3>Lê Thu Hà</h3>
-                        <h4>Sinh viên ĐH Ngoại Thương</h4>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="swiper-pagination"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-12 text-center" data-aos="fade-up">
-          <div class="overall-rating">
-            <div class="rating-number">4.8</div>
-            <div class="rating-stars">
-              <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-            </div>
-            <p>Dựa trên 230+ đánh giá thực tế</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+    <div class="row gy-4">
 
-  <!-- Cta Section -->
-  <section id="cta" class="cta section light-background">
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row align-items-center">
-        <div class="col-lg-6" data-aos="fade-right" data-aos-delay="200">
-          <div class="cta-content">
-            <h2>Bắt Đầu Hành Trình Chinh Phục Tiếng Anh Ngay Hôm Nay</h2>
-            <p>Tham gia cộng đồng hàng nghìn học viên thành công cùng Nova LMS. Chúng tôi cam kết đồng hành cùng bạn trên con đường chinh phục ngoại ngữ.</p>
-            <div class="features-list">
-              <div class="feature-item" data-aos="fade-up" data-aos-delay="300">
-                <i class="bi bi-check-circle-fill"></i>
-                <span>Đội ngũ giảng viên chất lượng cao (IELTS 8.0+)</span>
+      <div class="col-xl-3 col-lg-4 col-md-6" th:each="teacher, iterStat : ${teachers}"
+           data-aos="fade-up" th:data-aos-delay="${200 + (iterStat.index * 50)}">
+
+        <div class="instructor-card">
+          <div class="instructor-image">
+            <img th:src="${teacher.avatarUrl != null ? teacher.avatarUrl : 'assets/img/education/teacher-2.webp'}"
+                 class="img-fluid" th:alt="${teacher.fullName}">
+
+            <div class="overlay-content">
+              <div class="rating-stars">
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-fill"></i>
+                <i class="bi bi-star-half"></i>
+                <span>4.8</span>
               </div>
-              <div class="feature-item" data-aos="fade-up" data-aos-delay="350">
-                <i class="bi bi-check-circle-fill"></i>
-                <span>Cam kết đầu ra bằng văn bản</span>
-              </div>
-              <div class="feature-item" data-aos="fade-up" data-aos-delay="400">
-                <i class="bi bi-check-circle-fill"></i>
-                <span>Hỗ trợ giải đáp 24/7 qua hệ thống Nova LMS</span>
-              </div>
-              <div class="feature-item" data-aos="fade-up" data-aos-delay="450">
-                <i class="bi bi-check-circle-fill"></i>
-                <span>Bài tập thực hành phong phú, chấm điểm tự động</span>
-              </div>
-            </div>
-            <div class="cta-actions" data-aos="fade-up" data-aos-delay="500">
-              <a href="../student/my-courses.html" class="btn btn-primary">Xem Khóa Học</a>
-              <a href="enroll.html" class="btn btn-outline">Tư Vấn Ngay</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
-          <div class="cta-image">
-            <img th:src="@{/assets/img/education/courses-4.webp}" alt="Online Learning Platform" class="img-fluid">
-            <div class="floating-element student-card" data-aos="zoom-in" data-aos-delay="600">
-              <div class="card-content">
-                <i class="bi bi-person-check-fill"></i>
-                <div class="text">
-                  <span class="number">2,450</span>
-                  <span class="label">Học viên mới tháng này</span>
-                </div>
-              </div>
-            </div>
-            <div class="floating-element course-card" data-aos="zoom-in" data-aos-delay="700">
-              <div class="card-content">
-                <i class="bi bi-play-circle-fill"></i>
-                <div class="text">
-                  <span class="number">500+</span>
-                  <span class="label">Video bài giảng</span>
-                </div>
+              <div class="course-count">
+                <i class="bi bi-play-circle"></i>
+                <span>12 Khóa học</span>
               </div>
             </div>
           </div>
+
+          <div class="instructor-info">
+            <h5 th:text="${teacher.fullName}">Tên Giảng Viên</h5>
+            <p class="specialty" th:text="${teacher.role != null ? 'Senior Instructor' : 'Giảng viên'}">Chuyên môn</p>
+
+            <p class="description"
+               th:text="${teacher.note != null ? teacher.note : 'Chuyên gia đào tạo với nhiều năm kinh nghiệm giảng dạy tiếng Anh.'}">
+              Mô tả...
+            </p>
+
+            <div class="stats-grid">
+              <div class="stat">
+                <span class="number">Active</span>
+                <span class="label">Status</span>
+              </div>
+              <div class="stat">
+                <span class="number">4.8</span>
+                <span class="label">Rating</span>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <a th:href="@{'/instructor/profile/' + ${teacher.userId}}" class="btn-view">View Profile</a>
+              <div class="social-links">
+                <a href="#"><i class="bi bi-linkedin"></i></a>
+                <a href="#"><i class="bi bi-facebook"></i></a>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </div></div>
+  </div>
+  </section>```
 
 </main>
 
-<!-- Include Footer Fragment -->
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
-
-<!-- Include Scripts Fragment -->
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 </body>
