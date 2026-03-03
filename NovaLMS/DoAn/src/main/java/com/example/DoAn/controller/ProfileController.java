@@ -1,10 +1,9 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.ServiceResult;
 import com.example.DoAn.dto.UserProfileDTO;
-import com.example.DoAn.service.FileUploadService;
 import com.example.DoAn.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,8 +18,6 @@ import java.security.Principal;
 public class ProfileController {
 
     private final UserService userService;
-    @Autowired
-    private FileUploadService fileUploadService;
 
     private String getEmailFromPrincipal(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
@@ -29,60 +26,52 @@ public class ProfileController {
         return principal.getName();
     }
 
-    //HIỂN THỊ MÀN HÌNH PROFILE
     @GetMapping("/profile")
     public String viewProfile(Principal principal, Model model) {
         if (principal == null) return "redirect:/login.html";
 
         String email = getEmailFromPrincipal(principal);
-        UserProfileDTO userProfile = userService.getUserProfile(email);
+        ServiceResult<UserProfileDTO> result = userService.getUserProfile(email);
 
-//        boolean isAdmin = authentication.getAuthorities().stream()
-//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-//
-//        if (isAdmin) {
-//            return "admin/account-details"; // Admin thì load layout admin
-//        }
-        model.addAttribute("userProfile", userProfile);
+        if (!result.isSuccess()) {
+            return "redirect:/login.html";
+        }
+
+        model.addAttribute("userProfile", result.getData());
         return "user/account-details";
     }
 
-    //
     @PostMapping("/profile/update")
     public String updateProfile(@ModelAttribute("userProfile") UserProfileDTO dto,
                                 Principal principal,
                                 RedirectAttributes ra) {
         if (principal == null) return "redirect:/login.html";
 
-        try {
-            String email = getEmailFromPrincipal(principal);
-            userService.updateUserProfile(email, dto);
+        String email = getEmailFromPrincipal(principal);
+        ServiceResult<Void> result = userService.updateUserProfile(email, dto);
 
-            ra.addFlashAttribute("successMsg", "Cập nhật hồ sơ thành công!");
-        } catch (Exception e) {
-            ra.addFlashAttribute("errorMsg", "Có lỗi xảy ra: " + e.getMessage());
+        if (result.isSuccess()) {
+            ra.addFlashAttribute("successMsg", result.getMessage());
+        } else {
+            ra.addFlashAttribute("errorMsg", result.getMessage());
         }
 
         return "redirect:/profile";
     }
+
     @PostMapping("/profile/upload-avatar")
-    public String uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal, RedirectAttributes ra) {
-        if (file.isEmpty()) {
-            ra.addFlashAttribute("error", "Vui lòng chọn một file ảnh hợp lệ.");
-            return "redirect:/profile";
-        }
+    public String uploadAvatar(@RequestParam("file") MultipartFile file,
+                               Principal principal,
+                               RedirectAttributes ra) {
+        if (principal == null) return "redirect:/login.html";
 
-        try {
-            String email = principal.getName();
+        String email = getEmailFromPrincipal(principal);
+        ServiceResult<String> result = userService.updateAvatar(email, file);
 
-            String uploadedAvatarUrl = fileUploadService.uploadImage(file);
-
-            userService.updateAvatar(email, uploadedAvatarUrl);
-
-            ra.addFlashAttribute("success", "Đã cập nhật ảnh đại diện thành công!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            ra.addFlashAttribute("error", "Có lỗi xảy ra trong quá trình tải ảnh lên.");
+        if (result.isSuccess()) {
+            ra.addFlashAttribute("success", result.getMessage());
+        } else {
+            ra.addFlashAttribute("error", result.getMessage());
         }
 
         return "redirect:/profile";
