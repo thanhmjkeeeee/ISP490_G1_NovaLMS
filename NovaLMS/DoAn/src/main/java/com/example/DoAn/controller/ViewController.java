@@ -74,9 +74,9 @@ public class ViewController {
         return "auth/reset-password"; // Trả về templates/reset-password.html
     }
 
-    @GetMapping("/admin/dashboard")
-    public String admin() {
-        return "admin/dashboard";
-    }
+//    @GetMapping("/admin/dashboard")
+//    public String admin() {
+//        return "admin/dashboard";
+//    }
 
 }

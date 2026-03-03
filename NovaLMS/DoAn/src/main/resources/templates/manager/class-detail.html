@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết lớp học', breadcrumb='Lớp học / Chi tiết')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></aside>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid mt-3">
+    <div class="card border-0 shadow-sm p-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-primary m-0">Thông tin lớp: <span th:text="${clazz.className}"></span></h4>
+        <div>
+          <button type="button" id="btnEdit" class="btn btn-warning rounded-pill px-4">
+            <i class="bi bi-pencil-square"></i> Chỉnh sửa
+          </button>
+          <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4 border">Quay lại</a>
+        </div>
+      </div>
+
+      <form th:action="@{/manager/class/save}" th:object="${clazz}" method="post" id="classForm">
+        <input type="hidden" th:field="*{classId}" />
+
+        <div class="row g-3">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Khóa học</label>
+            <select class="form-select bg-light" th:field="*{course.courseId}" disabled id="inputCourse">
+              <option th:each="crs : ${courses}" th:value="${crs.courseId}" th:text="${crs.courseName}"></option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">Giảng viên phụ trách</label>
+            <select class="form-select bg-light" th:field="*{teacher.userId}" disabled id="inputTeacher">
+              <option th:each="t : ${teachers}" th:value="${t.userId}" th:text="${t.fullName}"></option>
+            </select>
+          </div>
+
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-success">Ngày khai giảng</label>
+              <input type="datetime-local" class="form-control view-mode"
+                     th:field="*{startDate}" readonly required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold text-danger">Ngày kết thúc</label>
+              <input type="datetime-local"
+                     class="form-control view-mode"
+                     th:field="*{endDate}"
+                     readonly />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Lịch học</label>
+              <input type="text" class="form-control view-mode" th:field="*{schedule}"
+                     readonly placeholder="Ví dụ: Thứ 2-4-6" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Ca học (Slot Time)</label>
+              <input type="text" class="form-control view-mode" th:field="*{slotTime}"
+                     readonly placeholder="Ví dụ: 08:00 - 10:00" />
+            </div>
+          </div>
+        </div>
+
+        <div id="saveActions" class="mt-4 d-none">
+          <button type="submit" class="btn btn-success px-5 rounded-pill">Lưu thay đổi</button>
+          <button type="button" id="btnCancel" class="btn btn-outline-secondary px-4 rounded-pill">Hủy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+  const btnEdit = document.getElementById('btnEdit');
+  const btnCancel = document.getElementById('btnCancel');
+  const saveActions = document.getElementById('saveActions');
+  const formInputs = document.querySelectorAll('#classForm input, #classForm select');
+
+  btnEdit.addEventListener('click', () => {
+      formInputs.forEach(input => {
+          input.removeAttribute('readonly');
+          input.removeAttribute('disabled');
+          input.classList.remove('bg-light');
+      });
+      saveActions.classList.remove('d-none');
+      btnEdit.classList.add('d-none');
+  });
+
+  btnCancel.addEventListener('click', () => {
+      location.reload();
+  });
+</script>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+</body>
+</html>

@@ -56,6 +56,29 @@ public class DataInitializerAuth {
                                     .orderIndex(3)
                                     .build()
                     ));
+            Setting managerRole = settingRepository.findRoleByValue("ROLE_MANAGER")
+                    .orElseGet(() -> settingRepository.save(
+                            Setting.builder()
+                                    .name("Manager")
+                                    .value("ROLE_MANAGER")
+                                    .settingType("USER_ROLE")
+                                    .status("Active")
+                                    .description("Course & Staff Manager")
+                                    .orderIndex(4)
+                                    .build()
+                    ));
+            if (!userRepository.existsByEmail("manager@novalms.edu.vn")) {
+                User manager = User.builder()
+                        .email("manager@novalms.edu.vn")
+                        .password(passwordEncoder.encode("manager123"))
+                        .fullName("Course Manager")
+                        .role(managerRole)
+                        .status("Active")
+                        .authProvider("LOCAL")
+                        .build();
+                userRepository.save(manager);
+                System.out.println(">>> Đã khởi tạo tài khoản MANAGER: manager@novalms.edu.vn / manager123");
+            }
 
             if (!userRepository.existsByEmail("admin@novalms.edu.vn")) {
                 User admin = User.builder()

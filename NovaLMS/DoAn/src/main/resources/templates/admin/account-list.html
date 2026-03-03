@@ -1,65 +1,111 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Quản lý tài khoản')}"></head>
 
-<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý người dùng', breadcrumb='Tài khoản')}"></header>
 
-<body>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='accounts')}"></div>
-
-<main class="main-content">
+<main class="dash-main" id="dashMain">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Account Management</h3>
-            <p class="text-muted small m-0">Manage system users and their roles.</p>
-        </div>
-        <div>
-            <button class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
-                <i class="bi bi-person-plus-fill me-1"></i> Add Account
-            </button>
-        </div>
+        <h3 class="fw-bold m-0">Quản lý tài khoản</h3>
+        <a th:href="@{/admin/accounts/add}" class="btn btn-primary rounded-pill">
+            <i class="bi bi-plus-lg"></i> Thêm tài khoản
+        </a>
     </div>
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">User</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Joined Date</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center">
-                                <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" class="account-avatar me-3" alt="User">
-                                <div>
-                                    <div class="fw-bold">John Doe</div>
-                                    <small class="text-muted">john@example.com</small>
-                                </div>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Người dùng</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${users}">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm me-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-person text-secondary"></i>
                             </div>
-                        </td>
-                        <td><span class="badge bg-primary bg-opacity-10 text-primary px-3">Student</span></td>
-                        <td><span class="status-badge bg-success bg-opacity-10 text-success">Active</span></td>
-                        <td class="text-muted small">Oct 12, 2023</td>
-                        <td class="text-end pe-4">
-                            <i class="bi bi-pencil-square text-primary me-2 action-btn"></i>
-                            <i class="bi bi-trash text-danger action-btn"></i>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+                            <div>
+                                <div class="fw-bold" th:text="${u.fullName}">Tên người dùng</div>
+                                <small class="text-muted" th:text="${u.email}">email@example.com</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-soft-info text-info border" th:text="${u.roleName}">Admin</span>
+                    </td>
+                    <td>
+                                <span th:if="${u.status == 'Active'}" class="badge bg-success-soft text-success">
+                                    <i class="bi bi-check-circle me-1"></i> Hoạt động
+                                </span>
+                        <span th:unless="${u.status == 'Active'}" class="badge bg-danger-soft text-danger">
+                                    <i class="bi bi-x-circle me-1"></i> Khóa
+                                </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group">
+                            <form th:action="@{/admin/toggle/{id}(id=${u.userId})}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-light border"
+                                        th:title="${u.status == 'Active' ? 'Khóa tài khoản' : 'Mở khóa'}">
+                                    <i th:class="${u.status == 'Active' ? 'bi bi-lock text-danger' : 'bi bi-unlock text-success'}"></i>
+                                </button>
+                            </form>
+                            <a th:href="@{/admin/accounts/detail/{id}(id=${u.userId})}"
+                               class="btn btn-sm btn-light border ms-1" title="Xem chi tiết">
+                                <i class="bi bi-pencil-square text-primary"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(users)}">
+                    <td colspan="4" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        Chưa có tài khoản nào trong hệ thống.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Hiển thị từ <span th:text="${currentPage * 10 + 1}">1</span>
+            đến <span th:text="${(currentPage + 1) * 10 > totalItems ? totalItems : (currentPage + 1) * 10}">10</span>
+            trong tổng số <span th:text="${totalItems}">50</span> tài khoản
+        </div>
+
+        <nav th:if="${totalPages > 1}">
+            <ul class="pagination pagination-separated justify-content-center mb-0">
+                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                    <a class="page-link rounded-circle mx-1" th:href="@{/admin/list(page=${currentPage - 1})}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                    th:classappend="${currentPage == i} ? 'active'">
+                    <a class="page-link rounded-circle" th:href="@{/admin/list(page=${i})}" th:text="${i + 1}">1</a>
+                </li>
+
+                <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
+                    <a class="page-link rounded-circle mx-1" th:href="@{/admin/list(page=${currentPage + 1})}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
     </div>
 </main>
 
-<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
-
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 </body>
 </html>

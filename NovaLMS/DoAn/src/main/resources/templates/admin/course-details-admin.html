@@ -1,159 +1,83 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:with="isDashboard=true">
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết khóa học')}"></th:block>
+</head>
+<body class="dashboard-body">
 
-<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết khóa học', breadcrumb='Khóa học / Chi tiết')}"></header>
 
-<body>
+<aside id="dashSidebar" class="dash-sidebar">
+    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
+</aside>
 
-<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='courses')}"></div>
-
-<main class="main-content">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid">
+        <div class="mb-3">
             <a th:href="@{/admin/courses}" class="text-decoration-none text-muted small">
-                <i class="bi bi-arrow-left"></i> Back to List
+                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
             </a>
-            <h3 class="fw-bold text-dark m-0 mt-1">Add / Edit Course</h3>
         </div>
-        <button type="submit" form="courseForm" class="btn btn-success fw-bold shadow-sm px-4">
-            <i class="bi bi-check-lg me-1"></i> Save Changes
-        </button>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+                <h5 class="fw-bold m-0 text-primary">
+                    <i class="bi bi-info-circle me-2"></i>Thông tin khóa học
+                </h5>
+                <a th:href="@{/admin/courses/edit/{id}(id=${course.courseId})}"
+                   class="btn btn-primary rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa khóa học
+                </a>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-4 text-center border-end py-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
+                            <i class="bi bi-journal-bookmark text-primary fs-1"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-1" th:text="${course.courseName}">Tên khóa học</h4>
+                        <p class="text-muted mb-3" th:text="${'Mã: ' + course.courseCode}">CODE-123</p>
+
+                        <span th:if="${course.status == 'active'}" class="badge bg-success-soft text-success px-3 py-2 rounded-pill">
+                            <i class="bi bi-check-circle me-1"></i> Đang hoạt động
+                        </span>
+                        <span th:unless="${course.status == 'active'}" class="badge bg-warning-soft text-warning px-3 py-2 rounded-pill">
+                            <i class="bi bi-pause-circle me-1"></i> Bản nháp
+                        </span>
+                    </div>
+
+                    <div class="col-md-8 ps-md-5">
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Học phí</label>
+                                <h5 class="text-danger fw-bold"
+                                    th:text="${course.price != null ? #numbers.formatInteger(course.price, 0, 'POINT') + ' VND' : '0 VND'}">0 VND</h5>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Ngày tạo</label>
+                                <h5 class="text-dark small">01/03/2026</h5> </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="small text-muted text-uppercase fw-bold d-block mb-1">Mô tả chi tiết</label>
+                            <div class="bg-light p-3 rounded-3 text-secondary" style="line-height: 1.6;">
+                                <p class="m-0" th:text="${course.description ?: 'Chưa có thông tin mô tả chi tiết cho khóa học này.'}">Mô tả...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light py-3 text-end border-0">
+                <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="return confirm('Bạn có chắc chắn muốn xóa?')">
+                    <i class="bi bi-trash me-1"></i> Xóa khóa học
+                </button>
+            </div>
+        </div>
     </div>
-
-    <form id="courseForm" th:action="@{/admin/courses/save}" method="POST" enctype="multipart/form-data">
-        <div class="row">
-            <div class="col-lg-8">
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">General Information</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Course Title</label>
-                            <input type="text" class="form-control" name="title" value="Java Programming for Beginners" required>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small">Course Code</label>
-                                <input type="text" class="form-control" name="code" value="C-JAVA-01">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small">Slug (URL)</label>
-                                <input type="text" class="form-control" name="slug" value="java-programming-101">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Description</label>
-                            <textarea class="form-control" rows="5">Learn Java from scratch. This course covers basics to advanced topics including OOP, Data Structures, and Algorithms.</textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-dark">Active Classes (Read Only)</h5>
-                        <span class="badge bg-secondary">2 Classes</span>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped align-middle mb-0">
-                                <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Teacher</th>
-                                    <th>Students</th>
-                                    <th>Status</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr>
-                                    <td class="fw-bold">#C-1001</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" class="rounded-circle me-2" width="25" height="25">
-                                            <span>Mr. Anderson</span>
-                                        </div>
-                                    </td>
-                                    <td>25/30</td>
-                                    <td><span class="badge bg-success">Ongoing</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-bold">#C-1002</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img th:src="@{/assets/img/testimonials/testimonials-2.jpg}" class="rounded-circle me-2" width="25" height="25">
-                                            <span>Ms. Emily</span>
-                                        </div>
-                                    </td>
-                                    <td>0/30</td>
-                                    <td><span class="badge bg-warning text-dark">Pending</span></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="text-center text-muted small mt-3">
-                            <em>To open new classes or assign teachers, please login as <strong>Manager</strong>.</em>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="col-lg-4">
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">Settings</h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Category</label>
-                            <select class="form-select" name="category">
-                                <option value="1">Programming</option>
-                                <option value="2">Business</option>
-                                <option value="3">Marketing</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Price ($)</label>
-                            <input type="number" class="form-control" name="price" value="199">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Status</label>
-                            <select class="form-select" name="status">
-                                <option value="active" selected>Active</option>
-                                <option value="draft">Draft</option>
-                                <option value="archived">Archived</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">Thumbnail</h5>
-                    </div>
-                    <div class="card-body p-4 text-center">
-                        <img th:src="@{/assets/img/course-1.jpg}" class="img-fluid rounded mb-3 border shadow-sm"
-                             style="max-height: 180px; width: 100%; object-fit: cover;" alt="Course Thumbnail">
-                        <div class="d-grid">
-                            <label class="btn btn-outline-primary btn-sm" style="cursor: pointer;">
-                                <i class="bi bi-upload me-1"></i> Upload Image
-                                <input type="file" name="thumbnail" class="form-control form-control-sm" hidden>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </form>
-
 </main>
 
-<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
-
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 </body>
 </html>

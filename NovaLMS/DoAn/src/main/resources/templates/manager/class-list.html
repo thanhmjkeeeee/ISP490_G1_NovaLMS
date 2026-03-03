@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Danh sách lớp học')}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý lớp học', breadcrumb='Lớp học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0">Danh sách lớp học</h3>
+        <a th:href="@{/manager/class/create}" class="btn btn-primary rounded-pill">
+            <i class="bi bi-plus-lg"></i> Tạo lớp mới
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">ID</th>
+                    <th>Khóa học</th>
+                    <th>Giảng viên</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${classes}">
+                    <td class="ps-4" th:text="${c.classId}"></td>
+
+                    <td th:text="${c.course != null ? c.course.courseName : 'N/A'}"></td>
+
+                    <td th:text="${c.teacher != null ? c.teacher.fullName : 'Chưa phân công'}"></td>
+                    <td class="text-end pe-4">
+                        <a th:href="@{/manager/class/detail/{id}(id=${c.classId})}"
+                           class="btn btn-sm btn-outline-info"
+                           title="Xem chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+</body>
+</html>

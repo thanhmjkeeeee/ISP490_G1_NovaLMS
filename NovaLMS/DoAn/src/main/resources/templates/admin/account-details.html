@@ -1,120 +1,98 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết tài khoản')}"></head>
 
-<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Thông tin người dùng', breadcrumb='Tài khoản / Chi tiết')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<body>
-
-<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='accounts')}"></div>
-
-<main class="main-content">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <a th:href="@{/admin/accounts}" class="text-decoration-none text-muted small">
-                <i class="bi bi-arrow-left"></i> Back to List
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid">
+        <div class="mb-3">
+            <a th:href="@{/admin/list}" class="text-decoration-none text-muted">
+                <i class="bi bi-arrow-left"></i> Quay lại danh sách
             </a>
-            <h3 class="fw-bold text-dark m-0 mt-1">Account Details</h3>
         </div>
-    </div>
 
-    <section id="account-details" class="section">
-        <div class="container-fluid p-0">
-            <div class="row gx-4">
-
-                <div class="col-lg-4 mb-4">
-                    <div class="card shadow-sm border-0 text-center p-4 h-100">
-                        <div class="card-body">
-                            <div class="mb-3 position-relative d-inline-block">
-                                <img th:src="@{/assets/img/testimonials/testimonials-1.jpg}" alt="Profile"
-                                     class="rounded-circle img-fluid bg-secondary"
-                                     style="width: 150px; height: 150px; object-fit: cover;">
-                            </div>
-                            <h4 class="mt-2 text-dark fw-bold">John Doe</h4>
-                            <p class="text-muted">Student</p>
-                            <div class="d-grid gap-2 mt-3">
-                                <p class="small text-muted mb-0">User ID: 101</p>
-                            </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body text-center py-5">
+                        <div class="avatar-xl mb-3 mx-auto bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                            <i class="bi bi-person-fill text-secondary fs-1"></i>
                         </div>
+                        <h5 class="fw-bold mb-1" th:text="${account.fullName}">Họ và Tên</h5>
+                        <p class="text-muted small mb-3" th:text="${account.roleName}">Vai trò</p>
+
+                        <span th:class="${account.status == 'Active' ? 'badge bg-success-soft text-success' : 'badge bg-danger-soft text-danger'}"
+                              th:text="${account.status == 'Active' ? 'Hoạt động' : 'Đang khóa'}">
+                            </span>
                     </div>
                 </div>
+            </div>
 
-                <div class="col-lg-8">
-                    <div class="card shadow-sm border-0">
-                        <div class="card-header bg-white border-0 py-3">
-                            <h5 class="mb-0 text-primary fw-bold">User Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <form th:action="@{/admin/accounts/save}" method="POST">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white border-0 pt-4 ps-4">
+                        <h5 class="fw-bold m-0">Hồ sơ người dùng</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form th:action="@{/admin/accounts/save}" th:object="${account}" method="POST">
+                            <input type="hidden" th:field="*{userId}">
 
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-secondary">Full Name</label>
-                                    <input type="text" class="form-control" name="full_name" value="John Doe">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label class="form-label fw-semibold">Họ và tên</label>
+                                    <input type="text" th:field="*{fullName}" class="form-control rounded-3" required>
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-secondary">Email Address</label>
-                                    <input type="email" class="form-control" name="email" value="john@example.com">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Email</label>
+                                    <input type="email" th:field="*{email}" class="form-control rounded-3" readonly>
+                                    <small class="text-muted italic">Email không thể thay đổi</small>
                                 </div>
 
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-secondary">Mobile</label>
-                                        <input type="tel" class="form-control" name="mobile" value="0901234567">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-secondary">Role</label>
-                                        <select class="form-select" name="role_id">
-                                            <option value="5" selected>Student</option>
-                                            <option value="6">Instructor</option>
-                                            <option value="7">Admin</option>
-                                        </select>
-                                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Số điện thoại</label>
+                                    <input type="text" th:field="*{mobile}" class="form-control rounded-3">
                                 </div>
 
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-secondary">Note</label>
-                                    <textarea class="form-control" name="note" rows="3">Student requested course change.</textarea>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Vai trò hệ thống</label>
+                                    <select th:field="*{roleId}" class="form-select rounded-3">
+                                        <option th:value="1" th:text="Admin" th:selected="${account.roleId == 1}"></option>
+                                        <option th:value="2" th:text="Manager" th:selected="${account.roleId == 2}"></option>
+                                        <option th:value="3" th:text="Teacher" th:selected="${account.roleId == 3}"></option>
+                                        <option th:value="4" th:text="Student" th:selected="${account.roleId == 4}"></option>
+                                    </select>
                                 </div>
 
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-secondary">Status</label>
-                                        <select class="form-select" name="status">
-                                            <option value="Active" selected>Active</option>
-                                            <option value="Blocked">Blocked</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold small text-secondary">Last Login</label>
-                                        <input type="text" class="form-control bg-light" value="2023-10-25 14:30" readonly>
-                                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Trạng thái hiện tại</label>
+                                    <input type="text" th:field="*{status}" class="form-control bg-light" readonly>
                                 </div>
+                            </div>
 
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold small text-secondary">Password</label>
-                                    <input type="password" class="form-control" placeholder="New password...">
-                                </div>
+                            <div class="mt-4 d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-outline-warning rounded-pill px-4"
+                                        onclick="document.getElementById('toggleForm').submit();">
+                                    <i class="bi bi-shield-lock me-1"></i> Đổi trạng thái
+                                </button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                                    <i class="bi bi-check-lg me-1"></i> Cập nhật thông tin
+                                </button>
+                            </div>
+                        </form>
 
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a th:href="@{/admin/accounts}" class="btn btn-secondary text-white">Cancel</a>
-                                    <button type="submit" class="btn btn-primary" style="background-color: var(--sidebar-bg-color); border:none;">
-                                        Save Changes
-                                    </button>
-                                </div>
-
-                            </form>
-                        </div>
+                        <form id="toggleForm" th:action="@{/admin/toggle/{id}(id=${account.userId})}" method="POST" style="display: none;"></form>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
-
+    </div>
 </main>
 
-<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
-
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 </body>
 </html>
