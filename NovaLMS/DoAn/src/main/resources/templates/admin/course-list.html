@@ -1,20 +1,28 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/admin/admin-head :: admin-head}"></head>
+<head th:with="isDashboard=true">
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý khóa học')}"></th:block>
+</head>
 
-<body>
+<body class="dashboard-body">
 
-<div th:replace="~{fragments/admin/admin-sidebar :: admin-sidebar(activePage='courses')}"></div>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý khóa học', breadcrumb='Khóa học')}"></header>
 
-<main class="main-content">
+<aside id="dashSidebar" class="dash-sidebar">
+    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
+</aside>
+
+<div id="dashOverlay" class="dash-overlay"></div>
+
+<main class="dash-main" id="dashMain">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark m-0">Course Management</h3>
             <p class="text-muted small m-0">Manage courses, assign experts/managers & content.</p>
         </div>
-        <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-3" style="background-color: #136ad5; border: none;">
+        <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4" style="background-color: #3b82f6; border: none;">
             <i class="bi bi-plus-lg me-1"></i> Create New Course
         </a>
     </div>
@@ -29,15 +37,7 @@
                         <input type="text" name="keyword" class="form-control border-start-0 bg-light" placeholder="ID, Name, Code...">
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Category</label>
-                    <select name="category" class="form-select form-select-sm bg-light">
-                        <option value="">All Categories</option>
-                        <option value="1">IT / Software</option>
-                        <option value="2">Business</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary">Status</label>
                     <select name="status" class="form-select form-select-sm bg-light">
                         <option value="">All Status</option>
@@ -45,12 +45,8 @@
                         <option value="draft">Draft</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold text-secondary">Manager</label>
-                    <select name="manager" class="form-select form-select-sm bg-light">
-                        <option value="">All Managers</option>
-                        <option value="8">Admin Sarah</option>
-                    </select>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <a th:href="@{/admin/courses}" class="btn btn-sm btn-secondary w-100">Reset</a>
@@ -67,57 +63,47 @@
                     <tr>
                         <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
                         <th class="py-3 text-uppercase small text-muted">Course Info</th>
-                        <th class="py-3 text-uppercase small text-muted">Category</th>
-                        <th class="py-3 text-uppercase small text-muted">Expert / Manager</th>
-                        <th class="py-3 text-uppercase small text-muted">Stats</th>
+                        <th class="py-3 text-uppercase small text-muted">Price</th>
                         <th class="py-3 text-uppercase small text-muted">Status</th>
                         <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td class="ps-4 text-muted small">#101</td>
+                    <tr th:if="${courses == null or #lists.isEmpty(courses)}">
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No courses found.
+                        </td>
+                    </tr>
+
+                    <tr th:each="course : ${courses}">
+                        <td class="ps-4 text-muted small" th:text="${'#' + course.courseId}">#101</td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                    <i class="bi bi-code-slash text-primary fs-5"></i>
+                                    <i class="bi bi-journal-code text-primary fs-5"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark">Java Programming</div>
-                                    <div class="small text-muted">Code: JAVA23</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span class="badge bg-light text-dark border fw-normal">IT/Software</span></td>
-                        <td>
-                            <div class="d-flex flex-column small">
-                                <div class="mb-1" title="Expert">
-                                    <i class="bi bi-mortarboard text-info me-1"></i> Dr. Smith
-                                </div>
-                                <div title="Manager">
-                                    <i class="bi bi-briefcase text-secondary me-1"></i> Admin Sarah
+                                    <div class="fw-bold text-dark" th:text="${course.courseName ?: 'No Name'}">Course Name</div>
+                                    <div class="small text-muted" th:text="${'Code: ' + (course.courseCode ?: 'N/A')}">Code</div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            <div class="small text-muted">
-                                <div><i class="bi bi-layers me-1"></i> 5 Modules</div>
-                                <div><i class="bi bi-people me-1"></i> 2 Classes</div>
+                            <div class="fw-bold text-dark">
+                                <span th:text="${course.price != null ? #numbers.formatInteger(course.price, 0, 'POINT') + ' VND' : '0 VND'}">Price</span>
                             </div>
                         </td>
-                        <td><span class="badge bg-success bg-opacity-10 text-success px-2 py-1 fw-semibold">Active</span></td>
+                        <td>
+                            <span class="badge px-2 py-1 fw-semibold"
+                                  th:classappend="${course.status == 'active' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}"
+                                  th:text="${course.status ?: 'unknown'}">Status</span>
+                        </td>
                         <td class="text-end pe-4">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light border shadow-sm" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu shadow-sm border-0">
-                                    <li><a class="dropdown-item" th:href="@{/admin/courses/edit/101}"><i class="bi bi-pencil me-2 text-primary"></i>Edit Details</a></li>
-                                    <li><a class="dropdown-item" href="#"><i class="bi bi-people me-2 text-info"></i>View Classes</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                                </ul>
-                            </div>
+                            <a th:href="@{/admin/courses/detail/{id}(id=${course.courseId})}"
+                               class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
+                                <i class="bi bi-eye text-primary"></i>
+                            </a>
                         </td>
                     </tr>
                     </tbody>
@@ -125,15 +111,24 @@
             </div>
         </div>
 
-        <div class="card-footer bg-white py-3 border-0">
+        <div class="card-footer bg-white py-3 border-0" th:if="${totalPages > 1}">
             <div class="d-flex justify-content-between align-items-center small text-muted">
-                <span>Showing 1 to 5 of 12 entries</span>
+                <span th:text="${'Page ' + (currentPage + 1) + ' of ' + totalPages}">Showing 1 of 1</span>
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link shadow-none" href="#">Prev</a></li>
-                        <li class="page-item active"><a class="page-link shadow-none border-0" href="#" style="background-color: var(--sidebar-bg-color);">1</a></li>
-                        <li class="page-item"><a class="page-link shadow-none" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link shadow-none" href="#">Next</a></li>
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                            <a class="page-link shadow-none" th:href="@{/admin/courses(page=${currentPage - 1})}">Prev</a>
+                        </li>
+                        <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                            th:classappend="${i == currentPage} ? 'active'">
+                            <a class="page-link shadow-none rounded"
+                               th:href="@{/admin/courses(page=${i})}"
+                               th:text="${i + 1}"
+                               th:style="${i == currentPage} ? 'background-color: #3b82f6; border-color: #3b82f6;' : ''">1</a>
+                        </li>
+                        <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
+                            <a class="page-link shadow-none" th:href="@{/admin/courses(page=${currentPage + 1})}">Next</a>
+                        </li>
                     </ul>
                 </nav>
             </div>
@@ -141,7 +136,7 @@
     </div>
 </main>
 
-<div th:replace="~{fragments/admin/admin-footer :: admin-footer}"></div>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 </body>
 </html>

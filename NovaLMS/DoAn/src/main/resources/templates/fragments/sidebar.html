@@ -103,14 +103,14 @@
                class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/admin/users}"
+            <a th:href="@{/admin/list}"
                th:classappend="${activePage == 'users'} ? ' active'"
                class="dash-nav-item">
                 <i class="bi bi-people-fill"></i><span>Người dùng</span>
                 <span class="dash-nav-badge">New</span>
             </a>
             <a th:href="@{/admin/courses}"
-               th:classappend="${activePage == 'courses'} ? ' active'"
+               th:classappend="${activePage == 'course'} ? ' active'"
                class="dash-nav-item">
                 <i class="bi bi-book-half"></i><span>Khóa học</span>
             </a>
@@ -140,11 +140,17 @@
 
         <!-- ==================== MANAGER ==================== -->
         <div sec:authorize="hasRole('ROLE_MANAGER')">
+
             <span class="dash-nav-section-label">Quản lý</span>
             <a th:href="@{/manager/dashboard}"
                th:classappend="${activePage == 'dashboard'} ? ' active'"
                class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
+            </a>
+            <a th:href="@{/manager/class/list}"
+               th:classappend="${activePage == 'classes'} ? ' active'"
+               class="dash-nav-item">
+                <i class="bi bi-building"></i><span>Lớp học</span>
             </a>
             <a th:href="@{/manager/courses}"
                th:classappend="${activePage == 'courses'} ? ' active'"

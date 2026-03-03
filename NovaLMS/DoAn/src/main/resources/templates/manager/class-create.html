@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Thông tin lớp', breadcrumb='Lớp học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+  <div class="row mt-3">
+    <div class="col-lg-8 mx-auto">
+      <div class="card border-0 shadow-sm p-4">
+        <h4 class="mb-4 fw-bold text-primary" th:text="${clazz.classId == null ? 'Tạo lớp học mới' : 'Cập nhật lớp học'}"></h4>
+
+        <form th:action="@{/manager/class/save}" th:object="${clazz}" method="post">
+          <input type="hidden" th:field="*{classId}" />
+
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label fw-bold">Tên lớp học (VD: IELTS-K15)</label>
+              <input type="text" class="form-control" th:field="*{className}" required />
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
+              <select class="form-select" th:field="*{course.courseId}" required>
+                <option value="">-- Chọn khóa học --</option>
+                <option th:each="crs : ${courses}" th:value="${crs.courseId}" th:text="${crs.courseName}"></option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Giảng viên</label>
+              <select class="form-select" th:field="*{teacher.userId}">
+                <option value="">-- Để trống nếu chưa có --</option>
+                <option th:each="t : ${teachers}" th:value="${t.userId}" th:text="${t.fullName}"></option>
+              </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label fw-bold">Lịch học</label>
+              <select class="form-select" th:field="*{schedule}">
+                <option value="Thứ 2-4-6">Thứ 2 - 4 - 6</option>
+                <option value="Thứ 3-5-7">Thứ 3 - 5 - 7</option>
+                <option value="Cuối tuần">Thứ 7 & Chủ nhật</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-bold">Ca học (Slot Time)</label>
+              <select class="form-select" th:field="*{slotTime}">
+                <option value="08:00 - 10:00">Ca 1: 08:00 - 10:00</option>
+                <option value="10:00 - 12:00">Ca 2: 10:00 - 12:00</option>
+                <option value="13:30 - 15:30">Ca 3: 13:30 - 15:30</option>
+                <option value="15:30 - 17:30">Ca 4: 15:30 - 17:30</option>
+                <option value="18:00 - 20:00">Ca 5: 18:00 - 20:00</option>
+                <option value="19:30 - 21:30">Ca 6: 19:30 - 21:30</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label fw-bold">Khai giảng</label>
+              <input type="datetime-local" class="form-control" th:field="*{startDate}" required />
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label fw-bold">Kết thúc</label>
+              <input type="datetime-local" class="form-control" th:field="*{endDate}" />
+            </div>
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-success px-4 rounded-pill">Lưu lại</button>
+            <a th:href="@{/manager/class/list}" class="btn btn-light px-4 rounded-pill border">Quay lại</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+</body>
+</html>
