@@ -22,10 +22,8 @@ public class StudentService {
 
     public Page<MyCourseDTO> getMyCourses(Integer userId, String keyword, Integer categoryId, Pageable pageable) {
 
-        // Lấy data thô từ Database
         Page<Registration> regPage = registrationRepository.findMyCoursesWithFilters(userId, keyword, categoryId, pageable);
 
-        // Map sang DTO sạch sẽ
         List<MyCourseDTO> dtoList = regPage.getContent().stream().map(reg ->
                 MyCourseDTO.builder()
                         .courseId(reg.getCourse().getCourseId())
