@@ -15,6 +15,6 @@ public interface SettingRepository extends JpaRepository<Setting, Integer> {
     @Query("SELECT s FROM Setting s WHERE s.settingType = 'USER_ROLE' AND s.value = :value")
     Optional<Setting> findRoleByValue(String value);
 
-    //Tìm tất cả các Category đang hoạt động (Dùng cho màn hình Courses)
     List<Setting> findBySettingTypeAndStatus(String type, String status);
+
 }

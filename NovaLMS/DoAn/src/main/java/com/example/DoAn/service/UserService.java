@@ -4,8 +4,12 @@ import com.example.DoAn.dto.UserProfileDTO;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -46,5 +50,10 @@ public class UserService {
 
         user.setAvatarUrl(avatarUrl); // Tên hàm set phụ thuộc vào entity của bạn
         userRepository.save(user);
+    }
+
+    // danh sách user
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAllUsersWithRole(pageable);
     }
 }
