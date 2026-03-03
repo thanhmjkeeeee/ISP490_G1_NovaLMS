@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:with="isDashboard=true">
+  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Thêm khóa học mới')}"></th:block>
+</head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Thêm khóa học', breadcrumb='Khóa học / Tạo mới')}"></header>
+
+<aside id="dashSidebar" class="dash-sidebar">
+  <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
+</aside>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <h4 class="dash-card-title">Thông tin khóa học</h4>
+            <a th:href="@{/admin/courses}" class="btn btn-sm btn-outline-secondary">Quay lại</a>
+          </div>
+
+          <form th:action="@{/admin/courses/save}" th:object="${course}" method="post" class="row g-3">
+            <input type="hidden" th:field="*{courseId}">
+
+            <div class="col-md-4">
+              <label class="form-label fw-bold small">Mã khóa học</label>
+              <input type="text" th:field="*{courseCode}" class="form-control" placeholder="" required>
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label fw-bold small">Tên khóa học</label>
+              <input type="text" th:field="*{courseName}" class="form-control" placeholder="Nhập tên khóa học..." required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold small">Học phí (VND)</label>
+              <input type="number" th:field="*{price}" class="form-control" placeholder="0">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-bold small">Trạng thái</label>
+              <select th:field="*{status}" class="form-select">
+                <option value="active">Hoạt động</option>
+                <option value="draft">Bản nháp</option>
+                <option value="inactive">Tạm dừng</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-bold small">Mô tả khóa học</label>
+              <textarea th:field="*{description}" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+            </div>
+
+            <div class="col-12 mt-4 text-end">
+              <button type="reset" class="btn btn-light border px-4 me-2">Nhập lại</button>
+              <button type="submit" class="btn btn-primary px-5" style="background-color: #3b82f6;">Lưu khóa học</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+</body>
+</html>

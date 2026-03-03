@@ -16,6 +16,9 @@ public class Course {
     @Column(name = "course_id")
     private Integer courseId;
 
+    @Column(name = "course_name")
+    private String courseName;
+
     @Column(name = "title") // Giả định DB có cột title/name, nếu thiếu bạn tự thêm vào DB
     private String title;
 

@@ -3,6 +3,8 @@ package com.example.DoAn.repository;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Registration;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -13,9 +15,11 @@ import java.util.Optional;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Integer> {
+    @Query("SELECT c FROM Course c")
+    Page<Course> findAllCourses(Pageable pageable);
+
     List<Course> findByStatus(String status);
 
-    // QUAN TRỌNG: Lấy khóa học theo Category (để chạy bộ lọc bên trái màn hình)
     List<Course> findByCategory_SettingIdAndStatus(Integer categoryId, String status);
 
     // (Tùy chọn) Tìm kiếm khóa học theo tên
@@ -30,6 +34,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
                                Sort sort);
 
 }
+
 
 
 //@Repository

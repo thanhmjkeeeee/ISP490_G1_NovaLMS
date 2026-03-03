@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Thêm tài khoản mới')}"></head>
+
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Thêm tài khoản', breadcrumb='Tài khoản / Tạo mới')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-header bg-white border-0 pt-4 ps-4">
+            <h5 class="fw-bold m-0">Thông tin tài khoản</h5>
+          </div>
+          <div class="card-body p-4">
+            <form th:action="@{/admin/accounts/save}" th:object="${account}" method="POST">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label fw-semibold">Họ và tên</label>
+                  <input type="text" th:field="*{fullName}" class="form-control rounded-3" placeholder="Nhập đầy đủ họ tên" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Email</label>
+                  <input type="email" th:field="*{email}" class="form-control rounded-3" placeholder="example@nova.edu.vn" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Số điện thoại</label>
+                  <input type="text" th:field="*{mobile}" class="form-control rounded-3" placeholder="0123 456 789">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Vai trò</label>
+                  <select th:field="*{roleId}" class="form-select rounded-3">
+                    <option value="" selected disabled>Chọn vai trò...</option>
+                    <option value="1">Admin</option>
+                    <option value="2">Manager</option>
+                    <option value="3">Teacher</option>
+                    <option value="4">Student</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Trạng thái</label>
+                  <input type="text" class="form-control bg-light" value="Active" readonly>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <div class="d-flex justify-content-end gap-2">
+                <a th:href="@{/admin/list}" class="btn btn-light border rounded-pill px-4">Hủy bỏ</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                  <i class="bi bi-save me-1"></i> Lưu tài khoản
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+</body>
+</html>

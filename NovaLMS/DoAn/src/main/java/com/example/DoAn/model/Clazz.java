@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.util.List;
 
 import java.time.LocalDateTime;
@@ -33,11 +35,14 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
     @Column(name = "class_name") // Tên lớp: ví dụ IELTS-K15
     private String className;
 
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     @Column(name = "start_date")
     private LocalDateTime startDate;
 
     private String status; // Pending, Open, Closed
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
@@ -47,4 +52,7 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
 
     @Column(name = "schedule") // Ví dụ: "Mon-Wed-Fri"
     private String schedule;
+
+    @Column(name = "slot_time")
+    private String slotTime;
 }
