@@ -1,18 +1,19 @@
 package com.example.DoAn.dto;
 
+import com.example.DoAn.model.Clazz;
+import com.example.DoAn.model.Course;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileDTO {
-    private String email;
-    private String fullName;
-    private String mobile;
-    private String note;
-    private String avatarUrl;
+public class EnrollPageDTO {
+    private Course course;
+    private List<Clazz> classes;
 }
