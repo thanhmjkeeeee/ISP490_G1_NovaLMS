@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 import java.util.Random;
 import java.util.UUID;
 
-@RestController // Thay @Controller bằng @RestController để trả về JSON thay vì tìm file HTML
-@RequestMapping("/api/auth") // Đảm bảo prefix này đúng với path bạn gọi
+@RestController
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
 
