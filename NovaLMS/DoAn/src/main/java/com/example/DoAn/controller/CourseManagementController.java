@@ -1,58 +1,88 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.CourseDTO;
+import com.example.DoAn.dto.request.CourseRequestDTO;
+import com.example.DoAn.dto.response.CourseDetailResponse;
+import com.example.DoAn.dto.response.PageResponse;
+import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.dto.response.ResponseError;
 import com.example.DoAn.service.ICourseService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
-@RequestMapping("/admin/courses")
+@RestController
+@RequestMapping("/api/v1/courses")
+@Validated
+@Slf4j
+@Tag(name = "Course Management Controller")
+@RequiredArgsConstructor
 public class CourseManagementController {
 
-    @Autowired
-    private ICourseService courseService;
+    private final ICourseService courseService;
 
-    @GetMapping({"", "/", "/list"})
-    public String viewList(Model model, @PageableDefault(size = 10) Pageable pageable) {
-        Page<CourseDTO> coursePage = courseService.getAllCourses(pageable);
-
-        model.addAttribute("courses", coursePage.getContent());
-        model.addAttribute("totalPages", coursePage.getTotalPages());
-        model.addAttribute("currentPage", pageable.getPageNumber());
-
-        return "admin/course-list";
+    @Operation(summary = "Get course list with Filter")
+    @GetMapping("/list")
+    public ResponseData<PageResponse<?>> getCourses(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") @Min(1) int pageSize,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
+        try {
+            PageResponse<?> courses = courseService.getAllCoursesWithFilter(pageNo, pageSize, search, status);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", courses);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 
-    // ==> Form create <====
-    @GetMapping("/new")
-    public String showCreateForm(Model model) {
-        model.addAttribute("course", new CourseDTO());
-        return "admin/course-form";
+    @Operation(summary = "Add new course")
+    @PostMapping("/")
+    public ResponseData<Integer> addCourse(@Valid @RequestBody CourseRequestDTO request) {
+        log.info("Request add course: {}", request.getCourseName());
+        try {
+            Integer courseId = courseService.saveCourse(request);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Course created successfully", courseId);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Add course fail: " + e.getMessage());
+        }
     }
 
-    @PostMapping("/save")
-    public String saveCourse(@ModelAttribute("course") CourseDTO courseDTO) {
-        courseService.save(courseDTO);
-        return "redirect:/admin/courses?success";
+    @Operation(summary = "Update course")
+    @PutMapping("/{id}")
+    public ResponseData<Void> updateCourse(@PathVariable Integer id, @Valid @RequestBody CourseRequestDTO request) {
+        try {
+            courseService.updateCourse(id, request);
+            return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Course updated successfully");
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Update fail");
+        }
     }
 
-    // ==> Detail <==
-
-    @GetMapping("/detail/{id}")
-    public String viewDetail(@PathVariable("id") Integer id, Model model) {
-        CourseDTO course = courseService.getById(id);
-        model.addAttribute("course", course);
-        return "admin/course-details-admin";
+    @Operation(summary = "Get course detail")
+    @GetMapping("/{id}")
+    public ResponseData<CourseDetailResponse> getCourse(@PathVariable Integer id) {
+        try {
+            CourseDetailResponse response = courseService.getById(id);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.NOT_FOUND.value(), "Course not found");
+        }
     }
-    @GetMapping("/edit/{id}")
-    public String showEditForm(@PathVariable("id") Integer id, Model model) {
-        CourseDTO course = courseService.getById(id);
-        model.addAttribute("course", course);
-        return "admin/course-form";
+
+    @Operation(summary = "Delete course")
+    @DeleteMapping("/{id}")
+    public ResponseData<Void> deleteCourse(@PathVariable Integer id) {
+        try {
+            courseService.deleteCourse(id);
+            return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "Course deleted");
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Delete fail");
+        }
     }
 }

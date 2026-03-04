@@ -1,75 +1,71 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.AccountDTO;
-import com.example.DoAn.repository.SettingRepository;
+import com.example.DoAn.dto.request.AccountRequestDTO;
+import com.example.DoAn.dto.response.*;
 import com.example.DoAn.service.AccountService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/admin")
+@RestController
+@RequestMapping("/api/v1/accounts")
+@Validated
+@Slf4j
+@Tag(name = "Account Controller")
 @RequiredArgsConstructor
 public class AccountController {
+
     private final AccountService accountService;
 
-    @GetMapping("/list")
-    public String viewList(Model model,
-                           @RequestParam(defaultValue = "0") int page,
-                           @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<AccountDTO> userPage = accountService.getAllAccounts(pageable);
-        var users = accountService.getAllAccounts();
-        model.addAttribute("users", userPage.getContent());
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", userPage.getTotalPages());
-        model.addAttribute("totalItems", userPage.getTotalElements());
-        model.addAttribute("users", users != null ? users : new java.util.ArrayList<AccountDTO>());
-        model.addAttribute("pageTitle", "Quản lý tài khoản");
-        model.addAttribute("isDashboard", true);
-        return "admin/account-list";
-    }
-
-    @PostMapping("/toggle/{id}")
-    public String toggleStatus(@PathVariable("id") Integer id) {
-        accountService.toggleStatus(id);
-        return "redirect:/admin/list";
-    }
-
-    @GetMapping("/accounts/add")
-    public String showAddForm(Model model) {
-        model.addAttribute("account", new AccountDTO());
-        model.addAttribute("isDashboard", true);
-        return "admin/account-form";
-    }
-
-    @PostMapping("/accounts/save")
-    public String saveAccount(@ModelAttribute("account") AccountDTO accountDTO, RedirectAttributes ra) {
+    @Operation(summary = "Add new account")
+    @PostMapping("/")
+    public ResponseData<Integer> addAccount(@Valid @RequestBody AccountRequestDTO request) {
+        log.info("Adding new account: {}", request.getEmail());
         try {
-            accountService.saveAccount(accountDTO);
-            ra.addFlashAttribute("message", "Tạo tài khoản mới thành công!");
-            ra.addFlashAttribute("messageType", "success");
-            return "redirect:/admin/list";
+            Integer userId = accountService.saveAccount(request);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Success", userId);
         } catch (Exception e) {
-            ra.addFlashAttribute("message", "Lỗi: " + e.getMessage());
-            ra.addFlashAttribute("messageType", "danger");
-            return "redirect:/admin/accounts/add";
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
-    @GetMapping("/accounts/detail/{id}")
-    public String viewDetail(@PathVariable("id") Integer id, Model model) {
+
+    @Operation(summary = "Update account")
+    @PutMapping("/{id}")
+    public ResponseData<Void> updateAccount(@PathVariable Integer id, @Valid @RequestBody AccountRequestDTO request) {
         try {
-            AccountDTO account = accountService.getAccountById(id);
-            model.addAttribute("account", account);
-            model.addAttribute("isDashboard", true);
-            return "admin/account-details";
+            accountService.updateAccount(id, request);
+            return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Updated");
         } catch (Exception e) {
-            return "redirect:/admin/list?error=notfound";
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get list account")
+    @GetMapping("/list")
+    public ResponseData<PageResponse<?>> getList(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            PageResponse<?> response = accountService.getAllAccounts(pageNo, pageSize);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Toggle account status")
+    @PatchMapping("/{id}/status")
+    public ResponseData<Void> toggleStatus(@PathVariable Integer id) {
+        try {
+            accountService.toggleStatus(id);
+            return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Status changed");
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 }

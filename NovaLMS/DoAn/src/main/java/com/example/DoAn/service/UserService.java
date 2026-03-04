@@ -78,8 +78,5 @@ public class UserService {
         }
     }
 
-    @Transactional(readOnly = true)
-    public Page<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAllUsersWithRole(pageable);
-    }
+
 }

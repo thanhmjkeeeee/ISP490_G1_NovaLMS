@@ -19,13 +19,17 @@
             </a>
         </div>
 
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2">Đang tải dữ liệu khóa học...</p>
+        </div>
+
+        <div id="detailContainer" class="card border-0 shadow-sm rounded-4 overflow-hidden" style="display: none;">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
                 <h5 class="fw-bold m-0 text-primary">
                     <i class="bi bi-info-circle me-2"></i>Thông tin khóa học
                 </h5>
-                <a th:href="@{/admin/courses/edit/{id}(id=${course.courseId})}"
-                   class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <a id="editBtn" href="#" class="btn btn-primary rounded-pill px-4 shadow-sm">
                     <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa khóa học
                 </a>
             </div>
@@ -36,33 +40,27 @@
                         <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
                             <i class="bi bi-journal-bookmark text-primary fs-1"></i>
                         </div>
-                        <h4 class="fw-bold text-dark mb-1" th:text="${course.courseName}">Tên khóa học</h4>
-                        <p class="text-muted mb-3" th:text="${'Mã: ' + course.courseCode}">CODE-123</p>
-
-                        <span th:if="${course.status == 'active'}" class="badge bg-success-soft text-success px-3 py-2 rounded-pill">
-                            <i class="bi bi-check-circle me-1"></i> Đang hoạt động
-                        </span>
-                        <span th:unless="${course.status == 'active'}" class="badge bg-warning-soft text-warning px-3 py-2 rounded-pill">
-                            <i class="bi bi-pause-circle me-1"></i> Bản nháp
-                        </span>
+                        <h4 class="fw-bold text-dark mb-1" id="courseName">---</h4>
+                        <p class="text-muted mb-3" id="courseCode">Mã: ---</p>
+                        <div id="statusBadge"></div>
                     </div>
 
                     <div class="col-md-8 ps-md-5">
                         <div class="row mb-4">
                             <div class="col-6">
                                 <label class="small text-muted text-uppercase fw-bold d-block mb-1">Học phí</label>
-                                <h5 class="text-danger fw-bold"
-                                    th:text="${course.price != null ? #numbers.formatInteger(course.price, 0, 'POINT') + ' VND' : '0 VND'}">0 VND</h5>
+                                <h5 class="text-danger fw-bold" id="coursePrice">0 VND</h5>
                             </div>
                             <div class="col-6">
-                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Ngày tạo</label>
-                                <h5 class="text-dark small">01/03/2026</h5> </div>
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Cập nhật lúc</label>
+                                <h5 class="text-dark small" id="updateDate">---</h5>
+                            </div>
                         </div>
 
                         <div class="mb-4">
                             <label class="small text-muted text-uppercase fw-bold d-block mb-1">Mô tả chi tiết</label>
-                            <div class="bg-light p-3 rounded-3 text-secondary" style="line-height: 1.6;">
-                                <p class="m-0" th:text="${course.description ?: 'Chưa có thông tin mô tả chi tiết cho khóa học này.'}">Mô tả...</p>
+                            <div class="bg-light p-3 rounded-3 text-secondary" style="min-height: 120px;">
+                                <p class="m-0" id="courseDescription">---</p>
                             </div>
                         </div>
                     </div>
@@ -70,7 +68,7 @@
             </div>
 
             <div class="card-footer bg-light py-3 text-end border-0">
-                <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="return confirm('Bạn có chắc chắn muốn xóa?')">
+                <button class="btn btn-outline-danger btn-sm rounded-pill px-3" id="btnDelete">
                     <i class="bi bi-trash me-1"></i> Xóa khóa học
                 </button>
             </div>
@@ -79,5 +77,54 @@
 </main>
 
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Lấy ID từ URL (đoạn cuối của /admin/courses/detail/4)
+        const pathSegments = window.location.pathname.split('/');
+        const courseId = pathSegments[pathSegments.length - 1];
+
+        if (courseId) {
+            fetch(`/api/v1/courses/${courseId}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status === 200) {
+                        const course = res.data;
+
+                        // Đổ dữ liệu vào giao diện
+                        document.getElementById('courseName').innerText = course.courseName || 'N/A';
+                        document.getElementById('courseCode').innerText = 'Mã: ' + (course.courseCode || 'N/A');
+                        document.getElementById('coursePrice').innerText = (course.price || 0).toLocaleString('vi-VN') + ' VND';
+                        document.getElementById('courseDescription').innerText = course.description || 'Chưa có thông tin mô tả.';
+                        document.getElementById('editBtn').href = `/admin/courses/edit/${course.courseId}`;
+
+                        // Badge trạng thái
+                        const badge = document.getElementById('statusBadge');
+                        if (course.status === 'active') {
+                            badge.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Đang hoạt động</span>`;
+                        } else {
+                            badge.innerHTML = `<span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill">Bản nháp</span>`;
+                        }
+
+                        // Hiển thị nội dung, ẩn loading
+                        document.getElementById('detailContainer').style.display = 'block';
+                        document.getElementById('loadingState').style.display = 'none';
+
+                        // Xử lý nút xóa
+                        document.getElementById('btnDelete').onclick = () => {
+                            if(confirm("Bạn có chắc chắn muốn xóa?")) {
+                                fetch(`/api/v1/courses/${courseId}`, { method: 'DELETE' })
+                                    .then(() => window.location.href = "/admin/courses");
+                            }
+                        };
+                    }
+                })
+                .catch(err => {
+                    console.error("Lỗi:", err);
+                    document.getElementById('loadingState').innerHTML = '<p class="text-danger">Không thể tải dữ liệu!</p>';
+                });
+        }
+    });
+</script>
 </body>
 </html>
