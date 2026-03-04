@@ -1,111 +1,226 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: common-head(pageTitle='Quản lý tài khoản')}"></head>
+
+<head th:with="isDashboard=true">
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý tài khoản')}"></th:block>
+</head>
 
 <body class="dashboard-body">
+
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý người dùng', breadcrumb='Tài khoản')}"></header>
 
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></aside>
-<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+<aside id="dashSidebar" class="dash-sidebar">
+    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></div>
+</aside>
+
+<div id="dashOverlay" class="dash-overlay"></div>
 
 <main class="dash-main" id="dashMain">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold m-0">Quản lý tài khoản</h3>
-        <a th:href="@{/admin/accounts/add}" class="btn btn-primary rounded-pill">
-            <i class="bi bi-plus-lg"></i> Thêm tài khoản
+        <div>
+            <h3 class="fw-bold text-dark m-0">Account Management</h3>
+            <p class="text-muted small m-0">Quản lý danh sách người dùng, phân quyền và trạng thái hệ thống.</p>
+        </div>
+        <a th:href="@{/admin/accounts/add}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4" style="background-color: #3b82f6; border: none;">
+            <i class="bi bi-plus-lg me-1"></i> Create New Account
         </a>
+    </div>
+
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-secondary">Search</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Email...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Role</label>
+                    <select id="roleFilter" class="form-select form-select-sm bg-light">
+                        <option value="">All Roles</option>
+                        <option value="1">Admin</option>
+                        <option value="2">Manager</option>
+                        <option value="3">Teacher</option>
+                        <option value="4">Student</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Status</label>
+                    <select id="statusFilter" class="form-select form-select-sm bg-light">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" onclick="loadAccountData(0)" class="btn btn-sm btn-primary w-100 fw-bold shadow-sm">
+                        <i class="bi bi-filter me-1"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                <tr>
-                    <th class="ps-4">Người dùng</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th class="text-end pe-4">Thao tác</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="u : ${users}">
-                    <td class="ps-4">
-                        <div class="d-flex align-items-center">
-                            <div class="avatar-sm me-3 bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-person text-secondary"></i>
-                            </div>
-                            <div>
-                                <div class="fw-bold" th:text="${u.fullName}">Tên người dùng</div>
-                                <small class="text-muted" th:text="${u.email}">email@example.com</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge bg-soft-info text-info border" th:text="${u.roleName}">Admin</span>
-                    </td>
-                    <td>
-                                <span th:if="${u.status == 'Active'}" class="badge bg-success-soft text-success">
-                                    <i class="bi bi-check-circle me-1"></i> Hoạt động
-                                </span>
-                        <span th:unless="${u.status == 'Active'}" class="badge bg-danger-soft text-danger">
-                                    <i class="bi bi-x-circle me-1"></i> Khóa
-                                </span>
-                    </td>
-                    <td class="text-end pe-4">
-                        <div class="btn-group">
-                            <form th:action="@{/admin/toggle/{id}(id=${u.userId})}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-light border"
-                                        th:title="${u.status == 'Active' ? 'Khóa tài khoản' : 'Mở khóa'}">
-                                    <i th:class="${u.status == 'Active' ? 'bi bi-lock text-danger' : 'bi bi-unlock text-success'}"></i>
-                                </button>
-                            </form>
-                            <a th:href="@{/admin/accounts/detail/{id}(id=${u.userId})}"
-                               class="btn btn-sm btn-light border ms-1" title="Xem chi tiết">
-                                <i class="bi bi-pencil-square text-primary"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(users)}">
-                    <td colspan="4" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                        Chưa có tài khoản nào trong hệ thống.
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-4">
-        <div class="text-muted">
-            Hiển thị từ <span th:text="${currentPage * 10 + 1}">1</span>
-            đến <span th:text="${(currentPage + 1) * 10 > totalItems ? totalItems : (currentPage + 1) * 10}">10</span>
-            trong tổng số <span th:text="${totalItems}">50</span> tài khoản
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
+                        <th class="py-3 text-uppercase small text-muted">User Information</th>
+                        <th class="py-3 text-uppercase small text-muted">Role</th>
+                        <th class="py-3 text-uppercase small text-muted">Status</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="accountDataBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <nav th:if="${totalPages > 1}">
-            <ul class="pagination pagination-separated justify-content-center mb-0">
-                <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                    <a class="page-link rounded-circle mx-1" th:href="@{/admin/list(page=${currentPage - 1})}">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                </li>
-
-                <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
-                    th:classappend="${currentPage == i} ? 'active'">
-                    <a class="page-link rounded-circle" th:href="@{/admin/list(page=${i})}" th:text="${i + 1}">1</a>
-                </li>
-
-                <li class="page-item" th:classappend="${currentPage == totalPages - 1} ? 'disabled'">
-                    <a class="page-link rounded-circle mx-1" th:href="@{/admin/list(page=${currentPage + 1})}">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
-                </li>
-            </ul>
-        </nav>
+        <div class="card-footer bg-white py-3 border-0">
+            <div class="d-flex justify-content-between align-items-center small text-muted">
+                <span id="paginationInfo">Showing page...</span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
+                </nav>
+            </div>
+        </div>
     </div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        loadAccountData(0);
+    });
+
+    // Hàm load dữ liệu chính
+    function loadAccountData(pageNo) {
+        const pageSize = 10;
+        const search = document.getElementById('searchInput').value;
+        const roleId = document.getElementById('roleFilter').value;
+        const status = document.getElementById('statusFilter').value;
+
+        let url = `/api/v1/accounts/list?pageNo=${pageNo}&pageSize=${pageSize}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+        if (roleId) url += `&roleId=${roleId}`;
+        if (status) url += `&status=${status}`;
+
+        const tbody = document.getElementById('accountDataBody');
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Loading...</td></tr>`;
+
+        fetch(url)
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 200) {
+                    renderTable(res.data.items);
+                    renderPagination(res.data.pageNo, res.data.totalPage);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
+                }
+            })
+            .catch(err => {
+                console.error("API Error:", err);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Cannot connect to server</td></tr>`;
+            });
+    }
+
+    // Enter key search
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') loadAccountData(0);
+    });
+
+    // Hàm vẽ bảng (Tuân theo UI của Course)
+    function renderTable(users) {
+        const tbody = document.getElementById('accountDataBody');
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block"></i> No users found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = users.map(u => `
+            <tr>
+                <td class="ps-4 text-muted small">#${u.userId}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-person text-primary fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">${u.fullName || 'No Name'}</div>
+                            <div class="small text-muted">${u.email || 'N/A'}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-10 px-2 py-1">
+                        ${u.roleName || 'N/A'}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge px-2 py-1 fw-semibold ${u.status === 'Active' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'}">
+                        ${u.status || 'Inactive'}
+                    </span>
+                </td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-light border shadow-sm" onclick="toggleStatus(${u.userId})" title="Toggle Lock">
+                        <i class="bi ${u.status === 'Active' ? 'bi-lock text-danger' : 'bi-unlock text-success'}"></i>
+                    </button>
+                    <a href="/admin/accounts/detail/${u.userId}" class="btn btn-sm btn-light border shadow-sm ms-1" title="Edit Profile">
+                        <i class="bi bi-pencil-square text-primary"></i>
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Hàm vẽ phân trang
+    function renderPagination(currentPage, totalPages) {
+        document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
+        const container = document.getElementById('paginationButtons');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                    <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${currentPage - 1})">Prev</a>
+                 </li>`;
+
+        for (let i = 0; i < totalPages; i++) {
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${i})">${i + 1}</a>
+                     </li>`;
+        }
+
+        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
+                    <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${currentPage + 1})">Next</a>
+                 </li>`;
+
+        container.innerHTML = html;
+    }
+
+    // Hàm đổi trạng thái (Kết nối với @PatchMapping của bạn)
+    function toggleStatus(id) {
+        if (confirm("Xác nhận thay đổi trạng thái tài khoản này?")) {
+            fetch(`/api/v1/accounts/${id}/status`, {
+                method: 'PATCH'
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 202 || res.status === 200) {
+                    loadAccountData(0);
+                } else {
+                    alert("Lỗi: " + res.message);
+                }
+            })
+            .catch(err => console.error("Error:", err));
+        }
+    }
+</script>
 </body>
 </html>

@@ -52,8 +52,4 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // danh sách user
-    public Page<User> getAllUsers(Pageable pageable) {
-        return userRepository.findAllUsersWithRole(pageable);
-    }
 }

@@ -3,7 +3,7 @@
 <head th:with="isDashboard=true">
   <th:block th:replace="~{fragments/head :: common-head(pageTitle='Thêm khóa học mới')}"></th:block>
 </head>
-<body class="dashboard-body">
+<html class="dashboard-body">
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Thêm khóa học', breadcrumb='Khóa học / Tạo mới')}"></header>
 
@@ -15,49 +15,51 @@
   <div class="container-fluid">
     <div class="row justify-content-center">
       <div class="col-lg-8">
-        <div class="dash-card">
-          <div class="dash-card-header">
-            <h4 class="dash-card-title">Thông tin khóa học</h4>
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0">Thông tin khóa học</h5>
             <a th:href="@{/admin/courses}" class="btn btn-sm btn-outline-secondary">Quay lại</a>
           </div>
 
-          <form th:action="@{/admin/courses/save}" th:object="${course}" method="post" class="row g-3">
-            <input type="hidden" th:field="*{courseId}">
+          <div class="card-body p-4">
+            <form id="courseForm" class="row g-3">
+              <input type="hidden" id="courseId">
 
-            <div class="col-md-4">
-              <label class="form-label fw-bold small">Mã khóa học</label>
-              <input type="text" th:field="*{courseCode}" class="form-control" placeholder="" required>
-            </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Mã khóa học (Title)</label>
+                <input type="text" id="courseCode" class="form-control" placeholder="C01, C02..." required>
+              </div>
 
-            <div class="col-md-8">
-              <label class="form-label fw-bold small">Tên khóa học</label>
-              <input type="text" th:field="*{courseName}" class="form-control" placeholder="Nhập tên khóa học..." required>
-            </div>
+              <div class="col-md-8">
+                <label class="form-label fw-bold small">Tên khóa học</label>
+                <input type="text" id="courseName" class="form-control" placeholder="Nhập tên khóa học..." required>
+              </div>
 
-            <div class="col-md-6">
-              <label class="form-label fw-bold small">Học phí (VND)</label>
-              <input type="number" th:field="*{price}" class="form-control" placeholder="0">
-            </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Học phí (VND)</label>
+                <input type="number" id="price" class="form-control" placeholder="0">
+              </div>
 
-            <div class="col-md-6">
-              <label class="form-label fw-bold small">Trạng thái</label>
-              <select th:field="*{status}" class="form-select">
-                <option value="active">Hoạt động</option>
-                <option value="draft">Bản nháp</option>
-                <option value="inactive">Tạm dừng</option>
-              </select>
-            </div>
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Trạng thái</label>
+                <select id="status" class="form-select">
+                  <option value="active">Hoạt động</option>
+                  <option value="draft">Bản nháp</option>
+                  <option value="inactive">Tạm dừng</option>
+                </select>
+              </div>
 
-            <div class="col-12">
-              <label class="form-label fw-bold small">Mô tả khóa học</label>
-              <textarea th:field="*{description}" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
-            </div>
+              <div class="col-12">
+                <label class="form-label fw-bold small">Mô tả khóa học</label>
+                <textarea id="description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+              </div>
 
-            <div class="col-12 mt-4 text-end">
-              <button type="reset" class="btn btn-light border px-4 me-2">Nhập lại</button>
-              <button type="submit" class="btn btn-primary px-5" style="background-color: #3b82f6;">Lưu khóa học</button>
-            </div>
-          </form>
+              <div class="col-12 mt-4 text-end">
+                <button type="reset" class="btn btn-light border px-4 me-2">Nhập lại</button>
+                <button type="submit" class="btn btn-primary px-5" style="background-color: #3b82f6; border: none;">Lưu khóa học</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -65,5 +67,78 @@
 </main>
 
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
-</body>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // --- PHẦN 1: XỬ LÝ ĐỔ DỮ LIỆU KHI EDIT ---
+
+    // Lấy ID từ URL (Ví dụ: /admin/courses/edit/4)
+    const pathSegments = window.location.pathname.split('/');
+    const courseIdFromUrl = pathSegments[pathSegments.length - 1];
+
+    // Nếu ID là số hợp lệ, tiến hành gọi API lấy dữ liệu cũ
+    if (courseIdFromUrl && !isNaN(courseIdFromUrl)) {
+        fetch(`/api/v1/courses/${courseIdFromUrl}`)
+            .then(response => response.json())
+            .then(res => {
+                if (res.status === 200) {
+                    const course = res.data;
+
+                    // Điền dữ liệu vào các ô input (Mapping)
+                    document.getElementById('courseId').value = course.courseId;
+                    document.getElementById('courseCode').value = course.courseCode || '';
+                    document.getElementById('courseName').value = course.courseName || '';
+                    document.getElementById('price').value = course.price || 0;
+                    document.getElementById('status').value = (course.status || 'active').toLowerCase();
+                    document.getElementById('description').value = course.description || '';
+
+                    // Cập nhật tiêu đề giao diện
+                    document.querySelector('.fw-bold.m-0').innerText = "Chỉnh sửa khóa học";
+                }
+            })
+            .catch(err => console.error("Lỗi khi nạp dữ liệu cũ:", err));
+    }
+
+    // --- PHẦN 2: XỬ LÝ SUBMIT FORM (POST/PUT) ---
+
+    document.getElementById('courseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const courseId = document.getElementById('courseId').value;
+
+      // Thu thập dữ liệu (Khớp với CourseRequestDTO ở Backend)
+      const formData = {
+        courseCode: document.getElementById('courseCode').value, // Map vào field courseCode của DTO
+        courseName: document.getElementById('courseName').value,
+        price: parseFloat(document.getElementById('price').value) || 0,
+        status: document.getElementById('status').value,
+        description: document.getElementById('description').value
+      };
+
+      // Quyết định URL và Method: Nếu có courseId thì là cập nhật (PUT)
+      const url = courseId ? `/api/v1/courses/${courseId}` : '/api/v1/courses/';
+      const method = courseId ? 'PUT' : 'POST';
+
+      fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(res => {
+          // Xử lý kết quả trả về từ ResponseData
+          if (res.status === 200 || res.status === 201 || res.status === 202) {
+              alert(courseId ? "Cập nhật thành công!" : "Thêm mới thành công!");
+              window.location.href = "/admin/courses";
+          } else {
+              alert("Thao tác thất bại: " + (res.message || "Lỗi hệ thống"));
+          }
+      })
+      .catch(err => {
+          console.error("Lỗi kết nối API:", err);
+          alert("Không thể kết nối tới máy chủ!");
+      });
+    });
+  });
+</script>
 </html>
