@@ -1,15 +1,12 @@
-package com.example.DoAn.dto;
+package com.example.DoAn.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import java.io.Serializable;
 
-@Data
+@Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class CourseDTO {
+public class CourseDetailResponse implements Serializable {
     private Integer courseId;
     private String courseCode;
     private String courseName;

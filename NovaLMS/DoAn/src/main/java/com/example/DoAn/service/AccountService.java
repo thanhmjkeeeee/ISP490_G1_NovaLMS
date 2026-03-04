@@ -1,15 +1,13 @@
 package com.example.DoAn.service;
 
-import com.example.DoAn.dto.AccountDTO;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
+import com.example.DoAn.dto.request.AccountRequestDTO;
+import com.example.DoAn.dto.response.AccountDetailResponse;
+import com.example.DoAn.dto.response.PageResponse;
 
 public interface AccountService {
-    Page<AccountDTO> getAllAccounts(Pageable pageable);
-    List<AccountDTO> getAllAccounts();
-    AccountDTO getAccountById(Integer id);
-    void saveAccount(AccountDTO dto);
+    Integer saveAccount(AccountRequestDTO request);
+    void updateAccount(Integer id, AccountRequestDTO request);
     void toggleStatus(Integer id);
+    AccountDetailResponse getAccountById(Integer id);
+    PageResponse<?> getAllAccounts(int pageNo, int pageSize);
 }
