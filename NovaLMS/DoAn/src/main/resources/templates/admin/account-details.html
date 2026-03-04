@@ -1,91 +1,117 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết tài khoản')}"></head>
+
+<head th:with="isDashboard=true">
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết tài khoản')}"></th:block>
+</head>
 
 <body class="dashboard-body">
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Thông tin người dùng', breadcrumb='Tài khoản / Chi tiết')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></aside>
-<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Hồ sơ người dùng', breadcrumb='Tài khoản / Chi tiết')}"></header>
+
+<aside id="dashSidebar" class="dash-sidebar">
+    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='users')}"></div>
+</aside>
+
+<div id="dashOverlay" class="dash-overlay"></div>
 
 <main class="dash-main" id="dashMain">
-    <div class="container-fluid">
-        <div class="mb-3">
-            <a th:href="@{/admin/list}" class="text-decoration-none text-muted">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách
+    <div class="container-fluid pt-4">
+        <div class="mb-4">
+            <a th:href="@{/admin/list}" class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
             </a>
         </div>
 
-        <div class="row">
+        <div class="row g-4">
             <div class="col-lg-4">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body text-center py-5">
-                        <div class="avatar-xl mb-3 mx-auto bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
-                            <i class="bi bi-person-fill text-secondary fs-1"></i>
-                        </div>
-                        <h5 class="fw-bold mb-1" th:text="${account.fullName}">Họ và Tên</h5>
-                        <p class="text-muted small mb-3" th:text="${account.roleName}">Vai trò</p>
+                <div class="card border-0 shadow-sm rounded-4 text-center py-5 px-4 h-100">
+                    <div class="avatar-wrapper mb-3 mx-auto bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 110px; height: 110px;">
+                        <i class="bi bi-person-circle text-primary display-3"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1" id="sideFullName">Loading...</h4>
+                    <p class="text-muted small mb-4" id="sideRole">Vui lòng đợi...</p>
 
-                        <span th:class="${account.status == 'Active' ? 'badge bg-success-soft text-success' : 'badge bg-danger-soft text-danger'}"
-                              th:text="${account.status == 'Active' ? 'Hoạt động' : 'Đang khóa'}">
-                            </span>
+                    <div id="sideStatus">
+                    </div>
+
+                    <hr class="my-4 opacity-50">
+
+                    <div class="text-start">
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">User ID:</span>
+                            <span class="fw-bold" id="sideUserId">#0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 small">
+                            <span class="text-muted">Tham gia từ:</span>
+                            <span class="fw-bold">2024</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-white border-0 pt-4 ps-4">
-                        <h5 class="fw-bold m-0">Hồ sơ người dùng</h5>
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+                    <div class="card-header bg-white border-bottom py-3 px-4">
+                        <h5 class="fw-bold m-0 text-dark">Chỉnh sửa thông tin</h5>
                     </div>
-                    <div class="card-body p-4">
-                        <form th:action="@{/admin/accounts/save}" th:object="${account}" method="POST">
-                            <input type="hidden" th:field="*{userId}">
 
-                            <div class="row g-3">
+                    <div class="card-body p-4 p-md-5">
+                        <form id="accountForm">
+                            <input type="hidden" id="userId">
+
+                            <div class="row g-4">
                                 <div class="col-md-12">
-                                    <label class="form-label fw-semibold">Họ và tên</label>
-                                    <input type="text" th:field="*{fullName}" class="form-control rounded-3" required>
+                                    <label class="form-label small fw-bold text-secondary">HỌ VÀ TÊN <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                                        <input type="text" id="fullName" class="form-control border-start-0 bg-light shadow-none" required>
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Email</label>
-                                    <input type="email" th:field="*{email}" class="form-control rounded-3" readonly>
-                                    <small class="text-muted italic">Email không thể thay đổi</small>
+                                    <label class="form-label small fw-bold text-secondary">EMAIL (CỐ ĐỊNH)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                                        <input type="email" id="email" class="form-control border-start-0 bg-light shadow-none text-muted" readonly>
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Số điện thoại</label>
-                                    <input type="text" th:field="*{mobile}" class="form-control rounded-3">
+                                    <label class="form-label small fw-bold text-secondary">SỐ ĐIỆN THOẠI</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone"></i></span>
+                                        <input type="text" id="mobile" class="form-control border-start-0 bg-light shadow-none">
+                                    </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Vai trò hệ thống</label>
-                                    <select th:field="*{roleId}" class="form-select rounded-3">
-                                        <option th:value="1" th:text="Admin" th:selected="${account.roleId == 1}"></option>
-                                        <option th:value="2" th:text="Manager" th:selected="${account.roleId == 2}"></option>
-                                        <option th:value="3" th:text="Teacher" th:selected="${account.roleId == 3}"></option>
-                                        <option th:value="4" th:text="Student" th:selected="${account.roleId == 4}"></option>
+                                    <label class="form-label small fw-bold text-secondary">VAI TRÒ HỆ THỐNG</label>
+                                    <select id="roleId" class="form-select form-select-sm bg-light shadow-none" required>
+                                        <option value="1">Admin</option>
+                                        <option value="2">Manager</option>
+                                        <option value="3">Teacher</option>
+                                        <option value="4">Student</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Trạng thái hiện tại</label>
-                                    <input type="text" th:field="*{status}" class="form-control bg-light" readonly>
+                                    <label class="form-label small fw-bold text-secondary">TRẠNG THÁI TÀI KHOẢN</label>
+                                    <select id="status" class="form-select form-select-sm bg-light shadow-none">
+                                        <option value="Active">Đang hoạt động</option>
+                                        <option value="Inactive">Tạm khóa</option>
+                                    </select>
                                 </div>
                             </div>
 
-                            <div class="mt-4 d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-outline-warning rounded-pill px-4"
-                                        onclick="document.getElementById('toggleForm').submit();">
-                                    <i class="bi bi-shield-lock me-1"></i> Đổi trạng thái
-                                </button>
-                                <button type="submit" class="btn btn-primary rounded-pill px-4">
-                                    <i class="bi bi-check-lg me-1"></i> Cập nhật thông tin
+                            <div class="mt-5 pt-3 border-top d-flex justify-content-end gap-2">
+                                <a th:href="@{/admin/list}" class="btn btn-sm btn-light rounded-pill px-4 border">Hủy bỏ</a>
+                                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-5 shadow-sm fw-bold">
+                                    Lưu thay đổi
                                 </button>
                             </div>
                         </form>
-
-                        <form id="toggleForm" th:action="@{/admin/toggle/{id}(id=${account.userId})}" method="POST" style="display: none;"></form>
                     </div>
                 </div>
             </div>
@@ -94,5 +120,71 @@
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Lấy ID từ URL
+        const path = window.location.pathname;
+        const userId = path.split('/').pop();
+
+        if (userId && !isNaN(userId)) {
+            // 2. Load dữ liệu bằng AJAX (Fetch) giống trang Course
+            fetch(`/api/v1/accounts/${userId}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 200) {
+                        const u = res.data;
+                        // Đổ vào form
+                        document.getElementById('userId').value = u.userId;
+                        document.getElementById('fullName').value = u.fullName;
+                        document.getElementById('email').value = u.email;
+                        document.getElementById('mobile').value = u.mobile;
+                        document.getElementById('roleId').value = u.roleId;
+                        document.getElementById('status').value = u.status;
+
+                        // Đổ vào thẻ Profile bên trái
+                        document.getElementById('sideFullName').innerText = u.fullName;
+                        document.getElementById('sideRole').innerText = u.roleName || 'User';
+                        document.getElementById('sideUserId').innerText = '#' + u.userId;
+
+                        const statusHTML = u.status === 'Active'
+                            ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-10 px-3 py-2 rounded-pill">Hoạt động</span>`
+                            : `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10 px-3 py-2 rounded-pill">Bị khóa</span>`;
+                        document.getElementById('sideStatus').innerHTML = statusHTML;
+                    }
+                })
+                .catch(err => console.error("Error loading account:", err));
+        }
+
+        // 3. Xử lý Update bằng AJAX (PUT)
+        document.getElementById('accountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const id = document.getElementById('userId').value;
+            const payload = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                mobile: document.getElementById('mobile').value,
+                roleId: parseInt(document.getElementById('roleId').value),
+                status: document.getElementById('status').value
+            };
+
+            fetch(`/api/v1/accounts/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 200 || res.status === 202) {
+                    alert("Cập nhật thông tin thành công!");
+                    location.reload(); // Reload để cập nhật Sidebar thông tin mới
+                } else {
+                    alert("Lỗi: " + res.message);
+                }
+            })
+            .catch(err => alert("Không thể kết nối máy chủ!"));
+        });
+    });
+</script>
 </body>
 </html>

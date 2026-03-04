@@ -16,7 +16,6 @@
 <div id="dashOverlay" class="dash-overlay"></div>
 
 <main class="dash-main" id="dashMain">
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark m-0">Course Management</h3>
@@ -29,29 +28,26 @@
 
     <div class="card mb-4 border-0 shadow-sm">
         <div class="card-body">
-            <form class="row g-3" th:action="@{/admin/courses}" method="get">
+            <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-secondary">Search</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-                        <input type="text" name="keyword" class="form-control border-start-0 bg-light" placeholder="ID, Name, Code...">
+                        <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Code...">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary">Status</label>
-                    <select name="status" class="form-select form-select-sm bg-light">
+                    <select id="statusFilter" class="form-select form-select-sm bg-light">
                         <option value="">All Status</option>
                         <option value="active">Active</option>
                         <option value="draft">Draft</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+                    <button type="button" onclick="loadCourseData(0)" class="btn btn-sm btn-primary w-100">Filter</button>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <a th:href="@{/admin/courses}" class="btn btn-sm btn-secondary w-100">Reset</a>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -68,68 +64,17 @@
                         <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <tr th:if="${courses == null or #lists.isEmpty(courses)}">
-                        <td colspan="5" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                            No courses found.
-                        </td>
-                    </tr>
-
-                    <tr th:each="course : ${courses}">
-                        <td class="ps-4 text-muted small" th:text="${'#' + course.courseId}">#101</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                    <i class="bi bi-journal-code text-primary fs-5"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark" th:text="${course.courseName ?: 'No Name'}">Course Name</div>
-                                    <div class="small text-muted" th:text="${'Code: ' + (course.courseCode ?: 'N/A')}">Code</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="fw-bold text-dark">
-                                <span th:text="${course.price != null ? #numbers.formatInteger(course.price, 0, 'POINT') + ' VND' : '0 VND'}">Price</span>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge px-2 py-1 fw-semibold"
-                                  th:classappend="${course.status == 'active' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}"
-                                  th:text="${course.status ?: 'unknown'}">Status</span>
-                        </td>
-                        <td class="text-end pe-4">
-                            <a th:href="@{/admin/courses/detail/{id}(id=${course.courseId})}"
-                               class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
-                                <i class="bi bi-eye text-primary"></i>
-                            </a>
-                        </td>
-                    </tr>
+                    <tbody id="courseDataBody">
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="card-footer bg-white py-3 border-0" th:if="${totalPages > 1}">
+        <div class="card-footer bg-white py-3 border-0">
             <div class="d-flex justify-content-between align-items-center small text-muted">
-                <span th:text="${'Page ' + (currentPage + 1) + ' of ' + totalPages}">Showing 1 of 1</span>
+                <span id="paginationInfo">Showing page...</span>
                 <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
-                            <a class="page-link shadow-none" th:href="@{/admin/courses(page=${currentPage - 1})}">Prev</a>
-                        </li>
-                        <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
-                            th:classappend="${i == currentPage} ? 'active'">
-                            <a class="page-link shadow-none rounded"
-                               th:href="@{/admin/courses(page=${i})}"
-                               th:text="${i + 1}"
-                               th:style="${i == currentPage} ? 'background-color: #3b82f6; border-color: #3b82f6;' : ''">1</a>
-                        </li>
-                        <li class="page-item" th:classappend="${currentPage + 1 >= totalPages} ? 'disabled'">
-                            <a class="page-link shadow-none" th:href="@{/admin/courses(page=${currentPage + 1})}">Next</a>
-                        </li>
-                    </ul>
+                    <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
                 </nav>
             </div>
         </div>
@@ -138,5 +83,133 @@
 
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        loadCourseData(0);
+    });
+
+    // Hàm load dữ liệu chính
+    function loadCourseData(pageNo) {
+    const pageSize = 10;
+
+    // 1. Lấy giá trị từ các ô nhập liệu
+    const search = document.getElementById('searchInput').value;
+    const status = document.getElementById('statusFilter').value;
+
+    // 2. Xây dựng URL với Query Parameters (Khớp với Backend của bạn)
+    // Giả sử Backend nhận tham số: search và status
+    let url = `/api/v1/courses/list?pageNo=${pageNo}&pageSize=${pageSize}`;
+
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+
+    const tbody = document.getElementById('courseDataBody');
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Loading...</td></tr>`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === 200) {
+                renderTable(res.data.items);
+                renderPagination(res.data.pageNo, res.data.totalPage);
+            } else {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
+            }
+        })
+        .catch(err => {
+            console.error("API Error:", err);
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Cannot connect to server</td></tr>`;
+        });
+}
+
+// Thêm sự kiện nhấn "Enter" ở ô search để kích hoạt tìm kiếm luôn
+document.getElementById('searchInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        loadCourseData(0);
+    }
+});
+
+    // Hàm vẽ bảng
+    function renderTable(courses) {
+        const tbody = document.getElementById('courseDataBody');
+        if (!courses || courses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = courses.map(course => `
+            <tr>
+                <td class="ps-4 text-muted small">#${course.courseId}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                            <i class="bi bi-journal-code text-primary fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">${course.courseName || 'No Name'}</div>
+                            <div class="small text-muted">Code: ${course.courseCode || 'N/A'}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
+                <td>
+                    <span class="badge px-2 py-1 fw-semibold ${course.status === 'active' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}">
+                        ${course.status || 'draft'}
+                    </span>
+                </td>
+                <td class="text-end pe-4">
+                    <a href="/admin/courses/detail/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="View">
+                        <i class="bi bi-eye text-primary"></i>
+                    </a>
+                    <button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Delete">
+                        <i class="bi bi-trash text-danger"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Hàm vẽ phân trang
+    function renderPagination(currentPage, totalPages) {
+        document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
+        const container = document.getElementById('paginationButtons');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)" onclick="loadCourseData(${currentPage - 1})">Prev</a>
+                 </li>`;
+
+        for (let i = 0; i < totalPages; i++) {
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadCourseData(${i})">${i + 1}</a>
+                     </li>`;
+        }
+
+        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="javascript:void(0)" onclick="loadCourseData(${currentPage + 1})">Next</a>
+                 </li>`;
+
+        container.innerHTML = html;
+    }
+
+    // Hàm xóa khóa học (Kết nối với @DeleteMapping của bạn)
+    function deleteCourse(id) {
+        if (confirm("Are you sure you want to delete this course?")) {
+            fetch(`/api/v1/courses/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok || response.status === 204) {
+                    alert("Deleted successfully!");
+                    loadCourseData(0); // Load lại bảng
+                } else {
+                    alert("Delete failed!");
+                }
+            })
+            .catch(err => console.error("Error:", err));
+        }
+    }
+</script>
 </body>
 </html>

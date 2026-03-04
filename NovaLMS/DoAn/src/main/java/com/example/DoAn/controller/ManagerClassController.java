@@ -1,69 +1,58 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.model.Clazz;
-import com.example.DoAn.model.Course;
-import com.example.DoAn.model.User;
-import com.example.DoAn.service.ClassService;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.dto.request.ClassRequestDTO;
+import com.example.DoAn.dto.response.*;
+import com.example.DoAn.service.IClassService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
-@RequestMapping("/manager/class")
+@RestController
+@RequestMapping("/api/v1/classes")
+@Validated
+@Slf4j
+@Tag(name = "Class API Controller")
 @RequiredArgsConstructor
 public class ManagerClassController {
 
-    private final ClassService classService;
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
+    private final IClassService classService;
 
-    // View
+    @Operation(summary = "Add new class")
+    @PostMapping("/")
+    public ResponseData<Integer> addClass(@Valid @RequestBody ClassRequestDTO request) {
+        try {
+            Integer classId = classService.saveClass(request);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Success", classId);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Update class info")
+    @PutMapping("/{id}")
+    public ResponseData<Void> updateClass(@PathVariable Integer id, @Valid @RequestBody ClassRequestDTO request) {
+        try {
+            classService.updateClass(id, request);
+            return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Updated");
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get list of classes with pagination")
     @GetMapping("/list")
-    public String listClasses(Model model) {
-        model.addAttribute("classes", classService.findAll());
-        model.addAttribute("activePage", "classes");
-        model.addAttribute("isDashboard", true);
-        return "manager/class-list";
-    }
-
-    // Create
-    @GetMapping("/create")
-    public String createForm(Model model) {
-        Clazz newClazz = new Clazz();
-        newClazz.setCourse(new Course());
-        newClazz.setTeacher(new User());
-
-        model.addAttribute("clazz", new Clazz());
-        model.addAttribute("courses", courseRepository.findAll());
-        model.addAttribute("teachers", userRepository.findAll());
-        model.addAttribute("activePage", "classes");
-        model.addAttribute("isDashboard", true);
-        return "manager/class-create";
-    }
-
-    // Xem và edit
-    @GetMapping("/detail/{id}")
-    public String showDetail(@PathVariable Integer id, Model model) {
-        Clazz clazz = classService.findById(id);
-        if (clazz == null) return "redirect:/manager/class/list";
-
-        model.addAttribute("clazz", clazz);
-        model.addAttribute("courses", courseRepository.findAll());
-        model.addAttribute("teachers", userRepository.findAll());
-        model.addAttribute("activePage", "classes");
-        model.addAttribute("isDashboard", true);
-        return "manager/class-detail";
-    }
-
-
-
-    // Save
-    @PostMapping("/save")
-    public String save(@ModelAttribute("clazz") Clazz clazz) {
-        classService.save(clazz);
-        return "redirect:/manager/class/list";
+    public ResponseData<PageResponse<?>> getList(
+            @RequestParam(defaultValue = "0") int pageNo,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", classService.getAllClasses(pageNo, pageSize));
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
     }
 }

@@ -6,17 +6,23 @@ import com.example.DoAn.model.Registration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CourseRepository extends JpaRepository<Course, Integer> {
-    @Query("SELECT c FROM Course c")
-    Page<Course> findAllCourses(Pageable pageable);
+public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpecificationExecutor<Course> {
+    @Transactional
+    @Modifying
+    @Query(value = "UPDATE tbl_course SET status = :status WHERE course_id = :id", nativeQuery = true)
+    void updateStatusNative(@Param("status") String status, @Param("id") Integer id);
 
     List<Course> findByStatus(String status);
 

@@ -12,7 +12,6 @@ public class ManagerDashboardController {
     @GetMapping("/dashboard")
     public String managerDashboard(Model model) {
         model.addAttribute("pageTitle", "Manager Dashboard");
-        // Spring sẽ tìm file tại: resources/templates/manager/dashboard.html
         return "manager/dashboard";
     }
 }

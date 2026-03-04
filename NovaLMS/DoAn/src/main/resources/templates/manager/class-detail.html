@@ -1,100 +1,182 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></head>
+<head th:with="isDashboard=true">
+  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></th:block>
+  <style>
+    .info-label { font-size: 0.8rem; text-uppercase; letter-spacing: 0.5px; color: #6c757d; font-weight: 700; }
+    .info-value { font-weight: 600; color: #2d3748; }
+    .student-avatar { width: 35px; height: 35px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4338ca; }
+  </style>
+</head>
+
 <body class="dashboard-body">
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết lớp học', breadcrumb='Lớp học / Chi tiết')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></aside>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Chi tiết lớp học')}"></header>
+<aside id="dashSidebar" class="dash-sidebar">
+  <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></div>
+</aside>
 
 <main class="dash-main" id="dashMain">
-  <div class="container-fluid mt-3">
-    <div class="card border-0 shadow-sm p-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold text-primary m-0">Thông tin lớp: <span th:text="${clazz.className}"></span></h4>
-        <div>
-          <button type="button" id="btnEdit" class="btn btn-warning rounded-pill px-4">
-            <i class="bi bi-pencil-square"></i> Chỉnh sửa
-          </button>
-          <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4 border">Quay lại</a>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <a th:href="@{/manager/class/list}" class="btn btn-link text-decoration-none p-0 mb-2 text-muted small fw-bold">
+        <i class="bi bi-arrow-left"></i> QUAY LẠI DANH SÁCH
+      </a>
+      <h3 class="fw-bold text-dark m-0">Lớp: <span id="displayClassName">---</span></h3>
+    </div>
+    <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
+      <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+    </button>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4 text-center">
+          <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-door-open fs-1"></i>
+          </div>
+          <h5 class="fw-bold m-0" id="detailCourseName">Tên khóa học</h5>
+          <span id="detailStatusBadge" class="badge mt-2">Status</span>
+
+          <div class="text-start mt-4">
+            <div class="mb-3">
+              <div class="info-label">Giảng viên</div>
+              <div class="info-value" id="detailTeacherName">Chưa phân công</div>
+            </div>
+            <div class="mb-3">
+              <div class="info-label">Lịch học & Ca</div>
+              <div class="info-value"><span id="detailSchedule">---</span> | <span id="detailSlot">---</span></div>
+            </div>
+            <div class="row">
+              <div class="col-6">
+                <div class="info-label text-success">Khai giảng</div>
+                <div class="info-value small" id="detailStart">---</div>
+              </div>
+              <div class="col-6">
+                <div class="info-label text-danger">Kết thúc</div>
+                <div class="info-value small" id="detailEnd">---</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <form th:action="@{/manager/class/save}" th:object="${clazz}" method="post" id="classForm">
-        <input type="hidden" th:field="*{classId}" />
-
-        <div class="row g-3">
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Khóa học</label>
-            <select class="form-select bg-light" th:field="*{course.courseId}" disabled id="inputCourse">
-              <option th:each="crs : ${courses}" th:value="${crs.courseId}" th:text="${crs.courseName}"></option>
-            </select>
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold m-0"><i class="bi bi-people me-2"></i>Danh sách học viên</h5>
+          <div class="bg-light px-3 py-1 rounded-pill small fw-bold text-primary">
+            Sĩ số: <span id="studentCount">0</span>
           </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Giảng viên phụ trách</label>
-            <select class="form-select bg-light" th:field="*{teacher.userId}" disabled id="inputTeacher">
-              <option th:each="t : ${teachers}" th:value="${t.userId}" th:text="${t.fullName}"></option>
-            </select>
-          </div>
-
-
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-bold text-success">Ngày khai giảng</label>
-              <input type="datetime-local" class="form-control view-mode"
-                     th:field="*{startDate}" readonly required />
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-bold text-danger">Ngày kết thúc</label>
-              <input type="datetime-local"
-                     class="form-control view-mode"
-                     th:field="*{endDate}"
-                     readonly />
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Lịch học</label>
-              <input type="text" class="form-control view-mode" th:field="*{schedule}"
-                     readonly placeholder="Ví dụ: Thứ 2-4-6" />
-            </div>
-
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Ca học (Slot Time)</label>
-              <input type="text" class="form-control view-mode" th:field="*{slotTime}"
-                     readonly placeholder="Ví dụ: 08:00 - 10:00" />
+        </div>
+        <div class="card-body p-4">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+              <tr>
+                <th class="border-0 small text-muted ps-3">Học viên</th>
+                <th class="border-0 small text-muted">Ngày đăng ký</th>
+                <th class="border-0 small text-muted text-end">Trạng thái</th>
+              </tr>
+              </thead>
+              <tbody id="studentTableBody"></tbody>
+            </table>
+            <div id="emptyStudent" class="text-center py-5 d-none">
+              <p class="text-muted">Chưa có học viên nào đăng ký lớp này.</p>
             </div>
           </div>
         </div>
-
-        <div id="saveActions" class="mt-4 d-none">
-          <button type="submit" class="btn btn-success px-5 rounded-pill">Lưu thay đổi</button>
-          <button type="button" id="btnCancel" class="btn btn-outline-secondary px-4 rounded-pill">Hủy</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </main>
 
-<script>
-  const btnEdit = document.getElementById('btnEdit');
-  const btnCancel = document.getElementById('btnCancel');
-  const saveActions = document.getElementById('saveActions');
-  const formInputs = document.querySelectorAll('#classForm input, #classForm select');
-
-  btnEdit.addEventListener('click', () => {
-      formInputs.forEach(input => {
-          input.removeAttribute('readonly');
-          input.removeAttribute('disabled');
-          input.classList.remove('bg-light');
-      });
-      saveActions.classList.remove('d-none');
-      btnEdit.classList.add('d-none');
-  });
-
-  btnCancel.addEventListener('click', () => {
-      location.reload();
-  });
-</script>
-
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script>
+  // Lấy ID an toàn (bỏ qua dấu / ở cuối nếu có)
+  const classId = window.location.pathname.split('/').filter(p => p).pop();
+
+  document.addEventListener("DOMContentLoaded", loadClassDetail);
+
+  function loadClassDetail() {
+    fetch(`/api/v1/classes/detail/${classId}`)
+        .then(res => res.json())
+        .then(res => {
+            console.log("Data từ API:", res.data); // Hãy mở F12 xem dòng này để biết tên trường đúng
+            if(res.status === 200 || res.status === 202) {
+                const d = res.data;
+
+                // Thử cả 2 cách đặt tên: camelCase (className) và snake_case (class_name) hoặc name
+                document.getElementById('displayClassName').innerText = d.className || d.name || d.class_name || 'N/A';
+                document.getElementById('detailCourseName').innerText = d.courseName || d.course_name || '---';
+                document.getElementById('detailTeacherName').innerText = d.teacherName || d.teacher_name || 'Chưa phân công';
+                document.getElementById('detailSchedule').innerText = d.schedule || 'N/A';
+                document.getElementById('detailSlot').innerText = d.slotTime || d.slot || 'N/A';
+
+                document.getElementById('detailStart').innerText = formatDate(d.startDate || d.start_date);
+                document.getElementById('detailEnd').innerText = formatDate(d.endDate || d.end_date);
+
+                const badge = document.getElementById('detailStatusBadge');
+                if(badge) {
+                    const statusText = d.status || 'Pending';
+                    badge.innerText = statusText;
+                    badge.className = `badge mt-2 ${getStatusClass(statusText)}`;
+                }
+                renderStudents(d.students || []);
+            }
+        });
+}
+
+  function renderStudents(students) {
+      const tbody = document.getElementById('studentTableBody');
+      document.getElementById('studentCount').innerText = students.length;
+
+      if (students.length === 0) {
+          document.getElementById('emptyStudent').classList.remove('d-none');
+          tbody.innerHTML = '';
+          return;
+      }
+
+      document.getElementById('emptyStudent').classList.add('d-none');
+      tbody.innerHTML = students.map(s => `
+          <tr>
+              <td class="ps-3">
+                  <div class="d-flex align-items-center">
+                      <div class="student-avatar me-2">${s.fullName ? s.fullName.charAt(0) : '?'}</div>
+                      <div>
+                          <div class="fw-bold small">${s.fullName}</div>
+                          <div class="text-muted" style="font-size: 0.7rem;">${s.email}</div>
+                      </div>
+                  </div>
+              </td>
+              <td class="small">${formatDate(s.registrationDate)}</td>
+              <td class="text-end"><span class="badge bg-success bg-opacity-10 text-success small">Đã khớp lớp</span></td>
+          </tr>
+      `).join('');
+  }
+
+  function goToEdit() {
+      window.location.href = `/manager/class/edit/${classId}`;
+  }
+
+  function getStatusClass(status) {
+      if(status === 'Open') return 'bg-success';
+      if(status === 'Pending') return 'bg-warning text-dark';
+      return 'bg-danger';
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr || dateStr === "") return '---';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr; // Nếu không parse được thì hiện nguyên văn
+        return d.toLocaleDateString('vi-VN');
+    } catch (e) {
+        return dateStr;
+    }
+}
+</script>
 </body>
 </html>
