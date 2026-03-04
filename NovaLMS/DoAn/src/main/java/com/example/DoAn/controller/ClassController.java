@@ -1,6 +1,5 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.model.Clazz;
 import com.example.DoAn.repository.ClassRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -16,17 +15,12 @@ public class ClassController {
 
     @GetMapping("/class/details/{id}")
     public String viewClassDetails(@PathVariable Integer id, Model model) {
-
-        Clazz clazz = classRepository.findById(id)
-                .orElse(null);
-
-        if (clazz == null) {
-            return "redirect:/courses";
-        }
-
-        model.addAttribute("clazz", clazz);
-        model.addAttribute("currentPage", "courses");
-
-        return "public/class-details";
+        return classRepository.findById(id)
+                .map(clazz -> {
+                    model.addAttribute("clazz", clazz);
+                    model.addAttribute("currentPage", "courses");
+                    return "public/class-details";
+                })
+                .orElse("redirect:/courses");
     }
 }

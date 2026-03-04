@@ -1,24 +1,22 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.model.*;
-import com.example.DoAn.repository.ClassRepository;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.RegistrationRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.dto.EnrollPageDTO;
+import com.example.DoAn.dto.MyCourseDTO;
+import com.example.DoAn.dto.ServiceResult;
+import com.example.DoAn.model.Registration;
+import com.example.DoAn.model.User;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import com.example.DoAn.dto.MyCourseDTO;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 
-import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
 
@@ -27,89 +25,68 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StudentController {
 
-    private final CourseRepository courseRepository;
-    private final ClassRepository classRepository;
-    private final RegistrationRepository registrationRepository;
-    private final UserRepository userRepository;
     private final StudentService studentService;
 
-    // ĐÃ FIX: Hàm dùng chung để lấy User an toàn cho cả Google và form thường
-    private User getCurrentUser(Principal principal) {
+    private String getEmailFromPrincipal(Principal principal) {
         if (principal == null) return null;
-
-        String email;
         if (principal instanceof OAuth2AuthenticationToken token) {
-            email = token.getPrincipal().getAttribute("email");
-        } else {
-            email = principal.getName();
+            return token.getPrincipal().getAttribute("email");
         }
-
-        return userRepository.findByEmail(email).orElse(null);
+        return principal.getName();
     }
-
-    // ======================================================
-    // 1. ENROLL COURSE FLOW
-    // ======================================================
 
     @GetMapping("/enroll/{courseId}")
     public String showEnrollPage(@PathVariable Integer courseId, Model model, Principal principal) {
-        if (principal == null) return "redirect:/login.html";
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login.html";
 
-        Course course = courseRepository.findById(courseId).orElseThrow();
-        List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
+        ServiceResult<EnrollPageDTO> result = studentService.getEnrollPageData(email, courseId);
 
-        model.addAttribute("course", course);
-        model.addAttribute("classes", openClasses);
+        if (!result.isSuccess()) {
+            return "redirect:/courses.html";
+        }
+
+        model.addAttribute("course", result.getData().getCourse());
+        model.addAttribute("classes", result.getData().getClasses());
         return "student/enroll-class";
     }
 
     @PostMapping("/enroll")
-    public String processEnroll(@RequestParam Integer classId, Principal principal, RedirectAttributes ra) {
-        User user = getCurrentUser(principal);
-        if (user == null) return "redirect:/login.html";
+    public String processEnroll(@RequestParam Integer classId,
+                                @RequestParam Integer courseId,
+                                Principal principal,
+                                RedirectAttributes ra) {
 
-        Clazz clazz = classRepository.findById(classId).orElseThrow();
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login.html";
 
-        boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
-                user.getUserId(), classId, "Cancelled");
+        ServiceResult<Integer> result = studentService.enrollCourse(email, classId);
 
-        if (exists) {
-            ra.addFlashAttribute("error", "Bạn đã đăng ký lớp này rồi!");
-            return "redirect:/student/enroll/" + clazz.getCourse().getCourseId();
+        if (result.isSuccess()) {
+            ra.addFlashAttribute("success", result.getMessage());
+            return "redirect:/student/my-enrollments";
+        } else {
+            ra.addFlashAttribute("error", result.getMessage());
+            Integer redirectCourseId = result.getData() != null ? result.getData() : courseId;
+            return "redirect:/student/enroll/" + redirectCourseId;
         }
-
-        Registration reg = Registration.builder()
-                .user(user)
-                .clazz(clazz)
-                .course(clazz.getCourse())
-                .status("Submitted")
-                .registrationPrice(new BigDecimal("5000000"))
-                .note("Đăng ký trực tuyến")
-                .build();
-
-        registrationRepository.save(reg);
-
-        ra.addFlashAttribute("success", "Đăng ký thành công! Vui lòng chờ duyệt hoặc thanh toán.");
-        return "redirect:/student/my-enrollments";
     }
-
-    // ======================================================
-    // 2. MY ENROLLMENTS & CANCEL FLOW
-    // ======================================================
 
     @GetMapping("/my-enrollments")
     public String viewMyEnrollments(Principal principal, Model model) {
-        User user = getCurrentUser(principal);
-        if (user == null) return "redirect:/login.html";
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login.html";
 
-        List<Registration> list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
-        model.addAttribute("registrations", list);
+        ServiceResult<List<Registration>> result = studentService.getMyEnrollments(email);
+
+        if (!result.isSuccess()) {
+            model.addAttribute("error", result.getMessage());
+        } else {
+            model.addAttribute("registrations", result.getData());
+        }
+
         return "student/my-enrollments";
     }
-
-    // ======================================================
-    // 3. MY COURSES (LEARNING DASHBOARD)
-    // ======================================================
 
     @GetMapping("/my-courses")
     public String viewMyCourses(
@@ -120,47 +97,40 @@ public class StudentController {
             @RequestParam(defaultValue = "registrationTime_desc") String sort,
             Principal principal, Model model) {
 
-        User user = getCurrentUser(principal);
-        if (user == null) return "redirect:/login.html";
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login.html";
 
-        try {
-            // Setup phân trang và sắp xếp
-            String[] sortParams = sort.split("_");
-            Sort.Direction direction = sortParams[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+        String[] sortParams = sort.split("_");
+        Sort.Direction direction = sortParams[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
 
-            // Gọi Service
-            Page<MyCourseDTO> coursePage = studentService.getMyCourses(user.getUserId(), keyword, categoryId, pageable);
-            model.addAttribute("coursePage", coursePage);
+        ServiceResult<Page<MyCourseDTO>> result = studentService.getMyCourses(email, keyword, categoryId, pageable);
 
-            // Giữ lại trạng thái UI
-            model.addAttribute("keyword", keyword);
-            model.addAttribute("categoryId", categoryId);
-            model.addAttribute("currentSort", sort);
-
-        } catch (Exception e) {
-            e.printStackTrace(); // In lỗi ra Console để Dev đọc
-            model.addAttribute("error", "Lỗi tải dữ liệu: " + e.getMessage());
+        if (!result.isSuccess()) {
+            model.addAttribute("error", result.getMessage());
+        } else {
+            model.addAttribute("coursePage", result.getData());
         }
+
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("categoryId", categoryId);
+        model.addAttribute("currentSort", sort);
 
         return "student/my-courses";
     }
-    // ======================================================
-    // MÀN HÌNH DASHBOARD CHO HỌC VIÊN
-    // ======================================================
+
     @GetMapping("/dashboard")
     public String viewDashboard(Principal principal, Model model) {
-        // Bắt buộc kiểm tra đăng nhập
-        if (principal == null) return "redirect:/login.html";
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login.html";
 
-        User user = getCurrentUser(principal);
-        if (user == null) {
+        ServiceResult<User> result = studentService.getDashboardData(email);
+
+        if (!result.isSuccess()) {
             return "redirect:/login.html";
         }
 
-        // Tạm thời truyền user xuống để hiển thị tên (nếu cần), sau này bạn có thể truyền thêm dữ liệu thống kê vào đây
-        model.addAttribute("user", user);
-
+        model.addAttribute("user", result.getData());
         return "student/dashboard";
     }
 }
