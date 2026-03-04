@@ -10,8 +10,6 @@ import java.util.List;
 
 @Repository
 public interface SettingRepository extends JpaRepository<Setting, Integer> {
-    // Tìm Setting Role theo giá trị (ví dụ: value = 'ROLE_STUDENT')
-    // và đảm bảo type là 'USER_ROLE'
     @Query("SELECT s FROM Setting s WHERE s.settingType = 'USER_ROLE' AND s.value = :value")
     Optional<Setting> findRoleByValue(String value);
 

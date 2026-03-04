@@ -1,5 +1,6 @@
 package com.example.DoAn.service;
 
+import com.example.DoAn.dto.ServiceResult;
 import com.example.DoAn.dto.UserProfileDTO;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.UserRepository;
@@ -8,48 +9,74 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final FileUploadService fileUploadService;
 
-    // Lấy thông tin User chuyển thành DTO
-    public UserProfileDTO getUserProfile(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+    @Transactional(readOnly = true)
+    public ServiceResult<UserProfileDTO> getUserProfile(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
 
-        return UserProfileDTO.builder()
+        if (user == null) {
+            return ServiceResult.failure("Không tìm thấy người dùng!");
+        }
+
+        UserProfileDTO dto = UserProfileDTO.builder()
                 .email(user.getEmail())
                 .fullName(user.getFullName())
                 .mobile(user.getMobile())
                 .note(user.getNote())
                 .avatarUrl(user.getAvatarUrl())
                 .build();
+
+        return ServiceResult.success("Lấy thông tin thành công", dto);
     }
 
-    // Cập nhật thông tin từ DTO xuống DB
     @Transactional
-    public void updateUserProfile(String email, UserProfileDTO dto) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+    public ServiceResult<Void> updateUserProfile(String email, UserProfileDTO dto) {
+        try {
+            User user = userRepository.findByEmail(email).orElse(null);
 
-        // Chỉ cập nhật các trường được phép
-        user.setFullName(dto.getFullName());
-        user.setMobile(dto.getMobile());
-        user.setNote(dto.getNote());
+            if (user == null) {
+                return ServiceResult.failure("Không tìm thấy người dùng!");
+            }
 
-        // Không cần gọi userRepository.save(user) vì có @Transactional, Hibernate tự update
+            user.setFullName(dto.getFullName());
+            user.setMobile(dto.getMobile());
+            user.setNote(dto.getNote());
+
+            return ServiceResult.success("Cập nhật hồ sơ thành công!");
+        } catch (Exception e) {
+            return ServiceResult.failure("Lỗi cập nhật: " + e.getMessage());
+        }
     }
-    public void updateAvatar(String email, String avatarUrl) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
 
-        user.setAvatarUrl(avatarUrl); // Tên hàm set phụ thuộc vào entity của bạn
-        userRepository.save(user);
+    @Transactional
+    public ServiceResult<String> updateAvatar(String email, MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                return ServiceResult.failure("Vui lòng chọn một file ảnh hợp lệ.");
+            }
+
+            User user = userRepository.findByEmail(email).orElse(null);
+
+            if (user == null) {
+                return ServiceResult.failure("Không tìm thấy người dùng!");
+            }
+
+            String uploadedAvatarUrl = fileUploadService.uploadImage(file);
+            user.setAvatarUrl(uploadedAvatarUrl);
+
+            return ServiceResult.success("Cập nhật ảnh đại diện thành công!", uploadedAvatarUrl);
+        } catch (Exception e) {
+            return ServiceResult.failure("Lỗi tải ảnh: " + e.getMessage());
+        }
     }
+
 
 }
