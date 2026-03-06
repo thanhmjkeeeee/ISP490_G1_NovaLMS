@@ -1,26 +1,26 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.repository.ClassRepository;
+import com.example.DoAn.service.ClassPublicService;
+import com.example.DoAn.service.SettingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @RequiredArgsConstructor
 public class ClassController {
+    private final ClassPublicService classPublicService;
+    private final SettingService settingService;
 
-    private final ClassRepository classRepository;
+    @GetMapping("/classes")
+    public String listOpenClasses(@RequestParam(required = false) Integer categoryId, Model model) {
+        model.addAttribute("classes", classPublicService.getOpenClassesByFilter(categoryId));
+        model.addAttribute("categories", settingService.getCourseCategories());
+        model.addAttribute("selectedCat", categoryId);
+        model.addAttribute("currentPage", "classes");
 
-    @GetMapping("/class/details/{id}")
-    public String viewClassDetails(@PathVariable Integer id, Model model) {
-        return classRepository.findById(id)
-                .map(clazz -> {
-                    model.addAttribute("clazz", clazz);
-                    model.addAttribute("currentPage", "courses");
-                    return "public/class-details";
-                })
-                .orElse("redirect:/courses");
+        return "public/classes";
     }
 }

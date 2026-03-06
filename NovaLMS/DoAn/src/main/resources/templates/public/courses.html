@@ -27,10 +27,10 @@
 
         <div class="col-lg-3">
           <div class="course-filters" data-aos="fade-right" data-aos-delay="100">
-            <h4 class="filter-title">Filter Courses</h4>
+            <h4 class="filter-title">Lọc khóa học</h4>
 
             <div class="filter-group">
-              <h5>Category</h5>
+              <h5>Thể loại</h5>
               <div class="filter-options">
 
                 <label class="filter-checkbox">
@@ -38,7 +38,7 @@
                          th:checked="${selectedCat == null}"
                          onchange="loadCourses()">
                   <span class="checkmark"></span>
-                  All Categories
+                  Tất cả
                 </label>
 
                 <label class="filter-checkbox" th:each="cat : ${categories}">
@@ -65,9 +65,9 @@
 
             <div class="sort-dropdown">
               <select id="sortSelect" onchange="loadCourses()">
-                <option value="newest">Sort by: Newest First</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
+                <option value="newest">Sort by: Mới nhất</option>
+                <option value="price_asc">Price: Thấp đến cao</option>
+                <option value="price_desc">Price: Cao đến thấp</option>
               </select>
             </div>
           </div>
@@ -111,7 +111,7 @@
                       <span class="instructor-name" th:text="${course.expert.fullName}">Expert Name</span>
                     </div>
 
-                    <a th:href="@{/course/details/{id}(id=${course.courseId})}" class="btn-course">View Details</a>
+                    <a th:href="@{/course/details/{id}(id=${course.courseId})}" class="btn-course">Xem chi tiết</a>
                   </div>
                 </div>
               </div>
@@ -164,7 +164,7 @@
               return response.text();
             })
             .then(html => {
-              // 5. Thay thế HTML cũ bằng HTML mới
+
               const container = document.getElementById('courseContainer');
               if (container) {
                 // Dùng outerHTML để thay thế chính thẻ <div id="courseContainer">
