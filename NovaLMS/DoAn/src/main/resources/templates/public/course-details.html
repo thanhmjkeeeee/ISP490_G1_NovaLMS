@@ -51,25 +51,25 @@
           <div class="course-tabs mt-4">
             <ul class="nav nav-tabs border-bottom-0" id="courseTab" role="tablist">
               <li class="nav-item">
-                <button class="nav-link active fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Overview</button>
+                <button class="nav-link active fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Tổng quan</button>
               </li>
               <li class="nav-item">
-                <button class="nav-link fw-bold" id="curriculum-tab" data-bs-toggle="tab" data-bs-target="#curriculum" type="button">Curriculum</button>
+                <button class="nav-link fw-bold" id="curriculum-tab" data-bs-toggle="tab" data-bs-target="#curriculum" type="button">Chương trình giảng dạy</button>
               </li>
               <li class="nav-item">
-                <button class="nav-link fw-bold text-primary" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button">Schedules</button>
+                <button class="nav-link fw-bold text-primary" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button">Lớp học</button>
               </li>
             </ul>
 
             <div class="tab-content border p-4 bg-white rounded-bottom shadow-sm" id="courseTabContent">
 
               <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <h4 class="fw-bold mb-3">About This Course</h4>
+                <h4 class="fw-bold mb-3">Thông tin về khóa học</h4>
                 <p style="white-space: pre-line;" th:text="${course.description != null ? course.description : 'No description available.'}">Description...</p>
               </div>
 
               <div class="tab-pane fade" id="curriculum" role="tabpanel">
-                <h4 class="fw-bold mb-4">Course Content</h4>
+                <h4 class="fw-bold mb-4">Nội dung khóa học</h4>
                 <div class="accordion" id="accordionCurriculum">
                   <div class="accordion-item" th:each="module, state : ${curriculum}">
                     <h2 class="accordion-header">
@@ -99,25 +99,38 @@
               </div>
 
               <div class="tab-pane fade" id="classes" role="tabpanel">
-                <h4 class="fw-bold mb-4">Available Classes</h4>
+                <h4 class="fw-bold mb-4">Lớp học đang mở</h4>
                 <div th:if="${#lists.isEmpty(activeClasses)}" class="alert alert-warning">
                   No classes are currently open for registration.
                 </div>
                 <div class="class-item border rounded p-3 mb-3 shadow-sm" th:each="clazz : ${activeClasses}">
                   <div class="row align-items-center">
                     <div class="col-md-8">
-                      <h5 class="fw-bold text-primary mb-1" th:text="${clazz.className}">Class Name</h5>
-                      <p class="mb-0 small text-muted" th:if="${clazz.teacher != null}">
-                        <i class="bi bi-person-fill"></i> Instructor: <span th:text="${clazz.teacher.fullName}">Teacher</span>
-                      </p>
-                    </div>
-                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                      <h5 class="fw-bold text-primary mb-2" th:text="${clazz.className}">Class Name</h5>
 
-                      <a th:href="@{/class/details/{id}(id=${clazz.classId})}"
-                         class="btn btn-outline-primary px-4 rounded-pill fw-bold">
-                        View Details
-                      </a>
+                      <div class="class-info small text-muted">
+                        <p class="mb-1" th:if="${clazz.teacher != null}">
+                          <i class="bi bi-person-fill me-2"></i>
+                          <strong>Giảng viên:</strong> <span th:text="${clazz.teacher.fullName}">Teacher</span>
+                        </p>
 
+                        <p class="mb-0 d-flex flex-wrap align-items-center">
+                    <span class="me-4">
+                        <i class="bi bi-calendar3 me-2"></i>
+                        <strong>Lịch học:</strong>
+                        <span th:text="${clazz.schedule}">Mon-Wed-Fri</span>
+                        <span class="badge bg-light text-dark border ms-1" th:text="${clazz.slotTime}">08:00 - 10:00</span>
+                    </span>
+
+                          <span>
+                        <i class="bi bi-clock-history me-2"></i>
+                        <strong>Thời gian:</strong>
+                        <span th:text="${#temporals.format(clazz.startDate, 'dd/MM/yyyy')}">01/01/2024</span>
+                        <span class="mx-1">—</span>
+                        <span th:text="${#temporals.format(clazz.endDate, 'dd/MM/yyyy')}">01/03/2024</span>
+                    </span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
