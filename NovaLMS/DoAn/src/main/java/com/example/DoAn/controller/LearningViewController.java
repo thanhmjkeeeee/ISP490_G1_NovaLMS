@@ -1,11 +1,9 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.CourseLearningInfoDTO;
-import com.example.DoAn.model.Lesson;
 import com.example.DoAn.service.LearningService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,23 +11,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.security.Principal;
 
 @Controller
-@RequestMapping("/student/learn")
+@RequestMapping("/student")
 @RequiredArgsConstructor
-public class LearningController {
+public class LearningViewController {
 
     private final LearningService learningService;
 
-    @GetMapping("/{courseId}")
-    public String viewCourseInfo(@PathVariable Long courseId, Model model, Principal principal) {
+    private String getEmailFromPrincipal(Principal principal) {
+        if (principal == null) return null;
+        if (principal instanceof OAuth2AuthenticationToken token) {
+            return token.getPrincipal().getAttribute("email");
+        }
+        return principal.getName();
+    }
 
-        String userEmail = principal.getName();
-
-
-        CourseLearningInfoDTO courseInfo = learningService.getCourseLearningInfo(courseId, userEmail);
-
-
-        model.addAttribute("course", courseInfo);
-
+    @GetMapping("/learn/{courseId}")
+    public String viewCourseInfo() {
         return "student/course-learning-info";
     }
 

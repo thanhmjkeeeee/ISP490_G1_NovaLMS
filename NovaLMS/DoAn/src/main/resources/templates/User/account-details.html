@@ -19,24 +19,20 @@
         <p class="dash-page-subtitle">Quản lý thông tin và bảo mật tài khoản của bạn</p>
     </div>
 
-    <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${successMsg}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${errorMsg}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div id="alertBox" class="alert d-none alert-dismissible fade show shadow-sm" role="alert">
+        <span id="alertMessage"></span>
+        <button type="button" class="btn-close" onclick="document.getElementById('alertBox').classList.add('d-none')"></button>
     </div>
 
     <div class="row g-4">
         <div class="col-xl-4">
             <div class="dash-card text-center h-100 d-flex flex-column justify-content-center align-items-center py-5">
 
-                <img th:src="@{${userProfile.avatarUrl != null ? userProfile.avatarUrl : '/assets/img/person/person-1.jpg'}}"
+                <img id="avatarImage" th:src="@{${userProfile.avatarUrl != null ? userProfile.avatarUrl : '/assets/img/person/person-1.jpg'}}"
                      alt="Profile" class="rounded-circle mb-3 shadow-sm"
                      style="width: 130px; height: 130px; object-fit: cover; border: 4px solid #e2e8f0;">
 
-                <h4 th:text="${userProfile.fullName}" class="fw-bold mb-1" style="color: var(--dash-text-primary);">Tên User</h4>
+                <h4 th:text="${userProfile.fullName}" class="fw-bold mb-1" style="color: var(--dash-text-primary);"></h4>
 
                 <p class="text-muted mb-4" style="font-size: 0.9rem;">
                     <span sec:authorize="hasRole('ROLE_ADMIN')">Quản trị viên</span>
@@ -46,8 +42,8 @@
                     <span sec:authorize="hasRole('ROLE_STUDENT')">Học viên</span>
                 </p>
 
-                <form id="avatarForm" th:action="@{/profile/upload-avatar}" method="POST" enctype="multipart/form-data">
-                    <input type="file" id="avatarInput" name="file" accept="image/png, image/jpeg, image/jpg" style="display: none;" onchange="document.getElementById('avatarForm').submit();">
+                <form id="avatarForm">
+                    <input type="file" id="avatarInput" accept="image/png, image/jpeg, image/jpg" style="display: none;">
                     <button type="button" class="btn btn-sm px-4 rounded-pill fw-bold" style="background-color: var(--dash-accent); color: #fff;" onclick="document.getElementById('avatarInput').click();">
                         <i class="bi bi-camera me-1"></i> Đổi ảnh đại diện
                     </button>
@@ -60,12 +56,12 @@
             <div class="dash-card h-100">
                 <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: var(--dash-text-primary);">Chi tiết hồ sơ</h5>
 
-                <form th:action="@{/profile/update}" th:object="${userProfile}" method="post">
+                <form id="profileForm" th:object="${userProfile}">
 
                     <div class="row mb-3 align-items-center">
                         <label for="email" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Email đăng nhập <span class="text-danger">*</span></label>
                         <div class="col-md-9">
-                            <input name="email" type="email" class="form-control bg-light" id="email" th:field="*{email}" readonly style="color: #64748b; border-color: #e2e8f0;">
+                            <input type="email" class="form-control bg-light" id="email" th:field="*{email}" readonly style="color: #64748b; border-color: #e2e8f0;">
                             <small class="text-muted" style="font-size: 0.8rem;">Email dùng để đăng nhập nên không thể thay đổi.</small>
                         </div>
                     </div>
@@ -73,27 +69,27 @@
                     <div class="row mb-3 align-items-center">
                         <label for="fullName" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Họ và Tên <span class="text-danger">*</span></label>
                         <div class="col-md-9">
-                            <input name="fullName" type="text" class="form-control" id="fullName" th:field="*{fullName}" required style="border-color: #cbd5e1;">
+                            <input type="text" class="form-control" id="fullName" th:field="*{fullName}" required style="border-color: #cbd5e1;">
                         </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <label for="mobile" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Số điện thoại</label>
                         <div class="col-md-9">
-                            <input name="mobile" type="text" class="form-control" id="mobile" th:field="*{mobile}" style="border-color: #cbd5e1;" placeholder="Ví dụ: 0987654321">
+                            <input type="text" class="form-control" id="mobile" th:field="*{mobile}" style="border-color: #cbd5e1;" placeholder="Ví dụ: 0987654321">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <label for="note" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Giới thiệu bản thân</label>
                         <div class="col-md-9">
-                            <textarea name="note" class="form-control" id="note" style="height: 120px; border-color: #cbd5e1;" th:field="*{note}" placeholder="Vài nét về kinh nghiệm hoặc mục tiêu học tập của bạn..."></textarea>
+                            <textarea class="form-control" id="note" style="height: 120px; border-color: #cbd5e1;" th:field="*{note}" placeholder="Vài nét về kinh nghiệm hoặc mục tiêu học tập của bạn..."></textarea>
                         </div>
                     </div>
 
                     <div class="text-end mt-4 pt-3 border-top">
                         <button type="reset" class="btn btn-light rounded-pill px-4 me-2 fw-medium border">Hủy</button>
-                        <button type="submit" class="btn rounded-pill px-4 fw-medium text-white" style="background-color: var(--dash-accent);">
+                        <button type="submit" id="btnSubmitProfile" class="btn rounded-pill px-4 fw-medium text-white" style="background-color: var(--dash-accent);">
                             <i class="bi bi-floppy me-1"></i> Lưu thay đổi
                         </button>
                     </div>
@@ -110,6 +106,72 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    function showAlert(message, isSuccess) {
+        const alertBox = document.getElementById('alertBox');
+        const alertMessage = document.getElementById('alertMessage');
+        alertBox.className = `alert alert-dismissible fade show shadow-sm ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+        alertBox.classList.remove('d-none');
+        alertMessage.innerHTML = `<i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2"></i> ${message}`;
+        setTimeout(() => alertBox.classList.add('d-none'), 3000);
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitProfile');
+        btn.disabled = true;
+
+        const payload = {
+            fullName: document.getElementById('fullName').value,
+            mobile: document.getElementById('mobile').value,
+            note: document.getElementById('note').value
+        };
+
+        try {
+            const response = await fetch('/api/v1/profile/update', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+
+            if (result.status === 200) {
+                showAlert(result.message, true);
+            } else {
+                showAlert(result.message, false);
+            }
+        } catch (error) {
+            showAlert("Lỗi kết nối máy chủ", false);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('avatarInput').addEventListener('change', async function() {
+        if (!this.files[0]) return;
+
+        const formData = new FormData();
+        formData.append('file', this.files[0]);
+
+        try {
+            const response = await fetch('/api/v1/profile/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.status === 200) {
+                document.getElementById('avatarImage').src = result.data;
+                showAlert(result.message, true);
+            } else {
+                showAlert(result.message, false);
+            }
+        } catch (error) {
+            showAlert("Lỗi tải ảnh lên máy chủ", false);
+        }
+    });
+</script>
 
 </body>
 </html>
