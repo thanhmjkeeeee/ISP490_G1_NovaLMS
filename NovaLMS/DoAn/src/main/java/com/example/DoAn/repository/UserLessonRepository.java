@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserLessonRepository extends JpaRepository<UserLesson, UserLessonId> {
 
@@ -41,4 +42,8 @@ public interface UserLessonRepository extends JpaRepository<UserLesson, UserLess
             "WHERE m.course.courseId = :courseId " +
             "ORDER BY m.orderIndex ASC, l.orderIndex ASC")
     List<Integer> findAllLessonIdsOfCourse(@Param("courseId") Integer courseId);
+
+
+    List<UserLesson> findByUser_UserId(Integer userId);
+    Optional<UserLesson> findByUser_UserIdAndLesson_LessonId(Integer userId, Integer lessonId);
 }

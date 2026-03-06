@@ -78,5 +78,6 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     // Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
     @Query("SELECT r FROM Registration r WHERE r.course.courseId = :courseId")
     List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
+    Optional<Registration> findByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
 
 }
