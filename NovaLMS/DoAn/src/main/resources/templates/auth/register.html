@@ -3,184 +3,6 @@
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Đăng ký')}"></head>
 
-<!-- Custom CSS cho trang Register Riki Style -->
-<style>
-
-    .register-card {
-        background: #fff;
-        border-radius: 20px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        overflow: hidden;
-        max-width: 1100px;
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-    }
-
-    /* Cột trái: Hình ảnh */
-    .register-left {
-        flex: 1;
-        background-color: #e0f2f1; /* Màu xanh nhạt */
-        padding: 40px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-    }
-
-    .register-left img {
-        max-width: 100%;
-        height: auto;
-        margin-bottom: 20px;
-    }
-
-    .register-left h2 {
-        color: #00796b;
-        font-weight: 700;
-        font-size: 2rem;
-        margin-bottom: 15px;
-    }
-
-    .register-left p {
-        color: #555;
-        font-size: 1.1rem;
-    }
-
-    /* Cột phải: Form */
-    .register-right {
-        flex: 1.2;
-        padding: 50px;
-        background: #fff;
-    }
-
-    .register-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #333;
-        text-align: center;
-        margin-bottom: 30px;
-    }
-
-    .form-label {
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #555;
-        margin-bottom: 5px;
-    }
-
-    .form-control, .form-select {
-        border-radius: 8px;
-        padding: 10px 15px;
-        border: 1px solid #ddd;
-        font-size: 0.95rem;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #26a69a;
-        box-shadow: 0 0 0 0.2rem rgba(38, 166, 154, 0.25);
-    }
-
-    .input-group-text {
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px 0 0 8px;
-        color: #777;
-    }
-
-    .form-control-icon {
-        border-left: none;
-        border-radius: 0 8px 8px 0;
-    }
-
-    .btn-register {
-        background: #26a69a; /* Màu nút xanh đậm */
-        color: #fff;
-        font-weight: 700;
-        padding: 12px;
-        border-radius: 8px;
-        width: 100%;
-        border: none;
-        transition: 0.3s;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-top: 20px;
-    }
-
-    .btn-register:hover {
-        background: #00897b;
-    }
-
-    .verify-code-group {
-        position: relative;
-    }
-
-    .btn-get-code {
-        position: absolute;
-        right: 5px;
-        top: 50%;
-        transform: translateY(-50%); /* Căn giữa nút */
-        font-size: 0.8rem;
-        color: #26a69a;
-        font-weight: 600;
-        background: none;
-        border: none;
-        cursor: pointer;
-    }
-
-    .social-login {
-        display: flex;
-        gap: 15px;
-        margin-top: 20px;
-    }
-
-    .btn-social {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background: #fff;
-        color: #555;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        transition: 0.3s;
-        text-decoration: none;
-    }
-
-    .btn-social:hover {
-        background: #f5f5f5;
-    }
-
-    .login-link {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 0.9rem;
-    }
-
-    .login-link a {
-        color: #26a69a;
-        font-weight: 700;
-        text-decoration: none;
-    }
-
-    /* Responsive mobile */
-    @media (max-width: 992px) {
-        .register-card {
-            flex-direction: column;
-            max-width: 600px;
-        }
-        .register-left {
-            display: none; /* Ẩn ảnh trên mobile cho gọn */
-        }
-        .register-right {
-            padding: 30px;
-        }
-    }
-</style>
-
 <body class="index-page">
 
 <header th:replace="~{fragments/header :: header-fragment(currentPage='register')}"></header>
@@ -323,84 +145,60 @@
 </main>
 
 <script>
-    console.log("Register script loaded v2!");
+    document.addEventListener("DOMContentLoaded", function () {
+        const btnGetCode = document.getElementById("btnGetCode");
+        const registerForm = document.querySelector("form"); // Xóa thuộc tính action và method trên HTML
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const btnGetCode = document.getElementById('btnGetCode');
-        // ĐÃ SỬA: Lấy theo ID mới 'registerEmail'
-        const emailInput = document.getElementById('registerEmail');
+        // Gửi mã xác nhận
+        btnGetCode.addEventListener("click", async function () {
+            const email = document.getElementById("email").value;
+            if (!email) return alert("Vui lòng nhập email trước!");
 
-        // Debug Log
-        if (!btnGetCode) console.error("LỖI: Không tìm thấy nút btnGetCode");
-        if (!emailInput) console.error("LỖI: Không tìm thấy input registerEmail. Kiểm tra lại HTML!");
+            btnGetCode.disabled = true;
+            btnGetCode.innerText = "Đang gửi...";
 
-        if (btnGetCode && emailInput) {
-            btnGetCode.addEventListener('click', async function(e) {
-                // Ngăn chặn sự kiện nổi bọt (tránh submit form nhầm)
-                e.preventDefault();
-                e.stopPropagation();
+            try {
+                const response = await fetch(`/api/v1/auth/send-code?email=${encodeURIComponent(email)}`, { method: "POST" });
+                const result = await response.json();
 
-                console.log("Button clicked!");
-                const email = emailInput.value;
-
-                if (!email || !email.includes('@')) {
-                    alert("Vui lòng nhập địa chỉ email hợp lệ trước khi lấy mã.");
-                    return;
-                }
-
-                // UI Loading
-                btnGetCode.disabled = true;
-                const originalText = btnGetCode.innerText;
-                btnGetCode.innerText = "Đang gửi...";
-                btnGetCode.style.color = "#999";
-
-                try {
-                    const url = '/api/verification/send-code?email=' + encodeURIComponent(email) + '&t=' + new Date().getTime();
-                    console.log("Fetching URL:", url);
-
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    console.log("Response status:", response.status);
-
-                    if (response.ok) {
-                        alert("Mã xác minh đã được gửi vào email của bạn!");
-                        startCountdown(60);
-                    } else {
-                        const msg = await response.text();
-                        alert("Lỗi: " + msg);
-                        resetButton(originalText);
-                    }
-                } catch (error) {
-                    console.error("Lỗi fetch:", error);
-                    alert("Không thể kết nối đến server. Kiểm tra Console (F12) để biết chi tiết.");
-                    resetButton(originalText);
-                }
-            });
-        }
-
-        function startCountdown(seconds) {
-            let counter = seconds;
-            const interval = setInterval(() => {
-                counter--;
-                btnGetCode.innerText = `Gửi lại (${counter}s)`;
-
-                if (counter <= 0) {
-                    clearInterval(interval);
+                if (result.status === 200) {
+                    alert("Mã xác minh đã được gửi!");
+                    startCountdown(60);
+                } else {
+                    alert(result.message);
                     resetButton("Lấy mã xác minh");
                 }
-            }, 1000);
-        }
+            } catch (error) {
+                alert("Lỗi kết nối máy chủ");
+                resetButton("Lấy mã xác minh");
+            }
+        });
 
-        function resetButton(text) {
-            btnGetCode.disabled = false;
-            btnGetCode.innerText = text || "Lấy mã xác minh";
-            btnGetCode.style.color = "#26a69a";
-        }
+        // Xử lý form đăng ký
+        registerForm.addEventListener("submit", async function (e) {
+            e.preventDefault(); // CHẶN reload trang
+
+            const formData = new FormData(registerForm);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+
+                if (result.status === 200) {
+                    alert("Đăng ký thành công! Chuyển hướng đến đăng nhập...");
+                    window.location.href = '/login.html';
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert("Lỗi hệ thống khi đăng ký!");
+            }
+        });
     });
 </script>
 
