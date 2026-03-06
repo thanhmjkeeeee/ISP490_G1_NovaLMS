@@ -41,4 +41,5 @@ public class Lesson {
     @ManyToOne
     @JoinColumn(name = "module_id")
     private Module module;
+
 }

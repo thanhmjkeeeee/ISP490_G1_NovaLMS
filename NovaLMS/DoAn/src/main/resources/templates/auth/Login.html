@@ -106,48 +106,40 @@
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
-<!-- SCRIPT XỬ LÝ QUÊN MẬT KHẨU -->
 <script>
-    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+    document.getElementById('forgotForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-
         const email = document.getElementById('forgotEmail').value;
         const btn = document.getElementById('forgotBtn');
         const btnText = document.getElementById('forgotBtnText');
-        const spinner = document.getElementById('forgotSpinner');
         const alertBox = document.getElementById('forgotAlert');
 
-        // Reset UI
         btn.disabled = true;
         btnText.textContent = 'Đang gửi...';
-        spinner.classList.remove('d-none');
-        alertBox.classList.add('d-none');
 
         try {
-            const response = await fetch('/api/auth/forgot-password', {
+            const response = await fetch('/api/v1/auth/forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email })
             });
+            const result = await response.json();
 
-            // Backend trả về chuỗi text
-            const message = await response.text();
-
-            if (response.ok) {
+            alertBox.classList.remove('d-none');
+            if (result.status === 200) {
                 alertBox.className = 'alert alert-success mt-3';
-                alertBox.textContent = 'Thành công! Vui lòng kiểm tra email của bạn.';
+                alertBox.textContent = result.message;
             } else {
                 alertBox.className = 'alert alert-danger mt-3';
-                alertBox.textContent = 'Lỗi: ' + message;
+                alertBox.textContent = result.message;
             }
         } catch (error) {
-            alertBox.className = 'alert alert-danger mt-3';
-            alertBox.textContent = 'Không thể kết nối đến server.';
-        } finally {
             alertBox.classList.remove('d-none');
+            alertBox.className = 'alert alert-danger mt-3';
+            alertBox.textContent = 'Lỗi kết nối máy chủ';
+        } finally {
             btn.disabled = false;
             btnText.textContent = 'Gửi yêu cầu';
-            spinner.classList.add('d-none');
         }
     });
 </script>

@@ -12,12 +12,6 @@ public class ViewController {
 //        return "public/index"; // Trả về templates/index.html
 //    }
 
-    // 2. Trang Login
-    @GetMapping("/login.html")
-    public String login() {
-        return "auth/login"; // Trả về templates/login.html
-    }
-
 //
 //    @GetMapping("/courses.html")
 //    public String courses() {
@@ -64,15 +58,6 @@ public class ViewController {
         return "public/404";
     }
 
-    // Thêm mapping cho Register nếu bạn có file register.html
-    @GetMapping("/register.html")
-    public String register() {
-        return "auth/register";
-    }
-    @GetMapping("/reset-password.html")
-    public String resetPasswordPage() {
-        return "auth/reset-password"; // Trả về templates/reset-password.html
-    }
 
 //    @GetMapping("/admin/dashboard")
 //    public String admin() {
