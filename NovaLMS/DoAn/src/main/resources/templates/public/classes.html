@@ -20,13 +20,12 @@
                         <div class="row">
                             <div class="col-md-4 mb-3 mb-md-0">
                                 <label class="fw-bold text-primary mb-2">Chương trình:</label>
-                                <select id="categorySelect" class="form-select border-0 bg-light rounded-3 py-2" onchange="filterClasses()">
+                                <select id="categorySelect" class="form-select border-0 bg-light rounded-3 py-2" onchange="loadClasses(0)">
                                     <option value="">Tất cả</option>
                                     <option th:each="cat : ${categories}"
                                             th:value="${cat.settingId}"
                                             th:text="${cat.name}"
-                                            th:selected="${selectedCat == cat.settingId}"> Category Name
-                                    </option>
+                                            th:selected="${cat.settingId == selectedCat}"> </option>
                                 </select>
                             </div>
                         </div>
@@ -38,56 +37,16 @@
                     <div class="col-2">Chương trình</div>
                     <div class="col-2 text-start">Lớp / Giảng viên</div>
                     <div class="col-2">Giờ học</div>
-                    <div class="col-2">Ngày khai giảng <br><span class="fw-normal small text-muted">(dự kiến)</span></div>
+                    <div class="col-2">Ngày khai giảng</div>
                     <div class="col-2"></div>
                 </div>
 
-                <div th:if="${#lists.isEmpty(classes)}" class="alert alert-warning text-center rounded-4 shadow-sm">
-                    Hiện tại chưa có lớp học nào đang mở đăng ký.
-                </div>
-
-                <div class="class-list-container" id="class-list-wrapper" th:unless="${#lists.isEmpty(classes)}">
-
-                    <div class="card border-0 shadow-sm rounded-4 mb-3 class-row-item hover-shadow transition-all" th:each="clazz : ${classes}">
-                        <div class="card-body p-3 p-lg-4">
-                            <div class="row align-items-center text-center text-lg-center">
-
-                                <div class="col-lg-2 col-6 mb-3 mb-lg-0 text-start">
-                                    <h6 class="fw-bold text-primary mb-0 d-flex align-items-center">
-                                        <span th:text="${clazz.course != null ? clazz.course.title : ''}"></span>
-                                    </h6>
-                                </div>
-
-                                <div class="col-lg-2 col-6 mb-3 mb-lg-0">
-                                    <span class="fw-bold text-primary" th:text="${clazz.course != null && clazz.course.category != null ? clazz.course.category.name : ''}"></span>
-                                </div>
-
-                                <div class="col-lg-2 col-12 mb-3 mb-lg-0 text-start small">
-                                    <ul class="list-unstyled mb-0">
-                                        <li th:if="${clazz.className != null}">• Lớp: <strong th:text="${clazz.className}"></strong></li>
-                                        <li th:if="${clazz.teacher != null}">• GV: <strong th:text="${clazz.teacher.fullName}"></strong></li>
-                                    </ul>
-                                </div>
-
-                                <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
-                                    <div class="fw-bold text-dark" th:if="${clazz.schedule != null}" th:text="${clazz.schedule}"></div>
-                                    <div class="text-muted" th:if="${clazz.slotTime != null}" th:text="${clazz.slotTime}"></div>
-                                </div>
-
-                                <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
-                                    <div class="fw-bold text-dark" th:if="${clazz.startDate != null}" th:text="${#temporals.format(clazz.startDate, 'dd/MM/yyyy')}"></div>
-                                </div>
-
-                                <div class="col-lg-2 col-12 text-lg-end mt-2 mt-lg-0">
-                                    <a th:href="@{/register(classId=${clazz.classId})}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">
-                                        Đăng ký
-                                    </a>
-                                </div>
-
-                            </div>
+                <div class="class-list-container" id="class-list-wrapper">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
-
                 </div>
 
                 <nav aria-label="Page navigation" class="mt-4" id="pagination-container"></nav>
@@ -107,7 +66,6 @@
         transform: translateY(-2px);
         box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
     }
-    .hover-opacity-100:hover { opacity: 1 !important; }
 
     /* CSS cho nút phân trang */
     .page-link { cursor: pointer; }
@@ -134,94 +92,138 @@
 </style>
 
 <script>
-    // 1. CHỨC NĂNG LỌC KHÓA HỌC (Gọi về Server)
-    function filterClasses() {
+    let currentPage = 0;
+    const pageSize = 10;
+
+    // Load dữ liệu lần đầu ngay khi trang load xong
+    document.addEventListener("DOMContentLoaded", function() {
+        loadClasses(0);
+    });
+
+    function loadClasses(pageNo) {
+        currentPage = pageNo;
         const categoryId = document.getElementById('categorySelect').value;
-        let url = '/classes';
-        if (categoryId && categoryId !== "") {
-            url += '?categoryId=' + categoryId;
+
+        // Xóa danh sách cũ và hiện loading để người dùng biết đang tải
+        document.getElementById('class-list-wrapper').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+
+        let url = `/api/v1/classes/public-list?pageNo=${pageNo}&pageSize=${pageSize}`;
+        if (categoryId) {
+            url += `&categoryId=${categoryId}`;
         }
-        window.location.href = url;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(res => {
+                // Kiểm tra status 200 từ JSON bạn gửi
+                if(res.status === 200) {
+                    renderClasses(res.data.items); // items là mảng chứa 3 lớp học bạn đã gửi
+                    renderPagination(res.data.totalPage);
+                }
+            })
+            .catch(error => {
+                console.error("Lỗi:", error);
+                document.getElementById('class-list-wrapper').innerHTML = '<div class="alert alert-danger">Không thể tải dữ liệu</div>';
+            });
     }
 
-    //CHỨC NĂNG PHÂN TRANG
-    document.addEventListener("DOMContentLoaded", function() {
-        const itemsPerPage = 10; // Số lượng lớp học trên 1 trang
-        const classItems = document.querySelectorAll('.class-row-item');
-        const totalItems = classItems.length;
-        const totalPages = Math.ceil(totalItems / itemsPerPage);
-        let currentPage = 1;
+    // 2. VẼ DANH SÁCH LỚP HỌC LÊN HTML BẰNG JAVASCRIPT
+    function renderClasses(classes) {
+        const container = document.getElementById('class-list-wrapper');
 
-        // Nếu không có lớp nào hoặc chỉ có 1 trang thì không hiện thanh phân trang
-        if (totalItems === 0 || totalPages <= 1) {
+        if (!classes || classes.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-warning text-center rounded-4 shadow-sm py-4">
+                    <i class="bi bi-info-circle fs-4 d-block mb-2"></i>
+                    Hiện tại chưa có lớp học nào đang mở đăng ký.
+                </div>`;
             return;
         }
 
-        function showPage(page) {
-            if (page < 1) page = 1;
-            if (page > totalPages) page = totalPages;
-            currentPage = page;
+        let html = '';
+        classes.forEach(clazz => {
+            html += `
+                <div class="card border-0 shadow-sm rounded-4 mb-3 class-row-item hover-shadow transition-all">
+                    <div class="card-body p-3 p-lg-4">
+                        <div class="row align-items-center text-center text-lg-center">
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0 text-start">
+                                <h6 class="fw-bold text-primary mb-0 d-flex align-items-center">
+                                    <span>${clazz.courseTitle || ''}</span>
+                                </h6>
+                            </div>
 
-            // Ẩn tất cả và chỉ hiện những lớp thuộc trang hiện tại
-            classItems.forEach((item, index) => {
-                item.style.display = 'none'; // Ẩn hết
-                if (index >= (page - 1) * itemsPerPage && index < page * itemsPerPage) {
-                    item.style.display = 'block';
-                }
-            });
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0">
+                                <span class="fw-bold text-primary">${clazz.categoryName || ''}</span>
+                            </div>
 
-            renderPagination();
+                            <div class="col-lg-2 col-12 mb-3 mb-lg-0 text-start small">
+                                <ul class="list-unstyled mb-0">
+                                    ${clazz.className ? `<li>• Lớp: <strong>${clazz.className}</strong></li>` : ''}
+                                    ${clazz.teacherName ? `<li>• GV: <strong>${clazz.teacherName}</strong></li>` : ''}
+                                </ul>
+                            </div>
 
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
+                                ${clazz.schedule ? `<div class="fw-bold text-dark">${clazz.schedule}</div>` : ''}
+                                ${clazz.slotTime ? `<div class="text-muted">${clazz.slotTime}</div>` : ''}
+                            </div>
 
-            document.querySelector('.class-list-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
+                                ${clazz.startDate ? `<div class="fw-bold text-dark">${clazz.startDate}</div>` : ''}
+                            </div>
+
+                            <div class="col-lg-2 col-12 text-lg-end mt-2 mt-lg-0">
+                                <a href="/register?classId=${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">
+                                    Đăng ký
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // 3. VẼ THANH PHÂN TRANG
+    function renderPagination(totalPages) {
+        const paginationContainer = document.getElementById('pagination-container');
+
+        if (!totalPages || totalPages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
         }
 
-        function renderPagination() {
-            const paginationContainer = document.getElementById('pagination-container');
-            let html = '<ul class="pagination justify-content-center">';
+        let html = '<ul class="pagination justify-content-center">';
 
+        // Nút Trước
+        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                    <a class="page-link shadow-sm rounded-start-pill border-0 me-1 text-primary" onclick="loadClasses(${currentPage - 1})">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                 </li>`;
 
-            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                        <a class="page-link shadow-sm rounded-start-pill border-0 me-1 text-primary" onclick="showPage(${currentPage - 1})">
-                            <i class="bi bi-chevron-left"></i> Trước
-                        </a>
+        // Các số trang
+        for (let i = 0; i < totalPages; i++) {
+            const activeClass = (currentPage === i) ? 'bg-primary text-white' : 'text-primary bg-white';
+            html += `<li class="page-item">
+                        <a class="page-link shadow-sm border-0 mx-1 rounded-circle fw-bold ${activeClass}"
+                           onclick="loadClasses(${i})"
+                           style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${i + 1}</a>
                      </li>`;
-
-
-            for (let i = 1; i <= totalPages; i++) {
-                const activeClass = (currentPage === i) ? 'bg-primary text-white' : 'text-primary bg-white';
-                html += `<li class="page-item">
-                            <a class="page-link shadow-sm border-0 mx-1 rounded-circle fw-bold ${activeClass}"
-                               onclick="showPage(${i})"
-                               style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${i}</a>
-                         </li>`;
-            }
-
-
-            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                        <a class="page-link shadow-sm rounded-end-pill border-0 ms-1 text-primary" onclick="showPage(${currentPage + 1})">
-                            Sau <i class="bi bi-chevron-right"></i>
-                        </a>
-                     </li>`;
-            html += '</ul>';
-
-            paginationContainer.innerHTML = html;
-
-            // Gắn lại sự kiện onclick do innerHTML tạo mới DOM
-            const links = paginationContainer.querySelectorAll('a');
-            links.forEach(link => {
-                const match = link.getAttribute('onclick').match(/\d+/);
-                if (match && !link.parentElement.classList.contains('disabled')) {
-                    const targetPage = parseInt(match[0]);
-                    link.onclick = function(e) { e.preventDefault(); showPage(targetPage); };
-                } else {
-                    link.onclick = function(e) { e.preventDefault(); };
-                }
-            });
         }
 
-        showPage(1);
-    });
+        // Nút Sau
+        html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                    <a class="page-link shadow-sm rounded-end-pill border-0 ms-1 text-primary" onclick="loadClasses(${currentPage + 1})">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                 </li>`;
+
+        html += '</ul>';
+        paginationContainer.innerHTML = html;
+    }
 </script>
 
 </body>
