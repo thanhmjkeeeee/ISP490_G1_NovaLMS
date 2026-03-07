@@ -1,6 +1,5 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.service.ClassPublicService;
 import com.example.DoAn.service.SettingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -10,16 +9,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @RequiredArgsConstructor
-public class ClassController {
-    private final ClassPublicService classPublicService;
+public class ClassPublicViewController {
+
     private final SettingService settingService;
 
     @GetMapping("/classes")
+    // THÊM categoryId VÀO ĐÂY ĐỂ HẾT LỖI BIÊN DỊCH
     public String listOpenClasses(@RequestParam(required = false) Integer categoryId, Model model) {
-        model.addAttribute("classes", classPublicService.getOpenClassesByFilter(categoryId));
+
+        // Lấy danh sách category để hiển thị lên Dropdown
         model.addAttribute("categories", settingService.getCourseCategories());
+
+        // Gửi categoryId ngược lại View để thẻ <select> giữ được trạng thái đang chọn
         model.addAttribute("selectedCat", categoryId);
-        model.addAttribute("currentPage", "classes");
 
         return "public/classes";
     }
