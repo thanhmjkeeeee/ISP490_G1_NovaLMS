@@ -100,8 +100,11 @@ public class AuthServiceImpl implements AuthService {
             try { verificationRepository.deleteByEmail(email); } catch (Exception ignored) {}
 
             EmailVerification verification = EmailVerification.builder()
-                    .email(email).verificationCode(code).expiryTime(LocalDateTime.now().plusMinutes(5)).build();
-            verificationRepository.save(verification);
+                    .email(email)
+                    .verificationCode(code)
+                    .expiryTime(LocalDateTime.now().plusMinutes(5))
+                    .build();
+            verificationRepository.saveAndFlush(verification);
 
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
