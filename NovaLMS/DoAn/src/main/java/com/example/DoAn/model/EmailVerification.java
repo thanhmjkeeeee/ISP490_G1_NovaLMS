@@ -14,10 +14,10 @@ public class EmailVerification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false, length = 255) // Định nghĩa độ dài cho email
+    @Column(nullable = false, length = 255)
     private String email;
 
-    @Column(name = "verification_code", nullable = false, length = 250) // Mã xác nhận chỉ cần ngắn (6-10 ký tự)
+    @Column(name = "verification_code", nullable = false, length = 250)
     private String verificationCode;
 
     @Column(name = "expiry_time", nullable = false)
