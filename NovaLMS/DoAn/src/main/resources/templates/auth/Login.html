@@ -107,8 +107,10 @@
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 <script>
-    document.getElementById('forgotForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    // SỬA CHỮ forgotForm THÀNH forgotPasswordForm Ở DÒNG DƯỚI ĐÂY
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // Lệnh này giờ mới hoạt động để chặn reload trang
+
         const email = document.getElementById('forgotEmail').value;
         const btn = document.getElementById('forgotBtn');
         const btnText = document.getElementById('forgotBtnText');

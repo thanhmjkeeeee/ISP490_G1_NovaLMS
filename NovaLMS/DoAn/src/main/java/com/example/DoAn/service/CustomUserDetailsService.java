@@ -25,13 +25,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         boolean enabled = "Active".equalsIgnoreCase(user.getStatus());
 
-        // Lấy role từ bảng Setting. Field 'value' chứa "ROLE_STUDENT", "ROLE_ADMIN"...
-        String roleName = (user.getRole() != null) ? user.getRole().getValue() : "ROLE_STUDENT";
+        String roleName = "ROLE_STUDENT";
+        if (user.getRole() != null) {
+            if (user.getRole().getName() != null && !user.getRole().getName().trim().isEmpty()) {
+                roleName = user.getRole().getName();
+            } else if (user.getRole().getValue() != null && !user.getRole().getValue().trim().isEmpty()) {
+                roleName = user.getRole().getValue();
+            }
+        }
+
         GrantedAuthority authority = new SimpleGrantedAuthority(roleName);
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
-                .password(user.getPassword()) // DB mới dùng field 'password'
+                .password(user.getPassword())
                 .authorities(Collections.singletonList(authority))
                 .disabled(!enabled)
                 .build();
