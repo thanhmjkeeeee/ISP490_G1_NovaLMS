@@ -1,8 +1,7 @@
 package com.example.DoAn.service.impl;
 
-import com.example.DoAn.model.Course;
+import com.example.DoAn.dto.response.CoursePublicResponseDTO;
 import com.example.DoAn.model.User;
-import com.example.DoAn.model.Setting;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.repository.SettingRepository;
@@ -12,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class HomeServiceImpl implements HomeService {
@@ -28,18 +28,27 @@ public class HomeServiceImpl implements HomeService {
     @Autowired
     private CourseService courseService;
 
+    /**
+     * Sửa lỗi: Chuyển kiểu trả về từ List<Course> sang List<CoursePublicResponseDTO>
+     * để đồng bộ với logic mới của CourseService.
+     */
     @Override
-    public List<Course> getFeaturedCourses() {
-        List<Course> courses = courseRepository.findByStatus("Active");
-        for (Course course : courses) {
-            long count = courseService.getStudentCount(course.getCourseId());
-            course.setStudentCount((int) count);
-        }
-        return courses;
+    public List<CoursePublicResponseDTO> getFeaturedCourses() {
+        // 1. Lấy tất cả khóa học Active
+        return courseRepository.findByStatus("Active")
+                .stream()
+                // 2. Map sang DTO để có được thuộc tính studentCount (đã tính toán trong mapToPublicDTO)
+                .map(course -> courseService.mapToPublicDTO(course))
+                // 3. Sắp xếp giảm dần theo số lượng học viên (studentCount)
+                .sorted((c1, c2) -> Long.compare(c2.studentCount(), c1.studentCount()))
+                // 4. Lấy tối đa 6 khóa học đầu tiên
+                .limit(6)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<User> getFeaturedTeachers() {
+        // Giữ nguyên logic lấy giáo viên theo Role ID (105)
         return userRepository.findByRole_SettingIdAndStatus(105, "Active");
     }
 }

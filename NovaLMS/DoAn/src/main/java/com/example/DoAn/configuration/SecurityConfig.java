@@ -36,7 +36,7 @@ public class SecurityConfig {
             "/pricing", "/pricing.html",
             "/blog", "/blog.html",
             "/contact", "/contact.html",
-            "/404", "/404.html", "/error"
+            "/404", "/404.html", "/error", "/classes"
     };
 
     private static final String[] AUTH_PAGES = {
@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers(STATIC_RESOURCES).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
                         .requestMatchers(AUTH_PAGES).permitAll()
+                        .requestMatchers("/api/v1/classes/**").permitAll()
                         .requestMatchers("/api/v1/auth/**", "/api/v1/password/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/learning/**", "/api/v1/profile/**", "/api/v1/student/**").authenticated()
