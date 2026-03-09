@@ -1,8 +1,8 @@
 package com.example.DoAn.service.impl;
 
-import com.example.DoAn.dto.ProfileResponseDTO;
-import com.example.DoAn.dto.ProfileRequestDTO;
-import com.example.DoAn.dto.ResponseData;
+import com.example.DoAn.dto.response.ProfileResponseDTO;
+import com.example.DoAn.dto.request.ProfileRequestDTO;
+import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.FileUploadService;

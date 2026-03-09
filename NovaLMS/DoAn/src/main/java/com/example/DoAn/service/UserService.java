@@ -1,8 +1,8 @@
 package com.example.DoAn.service;
 
-import com.example.DoAn.dto.ProfileResponseDTO;
-import com.example.DoAn.dto.ProfileRequestDTO;
-import com.example.DoAn.dto.ResponseData;
+import com.example.DoAn.dto.response.ProfileResponseDTO;
+import com.example.DoAn.dto.request.ProfileRequestDTO;
+import com.example.DoAn.dto.response.ResponseData;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {

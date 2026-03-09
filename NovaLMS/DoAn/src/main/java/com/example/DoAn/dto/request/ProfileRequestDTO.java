@@ -1,4 +1,4 @@
-package com.example.DoAn.dto;
+package com.example.DoAn.dto.request;
 
 import lombok.Data;
 

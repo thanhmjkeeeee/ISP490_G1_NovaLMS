@@ -1,6 +1,11 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.*;
+import com.example.DoAn.dto.response.RegistrationResponseDTO;
+import com.example.DoAn.dto.response.DashboardResponseDTO;
+import com.example.DoAn.dto.request.EnrollRequestDTO;
+import com.example.DoAn.dto.response.MyCourseDTO;
+import com.example.DoAn.dto.response.PageResponse;
+import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

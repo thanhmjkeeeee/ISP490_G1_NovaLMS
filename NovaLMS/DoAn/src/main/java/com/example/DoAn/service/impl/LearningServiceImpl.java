@@ -1,8 +1,8 @@
 package com.example.DoAn.service.impl;
 
-import com.example.DoAn.dto.CourseLearningInfoDTO;
-import com.example.DoAn.dto.LessonResponseDTO;
-import com.example.DoAn.dto.ResponseData;
+import com.example.DoAn.dto.response.CourseLearningInfoDTO;
+import com.example.DoAn.dto.response.LessonResponseDTO;
+import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Lesson;
 import com.example.DoAn.model.Module;

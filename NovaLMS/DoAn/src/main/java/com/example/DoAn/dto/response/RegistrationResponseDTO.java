@@ -1,4 +1,4 @@
-package com.example.DoAn.dto;
+package com.example.DoAn.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

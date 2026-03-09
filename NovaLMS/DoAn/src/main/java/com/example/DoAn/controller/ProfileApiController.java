@@ -1,7 +1,7 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.ProfileRequestDTO;
-import com.example.DoAn.dto.ResponseData;
+import com.example.DoAn.dto.request.ProfileRequestDTO;
+import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
