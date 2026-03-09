@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/head :: common-head(${course.title})}">
+<head th:replace="~{fragments/head :: common-head(${course?.courseName ?: 'Course Details'})}">
 </head>
 
 <body class="course-details-page">
@@ -12,12 +12,12 @@
 
   <div class="page-title light-background">
     <div class="container d-lg-flex justify-content-between align-items-center">
-      <h1 class="mb-2 mb-lg-0" th:text="${course != null ? course.title : 'Course Details'}">Course Details</h1>
+      <h1 class="mb-2 mb-lg-0" th:text="${course?.courseName ?: 'Course Details'}">Course Details</h1>
       <nav class="breadcrumbs">
         <ol>
           <li><a th:href="@{/}">Home</a></li>
           <li><a th:href="@{/courses}">Courses</a></li>
-          <li class="current" th:text="${course != null ? course.title : 'Details'}">Details</li>
+          <li class="current" th:text="${course?.courseName ?: 'Details'}">Details</li>
         </ol>
       </nav>
     </div>
@@ -25,6 +25,7 @@
 
   <section id="course-details" class="course-details section">
     <div class="container" data-aos="fade-up">
+
       <div class="row" th:if="${course != null}">
 
         <div class="col-lg-8">
@@ -32,17 +33,17 @@
           <div class="course-hero mb-4">
             <div class="hero-content p-4 border rounded bg-white shadow-sm">
               <div class="course-badge mb-3">
-                <span class="badge bg-primary me-2" th:text="${course.category != null ? course.category.name : 'Uncategorized'}">Category</span>
-                <span class="badge bg-info text-dark" th:text="${course.status}">Status</span>
+                <span class="badge bg-primary me-2" th:text="${course.categoryName ?: 'Uncategorized'}">Category</span>
+                <span class="badge bg-info text-dark" th:text="${course.status ?: 'N/A'}">Status</span>
               </div>
-              <h2 class="fw-bold mb-3" th:text="${course.title}">Course Title</h2>
+              <h2 class="fw-bold mb-3" th:text="${course.courseName}">Course Title</h2>
 
               <div class="instructor-info d-flex align-items-center mt-4" th:if="${course.expert != null}">
-                <img th:src="${course.expert.avatarUrl != null ? course.expert.avatarUrl : '/assets/img/default-avatar.png'}"
+                <img th:src="${course.expert.avatarUrl ?: '/assets/img/default-avatar.png'}"
                      alt="Instructor" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
                 <div>
                   <h6 class="mb-0 fw-bold" th:text="${course.expert.fullName}">Expert Name</h6>
-                  <small class="text-muted">Lead Instructor</small>
+                  <small class="text-muted">Giảng viên hướng dẫn</small>
                 </div>
               </div>
             </div>
@@ -65,17 +66,17 @@
 
               <div class="tab-pane fade show active" id="overview" role="tabpanel">
                 <h4 class="fw-bold mb-3">Thông tin về khóa học</h4>
-                <p style="white-space: pre-line;" th:text="${course.description != null ? course.description : 'No description available.'}">Description...</p>
+                <p style="white-space: pre-line;" th:text="${course.description ?: 'Chưa có thông tin mô tả cho khóa học này.'}"></p>
               </div>
 
               <div class="tab-pane fade" id="curriculum" role="tabpanel">
                 <h4 class="fw-bold mb-4">Nội dung khóa học</h4>
                 <div class="accordion" id="accordionCurriculum">
-                  <div class="accordion-item" th:each="module, state : ${curriculum}">
+                  <div class="accordion-item" th:each="module, state : ${course.curriculum}">
                     <h2 class="accordion-header">
                       <button class="accordion-button collapsed fw-bold" type="button"
                               data-bs-toggle="collapse" th:data-bs-target="'#mod' + ${module.moduleId}">
-                        <span th:text="${'Module ' + (state.index + 1) + ': ' + (module.moduleName != null ? module.moduleName : 'Untitled Module')}">Module Title</span>
+                        <span th:text="'Module ' + ${state.index + 1} + ': ' + ${module.moduleName ?: 'Untitled Module'}"></span>
                       </button>
                     </h2>
                     <div th:id="'mod' + ${module.moduleId}" class="accordion-collapse collapse" data-bs-parent="#accordionCurriculum">
@@ -84,51 +85,51 @@
                           <li class="list-group-item d-flex justify-content-between align-items-center py-3" th:each="lesson : ${module.lessons}">
                             <div>
                               <i class="bi bi-play-circle me-2 text-primary"></i>
-                              <span th:text="${lesson.lessonName != null ? lesson.lessonName : 'Untitled Lesson'}">Lesson Title</span>
+                              <span th:text="${lesson.lessonName ?: 'Untitled Lesson'}"></span>
                             </div>
-                            <small class="text-muted" th:text="${lesson.duration != null ? lesson.duration + ' mins' : '0 mins'}">0 mins</small>
+                            <small class="text-muted" th:text="${lesson.duration != null ? lesson.duration + ' mins' : '0 mins'}"></small>
                           </li>
                         </ul>
                       </div>
                     </div>
                   </div>
-                  <div th:if="${#lists.isEmpty(curriculum)}" class="text-center py-4">
-                    <p class="text-muted">Curriculum is being updated...</p>
+                  <div th:if="${#lists.isEmpty(course.curriculum)}" class="text-center py-4">
+                    <p class="text-muted">Chương trình giảng dạy đang được cập nhật...</p>
                   </div>
                 </div>
               </div>
 
               <div class="tab-pane fade" id="classes" role="tabpanel">
                 <h4 class="fw-bold mb-4">Lớp học đang mở</h4>
-                <div th:if="${#lists.isEmpty(activeClasses)}" class="alert alert-warning">
-                  No classes are currently open for registration.
+                <div th:if="${#lists.isEmpty(course.activeClasses)}" class="alert alert-warning">
+                  Hiện tại không có lớp học nào đang mở đăng ký.
                 </div>
-                <div class="class-item border rounded p-3 mb-3 shadow-sm" th:each="clazz : ${activeClasses}">
+
+                <div class="class-item border rounded p-3 mb-3 shadow-sm" th:each="clazz : ${course.activeClasses}">
                   <div class="row align-items-center">
-                    <div class="col-md-8">
+                    <div class="col-md-12">
                       <h5 class="fw-bold text-primary mb-2" th:text="${clazz.className}">Class Name</h5>
 
                       <div class="class-info small text-muted">
-                        <p class="mb-1" th:if="${clazz.teacher != null}">
+                        <p class="mb-1" th:if="${clazz.teacherName != null}">
                           <i class="bi bi-person-fill me-2"></i>
-                          <strong>Giảng viên:</strong> <span th:text="${clazz.teacher.fullName}">Teacher</span>
+                          <strong>Giảng viên:</strong> <span th:text="${clazz.teacherName}"></span>
                         </p>
 
                         <p class="mb-0 d-flex flex-wrap align-items-center">
-                    <span class="me-4">
-                        <i class="bi bi-calendar3 me-2"></i>
-                        <strong>Lịch học:</strong>
-                        <span th:text="${clazz.schedule}">Mon-Wed-Fri</span>
-                        <span class="badge bg-light text-dark border ms-1" th:text="${clazz.slotTime}">08:00 - 10:00</span>
-                    </span>
-
+                          <span class="me-4">
+                              <i class="bi bi-calendar3 me-2"></i>
+                              <strong>Lịch học:</strong>
+                              <span th:text="${clazz.schedule}"></span>
+                              <span class="badge bg-light text-dark border ms-1" th:text="${clazz.slotTime}"></span>
+                          </span>
                           <span>
-                        <i class="bi bi-clock-history me-2"></i>
-                        <strong>Thời gian:</strong>
-                        <span th:text="${#temporals.format(clazz.startDate, 'dd/MM/yyyy')}">01/01/2024</span>
-                        <span class="mx-1">—</span>
-                        <span th:text="${#temporals.format(clazz.endDate, 'dd/MM/yyyy')}">01/03/2024</span>
-                    </span>
+                              <i class="bi bi-clock-history me-2"></i>
+                              <strong>Thời gian:</strong>
+                              <span th:text="${clazz.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : 'N/A'}"></span>
+                              <span class="mx-1">—</span>
+                              <span th:text="${clazz.endDate != null ? #temporals.format(clazz.endDate, 'dd/MM/yyyy') : 'N/A'}"></span>
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -142,46 +143,45 @@
 
         <div class="col-lg-4 mt-4 mt-lg-0">
           <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 100px;">
-            <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/course-default.jpg'}" class="card-img-top p-2 rounded" alt="Course Image">
+            <img th:src="${course.imageUrl ?: '/assets/img/course-default.jpg'}" class="card-img-top p-2 rounded" alt="Course Image">
             <div class="card-body text-center">
 
               <div class="mb-3">
                 <h3 class="text-primary fw-bold mb-0"
                     th:if="${course.price != null && course.price > 0}"
                     th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                  500.000 đ
                 </h3>
-
                 <h3 class="text-success fw-bold mb-0"
                     th:if="${course.price == null || course.price == 0}">
-                  Free
+                  Miễn phí
                 </h3>
               </div>
+
               <button class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow"
                       onclick="document.getElementById('classes-tab').click()">
-                ENROLL NOW
+                ĐĂNG KÝ NGAY
               </button>
 
               <div class="course-specs mt-4 text-start">
                 <div class="d-flex justify-content-between border-bottom py-2">
-                  <span class="text-muted"><i class="bi bi-people me-2"></i>Students</span>
-                  <span class="fw-bold" th:text="${studentCount}">0</span>
+                  <span class="text-muted"><i class="bi bi-people me-2"></i>Học viên</span>
+                  <span class="fw-bold" th:text="${course.studentCount ?: 0}">0</span>
                 </div>
                 <div class="d-flex justify-content-between border-bottom py-2">
-                  <span class="text-muted"><i class="bi bi-layers me-2"></i>Modules</span>
-                  <span class="fw-bold" th:text="${#lists.size(curriculum)}">0</span>
+                  <span class="text-muted"><i class="bi bi-layers me-2"></i>Số bài giảng</span>
+                  <span class="fw-bold" th:text="${course.curriculum != null ? #lists.size(course.curriculum) : 0}">0</span>
                 </div>
                 <div class="d-flex justify-content-between py-2">
-                  <span class="text-muted"><i class="bi bi-clock me-2"></i>Access</span>
-                  <span class="fw-bold">Lifetime</span>
+                  <span class="text-muted"><i class="bi bi-clock me-2"></i>Thời lượng</span>
+                  <span class="fw-bold" th:text="${course.getCourseDuration()}">90 ngày</span>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
 
-      </div>
-    </div>
+      </div> </div>
   </section>
 </main>
 

@@ -43,20 +43,29 @@
     <div class="container" data-aos="fade-up">
       <div class="row gy-4">
 
-        <div class="col-lg-4 col-md-6" th:each="course : ${featuredCourses}" data-aos="fade-up">
+        <div class="col-lg-4 col-md-6" th:each="course, iterStat : ${featuredCourses}" data-aos="fade-up">
           <div class="course-card">
             <div class="course-image">
-              <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/education/students-9.webp'}" class="img-fluid">
-              <div class="badge featured" th:if="${course.price > 5000000}">Hot</div>
-              <div class="price-badge" th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></div>
+              <img th:src="${course.imageUrl}" class="img-fluid" alt="Course Image">
+
+              <div class="badge featured" th:if="${iterStat.index < 3}">Bán chạy</div>
+
+              <div class="price-badge"
+                   th:text="${course.price != null && course.price > 0 ? #numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT') + 'đ' : 'Miễn phí'}">
+              </div>
             </div>
+
             <div class="course-content">
               <div class="course-meta">
-                <span class="level">English</span>
+                <span class="level" th:text="${course.categoryName}">English</span>
                 <span class="duration">12 Tuần</span>
               </div>
-              <h3><a th:href="@{'/course/details/' + ${course.courseId}}" th:text="${course.title}">IELTS Foundation</a></h3>
-              <p th:text="${course.description}">Mô tả khóa học...</p>
+
+              <h3>
+                <a th:href="@{'/course/details/' + ${course.courseId}}" th:text="${course.courseName}">Course Title</a>
+              </h3>
+
+              <p th:text="${#strings.abbreviate(course.description, 100)}">Mô tả khóa học...</p>
 
               <div class="course-stats">
                 <div class="rating">
@@ -65,7 +74,7 @@
                 </div>
                 <div class="students">
                   <i class="bi bi-people-fill"></i>
-                  <span th:text="${course.studentCount + ' học viên'}">342 học viên</span>
+                  <span th:text="${course.studentCount + ' học viên'}">0 học viên</span>
                 </div>
               </div>
               <a th:href="@{'/course/details/' + ${course.courseId}}" class="btn-course">Đăng Ký Ngay</a>
@@ -80,71 +89,48 @@
       </div>
     </div>
   </section>
-  <section id="featured-instructors" class="featured-instructors section">
 
+  <section id="featured-instructors" class="featured-instructors section">
     <div class="container section-title" data-aos="fade-up">
       <h2>Đội Ngũ Giảng Viên</h2>
       <p>Học cùng các chuyên gia hàng đầu, tận tâm và giàu kinh nghiệm sư phạm</p>
-    </div><div class="container" data-aos="fade-up" data-aos-delay="100">
-
-    <div class="row gy-4">
-
-      <div class="col-xl-3 col-lg-4 col-md-6" th:each="teacher, iterStat : ${teachers}"
-           data-aos="fade-up" th:data-aos-delay="${200 + (iterStat.index * 50)}">
-
-        <div class="instructor-card">
-          <div class="instructor-image">
-            <img th:src="${teacher.avatarUrl != null ? teacher.avatarUrl : 'assets/img/education/teacher-2.webp'}"
-                 class="img-fluid" th:alt="${teacher.fullName}">
-
-            <div class="overlay-content">
-              <div class="rating-stars">
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-fill"></i>
-                <i class="bi bi-star-half"></i>
-                <span>4.8</span>
-              </div>
-              <div class="course-count">
-                <i class="bi bi-play-circle"></i>
-                <span>12 Khóa học</span>
+    </div>
+    <div class="container" data-aos="fade-up" data-aos-delay="100">
+      <div class="row gy-4">
+        <div class="col-xl-3 col-lg-4 col-md-6" th:each="teacher, iterStat : ${teachers}"
+             data-aos="fade-up" th:data-aos-delay="${200 + (iterStat.index * 50)}">
+          <div class="instructor-card">
+            <div class="instructor-image">
+              <img th:src="${teacher.avatarUrl != null ? teacher.avatarUrl : '/assets/img/education/teacher-2.webp'}"
+                   class="img-fluid" th:alt="${teacher.fullName}">
+              <div class="overlay-content">
+                <div class="rating-stars">
+                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
+                  <span>4.8</span>
+                </div>
+                <div class="course-count">
+                  <i class="bi bi-play-circle"></i>
+                  <span>12 Khóa học</span>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div class="instructor-info">
-            <h5 th:text="${teacher.fullName}">Tên Giảng Viên</h5>
-            <p class="specialty" th:text="${teacher.role != null ? 'Senior Instructor' : 'Giảng viên'}">Chuyên môn</p>
-
-            <p class="description"
-               th:text="${teacher.note != null ? teacher.note : 'Chuyên gia đào tạo với nhiều năm kinh nghiệm giảng dạy tiếng Anh.'}">
-              Mô tả...
-            </p>
-
-            <div class="stats-grid">
-              <div class="stat">
-                <span class="number">Active</span>
-                <span class="label">Status</span>
-              </div>
-              <div class="stat">
-                <span class="number">4.8</span>
-                <span class="label">Rating</span>
-              </div>
-            </div>
-
-            <div class="action-buttons">
-              <a th:href="@{'/instructor/profile/' + ${teacher.userId}}" class="btn-view">View Profile</a>
-              <div class="social-links">
-                <a href="#"><i class="bi bi-linkedin"></i></a>
-                <a href="#"><i class="bi bi-facebook"></i></a>
-              </div>
+            <div class="instructor-info">
+              <h5 th:text="${teacher.fullName}">Tên Giảng Viên</h5>
+              <p class="specialty">Senior Instructor</p>
+              <p class="description" th:text="${#strings.abbreviate(teacher.note != null ? teacher.note : 'Chuyên gia đào tạo giàu kinh nghiệm.', 80)}">Mô tả...</p>
+<!--              <div class="action-buttons">-->
+<!--                <a th:href="@{'/instructor/profile/' + ${teacher.userId}}" class="btn-view">View Profile</a>-->
+<!--                <div class="social-links">-->
+<!--                  <a href="#"><i class="bi bi-linkedin"></i></a>-->
+<!--                  <a href="#"><i class="bi bi-facebook"></i></a>-->
+<!--                </div>-->
+<!--              </div>-->
             </div>
           </div>
         </div>
-      </div></div>
-  </div>
-  </section>```
+      </div>
+    </div>
+  </section>
 
 </main>
 
