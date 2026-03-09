@@ -1,7 +1,7 @@
 package com.example.DoAn.controller;
 
-import com.example.DoAn.dto.EnrollPageDTO;
-import com.example.DoAn.dto.ResponseData;
+import com.example.DoAn.dto.response.EnrollPageResponseDTO;
+import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -33,7 +33,7 @@ public class StudentViewController {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return "redirect:/login.html";
 
-        ResponseData<EnrollPageDTO> result = studentService.getEnrollPageData(email, courseId);
+        ResponseData<EnrollPageResponseDTO> result = studentService.getEnrollPageData(email, courseId);
         if (result.getStatus() != 200) return "redirect:/courses.html";
 
         model.addAttribute("course", result.getData().getCourse());
