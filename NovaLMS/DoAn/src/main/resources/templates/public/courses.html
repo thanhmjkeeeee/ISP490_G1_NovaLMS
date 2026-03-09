@@ -73,8 +73,7 @@
           </div>
 
           <div class="courses-grid">
-
-            <div class="row" id="courseContainer" th:fragment="courseListFragment">
+            <div class="row" id="courseContainer">
 
               <div class="col-lg-6 col-md-6" th:each="course : ${courseList}">
                 <div class="course-card">
@@ -87,17 +86,16 @@
 
                   <div class="course-content">
                     <div class="course-meta">
-                      <span class="category" th:text="${course.category != null ? course.category.name : 'Uncategorized'}">Category</span>
+                      <span class="category" th:text="${course.categoryName}">Category</span>
                     </div>
 
-                    <h3 th:text="${course.title}">Course Title</h3>
+                    <h3 th:text="${course.courseName}">Course Title</h3>
                     <p th:text="${#strings.abbreviate(course.description, 100)}">Short description...</p>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="h5 fw-bold text-primary mb-0"
                               th:if="${course.price != null && course.price > 0}"
                               th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                          500.000 đ
                         </span>
                       <span class="h5 fw-bold text-success mb-0"
                             th:if="${course.price == null || course.price == 0}">
@@ -117,8 +115,8 @@
               </div>
 
               <div class="col-12 text-center mt-5" th:if="${#lists.isEmpty(courseList)}">
-                <h3>No courses found matching your criteria.</h3>
-                <p>Try adjusting your search or filter to find what you're looking for.</p>
+                <h3>Không tìm thấy khóa học nào.</h3>
+                <p>Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
               </div>
 
             </div>
@@ -135,42 +133,107 @@
 
 <script>
   function loadCourses() {
-    // 1. Lấy giá trị từ giao diện
+    // 1. Lấy giá trị từ các bộ lọc
     const keyword = document.getElementById('searchInput').value;
     const sortValue = document.getElementById('sortSelect').value;
-
-    // Lấy radio button category đang được chọn
     const selectedCategory = document.querySelector('input[name="categoryId"]:checked');
 
-    // 2. Xây dựng URL gọi về Server
-    // Sử dụng encodeURIComponent để mã hóa từ khóa tìm kiếm (ví dụ dấu cách, ký tự đặc biệt)
-    let url = `/courses/filter?keyword=${encodeURIComponent(keyword)}&sortBy=${sortValue}`;
-
-    // 3. Logic quan trọng: Chỉ thêm tham số categoryId nếu nó có giá trị thực sự
-    // Nếu chọn "All Categories" (value="") thì KHÔNG gửi tham số này đi để tránh lỗi 400 Bad Request
+    // 2. URL gọi đến @RestController
+    let url = `/api/v1/public/courses/filter?keyword=${encodeURIComponent(keyword)}&sortBy=${sortValue}`;
     if (selectedCategory && selectedCategory.value !== "") {
       url += `&categoryId=${selectedCategory.value}`;
     }
 
-    console.log("Calling Server URL:", url); // Xem link trong Console (F12)
-
-    // 4. Gọi AJAX (Fetch API)
+    // 3. Gọi Fetch API
     fetch(url)
             .then(response => {
               if (!response.ok) {
-                console.error("Server Error:", response.status);
                 throw new Error('Network response was not ok');
               }
-              return response.text();
+              // Chuyển response thành JSON
+              return response.json();
             })
-            .then(html => {
-
+            .then(jsonResponse => {
+              // Lấy mảng dữ liệu khóa học từ ResponseData (field 'data')
+              const courses = jsonResponse.data;
               const container = document.getElementById('courseContainer');
-              if (container) {
-                // Dùng outerHTML để thay thế chính thẻ <div id="courseContainer">
-                // Điều này đảm bảo cấu trúc Grid không bị lồng nhau sai lệch
-                container.outerHTML = html;
+
+              // Xóa sạch nội dung cũ
+              container.innerHTML = '';
+
+              // Nếu mảng rỗng
+              if (!courses || courses.length === 0) {
+                container.innerHTML = `
+            <div class="col-12 text-center mt-5">
+              <h3>Không tìm thấy khóa học nào.</h3>
+              <p>Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
+            </div>`;
+                return;
               }
+
+              // 4. Duyệt qua mảng JSON và tạo chuỗi HTML
+              let htmlContent = '';
+              courses.forEach(course => {
+
+                // Xử lý giá tiền
+                let priceHtml = '';
+                if (course.price != null && course.price > 0) {
+                  const formattedPrice = course.price.toLocaleString('vi-VN');
+                  priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+                } else {
+                  priceHtml = `<span class="h5 fw-bold text-success mb-0">Free</span>`;
+                }
+
+                // Xử lý mô tả ngắn (cắt chuỗi 100 ký tự)
+                let shortDesc = course.description ? course.description : '';
+                if (shortDesc.length > 100) {
+                  shortDesc = shortDesc.substring(0, 100) + '...';
+                }
+
+                // Xử lý thông tin giảng viên (Expert)
+                let expertHtml = '';
+                if (course.expert != null) {
+                  const avatar = course.expert.avatarUrl ? course.expert.avatarUrl : '/assets/img/default-avatar.png';
+                  expertHtml = `
+                <div class="instructor-info">
+                  <img src="${avatar}" alt="Instructor" class="instructor-avatar">
+                  <span class="instructor-name">${course.expert.fullName}</span>
+                </div>`;
+                }
+
+                // Xử lý ảnh khóa học
+                const imageUrl = course.imageUrl ? course.imageUrl : '/assets/img/default-course.jpg';
+
+                // Ghép thành thẻ HTML (Giữ nguyên class CSS của bạn)
+                htmlContent += `
+            <div class="col-lg-6 col-md-6">
+              <div class="course-card">
+                <div class="course-image">
+                  <img src="${imageUrl}" alt="Course Image" class="img-fluid">
+                  <div class="course-badge">${course.status}</div>
+                </div>
+                <div class="course-content">
+                  <div class="course-meta">
+                    <span class="category">${course.categoryName}</span>
+                  </div>
+
+                  <h3>${course.courseName}</h3>
+                  <p>${shortDesc}</p>
+
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                      ${priceHtml}
+                  </div>
+
+                  ${expertHtml}
+
+                  <a href="/course/details/${course.courseId}" class="btn-course">Xem chi tiết</a>
+                </div>
+              </div>
+            </div>`;
+              });
+
+              // 5. Đẩy toàn bộ HTML mới vào container
+              container.innerHTML = htmlContent;
             })
             .catch(error => {
               console.error('Error loading courses:', error);
