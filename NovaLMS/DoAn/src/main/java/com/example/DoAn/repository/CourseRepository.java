@@ -31,9 +31,9 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
     // (Tùy chọn) Tìm kiếm khóa học theo tên
     List<Course> findByTitleContainingIgnoreCaseAndStatus(String title, String status);
     @Query("SELECT c FROM Course c WHERE " +
-            "(:keyword IS NULL OR c.title LIKE %:keyword%) AND " +
+            "c.status = :status AND " +
             "(:categoryId IS NULL OR c.category.settingId = :categoryId) AND " +
-            "c.status = :status")
+            "(:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Course> searchCourses(@Param("keyword") String keyword,
                                @Param("categoryId") Integer categoryId,
                                @Param("status") String status,

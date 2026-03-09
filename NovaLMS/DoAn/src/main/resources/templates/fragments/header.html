@@ -84,9 +84,10 @@
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
-        <a sec:authorize="!isAuthenticated()" class="btn-getstarted"
-           th:href="@{/login.html}">Đăng nhập</a>
-
+        <div sec:authorize="!isAuthenticated()" class="d-flex align-items-center gap-2 ms-lg-3">
+            <a class="btn-getstarted" th:href="@{/login.html}" style="margin: 0; padding: 8px 20px;">Đăng nhập</a>
+            <a class="btn-getstarted" th:href="@{/register.html}" style="margin: 0; padding: 8px 20px;">Đăng ký</a>
+        </div>
     </div>
 </header>
 
