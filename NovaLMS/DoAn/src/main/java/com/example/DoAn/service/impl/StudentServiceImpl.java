@@ -1,6 +1,7 @@
 package com.example.DoAn.service.impl;
 
-import com.example.DoAn.dto.*;
+import com.example.DoAn.dto.response.*;
+import com.example.DoAn.dto.request.EnrollRequestDTO;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Registration;
@@ -33,7 +34,7 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseData<EnrollPageDTO> getEnrollPageData(String email, Integer courseId) {
+    public ResponseData<EnrollPageResponseDTO> getEnrollPageData(String email, Integer courseId) {
         try {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
@@ -42,7 +43,7 @@ public class StudentServiceImpl implements StudentService {
             if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học.");
 
             List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
-            return ResponseData.success("Thành công", new EnrollPageDTO(course, openClasses));
+            return ResponseData.success("Thành công", new EnrollPageResponseDTO(course, openClasses));
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
@@ -124,8 +125,12 @@ public class StudentServiceImpl implements StudentService {
                     .build()).collect(Collectors.toList());
 
             PageResponse<MyCourseDTO> pageResponse = PageResponse.<MyCourseDTO>builder()
-                    .content(dtoList).pageNumber(regPage.getNumber()).pageSize(regPage.getSize())
-                    .totalElements(regPage.getTotalElements()).totalPages(regPage.getTotalPages()).last(regPage.isLast())
+                    .items(dtoList)
+                    .pageNo(regPage.getNumber())
+                    .pageSize(regPage.getSize())
+                    .totalElements(regPage.getTotalElements())
+                    .totalPages(regPage.getTotalPages())
+                    .last(regPage.isLast())
                     .build();
 
             return ResponseData.success("Thành công", pageResponse);

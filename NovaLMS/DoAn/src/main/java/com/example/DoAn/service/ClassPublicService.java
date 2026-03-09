@@ -6,5 +6,4 @@ import java.util.List;
 
 public interface ClassPublicService {
     // Kiểu trả về là PageResponse của một danh sách
-    PageResponse<List<ClassPublicResponseDTO>> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId);
-}
+    PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId);}

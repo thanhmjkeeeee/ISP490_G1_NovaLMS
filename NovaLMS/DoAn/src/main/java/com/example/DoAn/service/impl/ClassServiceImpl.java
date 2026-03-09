@@ -32,7 +32,8 @@ public class ClassServiceImpl implements IClassService {
                 .className(request.getClassName())
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
                 .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null)
-                .startDate(LocalDateTime.parse(request.getStartDate()))
+                // ĐÃ FIX: Chống lỗi NullPointerException khi parse ngày
+                .startDate(request.getStartDate() != null && !request.getStartDate().isEmpty() ? LocalDateTime.parse(request.getStartDate()) : null)
                 .status(request.getStatus() != null ? request.getStatus() : "Pending")
                 .schedule(request.getSchedule())
                 .slotTime(request.getSlotTime())
@@ -50,7 +51,12 @@ public class ClassServiceImpl implements IClassService {
         clazz.setClassName(request.getClassName());
         clazz.setCourse(courseRepository.findById(request.getCourseId()).orElse(null));
         clazz.setTeacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null);
-        clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
+
+        // ĐÃ FIX: Chống lỗi NullPointerException khi parse ngày
+        if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
+            clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
+        }
+
         clazz.setStatus(request.getStatus());
         clazz.setSchedule(request.getSchedule());
         clazz.setSlotTime(request.getSlotTime());
@@ -72,17 +78,19 @@ public class ClassServiceImpl implements IClassService {
     }
 
     @Override
-    public PageResponse<?> getAllClasses(int pageNo, int pageSize) {
+    // ĐÃ FIX: Trả về PageResponse<ClassDetailResponse> thay vì <?>
+    public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize) {
         Page<Clazz> page = classRepository.findAll(PageRequest.of(pageNo, pageSize));
         List<ClassDetailResponse> list = page.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();
 
-        return PageResponse.builder()
+        // ĐÃ FIX: Bỏ Collections.singletonList()
+        return PageResponse.<ClassDetailResponse>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
-                .totalPage(page.getTotalPages())
-                .items(list)
+                .totalPages(page.getTotalPages())
+                .items(list) // Trả thẳng list 1 cấp
                 .build();
     }
 

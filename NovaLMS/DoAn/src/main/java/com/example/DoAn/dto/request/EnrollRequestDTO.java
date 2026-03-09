@@ -1,4 +1,4 @@
-package com.example.DoAn.dto;
+package com.example.DoAn.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

@@ -18,12 +18,11 @@ public class ClassPublicManagementController {
     private final ClassPublicService classPublicService;
 
     @GetMapping("/public-list")
-    public ResponseData<PageResponse<List<ClassPublicResponseDTO>>> getClasses(
+    public ResponseData<PageResponse<ClassPublicResponseDTO>> getClasses(
             @RequestParam(defaultValue = "0") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) Integer categoryId) {
 
-        // Gọi service nhận về PageResponse<List<...>>
         var response = classPublicService.getOpenClassesWithFilter(pageNo, pageSize, categoryId);
         return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
     }
