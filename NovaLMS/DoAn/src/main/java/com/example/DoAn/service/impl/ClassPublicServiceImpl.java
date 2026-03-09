@@ -5,7 +5,7 @@ import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.service.ClassPublicService;
-import jakarta.persistence.criteria.Predicate; // Đảm bảo import đúng Predicate
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,23 +25,18 @@ public class ClassPublicServiceImpl implements ClassPublicService {
     private final ClassRepository classRepository;
 
     @Override
-    public PageResponse<List<ClassPublicResponseDTO>> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
+    // ĐÃ FIX: Bỏ chữ List đi. Chỉ cần PageResponse<ClassPublicResponseDTO> là đủ
+    public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-
-        // SỬA LẠI TOÀN BỘ LOGIC SPECIFICATION
         Specification<Clazz> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // 1. Luôn lọc các lớp có status là "Open"
             predicates.add(cb.equal(root.get("status"), "Open"));
 
-            // 2. CHỈ lọc theo categoryId nếu nó có giá trị và > 0
             if (categoryId != null && categoryId > 0) {
-                // Kiểm tra chính xác đường dẫn: Clazz -> course -> category -> settingId
                 predicates.add(cb.equal(root.get("course").get("category").get("settingId"), categoryId));
             }
 
-            // 3. QUAN TRỌNG: Kết hợp tất cả điều kiện bằng phép AND
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -60,12 +55,12 @@ public class ClassPublicServiceImpl implements ClassPublicService {
                 .build()
         ).collect(Collectors.toList());
 
-        // Trả về PageResponse lồng List để giữ cấu trúc dùng chung cho PageResponse<T>
-        return PageResponse.<List<ClassPublicResponseDTO>>builder()
+        // ĐÃ FIX: Chỉ định đúng Generic và bỏ Collections.singletonList()
+        return PageResponse.<ClassPublicResponseDTO>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
-                .totalPage(classPage.getTotalPages())
-                .items(dtoList) // Hết gạch đỏ vì T = List<ClassPublicResponseDTO>
+                .totalPages(classPage.getTotalPages())
+                .items(dtoList) // Trả thẳng dtoList vào items
                 .build();
     }
 }

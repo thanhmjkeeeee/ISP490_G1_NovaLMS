@@ -1,4 +1,4 @@
-package com.example.DoAn.dto;
+package com.example.DoAn.dto.response;
 
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.Course;
@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EnrollPageDTO {
+public class EnrollPageResponseDTO {
     private Course course;
     private List<Clazz> classes;
 }

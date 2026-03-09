@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -69,10 +70,10 @@ public class CourseServiceImpl implements ICourseService {
                 .map(this::mapToResponse)
                 .toList();
 
-        return PageResponse.builder()
+        return PageResponse.<CourseDetailResponse>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
-                .totalPage(page.getTotalPages())
+                .totalPages(page.getTotalPages())
                 .items(list)
                 .build();
     }
@@ -106,10 +107,10 @@ public class CourseServiceImpl implements ICourseService {
                 .map(this::mapToResponse) // Sử dụng hàm map đã viết ở các bước trước
                 .toList();
 
-        return PageResponse.builder()
+        return PageResponse.<CourseDetailResponse>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
-                .totalPage(page.getTotalPages())
+                .totalPages(page.getTotalPages())
                 .items(list)
                 .build();
     }

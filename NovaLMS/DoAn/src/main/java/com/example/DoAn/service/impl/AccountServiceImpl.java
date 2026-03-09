@@ -31,7 +31,7 @@ public class AccountServiceImpl implements AccountService {
                 .mobile(request.getMobile())
                 .role(settingRepository.findById(request.getRoleId()).orElse(null))
                 .status("Active")
-                .password("default123") // Giả định mật khẩu mặc định
+                .password("default123")
                 .build();
 
         userRepository.save(user);
@@ -66,16 +66,17 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public PageResponse<?> getAllAccounts(int pageNo, int pageSize) {
+    public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize) {
         Page<User> page = userRepository.findAll(PageRequest.of(pageNo, pageSize));
+
         List<AccountDetailResponse> list = page.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();
 
-        return PageResponse.builder()
+        return PageResponse.<AccountDetailResponse>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
-                .totalPage(page.getTotalPages())
+                .totalPages(page.getTotalPages())
                 .items(list)
                 .build();
     }
