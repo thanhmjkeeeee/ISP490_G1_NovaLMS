@@ -16,214 +16,130 @@
        MANAGER : dashboard | courses | staff | reports | profile
        EXPERT  : dashboard | content | quiz-bank | reviews | profile
      ================================================================ -->
-<nav th:fragment="dash-sidebar(activePage)"
-     class="dash-sidebar" id="dashSidebar">
+<nav th:fragment="dash-sidebar(activePage)" class="dash-sidebar" id="dashSidebar">
 
     <div class="dash-sidebar-nav">
 
-        <!-- ==================== STUDENT ==================== -->
         <div sec:authorize="hasRole('ROLE_STUDENT')">
-            <span class="dash-nav-section-label">Học tập</span>
-            <a th:href="@{/student/dashboard}"
-               th:classappend="${activePage == 'dashboard'} ? ' active'"
-               class="dash-nav-item">
+            <span class="dash-nav-section-label">--- HỌC VIÊN ---</span>
+            <a th:href="@{/student/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/student/my-courses}"
-               th:classappend="${activePage == 'my-courses'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/student/my-courses}" th:classappend="${activePage == 'my-courses'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-play-btn"></i><span>Khóa học của tôi</span>
             </a>
-            <a th:href="@{/student/my-enrollments}"
-               th:classappend="${activePage == 'my-enrollments'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/student/my-enrollments}" th:classappend="${activePage == 'my-enrollments'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-journal-check"></i><span>Lịch sử đăng ký</span>
             </a>
-            <a th:href="@{/student/quiz}"
-               th:classappend="${activePage == 'quiz'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/student/quiz}" th:classappend="${activePage == 'quiz'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-question"></i><span>Bài kiểm tra</span>
             </a>
-
-            <span class="dash-nav-section-label">Cá nhân</span>
-            <a th:href="@{/student/progress}"
-               th:classappend="${activePage == 'progress'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/student/progress}" th:classappend="${activePage == 'progress'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-bar-chart-line"></i><span>Tiến độ học tập</span>
             </a>
-            <a th:href="@{/profile}"
-               th:classappend="${activePage == 'profile'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
-            </a>
         </div>
 
-        <!-- ==================== TEACHER ==================== -->
         <div sec:authorize="hasRole('ROLE_TEACHER')">
-            <span class="dash-nav-section-label">Giảng dạy</span>
-            <a th:href="@{/teacher/dashboard}"
-               th:classappend="${activePage == 'dashboard'} ? ' active'"
-               class="dash-nav-item">
+            <span class="dash-nav-section-label">--- GIẢNG VIÊN ---</span>
+            <a th:href="@{/teacher/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/teacher/my-classes}"
-               th:classappend="${activePage == 'my-classes'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/teacher/my-classes}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-people"></i><span>Lớp của tôi</span>
             </a>
-            <a th:href="@{/teacher/schedule}"
-               th:classappend="${activePage == 'schedule'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/teacher/schedule}" th:classappend="${activePage == 'schedule'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-calendar3"></i><span>Lịch dạy</span>
             </a>
-            <a th:href="@{/teacher/students}"
-               th:classappend="${activePage == 'students'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/teacher/students}" th:classappend="${activePage == 'students'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-person-lines-fill"></i><span>Học viên</span>
             </a>
-
-            <span class="dash-nav-section-label">Nội dung</span>
-            <a th:href="@{/teacher/quiz-bank}"
-               th:classappend="${activePage == 'quiz-bank'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/teacher/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
-            </a>
-            <a th:href="@{/profile}"
-               th:classappend="${activePage == 'profile'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
             </a>
         </div>
 
-        <!-- ==================== ADMIN ==================== -->
+
         <div sec:authorize="hasRole('ROLE_ADMIN')">
-            <span class="dash-nav-section-label">Quản trị</span>
-            <a th:href="@{/admin/dashboard}"
-               th:classappend="${activePage == 'dashboard'} ? ' active'"
-               class="dash-nav-item">
+            <span class="dash-nav-section-label">--- QUẢN TRỊ ---</span>
+            <a th:href="@{/admin/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/admin/list}"
-               th:classappend="${activePage == 'users'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-people-fill"></i><span>Người dùng</span>
-                <span class="dash-nav-badge">New</span>
+            <a th:href="@{/admin/list}" th:classappend="${activePage == 'users'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-people-fill"></i><span>Người dùng</span> <span class="dash-nav-badge">New</span>
             </a>
-            <a th:href="@{/admin/courses}"
-               th:classappend="${activePage == 'course'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/admin/courses}" th:classappend="${activePage == 'course'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-book-half"></i><span>Khóa học</span>
             </a>
-            <a th:href="@{/admin/classes}"
-               th:classappend="${activePage == 'classes'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/admin/classes}" th:classappend="${activePage == 'classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-building"></i><span>Lớp học</span>
             </a>
-            <a th:href="@{/admin/registrations}"
-               th:classappend="${activePage == 'registrations'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/admin/registrations}" th:classappend="${activePage == 'registrations'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-clipboard-check"></i><span>Duyệt đăng ký</span>
             </a>
-
-            <span class="dash-nav-section-label">Hệ thống</span>
-            <a th:href="@{/admin/settings}"
-               th:classappend="${activePage == 'settings'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/admin/settings}" th:classappend="${activePage == 'settings'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-gear-fill"></i><span>Cài đặt hệ thống</span>
             </a>
-            <a th:href="@{/profile}"
-               th:classappend="${activePage == 'profile'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
-            </a>
         </div>
 
-        <!-- ==================== MANAGER ==================== -->
-        <div sec:authorize="hasRole('ROLE_MANAGER')">
 
-            <span class="dash-nav-section-label">Quản lý</span>
-            <a th:href="@{/manager/dashboard}"
-               th:classappend="${activePage == 'dashboard'} ? ' active'"
-               class="dash-nav-item">
+        <div sec:authorize="hasRole('ROLE_MANAGER')">
+            <span class="dash-nav-section-label">--- QUẢN LÝ ---</span>
+            <a th:href="@{/manager/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/manager/class/list}"
-               th:classappend="${activePage == 'classes'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/manager/class/list}" th:classappend="${activePage == 'classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-building"></i><span>Lớp học</span>
             </a>
-            <a th:href="@{/manager/courses}"
-               th:classappend="${activePage == 'courses'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/manager/courses}" th:classappend="${activePage == 'courses'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-book-half"></i><span>Khóa học</span>
             </a>
-            <a th:href="@{/manager/staff}"
-               th:classappend="${activePage == 'staff'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/manager/staff}" th:classappend="${activePage == 'staff'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-person-badge"></i><span>Nhân sự</span>
             </a>
-            <a th:href="@{/manager/reports}"
-               th:classappend="${activePage == 'reports'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/manager/reports}" th:classappend="${activePage == 'reports'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-graph-up-arrow"></i><span>Báo cáo</span>
             </a>
-            <a th:href="@{/profile}"
-               th:classappend="${activePage == 'profile'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
-            </a>
         </div>
 
-        <!-- ==================== EXPERT ==================== -->
         <div sec:authorize="hasRole('ROLE_EXPERT')">
-            <span class="dash-nav-section-label">Chuyên môn</span>
-            <a th:href="@{/expert/dashboard}"
-               th:classappend="${activePage == 'dashboard'} ? ' active'"
-               class="dash-nav-item">
+            <span class="dash-nav-section-label">--- CHUYÊN GIA ---</span>
+            <a th:href="@{/expert/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/expert/content}"
-               th:classappend="${activePage == 'content'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/expert/content}" th:classappend="${activePage == 'content'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-file-earmark-text"></i><span>Nội dung khóa học</span>
             </a>
-            <a th:href="@{/expert/quiz-bank}"
-               th:classappend="${activePage == 'quiz-bank'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/expert/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
             </a>
-            <a th:href="@{/expert/reviews}"
-               th:classappend="${activePage == 'reviews'} ? ' active'"
-               class="dash-nav-item">
+            <a th:href="@{/expert/reviews}" th:classappend="${activePage == 'reviews'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-star-half"></i><span>Đánh giá nội dung</span>
-            </a>
-            <a th:href="@{/profile}"
-               th:classappend="${activePage == 'profile'} ? ' active'"
-               class="dash-nav-item">
-                <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
             </a>
         </div>
 
-    </div><!-- end .dash-sidebar-nav -->
+        // chức năng chung của các role
+        <span class="dash-nav-section-label">Cá nhân</span>
+        <a th:href="@{/profile}" th:classappend="${activePage == 'profile'} ? ' active'" class="dash-nav-item">
+            <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
+        </a>
+        <a th:href="@{/logout}" class="dash-nav-item">
+            <i class="bi bi-box-arrow-right"></i><span>Đăng xuất</span>
+        </a>
 
-    <!-- Footer: user đang đăng nhập -->
-    <div class="dash-sidebar-footer">
-        <img th:src="@{/assets/img/person/person-1.jpg}" alt="Avatar">
-        <div style="overflow:hidden; min-width:0;">
-            <span class="dash-sidebar-footer-name"
-                  sec:authentication="name">User Name</span>
-            <span class="dash-sidebar-footer-role">
+    </div><div class="dash-sidebar-footer">
+    <img th:src="@{/assets/img/person/person-1.jpg}" alt="Avatar">
+    <div style="overflow:hidden; min-width:0;">
+        <span class="dash-sidebar-footer-name" sec:authentication="name">Tên User</span>
+        <span class="dash-sidebar-footer-role">
                 <span sec:authorize="hasRole('ROLE_ADMIN')">Quản trị viên</span>
                 <span sec:authorize="hasRole('ROLE_MANAGER')">Quản lý</span>
                 <span sec:authorize="hasRole('ROLE_TEACHER')">Giảng viên</span>
                 <span sec:authorize="hasRole('ROLE_EXPERT')">Chuyên gia</span>
                 <span sec:authorize="hasRole('ROLE_STUDENT')">Học viên</span>
             </span>
-        </div>
     </div>
-
+</div>
 </nav>
-
 <!-- Mobile overlay — luôn đặt ngay sau sidebar trong template -->
 <div th:fragment="dash-overlay" class="dash-overlay" id="dashOverlay"></div>
 
