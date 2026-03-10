@@ -6,6 +6,8 @@ import com.example.DoAn.dto.request.RegisterRequestDTO;
 import com.example.DoAn.dto.request.ResetPasswordRequest;
 import com.example.DoAn.dto.response.LoginResponse;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.exception.InvalidDataException;
+import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.EmailVerification;
 import com.example.DoAn.model.PasswordResetToken;
 import com.example.DoAn.model.Setting;
@@ -16,10 +18,18 @@ import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.AuthService;
 import com.example.DoAn.util.JwtUtil;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +40,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j // Sử dụng Log thay vì System.out
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -39,138 +50,153 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final JavaMailSender mailSender;
+    private final AuthenticationManager authenticationManager;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Override
-    @Transactional(readOnly = true)
     public ResponseData<LoginResponse> login(LoginRequest request) {
-        try {
-            User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-            if (user == null) return ResponseData.error(400, "Không tìm thấy người dùng hoặc sai mật khẩu.");
-            if (!"Active".equals(user.getStatus())) return ResponseData.error(403, "Tài khoản bị khóa.");
-            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) return ResponseData.error(400, "Sai mật khẩu.");
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+        );
 
-            String token = jwtUtil.generateToken(user);
-            LoginResponse response = new LoginResponse(token, user.getEmail(), user.getRole().getName());
-            return ResponseData.success("Đăng nhập thành công", response);
-        } catch (Exception e) {
-            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại."));
+
+        if (!"Active".equalsIgnoreCase(user.getStatus())) {
+            throw new DisabledException("Tài khoản của bạn đã bị khóa hoặc chưa kích hoạt.");
         }
+
+        String token = jwtUtil.generateToken(user);
+
+        return ResponseData.success("Đăng nhập thành công",
+                LoginResponse.builder()
+                        .token(token)
+                        .email(user.getEmail())
+                        .fullName(user.getFullName())
+                        .role(user.getRole().getValue())
+                        .build());
     }
 
     @Override
     @Transactional
     public ResponseData<Void> registerUser(RegisterRequestDTO request) {
-        try {
-            if (!request.getPassword().equals(request.getConfirmPassword())) return ResponseData.error(400, "Mật khẩu xác nhận không khớp!");
-            if (userRepository.existsByEmail(request.getEmail())) return ResponseData.error(400, "Email đã tồn tại!");
-
-            EmailVerification verifyEntity = verificationRepository.findFirstByEmailOrderByExpiryTimeDesc(request.getEmail()).orElse(null);
-            if (verifyEntity == null || !verifyEntity.getVerificationCode().equals(request.getVerificationCode())) return ResponseData.error(400, "Mã xác minh không chính xác!");
-            if (verifyEntity.isExpired()) return ResponseData.error(400, "Mã xác minh đã hết hạn.");
-
-            Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT").orElse(null);
-            if (studentRole == null) return ResponseData.error(500, "Lỗi cấu hình Role");
-
-            User newUser = User.builder()
-                    .email(request.getEmail())
-                    .password(passwordEncoder.encode(request.getPassword()))
-                    .fullName(request.getFullName())
-                    .mobile(request.getPhone())
-                    .gender(request.getGender())
-                    .city(request.getCity())
-                    .role(studentRole)
-                    .status("Active")
-                    .authProvider("LOCAL")
-                    .build();
-
-            userRepository.save(newUser);
-            verificationRepository.deleteByEmail(request.getEmail());
-            return ResponseData.success("Đăng ký thành công!");
-        } catch (Exception e) {
-            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new InvalidDataException("Mật khẩu xác nhận không khớp!");
         }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new InvalidDataException("Email này đã được sử dụng!");
+        }
+
+        // Kiểm tra mã xác minh
+        EmailVerification verifyEntity = verificationRepository
+                .findFirstByEmailOrderByExpiryTimeDesc(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mã xác minh cho email này."));
+
+        if (!verifyEntity.getVerificationCode().equals(request.getVerificationCode())) {
+            throw new InvalidDataException("Mã xác minh không chính xác!");
+        }
+        if (verifyEntity.isExpired()) {
+            throw new InvalidDataException("Mã xác minh đã hết hạn.");
+        }
+
+        // Lấy Role mặc định từ bảng Setting
+        Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
+                .orElseThrow(() -> new ResourceNotFoundException("Cấu hình hệ thống lỗi: Không tìm thấy Role học viên."));
+
+        User newUser = User.builder()
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .mobile(request.getPhone())
+                .gender(request.getGender())
+                .city(request.getCity())
+                .role(studentRole)
+                .status("Active")
+                .authProvider("LOCAL")
+                .build();
+
+        userRepository.save(newUser);
+        verificationRepository.deleteByEmail(request.getEmail());
+
+        return ResponseData.success("Đăng ký tài khoản thành công!", null);
     }
 
     @Override
     @Transactional
     public ResponseData<Void> sendVerificationCode(String email) {
-        try {
-            if (email == null || email.trim().isEmpty()) return ResponseData.error(400, "Vui lòng nhập email.");
-            if (userRepository.existsByEmail(email)) return ResponseData.error(400, "Email đã đăng ký.");
-
-            String code = String.valueOf(new Random().nextInt(900000) + 100000);
-            try { verificationRepository.deleteByEmail(email); } catch (Exception ignored) {}
-
-            EmailVerification verification = EmailVerification.builder()
-                    .email(email)
-                    .verificationCode(code)
-                    .expiryTime(LocalDateTime.now().plusMinutes(5))
-                    .build();
-            verificationRepository.saveAndFlush(verification);
-
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(email);
-            message.setSubject("Mã xác minh Nova LMS");
-            message.setText("Mã xác minh: " + code);
-            mailSender.send(message);
-
-            return ResponseData.success("Đã gửi mã thành công!");
-        } catch (Exception e) {
-            return ResponseData.error(500, "Lỗi gửi mail: " + e.getMessage());
+        if (userRepository.existsByEmail(email)) {
+            throw new InvalidDataException("Email này đã được đăng ký trong hệ thống.");
         }
+
+        String code = String.format("%06d", new Random().nextInt(1000000));
+
+        // Xóa mã cũ nếu có
+        verificationRepository.deleteByEmail(email);
+
+        EmailVerification verification = EmailVerification.builder()
+                .email(email)
+                .verificationCode(code)
+                .expiryTime(LocalDateTime.now().plusMinutes(5))
+                .build();
+
+        verificationRepository.save(verification);
+
+        sendEmail(email, "Mã xác minh Nova LMS", "Mã xác minh của bạn là: " + code + ". Hiệu lực trong 5 phút.");
+
+        return ResponseData.success("Mã xác minh đã được gửi vào Email của bạn.", null);
     }
 
     @Override
     @Transactional
     public ResponseData<Void> forgotPassword(ForgotPasswordRequest request) {
-        try {
-            User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-            if (user == null) return ResponseData.error(400, "Email không tồn tại!");
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Email không tồn tại trong hệ thống."));
 
-            tokenRepository.deleteByUser(user);
-            String tokenStr = UUID.randomUUID().toString();
-            PasswordResetToken token = PasswordResetToken.builder()
-                    .user(user).token(tokenStr).expiryDatetime(LocalDateTime.now().plusMinutes(15)).isUsed(false).build();
+        tokenRepository.deleteByUser(user);
 
-            tokenRepository.save(token);
-            sendResetEmail(user.getEmail(), tokenStr);
+        String tokenStr = UUID.randomUUID().toString();
+        PasswordResetToken token = PasswordResetToken.builder()
+                .user(user)
+                .token(tokenStr)
+                .expiryDatetime(LocalDateTime.now().plusMinutes(15))
+                .isUsed(false)
+                .build();
 
-            return ResponseData.success("Đã gửi link reset password!");
-        } catch (Exception e) {
-            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
-        }
-    }
+        tokenRepository.save(token);
 
-    private void sendResetEmail(String toEmail, String token) {
-        String resetLink = "http://localhost:8080/reset-password.html?token=" + token;
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(toEmail);
-        message.setSubject("[Nova LMS] Đặt lại mật khẩu");
-        message.setText("Link đặt lại mật khẩu (có tác dụng 15 phút): \n" + resetLink);
-        mailSender.send(message);
+        String resetLink = frontendUrl + "/reset-password.html?token=" + tokenStr;
+        sendEmail(user.getEmail(), "[Nova LMS] Đặt lại mật khẩu",
+                "Vui lòng nhấn vào link sau để đặt lại mật khẩu (Hết hạn sau 15 phút): \n" + resetLink);
+
+        return ResponseData.success("Link đặt lại mật khẩu đã được gửi.", null);
     }
 
     @Override
     @Transactional
     public ResponseData<Void> resetPassword(ResetPasswordRequest request) {
-        try {
-            PasswordResetToken token = tokenRepository.findByToken(request.getToken()).orElse(null);
-            if (token == null) return ResponseData.error(400, "Token không hợp lệ!");
-            if (token.isExpired() || Boolean.TRUE.equals(token.isUsed())) return ResponseData.error(400, "Link đã hết hạn!");
+        PasswordResetToken token = tokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new ResourceNotFoundException("Token không hợp lệ hoặc đã bị xóa."));
 
-            User user = token.getUser();
-            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-            userRepository.save(user);
-
-            token.setUsed(true);
-            tokenRepository.save(token);
-
-            return ResponseData.success("Cập nhật mật khẩu thành công!");
-        } catch (Exception e) {
-            return ResponseData.error(500, e.getMessage());
+        if (token.isExpired() || token.isUsed()) {
+            throw new InvalidDataException("Link đặt lại mật khẩu đã hết hạn hoặc đã được sử dụng.");
         }
+
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        token.setUsed(true);
+        tokenRepository.save(token);
+
+        return ResponseData.success("Mật khẩu đã được cập nhật thành công!", null);
+    }
+    private void sendEmail(String to, String subject, String content) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(content);
+        mailSender.send(message);
     }
 }
