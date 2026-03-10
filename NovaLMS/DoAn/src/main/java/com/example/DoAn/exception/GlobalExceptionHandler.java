@@ -185,4 +185,35 @@ public class GlobalExceptionHandler {
 
         return errorResponse;
     }
+
+
+    /**
+     *(Sai mật khẩu/Email)
+     */
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    @ResponseStatus(UNAUTHORIZED)
+    public ErrorResponse handleBadCredentialsException(Exception e, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setTimestamp(new Date());
+        errorResponse.setStatus(UNAUTHORIZED.value());
+        errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        errorResponse.setError("Unauthorized");
+        errorResponse.setMessage("Email hoặc mật khẩu không chính xác.");
+        return errorResponse;
+    }
+
+    /**
+     * Có login nhưng không đủ quyền
+     */
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(FORBIDDEN)
+    public ErrorResponse handleAccessDeniedException(Exception e, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setTimestamp(new Date());
+        errorResponse.setStatus(FORBIDDEN.value());
+        errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        errorResponse.setError("Forbidden");
+        errorResponse.setMessage("Bạn không có quyền truy cập vào chức năng này.");
+        return errorResponse;
+    }
 }
