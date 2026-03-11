@@ -13,7 +13,6 @@ public class SettingService {
     private SettingRepository settingRepository;
 
     public List<Setting> getCourseCategories(){
-        // 'COURSE_CATEGORY' phải khớp với cột setting_type trong file SQL bạn vừa nạp
         return settingRepository.findBySettingTypeAndStatus("COURSE_CATEGORY", "Active");
     }
 }

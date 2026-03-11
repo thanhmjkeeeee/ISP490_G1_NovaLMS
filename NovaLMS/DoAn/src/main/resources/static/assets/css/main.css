@@ -40,7 +40,71 @@
 }
 
 /* Color Presets - These classes override global colors when applied to any section or element, providing reuse of the sam color scheme. */
+     .register-card {
+         background: #fff;
+         border-radius: 20px;
+         box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+         overflow: hidden;
+         max-width: 1100px;
+         width: 100%;
+         display: flex;
+         flex-direction: row;
+     }
 
+     .register-left {
+         flex: 1;
+         background-color: #e0f2f1;
+         padding: 40px;
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         align-items: center;
+         text-align: center;
+     }
+
+     .register-left img { max-width: 100%; height: auto; margin-bottom: 20px; }
+     .register-left h2 { color: #00796b; font-weight: 700; font-size: 2rem; margin-bottom: 15px; }
+     .register-left p { color: #555; font-size: 1.1rem; }
+
+     .register-right { flex: 1.2; padding: 50px; background: #fff; }
+     .register-title { font-size: 1.5rem; font-weight: 700; color: #333; text-align: center; margin-bottom: 30px; }
+
+     .form-label { font-weight: 600; font-size: 0.9rem; color: #555; margin-bottom: 5px; }
+     .form-control, .form-select { border-radius: 8px; padding: 10px 15px; border: 1px solid #ddd; font-size: 0.95rem; }
+     .form-control:focus, .form-select:focus { border-color: #26a69a; box-shadow: 0 0 0 0.2rem rgba(38, 166, 154, 0.25); }
+     .input-group-text { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px 0 0 8px; color: #777; }
+     .form-control-icon { border-left: none; border-radius: 0 8px 8px 0; }
+
+     .btn-register {
+         background: #26a69a;
+         color: #fff;
+         font-weight: 700;
+         padding: 12px;
+         border-radius: 8px;
+         width: 100%;
+         border: none;
+         transition: 0.3s;
+         text-transform: uppercase;
+         letter-spacing: 1px;
+         margin-top: 20px;
+     }
+     .btn-register:hover { background: #00897b; }
+
+     .social-login { display: flex; gap: 15px; margin-top: 20px; }
+     .btn-social {
+         flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px;
+         background: #fff; color: #555; font-weight: 600; display: flex;
+         align-items: center; justify-content: center; gap: 10px; transition: 0.3s; text-decoration: none;
+     }
+     .btn-social:hover { background: #f5f5f5; }
+     .login-link { text-align: center; margin-top: 20px; font-size: 0.9rem; }
+     .login-link a { color: #26a69a; font-weight: 700; text-decoration: none; }
+
+     @media (max-width: 992px) {
+         .register-card { flex-direction: column; max-width: 600px; }
+         .register-left { display: none; }
+         .register-right { padding: 30px; }
+     }
 
   .course-banner { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 24px; position: relative; overflow: hidden; }
   .nav-tabs-custom { border-bottom: 2px solid var(--dash-border); margin-bottom: 20px; }
