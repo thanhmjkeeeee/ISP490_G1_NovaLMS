@@ -25,7 +25,6 @@ public class ClassPublicServiceImpl implements ClassPublicService {
     private final ClassRepository classRepository;
 
     @Override
-    // ĐÃ FIX: Bỏ chữ List đi. Chỉ cần PageResponse<ClassPublicResponseDTO> là đủ
     public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
         Specification<Clazz> spec = (root, query, cb) -> {
@@ -55,12 +54,11 @@ public class ClassPublicServiceImpl implements ClassPublicService {
                 .build()
         ).collect(Collectors.toList());
 
-        // ĐÃ FIX: Chỉ định đúng Generic và bỏ Collections.singletonList()
         return PageResponse.<ClassPublicResponseDTO>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
                 .totalPages(classPage.getTotalPages())
-                .items(dtoList) // Trả thẳng dtoList vào items
+                .items(dtoList)
                 .build();
     }
 }
