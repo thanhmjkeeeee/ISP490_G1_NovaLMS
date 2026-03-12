@@ -13,8 +13,6 @@ import java.util.Map;
 public class FileUploadService {
 
     private final Cloudinary cloudinary;
-
-    // Lấy thông tin từ file application.properties
     public FileUploadService(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,
@@ -32,10 +30,7 @@ public class FileUploadService {
 
     public String uploadImage(MultipartFile file) {
         try {
-            // Đẩy file lên Cloudinary
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-
-            // Trả về đường link URL (chính là cái bạn sẽ lưu vào cột avatar_url trong DB)
             return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {

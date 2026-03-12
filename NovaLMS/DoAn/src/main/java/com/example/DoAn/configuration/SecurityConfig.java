@@ -58,7 +58,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(STATIC_RESOURCES).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
-                        .requestMatchers("/login.html", "/register.html", "/error").permitAll() // Thêm /error
+                        .requestMatchers("/login", "/login.html",
+                                "/register", "/register.html",
+                                "/reset-password", "/reset-password.html",
+                                "/error").permitAll() // Thêm /error
                         .requestMatchers("/api/v1/auth/**").permitAll()
 
                         // Phân quyền cứng

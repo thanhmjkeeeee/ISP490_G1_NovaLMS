@@ -32,7 +32,6 @@ public class ClassServiceImpl implements IClassService {
                 .className(request.getClassName())
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
                 .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null)
-                // ĐÃ FIX: Chống lỗi NullPointerException khi parse ngày
                 .startDate(request.getStartDate() != null && !request.getStartDate().isEmpty() ? LocalDateTime.parse(request.getStartDate()) : null)
                 .status(request.getStatus() != null ? request.getStatus() : "Pending")
                 .schedule(request.getSchedule())
@@ -52,7 +51,6 @@ public class ClassServiceImpl implements IClassService {
         clazz.setCourse(courseRepository.findById(request.getCourseId()).orElse(null));
         clazz.setTeacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null);
 
-        // ĐÃ FIX: Chống lỗi NullPointerException khi parse ngày
         if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
             clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
         }
@@ -78,19 +76,17 @@ public class ClassServiceImpl implements IClassService {
     }
 
     @Override
-    // ĐÃ FIX: Trả về PageResponse<ClassDetailResponse> thay vì <?>
     public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize) {
         Page<Clazz> page = classRepository.findAll(PageRequest.of(pageNo, pageSize));
         List<ClassDetailResponse> list = page.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();
 
-        // ĐÃ FIX: Bỏ Collections.singletonList()
         return PageResponse.<ClassDetailResponse>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
                 .totalPages(page.getTotalPages())
-                .items(list) // Trả thẳng list 1 cấp
+                .items(list)
                 .build();
     }
 

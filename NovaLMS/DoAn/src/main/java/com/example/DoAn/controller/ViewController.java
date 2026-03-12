@@ -6,23 +6,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class ViewController {
 
-//    // 1. Trang chủ
-//    @GetMapping({"/", "/index.html"})
-//    public String index() {
-//        return "public/index"; // Trả về templates/index.html
-//    }
-
-//
-//    @GetMapping("/courses.html")
-//    public String courses() {
-//        return "public/courses";
-//    }
-//
-//    @GetMapping("/course-details.html")
-//    public String courseDetails() {
-//        return "course-details";
-//    }
-
     @GetMapping("/instructors.html")
     public String instructors() {
         return "public/instructors";
@@ -58,11 +41,6 @@ public class ViewController {
         return "public/404";
     }
 
-
-//    @GetMapping("/admin/dashboard")
-//    public String admin() {
-//        return "admin/dashboard";
-//    }
 
 
 }
