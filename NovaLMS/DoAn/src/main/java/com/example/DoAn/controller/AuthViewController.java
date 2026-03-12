@@ -6,12 +6,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AuthViewController {
 
-    @GetMapping("/login.html")
+    @GetMapping({"/login", "/login.html"})
     public String loginPage() {
         return "auth/Login";
     }
 
-    @GetMapping("/register.html")
+    @GetMapping({"/register", "/register.html"})
     public String registerPage() { return "auth/register"; }
 
     @GetMapping("/reset-password.html")
