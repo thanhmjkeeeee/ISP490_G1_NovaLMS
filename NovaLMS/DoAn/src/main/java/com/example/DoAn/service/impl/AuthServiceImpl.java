@@ -51,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final JavaMailSender mailSender;
     private final AuthenticationManager authenticationManager;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -176,21 +177,34 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public ResponseData<Void> resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken token = tokenRepository.findByToken(request.getToken())
-                .orElseThrow(() -> new ResourceNotFoundException("Token không hợp lệ hoặc đã bị xóa."));
+        try {
+            // 1. Tìm token trong DB
+            PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken()).orElse(null);
 
-        if (token.isExpired() || token.isUsed()) {
-            throw new InvalidDataException("Link đặt lại mật khẩu đã hết hạn hoặc đã được sử dụng.");
+            if (resetToken == null) {
+                return ResponseData.error(400, "Token không hợp lệ hoặc không tồn tại!");
+            }
+            if (resetToken.isUsed() || resetToken.getExpiryDatetime().isBefore(LocalDateTime.now())) {
+                return ResponseData.error(400, "Token đã hết hạn hoặc đã được sử dụng!");
+            }
+
+            User user = resetToken.getUser();
+
+            if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+                return ResponseData.error(400, "Mật khẩu mới không được trùng với mật khẩu hiện tại!");
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            resetToken.setUsed(true);
+            passwordResetTokenRepository.save(resetToken);
+
+            return ResponseData.success("Đặt lại mật khẩu thành công!");
+
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
-
-        User user = token.getUser();
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        token.setUsed(true);
-        tokenRepository.save(token);
-
-        return ResponseData.success("Mật khẩu đã được cập nhật thành công!", null);
     }
     private void sendEmail(String to, String subject, String content) {
         SimpleMailMessage message = new SimpleMailMessage();
