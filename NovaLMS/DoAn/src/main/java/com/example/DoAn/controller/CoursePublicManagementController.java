@@ -36,10 +36,6 @@ public class CoursePublicManagementController {
         return ResponseEntity.ok(new ResponseData<>(200, "Tải danh sách thành công", data));
     }
 
-    /**
-     * API lấy thông tin chi tiết nhanh cho Guest.
-     * URL: /api/v1/public/courses/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<ResponseData<CoursePublicResponseDTO>> getCourseDetail(@PathVariable Integer id) {
         return courseService.getCourseDetail(id)
