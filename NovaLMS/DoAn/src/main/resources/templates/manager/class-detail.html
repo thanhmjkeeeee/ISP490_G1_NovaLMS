@@ -3,87 +3,86 @@
 <head th:with="isDashboard=true">
   <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></th:block>
   <style>
-    .info-label { font-size: 0.8rem; text-uppercase; letter-spacing: 0.5px; color: #6c757d; font-weight: 700; }
-    .info-value { font-weight: 600; color: #2d3748; }
-    .student-avatar { width: 35px; height: 35px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4338ca; }
+    html, body { height: auto !important; overflow-y: auto !important; }
+    .dash-main { min-height: 100vh !important; padding-bottom: 80px !important; }
+    .card-custom { border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-radius: 12px; background: #fff; }
+    .info-label { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 800; }
+    .info-value { font-weight: 700; color: #1e293b; font-size: 1rem; }
+    .st-badge { padding: 5px 15px; border-radius: 50px; font-weight: 800; font-size: 11px; text-transform: uppercase; }
+    .st-Open { background: #d1e7dd; color: #0f5132; }
+    .st-Pending { background: #fff3cd; color: #856404; }
+    .st-Closed { background: #f8d7da; color: #842029; }
   </style>
 </head>
 
 <body class="dashboard-body">
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Chi tiết lớp học')}"></header>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Chi tiết lớp')}"></header>
 <aside id="dashSidebar" class="dash-sidebar">
   <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></div>
 </aside>
 
 <main class="dash-main" id="dashMain">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <a th:href="@{/manager/class/list}" class="btn btn-link text-decoration-none p-0 mb-2 text-muted small fw-bold">
-        <i class="bi bi-arrow-left"></i> QUAY LẠI DANH SÁCH
-      </a>
-      <h3 class="fw-bold text-dark m-0">Lớp: <span id="displayClassName">---</span></h3>
+  <div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <a th:href="@{/manager/class/list}" class="btn btn-sm btn-light text-muted fw-bold mb-2 text-decoration-none">
+          <i class="bi bi-arrow-left"></i> QUAY LẠI
+        </a>
+        <h3 class="fw-bold text-dark m-0">Lớp: <span id="displayClassName">Đang tải...</span></h3>
+      </div>
+      <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
+        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+      </button>
     </div>
-    <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
-      <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
-    </button>
-  </div>
 
-  <div class="row g-4">
-    <div class="col-lg-4">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body p-4 text-center">
-          <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-            <i class="bi bi-door-open fs-1"></i>
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center">
+          <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 70px; height: 70px;">
+            <i class="bi bi-door-open-fill fs-2"></i>
           </div>
-          <h5 class="fw-bold m-0" id="detailCourseName">Tên khóa học</h5>
-          <span id="detailStatusBadge" class="badge mt-2">Status</span>
-
-          <div class="text-start mt-4">
+          <h5 class="fw-bold mb-1" id="detailCourseName">---</h5>
+          <div class="mb-4"><span id="detailStatusBadge" class="st-badge">---</span></div>
+          <div class="text-start border-top pt-4">
             <div class="mb-3">
-              <div class="info-label">Giảng viên</div>
-              <div class="info-value" id="detailTeacherName">Chưa phân công</div>
+              <p class="info-label mb-1">Giảng viên</p>
+              <p class="info-value" id="detailTeacherName">Chưa phân công</p>
             </div>
             <div class="mb-3">
-              <div class="info-label">Lịch học & Ca</div>
-              <div class="info-value"><span id="detailSchedule">---</span> | <span id="detailSlot">---</span></div>
+              <p class="info-label mb-1">Lịch học & Ca</p>
+              <p class="info-value"><span id="detailSchedule">---</span> | <span id="detailSlot">---</span></p>
             </div>
-            <div class="row">
+            <div class="row g-2">
               <div class="col-6">
-                <div class="info-label text-success">Khai giảng</div>
-                <div class="info-value small" id="detailStart">---</div>
+                <p class="info-label mb-1">Khai giảng</p>
+                <p class="info-value small text-success" id="detailStart">---</p>
               </div>
               <div class="col-6">
-                <div class="info-label text-danger">Kết thúc</div>
-                <div class="info-value small" id="detailEnd">---</div>
+                <p class="info-label mb-1">Kết thúc</p>
+                <p class="info-value small text-danger" id="detailEnd">---</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-lg-8">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white border-0 p-4 pb-0 d-flex justify-content-between align-items-center">
-          <h5 class="fw-bold m-0"><i class="bi bi-people me-2"></i>Danh sách học viên</h5>
-          <div class="bg-light px-3 py-1 rounded-pill small fw-bold text-primary">
-            Sĩ số: <span id="studentCount">0</span>
+      <div class="col-lg-8">
+        <div class="card card-custom h-100">
+          <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold m-0">Học viên (<span id="studentCount">0</span>)</h5>
           </div>
-        </div>
-        <div class="card-body p-4">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead class="table-light">
-              <tr>
-                <th class="border-0 small text-muted ps-3">Học viên</th>
-                <th class="border-0 small text-muted">Ngày đăng ký</th>
-                <th class="border-0 small text-muted text-end">Trạng thái</th>
-              </tr>
-              </thead>
-              <tbody id="studentTableBody"></tbody>
-            </table>
-            <div id="emptyStudent" class="text-center py-5 d-none">
-              <p class="text-muted">Chưa có học viên nào đăng ký lớp này.</p>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Học viên</th>
+                  <th>Ngày đăng ký</th>
+                  <th class="text-end pe-4">Trạng thái</th>
+                </tr>
+                </thead>
+                <tbody id="studentTableBody"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -94,89 +93,99 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 
-<script>
-  // Lấy ID an toàn (bỏ qua dấu / ở cuối nếu có)
-  const classId = window.location.pathname.split('/').filter(p => p).pop();
+<script th:inline="javascript">
+  // Lấy ID chuẩn nhất
+  const path = window.location.pathname;
+  const classId = path.substring(path.lastIndexOf('/') + 1);
 
-  document.addEventListener("DOMContentLoaded", loadClassDetail);
+  console.log("Đang gọi API cho ID:", classId);
 
-  function loadClassDetail() {
-    fetch(`/api/v1/classes/detail/${classId}`)
-        .then(res => res.json())
-        .then(res => {
-            console.log("Data từ API:", res.data); // Hãy mở F12 xem dòng này để biết tên trường đúng
-            if(res.status === 200 || res.status === 202) {
-                const d = res.data;
+  document.addEventListener("DOMContentLoaded", async () => {
+    const displayLabel = document.getElementById('displayClassName');
 
-                // Thử cả 2 cách đặt tên: camelCase (className) và snake_case (class_name) hoặc name
-                document.getElementById('displayClassName').innerText = d.className || d.name || d.class_name || 'N/A';
-                document.getElementById('detailCourseName').innerText = d.courseName || d.course_name || '---';
-                document.getElementById('detailTeacherName').innerText = d.teacherName || d.teacher_name || 'Chưa phân công';
-                document.getElementById('detailSchedule').innerText = d.schedule || 'N/A';
-                document.getElementById('detailSlot').innerText = d.slotTime || d.slot || 'N/A';
+    try {
+        const res = await fetch(`/api/v1/classes/detail/${classId}`);
 
-                document.getElementById('detailStart').innerText = formatDate(d.startDate || d.start_date);
-                document.getElementById('detailEnd').innerText = formatDate(d.endDate || d.end_date);
+        // Nếu API lỗi (404, 500...)
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Server trả lỗi:", errorText);
+            displayLabel.innerText = "Lỗi Server (Mã: " + res.status + ")";
+            return;
+        }
 
-                const badge = document.getElementById('detailStatusBadge');
-                if(badge) {
-                    const statusText = d.status || 'Pending';
-                    badge.innerText = statusText;
-                    badge.className = `badge mt-2 ${getStatusClass(statusText)}`;
-                }
-                renderStudents(d.students || []);
-            }
-        });
-}
+        const result = await res.json();
+        console.log("Dữ liệu nhận được:", result);
 
-  function renderStudents(students) {
+        // Bóc tách dữ liệu linh hoạt nhất có thể
+        let d = result.data || result;
+        if (Array.isArray(d)) d = d[0];
+
+        // KIỂM TRA: Nếu d vẫn rỗng
+        if (!d || Object.keys(d).length <= 2) {
+            displayLabel.innerText = "Không tìm thấy dữ liệu lớp #" + classId;
+            return;
+        }
+
+        // ĐỔ DỮ LIỆU (Thử cả 2 kiểu đặt tên camelCase và snake_case)
+        displayLabel.innerText = d.className || d.class_name || "N/A";
+        document.getElementById('detailCourseName').innerText = d.courseName || d.course_name || "---";
+        document.getElementById('detailTeacherName').innerText = d.teacherName || d.teacher_name || "Chưa phân công";
+        document.getElementById('detailSchedule').innerText = d.schedule || "---";
+        document.getElementById('detailSlot').innerText = d.slotTime || d.slot_time || "---";
+
+        // Ngày tháng
+        const start = d.startDate || d.start_date;
+        const end = d.endDate || d.end_date;
+        document.getElementById('detailStart').innerText = start ? new Date(start).toLocaleDateString('vi-VN') : "---";
+        document.getElementById('detailEnd').innerText = end ? new Date(end).toLocaleDateString('vi-VN') : "---";
+
+        // Badge
+        const status = d.status || 'Pending';
+        const badge = document.getElementById('detailStatusBadge');
+        if (badge) {
+            badge.innerText = status;
+            badge.className = `st-badge st-${status}`;
+        }
+
+        // Học viên
+        renderStudents(d.students || d.registrations || []);
+
+    } catch (err) {
+        console.error("Lỗi thực thi JS:", err);
+        displayLabel.innerText = "Lỗi hiển thị: " + err.message;
+    }
+  });
+
+  function renderStudents(list) {
       const tbody = document.getElementById('studentTableBody');
-      document.getElementById('studentCount').innerText = students.length;
+      const countLabel = document.getElementById('studentCount');
+      if (!tbody) return;
+
+      // Chuẩn hóa danh sách (Lấy user từ registration nếu cần)
+      const students = list.map(item => item.user ? item.user : item);
+      if (countLabel) countLabel.innerText = students.length;
 
       if (students.length === 0) {
-          document.getElementById('emptyStudent').classList.remove('d-none');
-          tbody.innerHTML = '';
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4">Chưa có học viên</td></tr>';
           return;
       }
 
-      document.getElementById('emptyStudent').classList.add('d-none');
       tbody.innerHTML = students.map(s => `
           <tr>
-              <td class="ps-3">
-                  <div class="d-flex align-items-center">
-                      <div class="student-avatar me-2">${s.fullName ? s.fullName.charAt(0) : '?'}</div>
-                      <div>
-                          <div class="fw-bold small">${s.fullName}</div>
-                          <div class="text-muted" style="font-size: 0.7rem;">${s.email}</div>
-                      </div>
-                  </div>
+              <td class="ps-4">
+                  <div class="fw-bold">${s.fullName || s.full_name || '---'}</div>
+                  <div class="small text-muted">${s.email || ''}</div>
               </td>
-              <td class="small">${formatDate(s.registrationDate)}</td>
-              <td class="text-end"><span class="badge bg-success bg-opacity-10 text-success small">Đã khớp lớp</span></td>
+              <td>---</td>
+              <td class="text-end pe-4"><span class="badge bg-success bg-opacity-10 text-success">Active</span></td>
           </tr>
       `).join('');
   }
 
   function goToEdit() {
-      window.location.href = `/manager/class/edit/${classId}`;
+      if (classId) window.location.href = `/manager/class/edit/${classId}`;
   }
-
-  function getStatusClass(status) {
-      if(status === 'Open') return 'bg-success';
-      if(status === 'Pending') return 'bg-warning text-dark';
-      return 'bg-danger';
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr || dateStr === "") return '---';
-    try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr; // Nếu không parse được thì hiện nguyên văn
-        return d.toLocaleDateString('vi-VN');
-    } catch (e) {
-        return dateStr;
-    }
-}
 </script>
 </body>
 </html>
