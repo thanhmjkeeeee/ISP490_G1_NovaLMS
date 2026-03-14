@@ -38,7 +38,6 @@ public class ClassServiceImpl implements IClassService {
                 .schedule(request.getSchedule())
                 .slotTime(request.getSlotTime())
                 .build();
-
         classRepository.save(clazz);
         log.info("Class created successfully: {}", clazz.getClassName());
         return clazz.getClassId();
