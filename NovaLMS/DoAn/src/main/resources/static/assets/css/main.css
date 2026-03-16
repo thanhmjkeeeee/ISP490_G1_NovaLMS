@@ -124,7 +124,7 @@
 
 
   .dashboard-footer { display: none !important; }
-  .dash-main { padding-bottom: 0 !important; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+  .dash-main { padding-bottom: 0 !important; min-height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
   .learning-container { flex: 1; display: flex; overflow: hidden; margin: -20px; }
   .content-area { flex: 1; overflow-y: auto; background: #f8fafc; padding: 24px; }
   .video-wrapper { background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 24px; }

@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/admin")
 public class AccountViewController {
 
+    @GetMapping("/accounts")
+    public String accountsPage() {
+        return "admin/account-list";
+    }
+
     @GetMapping("/list")
     public String listPage() {
         return "admin/account-list";
