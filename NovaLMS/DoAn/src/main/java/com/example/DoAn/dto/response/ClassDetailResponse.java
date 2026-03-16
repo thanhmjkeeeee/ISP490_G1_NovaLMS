@@ -8,7 +8,9 @@ import lombok.Getter;
 public class ClassDetailResponse {
     private Integer classId;
     private String className;
+    private Integer courseId;
     private String courseName;
+    private Integer teacherId;
     private String teacherName;
     private String startDate;
     private String endDate;
