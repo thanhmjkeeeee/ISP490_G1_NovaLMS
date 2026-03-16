@@ -49,9 +49,12 @@ public class AccountController {
     @GetMapping("/list")
     public ResponseData<PageResponse<?>> getList(
             @RequestParam(defaultValue = "0") int pageNo,
-            @RequestParam(defaultValue = "10") int pageSize) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer roleId,
+            @RequestParam(required = false) String status) {
         try {
-            PageResponse<?> response = accountService.getAllAccounts(pageNo, pageSize);
+            PageResponse<?> response = accountService.getAllAccounts(pageNo, pageSize, search, roleId, status);
             return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
@@ -64,6 +67,17 @@ public class AccountController {
         try {
             accountService.toggleStatus(id);
             return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Status changed");
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get account by ID")
+    @GetMapping("/{id}")
+    public ResponseData<AccountDetailResponse> getAccountById(@PathVariable Integer id) {
+        try {
+            AccountDetailResponse response = accountService.getAccountById(id);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }

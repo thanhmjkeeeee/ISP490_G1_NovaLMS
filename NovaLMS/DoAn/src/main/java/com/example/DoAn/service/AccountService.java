@@ -9,5 +9,5 @@ public interface AccountService {
     void updateAccount(Integer id, AccountRequestDTO request);
     void toggleStatus(Integer id);
     AccountDetailResponse getAccountById(Integer id);
-    PageResponse<?> getAllAccounts(int pageNo, int pageSize);
+    PageResponse<?> getAllAccounts(int pageNo, int pageSize, String search, Integer roleId, String status);
 }
