@@ -5,6 +5,7 @@ import com.example.DoAn.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecificationExecutor<User> {
     Optional<User> findByEmail(String email);
     List<User> findByRole_SettingIdAndStatus(Integer settingId, String status);
     boolean existsByEmail(String email);
@@ -24,8 +25,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     // thông tin role
     @Transactional
     @Modifying
-    @Query(value = "UPDATE tbl_user SET status = :status WHERE user_id = :id", nativeQuery = true)
+    @Query(value = "UPDATE user SET status = :status WHERE user_id = :id", nativeQuery = true)
     void updateStatusNative(@Param("status") String status, @Param("id") Integer id);
-
-
 }
