@@ -18,6 +18,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecificationExecutor<User> {
     Optional<User> findByEmail(String email);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role WHERE u.email = :email")
+    Optional<User> findByEmailWithRole(@Param("email") String email);
+
+    @Query(value = "SELECT role_id FROM user WHERE email = :email", nativeQuery = true)
+    Integer findRoleIdByEmail(@Param("email") String email);
+
     List<User> findByRole_SettingIdAndStatus(Integer settingId, String status);
     boolean existsByEmail(String email);
     List<User> findByRole_Value(String roleValue);
