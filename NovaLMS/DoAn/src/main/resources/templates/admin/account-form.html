@@ -126,7 +126,7 @@
       .then(res => {
           if (res.status === 201 || res.status === 200) {
               alert("Tạo tài khoản thành công!");
-              window.location.href = "/admin/accounts";
+              window.location.href = "/admin/list";
           } else {
               alert("Lỗi: " + res.message);
           }
