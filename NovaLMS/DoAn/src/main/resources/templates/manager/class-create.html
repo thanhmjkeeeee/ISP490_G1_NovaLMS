@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head th:with="isDashboard=true">
-  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết lớp học')}"></th:block>
+  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý lớp học')}"></th:block>
   <style>
-    /* FIX LỖI CUỘN: Cho phép trang cuộn tự nhiên */
     html, body { height: auto !important; overflow-y: auto !important; }
     .dashboard-body { display: block !important; }
     .dash-main { min-height: 100vh !important; padding-bottom: 100px !important; overflow: visible !important; }
-
     .card-custom { border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-radius: 12px; background: #fff; }
     .info-label { font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 800; }
     .info-value { font-weight: 700; color: #1e293b; font-size: 1rem; }
-
     .st-badge { padding: 5px 15px; border-radius: 50px; font-weight: 800; font-size: 11px; text-transform: uppercase; }
     .st-Open { background: #d1e7dd; color: #0f5132; }
     .st-Pending { background: #fff3cd; color: #856404; }
@@ -20,7 +17,7 @@
 </head>
 
 <body class="dashboard-body">
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Chi tiết lớp')}"></header>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Lớp học')}"></header>
 <aside id="dashSidebar" class="dash-sidebar">
   <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></div>
 </aside>
@@ -32,62 +29,143 @@
         <a th:href="@{/manager/class/list}" class="btn btn-sm btn-light text-muted fw-bold mb-2">
           <i class="bi bi-arrow-left"></i> QUAY LẠI
         </a>
-        <h3 class="fw-bold text-dark m-0">Lớp: <span id="displayClassName">Đang tải...</span></h3>
+        <h3 class="fw-bold text-dark m-0" id="pageTitle">Lớp: <span id="displayClassName">Đang tải...</span></h3>
       </div>
-      <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
-        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
-      </button>
+      <div id="actionButtons">
+        <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
+          <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+        </button>
+      </div>
     </div>
 
-    <div class="row g-4">
-      <div class="col-lg-4">
-        <div class="card card-custom p-4 text-center">
-          <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 70px; height: 70px;">
-            <i class="bi bi-door-open-fill fs-2"></i>
-          </div>
-          <h5 class="fw-bold mb-1" id="detailCourseName">---</h5>
-          <div class="mb-4"><span id="detailStatusBadge" class="st-badge">---</span></div>
+    <!-- CREATE/EDIT FORM -->
+    <div id="classFormSection" class="card card-custom" style="display: none;">
+      <div class="card-header bg-white border-0 p-4">
+        <h5 class="fw-bold m-0" id="formTitle">Tạo lớp học mới</h5>
+      </div>
+      <div class="card-body p-4">
+        <form id="classForm">
+          <input type="hidden" id="classId">
 
-          <div class="text-start border-top pt-4">
-            <div class="mb-3">
-              <p class="info-label mb-1">Giảng viên</p>
-              <p class="info-value" id="detailTeacherName">Chưa phân công</p>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Tên lớp học <span class="text-danger">*</span></label>
+              <input type="text" id="className" class="form-control" placeholder="Ví dụ: Lớp Python cơ bản" required>
             </div>
-            <div class="mb-3">
-              <p class="info-label mb-1">Lịch học & Ca</p>
-              <p class="info-value"><span id="detailSchedule">---</span> | <span id="detailSlot">---</span></p>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Khóa học <span class="text-danger">*</span></label>
+              <select id="courseId" class="form-select" required>
+                <option value="">-- Chọn khóa học --</option>
+              </select>
             </div>
-            <div class="row g-2">
-              <div class="col-6">
-                <p class="info-label mb-1">Khai giảng</p>
-                <p class="info-value small text-success" id="detailStart">---</p>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Giảng viên</label>
+              <select id="teacherId" class="form-select">
+                <option value="">-- Chọn giảng viên --</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Trạng thái</label>
+              <select id="classStatus" class="form-select">
+                <option value="Pending">Chờ duyệt</option>
+                <option value="Open">Mở</option>
+                <option value="Closed">Đóng</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày khai giảng</label>
+              <input type="date" id="startDate" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày kết thúc</label>
+              <input type="date" id="endDate" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Lịch học</label>
+              <input type="text" id="schedule" class="form-control" placeholder="Ví dụ: Thứ 2, 4, 6">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ca học</label>
+              <select id="slotTime" class="form-select">
+                <option value="">-- Chọn ca học --</option>
+                <option value="Sáng (7:00 - 9:00)">Sáng (7:00 - 9:00)</option>
+                <option value="Sáng (9:00 - 11:00)">Sáng (9:00 - 11:00)</option>
+                <option value="Chiều (13:00 - 15:00)">Chiều (13:00 - 15:00)</option>
+                <option value="Chiều (15:00 - 17:00)">Chiều (15:00 - 17:00)</option>
+                <option value="Tối (18:00 - 20:00)">Tối (18:00 - 20:00)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-top d-flex justify-content-end gap-2">
+            <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4">Hủy</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+              <i class="bi bi-check-lg me-1"></i> Lưu
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- DETAIL VIEW -->
+    <div id="detailSection">
+      <div class="row g-4">
+        <div class="col-lg-4">
+          <div class="card card-custom p-4 text-center">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3 mx-auto" style="width: 70px; height: 70px;">
+              <i class="bi bi-door-open-fill fs-2"></i>
+            </div>
+            <h5 class="fw-bold mb-1" id="detailCourseName">---</h5>
+            <div class="mb-4"><span id="detailStatusBadge" class="st-badge">---</span></div>
+
+            <div class="text-start border-top pt-4">
+              <div class="mb-3">
+                <p class="info-label mb-1">Giảng viên</p>
+                <p class="info-value" id="detailTeacherName">Chưa phân công</p>
               </div>
-              <div class="col-6">
-                <p class="info-label mb-1">Kết thúc</p>
-                <p class="info-value small text-danger" id="detailEnd">---</p>
+              <div class="mb-3">
+                <p class="info-label mb-1">Lịch học & Ca</p>
+                <p class="info-value"><span id="detailSchedule">---</span> | <span id="detailSlot">---</span></p>
+              </div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <p class="info-label mb-1">Khai giảng</p>
+                  <p class="info-value small text-success" id="detailStart">---</p>
+                </div>
+                <div class="col-6">
+                  <p class="info-label mb-1">Kết thúc</p>
+                  <p class="info-value small text-danger" id="detailEnd">---</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="col-lg-8">
-        <div class="card card-custom h-100">
-          <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold m-0">Học viên (<span id="studentCount">0</span>)</h5>
-          </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                <tr>
-                  <th class="ps-4">Học viên</th>
-                  <th>Ngày đăng ký</th>
-                  <th class="text-end pe-4">Trạng thái</th>
-                </tr>
-                </thead>
-                <tbody id="studentTableBody"></tbody>
-              </table>
+        <div class="col-lg-8">
+          <div class="card card-custom h-100">
+            <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+              <h5 class="fw-bold m-0">Học viên (<span id="studentCount">0</span>)</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">Học viên</th>
+                    <th>Ngày đăng ký</th>
+                    <th class="text-end pe-4">Trạng thái</th>
+                  </tr>
+                  </thead>
+                  <tbody id="studentTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -99,53 +177,234 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 
 <script th:inline="javascript">
-  // HÀM LẤY ID CHUẨN: Lấy số cuối cùng từ URL (Vd: .../detail/101 -> 101)
   function getCurrentId() {
       const url = window.location.pathname;
+      // Handle /manager/class/edit/208
+      if (url.includes('/edit/')) {
+          const parts = url.split('/edit/');
+          const id = parts[1];
+          return id && !isNaN(id) ? id : null;
+      }
+      // Handle /manager/class/detail/208
+      if (url.includes('/detail/')) {
+          const parts = url.split('/detail/');
+          const id = parts[1];
+          return id && !isNaN(id) ? id : null;
+      }
+      // Handle /manager/class/208
       const id = url.substring(url.lastIndexOf('/') + 1);
+      if (id === 'create' || isNaN(id)) {
+          return null;
+      }
       return id;
   }
 
   const classId = getCurrentId();
+  const path = window.location.pathname;
+  const isEditMode = path.includes('/edit/');
+  const isCreateMode = path === '/manager/class/create';
+  const isDetailMode = path.includes('/detail/');
 
-  document.addEventListener("DOMContentLoaded", loadClassDetail);
+  console.log('Path:', path);
+  console.log('classId:', classId, 'isEditMode:', isEditMode, 'isCreateMode:', isCreateMode, 'isDetailMode:', isDetailMode);
+
+  document.addEventListener("DOMContentLoaded", function() {
+      if (isCreateMode) {
+          // Create mode - show empty form
+          showFormMode(false);
+          loadCourses();
+          loadTeachers();
+      } else if (isEditMode && classId) {
+          // Edit mode - show form with data (isEdit = true), NO detail view
+          showFormMode(true);
+          loadCourses();
+          loadTeachers();
+          loadClassDetailForEdit();
+      } else if (isDetailMode && classId) {
+          // Detail mode - show detail view
+          showDetailMode();
+          loadClassDetailForView();
+      } else if (classId) {
+          // Default - show detail
+          showDetailMode();
+          loadClassDetailForView();
+      }
+  });
+
+  function showFormMode(isEdit = false) {
+      document.getElementById('detailSection').style.display = 'none';
+      document.getElementById('classFormSection').style.display = 'block';
+
+      if (isEdit) {
+          document.getElementById('pageTitle').innerText = 'Chỉnh sửa lớp học';
+          document.getElementById('actionButtons').style.display = 'none';
+      } else {
+          document.getElementById('pageTitle').innerText = 'Tạo lớp học mới';
+          document.getElementById('actionButtons').style.display = 'none';
+      }
+  }
+
+  function showDetailMode() {
+      document.getElementById('detailSection').style.display = 'block';
+      document.getElementById('classFormSection').style.display = 'none';
+  }
+
+  async function loadCourses() {
+      try {
+          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=100');
+          const result = await res.json();
+          if (result.data && result.data.items) {
+              const select = document.getElementById('courseId');
+              result.data.items.forEach(c => {
+                  const opt = document.createElement('option');
+                  opt.value = c.courseId;
+                  opt.textContent = c.courseName;
+                  select.appendChild(opt);
+              });
+              // If in edit mode and data loaded, set selected
+              if (window.classData && window.classData.courseId) {
+                  select.value = window.classData.courseId;
+              }
+          }
+      } catch (err) {
+          console.error('Error loading courses:', err);
+      }
+  }
+
+  async function loadTeachers() {
+      try {
+          const res = await fetch('/api/v1/accounts/list?pageNo=0&pageSize=100');
+          const result = await res.json();
+          if (result.data && result.data.items) {
+              const teachers = result.data.items.filter(u => u.roleName && u.roleName.toLowerCase().includes('teacher'));
+              const select = document.getElementById('teacherId');
+              teachers.forEach(t => {
+                  const opt = document.createElement('option');
+                  opt.value = t.userId;
+                  opt.textContent = t.fullName;
+                  select.appendChild(opt);
+              });
+              // If in edit mode and data loaded, set selected
+              if (window.classData && window.classData.teacherId) {
+                  select.value = window.classData.teacherId;
+              }
+          }
+      } catch (err) {
+          console.error('Error loading teachers:', err);
+      }
+  }
 
   async function loadClassDetail() {
+      if (!classId) {
+          console.log("No classId, skipping loadClassDetail");
+          return;
+      }
+
       try {
+          console.log("Loading class detail for ID:", classId);
           const res = await fetch(`/api/v1/classes/detail/${classId}`);
-          const result = await res.json();
+          console.log("Response status:", res.status);
 
-          console.log("Dữ liệu gốc:", result);
-
-          // Bóc tách dữ liệu lớp học (Hỗ trợ cả object đơn hoặc mảng items)
-          let d = null;
-          if (result.data) {
-              if (result.data.items && result.data.items.length > 0) d = result.data.items[0];
-              else if (Array.isArray(result.data)) d = result.data[0];
-              else d = result.data;
+          if (!res.ok) {
+              console.error("API error:", res.status, res.statusText);
+              alert("Lỗi API: " + res.status);
+              return;
           }
 
+          const result = await res.json();
+          console.log("API Response:", result);
+
+          if (result.status !== 200) {
+              alert("Lỗi: " + result.message);
+              return;
+          }
+
+          let d = result.data;
+          console.log("Class data object:", d);
+
           if (d) {
-              // Điền thông tin (Dùng cả snake_case và camelCase cho chắc chắn)
-              document.getElementById('displayClassName').innerText = d.class_name || d.className || 'N/A';
-              document.getElementById('detailCourseName').innerText = d.course_name || d.courseName || 'N/A';
-              document.getElementById('detailTeacherName').innerText = d.teacher_name || d.teacherName || 'Chưa phân công';
-              document.getElementById('detailSchedule').innerText = d.schedule || 'N/A';
-              document.getElementById('detailSlot').innerText = d.slot_time || d.slotTime || 'N/A';
+              // Store data globally
+              window.classData = {
+                  classId: d.classId,
+                  className: d.className || d.class_name || '',
+                  courseId: d.courseId,
+                  teacherId: d.teacherId,
+                  status: d.status || 'Pending',
+                  schedule: d.schedule || '',
+                  slotTime: d.slotTime || d.slot_time || '',
+                  startDate: d.startDate || d.start_date,
+                  endDate: d.endDate || d.end_date,
+                  courseName: d.courseName || d.course_name || 'N/A',
+                  teacherName: d.teacherName || d.teacher_name || 'Chưa phân công'
+              };
 
-              document.getElementById('detailStart').innerText = formatDate(d.start_date || d.startDate);
-              document.getElementById('detailEnd').innerText = formatDate(d.end_date || d.endDate);
-
-              const st = d.status || 'Pending';
-              const badge = document.getElementById('detailStatusBadge');
-              badge.innerText = st;
-              badge.className = `st-badge st-${st}`;
-
-              renderStudents(d.students || []);
+              return window.classData;
+          } else {
+              console.log("No data in response");
+              alert("Không có dữ liệu lớp học");
+              return null;
           }
       } catch (err) {
           console.error("Lỗi:", err);
+          alert("Lỗi: " + err.message);
+          return null;
       }
+  }
+
+  // Load data for Edit mode - populate form fields
+  async function loadClassDetailForEdit() {
+      const data = await loadClassDetail();
+      if (!data) return;
+
+      // Populate form fields
+      document.getElementById('classId').value = data.classId;
+      document.getElementById('className').value = data.className;
+      document.getElementById('classStatus').value = data.status;
+      document.getElementById('schedule').value = data.schedule;
+      document.getElementById('slotTime').value = data.slotTime;
+
+      // Format dates
+      if (data.startDate) {
+          document.getElementById('startDate').value = data.startDate.split('T')[0];
+      }
+      if (data.endDate) {
+          document.getElementById('endDate').value = data.endDate.split('T')[0];
+      }
+
+      // Set page title
+      document.getElementById('pageTitle').innerText = 'Chỉnh sửa lớp học';
+
+      // Set selected values for dropdowns after courses/teachers loaded
+      setTimeout(() => {
+          if (data.courseId) {
+              const courseSelect = document.getElementById('courseId');
+              if (courseSelect) courseSelect.value = data.courseId;
+          }
+          if (data.teacherId) {
+              const teacherSelect = document.getElementById('teacherId');
+              if (teacherSelect) teacherSelect.value = data.teacherId;
+          }
+      }, 500);
+  }
+
+  // Load data for View mode - populate detail section
+  async function loadClassDetailForView() {
+      const data = await loadClassDetail();
+      if (!data) return;
+
+      // Populate detail view
+      document.getElementById('displayClassName').innerText = data.className || 'N/A';
+      document.getElementById('detailCourseName').innerText = data.courseName;
+      document.getElementById('detailTeacherName').innerText = data.teacherName;
+      document.getElementById('detailSchedule').innerText = data.schedule || 'N/A';
+      document.getElementById('detailSlot').innerText = data.slotTime || 'N/A';
+      document.getElementById('detailStart').innerText = formatDate(data.startDate);
+      document.getElementById('detailEnd').innerText = formatDate(data.endDate);
+
+      const st = data.status;
+      const badge = document.getElementById('detailStatusBadge');
+      badge.innerText = st;
+      badge.className = `st-badge st-${st}`;
   }
 
   function renderStudents(list) {
@@ -173,13 +432,55 @@
       return isNaN(d.getTime()) ? str : d.toLocaleDateString('vi-VN');
   }
 
-  // FIX CHÍNH: Chuyển hướng đúng ID
   function goToEdit() {
-      const id = getCurrentId();
-      if(id) {
-          window.location.href = `/manager/class/edit/${id}`;
+      if (classId) {
+          window.location.href = `/manager/class/edit/${classId}`;
       }
   }
+
+  // Handle form submit
+  document.getElementById('classForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      // Convert date format from YYYY-MM-DD to YYYY-MM-DDTHH:mm:ss
+      const formatDateTime = (dateStr) => {
+          if (!dateStr) return null;
+          return dateStr + 'T00:00:00';
+      };
+
+      const payload = {
+          className: document.getElementById('className').value,
+          courseId: parseInt(document.getElementById('courseId').value),
+          teacherId: document.getElementById('teacherId').value ? parseInt(document.getElementById('teacherId').value) : null,
+          status: document.getElementById('classStatus').value,
+          startDate: formatDateTime(document.getElementById('startDate').value),
+          endDate: formatDateTime(document.getElementById('endDate').value),
+          schedule: document.getElementById('schedule').value,
+          slotTime: document.getElementById('slotTime').value
+      };
+
+      try {
+          const url = classId ? `/api/v1/classes/${classId}` : '/api/v1/classes/';
+          const method = classId ? 'PUT' : 'POST';
+
+          const res = await fetch(url, {
+              method: method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
+
+          const result = await res.json();
+          if (result.status === 201 || result.status === 200 || result.status === 202) {
+              alert('Lưu thành công!');
+              window.location.href = '/manager/class/list';
+          } else {
+              alert('Lỗi: ' + result.message);
+          }
+      } catch (err) {
+          alert('Lỗi kết nối!');
+          console.error(err);
+      }
+  });
 </script>
 </body>
 </html>

@@ -63,6 +63,7 @@ public class SecurityConfig {
                                 "/reset-password", "/reset-password.html",
                                 "/error").permitAll() // Thêm /error
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
 
                         // Phân quyền cứng
                         .requestMatchers("/admin/**").hasRole("ADMIN")
