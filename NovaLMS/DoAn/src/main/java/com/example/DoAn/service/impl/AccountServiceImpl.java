@@ -7,12 +7,15 @@ import com.example.DoAn.model.User;
 import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.AccountService;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -66,8 +69,34 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize) {
-        Page<User> page = userRepository.findAll(PageRequest.of(pageNo, pageSize));
+    public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize, String search, Integer roleId, String status) {
+        PageRequest pageable = PageRequest.of(pageNo, pageSize);
+
+        Specification<User> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Search by fullName or email
+            if (search != null && !search.trim().isEmpty()) {
+                String searchPattern = "%" + search.trim() + "%";
+                Predicate fullNamePredicate = cb.like(cb.lower(root.get("fullName")), searchPattern.toLowerCase());
+                Predicate emailPredicate = cb.like(cb.lower(root.get("email")), searchPattern.toLowerCase());
+                predicates.add(cb.or(fullNamePredicate, emailPredicate));
+            }
+
+            // Filter by roleId
+            if (roleId != null) {
+                predicates.add(cb.equal(root.get("role").get("settingId"), roleId));
+            }
+
+            // Filter by status
+            if (status != null && !status.trim().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<User> page = userRepository.findAll(spec, pageable);
 
         List<AccountDetailResponse> list = page.getContent().stream()
                 .map(this::mapToResponse)
@@ -87,6 +116,7 @@ public class AccountServiceImpl implements AccountService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .mobile(user.getMobile())
+                .roleId(user.getRole() != null ? user.getRole().getSettingId() : null)
                 .roleName(user.getRole() != null ? user.getRole().getName() : "N/A")
                 .status(user.getStatus())
                 .build();
