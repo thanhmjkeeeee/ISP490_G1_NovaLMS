@@ -21,11 +21,11 @@ public class ClassViewController {
 
     @GetMapping("/detail/{id}")
     public String detailPage(@PathVariable Integer id) {
-        return "manager/class-detail"; }
+        return "manager/class-create";
+    }
 
     @GetMapping("/edit/{id}")
     public String editPage(@PathVariable Integer id) {
-        return "manager/class-create"; }
-
-
+        return "manager/class-create";
+    }
 }

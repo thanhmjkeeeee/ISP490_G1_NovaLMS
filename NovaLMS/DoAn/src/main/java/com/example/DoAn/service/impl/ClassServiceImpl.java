@@ -33,6 +33,7 @@ public class ClassServiceImpl implements IClassService {
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
                 .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null)
                 .startDate(request.getStartDate() != null && !request.getStartDate().isEmpty() ? LocalDateTime.parse(request.getStartDate()) : null)
+                .endDate(request.getEndDate() != null && !request.getEndDate().isEmpty() ? LocalDateTime.parse(request.getEndDate()) : null)
                 .status(request.getStatus() != null ? request.getStatus() : "Pending")
                 .schedule(request.getSchedule())
                 .slotTime(request.getSlotTime())
@@ -52,6 +53,10 @@ public class ClassServiceImpl implements IClassService {
 
         if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
             clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
+        }
+
+        if (request.getEndDate() != null && !request.getEndDate().isEmpty()) {
+            clazz.setEndDate(LocalDateTime.parse(request.getEndDate()));
         }
 
         clazz.setStatus(request.getStatus());
@@ -93,7 +98,9 @@ public class ClassServiceImpl implements IClassService {
         return ClassDetailResponse.builder()
                 .classId(clazz.getClassId())
                 .className(clazz.getClassName() != null ? clazz.getClassName() : "N/A")
+                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
                 .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
+                .teacherId(clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null)
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Not assigned")
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
                 .endDate(clazz.getEndDate() != null ? clazz.getEndDate().toString() : "")

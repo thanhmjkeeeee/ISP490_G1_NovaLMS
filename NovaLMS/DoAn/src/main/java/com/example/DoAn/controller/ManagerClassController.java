@@ -55,4 +55,26 @@ public class ManagerClassController {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
+
+    @Operation(summary = "Get class by ID")
+    @GetMapping("/{id}")
+    public ResponseData<ClassDetailResponse> getClassById(@PathVariable Integer id) {
+        try {
+            ClassDetailResponse response = classService.getClassById(id);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get class detail by ID")
+    @GetMapping("/detail/{id}")
+    public ResponseData<ClassDetailResponse> getClassDetailById(@PathVariable Integer id) {
+        try {
+            ClassDetailResponse response = classService.getClassById(id);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
 }
