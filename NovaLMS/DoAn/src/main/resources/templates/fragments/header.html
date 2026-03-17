@@ -33,7 +33,7 @@
                 <!-- User menu khi đã đăng nhập -->
                 <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left:15px;">
                     <a href="#" class="d-flex align-items-center gap-2">
-                        <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-1.jpg'}"
+                        <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-m-2.webp'}"
                              style="width:30px;height:30px;object-fit:cover;border-radius:50%;"
                              alt="Avatar">
                         <span sec:authentication="name" style="font-weight:600;">User</span>
@@ -129,7 +129,7 @@
             <!-- User dropdown -->
             <div class="dash-user-menu">
                 <button class="dash-user-btn" id="userMenuToggle" type="button">
-                    <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-1.jpg'}"
+                    <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-m-2.webp'}"
                          alt="Avatar"
                          class="rounded-circle"
                          style="width: 40px; height: 40px; object-fit: cover;">

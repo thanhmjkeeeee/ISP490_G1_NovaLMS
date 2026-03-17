@@ -1,19 +1,24 @@
 package com.example.DoAn.service;
 
+import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.Setting;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 @Service
@@ -30,23 +35,22 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
-        String picture = oAuth2User.getAttribute("picture"); // Lấy avatar nếu cần
+        String picture = oAuth2User.getAttribute("picture");
 
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
             // Case: User mới -> Tạo User
-
-            Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
-                    .orElseThrow(() -> new RuntimeException("Default Role 'ROLE_STUDENT' not found. Hãy chạy DataInitializer hoặc insert vào DB."));
+            Setting studentRole = settingRepository.findRoleByName("ROLE_STUDENT")
+                    .orElseThrow(() -> new ResourceNotFoundException("Role"));
 
             user = User.builder()
                     .email(email)
-                    .fullName(name) // Map thêm tên từ Google
-                    .avatarUrl(picture) // Map thêm avatar
+                    .fullName(name)
+                    .avatarUrl(picture)
                     .role(studentRole)
                     .status("Active")
-                    .authProvider("GOOGLE") // Đánh dấu là Google User
+                    .authProvider("GOOGLE")
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .lastLogin(LocalDateTime.now())
                     .build();
@@ -57,14 +61,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 throw new OAuth2AuthenticationException("Account is banned");
             }
 
-            // Cập nhật thông tin mới nhất từ Google (Optional)
+            // Cập nhật thông tin mới nhất từ Google
             user.setFullName(name);
             user.setAvatarUrl(picture);
             user.setLastLogin(LocalDateTime.now());
-            user.setAuthProvider("GOOGLE"); // Link account nếu trước đó là LOCAL
+            user.setAuthProvider("GOOGLE");
             userRepository.save(user);
         }
 
-        return oAuth2User;
+        // Lấy role từ database và tạo authorities
+        String roleName = "ROLE_STUDENT";
+        if (user.getRole() != null && user.getRole().getName() != null) {
+            roleName = user.getRole().getName();
+        }
+
+        GrantedAuthority authority = new SimpleGrantedAuthority(roleName);
+
+        // Trả về OAuth2User với authorities từ database
+        return new DefaultOAuth2User(
+                Collections.singletonList(authority),
+                oAuth2User.getAttributes(),
+                "email"
+        );
     }
 }
