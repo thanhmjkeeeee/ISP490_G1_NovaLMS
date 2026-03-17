@@ -30,6 +30,12 @@ public class Course {
     @Column(name = "price")
     private Double price;
 
+    @Column(name = "sale")
+    private Double sale;
+
+    @Column(name = "avatar")
+    private String avatar;
+
     @Transient // Đánh dấu đây là cột ảo, không lưu vào Database
     private Integer studentCount = 0;
 

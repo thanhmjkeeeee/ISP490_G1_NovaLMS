@@ -48,8 +48,10 @@
                     <div class="col-md-8 ps-md-5">
                         <div class="row mb-4">
                             <div class="col-6">
-                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Học phí</label>
+                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Học phí gốc</label>
+                                <h5 class="text-muted text-decoration-line-through small" id="courseOriginalPrice">0 VND</h5>
                                 <h5 class="text-danger fw-bold" id="coursePrice">0 VND</h5>
+                                <span class="badge bg-danger" id="courseSaleBadge"></span>
                             </div>
                             <div class="col-6">
                                 <label class="small text-muted text-uppercase fw-bold d-block mb-1">Cập nhật lúc</label>
@@ -94,7 +96,19 @@
                         // Đổ dữ liệu vào giao diện
                         document.getElementById('courseName').innerText = course.courseName || 'N/A';
                         document.getElementById('courseCode').innerText = 'Mã: ' + (course.courseCode || 'N/A');
-                        document.getElementById('coursePrice').innerText = (course.price || 0).toLocaleString('vi-VN') + ' VND';
+
+                        // Xử lý giá và sale
+                        const originalPrice = course.price || 0;
+                        const sale = course.sale || 0;
+                        if (sale > 0) {
+                            document.getElementById('courseOriginalPrice').innerText = originalPrice.toLocaleString('vi-VN') + ' VND';
+                            document.getElementById('coursePrice').innerText = (originalPrice - sale).toLocaleString('vi-VN') + ' VND';
+                            document.getElementById('courseSaleBadge').innerText = 'Giảm ' + sale.toLocaleString('vi-VN') + ' VND';
+                        } else {
+                            document.getElementById('courseOriginalPrice').style.display = 'none';
+                            document.getElementById('coursePrice').innerText = originalPrice.toLocaleString('vi-VN') + ' VND';
+                        }
+
                         document.getElementById('courseDescription').innerText = course.description || 'Chưa có thông tin mô tả.';
                         document.getElementById('editBtn').href = `/admin/courses/edit/${course.courseId}`;
 

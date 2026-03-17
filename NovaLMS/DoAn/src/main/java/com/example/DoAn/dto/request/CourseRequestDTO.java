@@ -20,5 +20,9 @@ public class CourseRequestDTO implements Serializable {
     @Min(value = 0, message = "Price must be greater than or equal to 0")
     private Double price;
 
+    private Double sale;
+
+    private String avatar;
+
     private String status;
 }

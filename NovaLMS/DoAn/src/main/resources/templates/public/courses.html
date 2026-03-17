@@ -93,12 +93,19 @@
                     <p th:text="${#strings.abbreviate(course.description, 100)}">Short description...</p>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="h5 fw-bold text-primary mb-0"
-                              th:if="${course.price != null && course.price > 0}"
-                              th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                        </span>
-                      <span class="h5 fw-bold text-success mb-0"
-                            th:if="${course.price == null || course.price == 0}">
+                        <div th:if="${course.price != null && course.price > 0}">
+                            <span th:if="${course.sale != null && course.sale > 0}" class="text-decoration-line-through text-muted small me-2"
+                                  th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                            <span class="h5 fw-bold text-primary mb-0"
+                                  th:text="${#numbers.formatDecimal(course.price - (course.sale ?: 0), 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                            <span th:if="${course.sale != null && course.sale > 0}" class="badge bg-danger ms-1"
+                                  th:text="'-' + ${#numbers.formatDecimal(course.sale, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                        </div>
+                        <span class="h5 fw-bold text-success mb-0"
+                              th:if="${course.price == null || course.price == 0}">
                             Free
                         </span>
                     </div>
@@ -175,11 +182,19 @@
               let htmlContent = '';
               courses.forEach(course => {
 
-                // Xử lý giá tiền
+                // Xử lý giá tiền và sale
                 let priceHtml = '';
                 if (course.price != null && course.price > 0) {
                   const formattedPrice = course.price.toLocaleString('vi-VN');
-                  priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+                  if (course.sale != null && course.sale > 0) {
+                    const salePrice = (course.price - course.sale).toLocaleString('vi-VN');
+                    const saleAmount = course.sale.toLocaleString('vi-VN');
+                    priceHtml = `<span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
+                                 <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>
+                                 <span class="badge bg-danger ms-1">-${saleAmount} đ</span>`;
+                  } else {
+                    priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+                  }
                 } else {
                   priceHtml = `<span class="h5 fw-bold text-success mb-0">Free</span>`;
                 }
