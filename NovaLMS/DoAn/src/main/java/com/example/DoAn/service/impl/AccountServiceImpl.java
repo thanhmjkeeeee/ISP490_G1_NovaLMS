@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -32,9 +33,9 @@ public class AccountServiceImpl implements AccountService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .mobile(request.getMobile())
+                .password(request.getPassword())
                 .role(settingRepository.findById(request.getRoleId()).orElse(null))
                 .status("Active")
-                .password("default123")
                 .build();
 
         userRepository.save(user);
@@ -70,7 +71,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize, String search, Integer roleId, String status) {
-        PageRequest pageable = PageRequest.of(pageNo, pageSize);
+        PageRequest pageable = PageRequest.of(pageNo, pageSize, Sort.by("userId").descending());
 
         Specification<User> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
