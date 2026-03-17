@@ -49,6 +49,16 @@
                 </select>
               </div>
 
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Giảm giá (VND)</label>
+                <input type="number" id="sale" class="form-control" placeholder="0" value="0">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Avatar URL</label>
+                <input type="text" id="avatar" class="form-control" placeholder="https://example.com/image.jpg">
+              </div>
+
               <div class="col-12">
                 <label class="form-label fw-bold small">Mô tả khóa học</label>
                 <textarea id="description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
@@ -89,6 +99,8 @@
                     document.getElementById('courseCode').value = course.courseCode || '';
                     document.getElementById('courseName').value = course.courseName || '';
                     document.getElementById('price').value = course.price || 0;
+                    document.getElementById('sale').value = course.sale || 0;
+                    document.getElementById('avatar').value = course.avatar || '';
                     document.getElementById('status').value = (course.status || 'active').toLowerCase();
                     document.getElementById('description').value = course.description || '';
 
@@ -111,6 +123,8 @@
         courseCode: document.getElementById('courseCode').value, // Map vào field courseCode của DTO
         courseName: document.getElementById('courseName').value,
         price: parseFloat(document.getElementById('price').value) || 0,
+        sale: parseFloat(document.getElementById('sale').value) || 0,
+        avatar: document.getElementById('avatar').value,
         status: document.getElementById('status').value,
         description: document.getElementById('description').value
       };
