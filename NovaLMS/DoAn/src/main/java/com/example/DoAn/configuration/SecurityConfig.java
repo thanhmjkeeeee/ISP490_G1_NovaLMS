@@ -47,7 +47,8 @@ public class SecurityConfig {
             "/instructors", "/instructors.html", "/instructor-profile", "/instructor-profile.html",
             "/about", "/about.html", "/pricing", "/pricing.html",
             "/blog", "/blog.html", "/contact", "/contact.html",
-            "/404", "/404.html", "/error", "/classes"
+            "/404", "/404.html", "/error", "/classes",
+            "/enroll", "/enroll-class"
     };
 
     @Bean
@@ -66,6 +67,8 @@ public class SecurityConfig {
                                 "/error").permitAll() // Thêm /error
                         .requestMatchers("/api/v1/auth/current-user").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/classes/**").permitAll()
+                        .requestMatchers("/api/v1/public/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
 
                         // Phân quyền cứng
