@@ -35,6 +35,6 @@ public class ProfileViewController {
         }
 
         model.addAttribute("userProfile", result.getData());
-        return "user/account-details";
+        return "student/account-details";
     }
 }

@@ -80,4 +80,11 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
     Optional<Registration> findByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
 
+    // Admin: Lấy tất cả đăng ký
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
+    List<Registration> findAllRegistrations();
+
+    @Query("SELECT COUNT(r) FROM Registration r WHERE r.course.courseId = :courseId OR :courseId IS NULL")
+    long countAll(@Param("courseId") Integer courseId);
+
 }
