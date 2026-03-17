@@ -2,6 +2,14 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Đăng nhập')}"></head>
+<script th:inline="javascript">
+    // Lưu redirect URL vào sessionStorage nếu có
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirectUrl = urlParams.get('redirect');
+    if (redirectUrl) {
+        sessionStorage.setItem('loginRedirect', redirectUrl);
+    }
+</script>
 
 <body class="index-page">
 
@@ -29,6 +37,11 @@
 
                             <!-- FORM LOGIN -->
                             <form th:action="@{/perform_login}" method="post">
+                                <input type="hidden" id="redirectParam" name="redirect" value="">
+                                <script th:inline="javascript">
+                                    document.getElementById('redirectParam').value = sessionStorage.getItem('loginRedirect') || '';
+                                </script>
+
                                 <div class="mb-3">
                                     <label for="username" class="form-label">Email</label>
                                     <input type="email" class="form-control" id="username" name="username" placeholder="name@example.com" required>
@@ -57,9 +70,16 @@
                                 <hr class="flex-grow-1">
                             </div>
 
-                            <a href="/oauth2/authorization/google" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="border-radius: 50px;">
+                            <a id="googleLoginLink" href="/oauth2/authorization/google" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2" style="border-radius: 50px;">
                                 <i class="bi bi-google"></i> Đăng nhập bằng Google
                             </a>
+                            <script th:inline="javascript">
+                                const googleLink = document.getElementById('googleLoginLink');
+                                const redirect = sessionStorage.getItem('loginRedirect');
+                                if (redirect) {
+                                    googleLink.href = '/oauth2/authorization/google?redirect_uri=' + encodeURIComponent(redirect);
+                                }
+                            </script>
 
                             <div class="text-center mt-4">
                                 Bạn chưa có tài khoản? <a th:href="@{/register}" class="text-decoration-none fw-bold">Đăng ký ngay</a>
