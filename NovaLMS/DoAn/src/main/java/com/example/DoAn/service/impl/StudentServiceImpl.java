@@ -158,4 +158,87 @@ public class StudentServiceImpl implements StudentService {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseData<PageResponse<RegistrationResponseDTO>> getAllRegistrations(String keyword, String status, Integer courseId, int page, int size) {
+        try {
+            // Get all registrations
+            List<Registration> allRegistrations = registrationRepository.findAllRegistrations();
+
+            // Apply filters in memory
+            List<Registration> filtered = allRegistrations.stream()
+                    .filter(r -> (keyword == null || keyword.isEmpty() ||
+                            (r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(keyword.toLowerCase())) ||
+                            (r.getCourse().getTitle() != null && r.getCourse().getTitle().toLowerCase().contains(keyword.toLowerCase())) ||
+                            (r.getUser().getFullName() != null && r.getUser().getFullName().toLowerCase().contains(keyword.toLowerCase())) ||
+                            (r.getUser().getEmail() != null && r.getUser().getEmail().toLowerCase().contains(keyword.toLowerCase()))))
+                    .filter(r -> (status == null || status.isEmpty() || r.getStatus().equalsIgnoreCase(status)))
+                    .filter(r -> (courseId == null || r.getCourse().getCourseId().equals(courseId)))
+                    .collect(Collectors.toList());
+
+            // Manual pagination
+            int start = page * size;
+            int end = Math.min(start + size, filtered.size());
+            List<Registration> pagedList = start < filtered.size() ? filtered.subList(start, end) : List.of();
+
+            List<RegistrationResponseDTO> dtoList = pagedList.stream()
+                    .map(r -> {
+                        String courseName = r.getCourse().getCourseName();
+                        if (courseName == null || courseName.isEmpty()) {
+                            courseName = r.getCourse().getTitle();
+                        }
+                        return RegistrationResponseDTO.builder()
+                                .registrationId(r.getRegistrationId())
+                                .courseName(courseName)
+                                .className(r.getClazz().getClassName())
+                                .status(r.getStatus())
+                                .registrationPrice(r.getRegistrationPrice())
+                                .note(r.getNote())
+                                .userName(r.getUser().getFullName())
+                                .userEmail(r.getUser().getEmail())
+                                .registrationTime(r.getRegistrationTime())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            int totalPages = (int) Math.ceil((double) filtered.size() / size);
+
+            PageResponse<RegistrationResponseDTO> pageResponse = PageResponse.<RegistrationResponseDTO>builder()
+                    .items(dtoList)
+                    .pageNo(page)
+                    .pageSize(size)
+                    .totalPages(totalPages)
+                    .totalElements(filtered.size())
+                    .last(page >= totalPages - 1)
+                    .build();
+
+            return ResponseData.success("Thành công", pageResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseData<Integer> updateRegistrationStatus(Integer registrationId, String status, String note) {
+        try {
+            Registration registration = registrationRepository.findById(registrationId)
+                    .orElse(null);
+            if (registration == null) {
+                return ResponseData.error(404, "Không tìm thấy đăng ký!");
+            }
+
+            registration.setStatus(status);
+            if (note != null) {
+                registration.setNote(note);
+            }
+            registrationRepository.save(registration);
+
+            return ResponseData.success("Cập nhật thành công!", registrationId);
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
+        }
+    }
 }
