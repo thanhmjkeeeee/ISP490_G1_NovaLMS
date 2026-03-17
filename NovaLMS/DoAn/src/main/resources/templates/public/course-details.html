@@ -153,10 +153,21 @@
             <div class="card-body text-center">
 
               <div class="mb-3">
-                <h3 class="text-primary fw-bold mb-0"
-                    th:if="${course.price != null && course.price > 0}"
-                    th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                </h3>
+                <div th:if="${course.price != null && course.price > 0}">
+                  <th:block th:with="saleAmount=${course.sale != null ? course.sale : 0}">
+                    <span class="text-decoration-line-through text-muted small"
+                          th:if="${saleAmount > 0}"
+                          th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                    </span>
+                    <span class="badge bg-danger ms-1"
+                          th:if="${saleAmount > 0}"
+                          th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                    </span>
+                    <h3 class="text-primary fw-bold mb-0"
+                        th:text="${#numbers.formatDecimal(course.price - saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                    </h3>
+                  </th:block>
+                </div>
                 <h3 class="text-success fw-bold mb-0"
                     th:if="${course.price == null || course.price == 0}">
                   Miễn phí
