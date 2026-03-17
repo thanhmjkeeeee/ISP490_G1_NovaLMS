@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/head :: common-head('Đăng ký khóa học')}"></head>
+
+<body class="enroll-page">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='enroll')}"></header>
+
+<main class="main pt-5 pb-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-4 p-lg-5">
+                        <h2 class="text-center mb-4" style="color: #1a237e;">Đăng ký khóa học</h2>
+
+                        <!-- Thông tin lớp học -->
+                        <div class="class-info-card bg-light rounded-3 p-4 mb-4">
+                            <h5 class="fw-bold mb-3" style="color: #1a237e;" th:text="${classInfo.courseName}">Tên khóa học</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Lớp:</strong> <span th:text="${classInfo.className}">Tên lớp</span></p>
+                                    <p class="mb-1"><strong>Giảng viên:</strong> <span th:text="${classInfo.teacherName}">Tên giảng viên</span></p>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Lịch học:</strong> <span th:text="${classInfo.schedule}">Thứ 2, 4, 6</span></p>
+                                    <p class="mb-1"><strong>Giờ học:</strong> <span th:text="${classInfo.slotTime}">18:00 - 21:00</span></p>
+                                    <p class="mb-0"><strong>Ngày khai giảng:</strong> <span th:text="${classInfo.startDate}">01/01/2025</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="enrollAlert" class="alert d-none" role="alert"></div>
+
+                        <form id="enrollForm">
+                            <input type="hidden" id="classId" th:value="${classInfo.classId}">
+
+                            <div class="mb-3">
+                                <label class="form-label">Ghi chú (tùy chọn)</label>
+                                <textarea class="form-control" id="note" rows="3" placeholder="Nhập ghi chú nếu có..."></textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold">
+                                    Đăng ký ngay
+                                </button>
+                                <a th:href="@{/classes}" class="btn btn-outline-secondary rounded-pill">
+                                    Quay lại
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script th:inline="javascript">
+    var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+
+    document.getElementById('btnEnroll').addEventListener('click', async function() {
+        if (!isAuthenticated) {
+            window.location.href = '/login.html?redirect=/enroll/' + document.getElementById('classId').value;
+            return;
+        }
+
+        const btn = this;
+        const alertBox = document.getElementById('enrollAlert');
+        const classId = document.getElementById('classId').value;
+        const note = document.getElementById('note').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+        alertBox.classList.add('d-none');
+
+        try {
+            const response = await fetch('/api/v1/student/enroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    classId: classId,
+                    note: note
+                })
+            });
+            const result = await response.json();
+
+            if (result.status === 200) {
+                alertBox.className = 'alert alert-success';
+                alertBox.textContent = 'Đăng ký thành công! Đang chuyển hướng...';
+                alertBox.classList.remove('d-none');
+                setTimeout(() => {
+                    window.location.href = '/student/my-enrollments';
+                }, 1500);
+            } else {
+                alertBox.className = 'alert alert-danger';
+                alertBox.textContent = result.message || 'Đăng ký thất bại!';
+                alertBox.classList.remove('d-none');
+                btn.disabled = false;
+                btn.textContent = 'Đăng ký ngay';
+            }
+        } catch (error) {
+            alertBox.className = 'alert alert-danger';
+            alertBox.textContent = 'Lỗi hệ thống! Vui lòng thử lại sau.';
+            alertBox.classList.remove('d-none');
+            btn.disabled = false;
+            btn.textContent = 'Đăng ký ngay';
+        }
+    });
+</script>
+
+</body>
+</html>
