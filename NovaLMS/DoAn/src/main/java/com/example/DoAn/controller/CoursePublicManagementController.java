@@ -1,13 +1,13 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.CoursePublicResponseDTO;
+import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.CourseService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * RestController cung cấp API cho khách (Guest/Public).
@@ -15,23 +15,26 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/public/courses")
+@RequiredArgsConstructor
 public class CoursePublicManagementController {
 
     @Autowired
     private CourseService courseService;
 
     /**
-     * API Lọc và tìm kiếm khóa học cho Guest (AJAX).
+     * API Lọc và tìm kiếm khóa học cho Guest (AJAX) có phân trang.
      * URL: /api/v1/public/courses/filter
      */
     @GetMapping("/filter")
-    public ResponseEntity<ResponseData<List<CoursePublicResponseDTO>>> filterCourses(
+    public ResponseEntity<ResponseData<PageResponse<CoursePublicResponseDTO>>> filterCourses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer categoryId,
-            @RequestParam(required = false, defaultValue = "newest") String sortBy) {
+            @RequestParam(required = false, defaultValue = "newest") String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size) {
 
-        // Gọi service lấy dữ liệu đã được map sang DTO
-        List<CoursePublicResponseDTO> data = courseService.searchAndFilterCourses(keyword, categoryId, sortBy);
+        // Gọi service lấy dữ liệu đã được map sang DTO có phân trang
+        PageResponse<CoursePublicResponseDTO> data = courseService.searchAndFilterCourses(keyword, categoryId, sortBy, page, size);
 
         return ResponseEntity.ok(new ResponseData<>(200, "Tải danh sách thành công", data));
     }

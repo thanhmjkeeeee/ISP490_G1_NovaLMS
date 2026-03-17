@@ -39,6 +39,15 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                                @Param("status") String status,
                                Sort sort);
 
+    @Query("SELECT c FROM Course c WHERE " +
+            "c.status = :status AND " +
+            "(:categoryId IS NULL OR c.category.settingId = :categoryId) AND " +
+            "(:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Course> searchCourses(@Param("keyword") String keyword,
+                               @Param("categoryId") Integer categoryId,
+                               @Param("status") String status,
+                               Pageable pageable);
+
 }
 
 
