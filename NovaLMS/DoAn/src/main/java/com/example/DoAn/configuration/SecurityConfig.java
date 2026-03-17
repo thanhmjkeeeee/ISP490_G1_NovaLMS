@@ -33,6 +33,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
     private static final String[] STATIC_RESOURCES = {
             "/css/**", "/js/**", "/images/**", "/assets/**", "/vendor/**", "/favicon.ico"
@@ -62,6 +64,7 @@ public class SecurityConfig {
                                 "/register", "/register.html",
                                 "/reset-password", "/reset-password.html",
                                 "/error").permitAll() // Thêm /error
+                        .requestMatchers("/api/v1/auth/current-user").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
 
@@ -80,6 +83,14 @@ public class SecurityConfig {
                         .loginProcessingUrl("/perform_login")
                         .successHandler(customSuccessHandler())
                         .permitAll()
+                )
+
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login.html")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService)
+                        )
+                        .successHandler(oAuth2LoginSuccessHandler)
                 )
 
                 .logout(logout -> logout
@@ -108,19 +119,24 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler customSuccessHandler() {
         return (request, response, authentication) -> {
-            var authorities = authentication.getAuthorities();
-            String targetUrl = "/index";
+            // Kiểm tra có redirect parameter không
+            String redirectUrl = request.getParameter("redirect");
+            String targetUrl = redirectUrl != null ? redirectUrl : "/index";
 
-            for (var authority : authorities) {
-                String role = authority.getAuthority();
-                if (role.equals("ROLE_ADMIN")) {
-                    targetUrl = "/admin/dashboard"; break;
-                } else if (role.equals("ROLE_MANAGER")) {
-                    targetUrl = "/manager/dashboard"; break;
-                } else if (role.equals("ROLE_TEACHER")) {
-                    targetUrl = "/teacher/dashboard"; break;
-                } else if (role.equals("ROLE_STUDENT")) {
-                    targetUrl = "/student/dashboard"; break;
+            // Nếu không có redirect, chuyển theo role
+            if (redirectUrl == null) {
+                var authorities = authentication.getAuthorities();
+                for (var authority : authorities) {
+                    String role = authority.getAuthority();
+                    if (role.equals("ROLE_ADMIN")) {
+                        targetUrl = "/admin/dashboard"; break;
+                    } else if (role.equals("ROLE_MANAGER")) {
+                        targetUrl = "/manager/dashboard"; break;
+                    } else if (role.equals("ROLE_TEACHER")) {
+                        targetUrl = "/teacher/dashboard"; break;
+                    } else if (role.equals("ROLE_STUDENT")) {
+                        targetUrl = "/student/dashboard"; break;
+                    }
                 }
             }
             response.sendRedirect(targetUrl);

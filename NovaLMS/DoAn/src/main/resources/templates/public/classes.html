@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head th:replace="~{fragments/head :: common-head('Classes')}"></head>
 
 <body class="classes-page" style="background-color: #f8f9fa;">
+
+<!-- Biến toàn cục xác định trạng thái đăng nhập -->
+<script th:inline="javascript">
+    var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+</script>
 
 <header th:replace="~{fragments/header :: header-fragment('classes')}"></header>
 
@@ -173,9 +179,10 @@
                             </div>
 
                             <div class="col-lg-2 col-12 text-lg-end mt-2 mt-lg-0">
-                                <a href="/register?classId=${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">
-                                    Đăng ký
-                                </a>
+                                ${isAuthenticated
+                                    ? `<a href="/enroll/${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">Đăng ký</a>`
+                                    : `<a href="/login.html?redirect=/enroll/${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">Đăng ký</a>`
+                                }
                             </div>
                         </div>
                     </div>
