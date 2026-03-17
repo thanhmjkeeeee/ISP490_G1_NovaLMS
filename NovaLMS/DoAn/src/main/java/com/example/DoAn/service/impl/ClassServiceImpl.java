@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -81,7 +82,7 @@ public class ClassServiceImpl implements IClassService {
 
     @Override
     public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize) {
-        Page<Clazz> page = classRepository.findAll(PageRequest.of(pageNo, pageSize));
+        Page<Clazz> page = classRepository.findAll(PageRequest.of(pageNo, pageSize, Sort.by("classId").descending()));
         List<ClassDetailResponse> list = page.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();
