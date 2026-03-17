@@ -32,6 +32,8 @@ public class CourseServiceImpl implements ICourseService {
                 .courseName(request.getCourseName())
                 .description(request.getDescription())
                 .price(request.getPrice())
+                .sale(request.getSale())
+                .avatar(request.getAvatar())
                 .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
                 .build();
 
@@ -49,6 +51,8 @@ public class CourseServiceImpl implements ICourseService {
         course.setCourseName(request.getCourseName());
         course.setDescription(request.getDescription());
         course.setPrice(request.getPrice());
+        course.setSale(request.getSale());
+        course.setAvatar(request.getAvatar());
         course.setStatus(request.getStatus());
 
         courseRepository.save(course);
@@ -122,6 +126,8 @@ public class CourseServiceImpl implements ICourseService {
                 .courseName(course.getCourseName())
                 .description(course.getDescription())
                 .price(course.getPrice())
+                .sale(course.getSale())
+                .avatar(course.getAvatar())
                 .status(course.getStatus())
                 .build();
     }
