@@ -132,6 +132,12 @@
                           </span>
                         </p>
                       </div>
+
+                      <button class="btn btn-success mt-3 btn-enroll-class"
+                              th:data-class-id="${clazz.classId}"
+                              th:data-course-id="${course.courseId}">
+                        <i class="bi bi-check-circle me-1"></i> Đăng ký lớp này
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -158,7 +164,7 @@
               </div>
 
               <button class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow"
-                      onclick="document.getElementById('classes-tab').click()">
+                      onclick="enrollFirstClass()">
                 ĐĂNG KÝ NGAY
               </button>
 
@@ -187,6 +193,76 @@
 
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script th:inline="javascript">
+// Enroll first class function - for "ĐĂNG KÝ NGAY" button
+function enrollFirstClass() {
+    const firstEnrollBtn = document.querySelector('.btn-enroll-class');
+    if (firstEnrollBtn) {
+        const classId = firstEnrollBtn.getAttribute('data-class-id');
+        const courseId = firstEnrollBtn.getAttribute('data-course-id');
+        enrollToClass(classId, courseId);
+    } else {
+        // No classes available, switch to classes tab
+        document.getElementById('classes-tab').click();
+    }
+}
+
+// Main enroll function
+function enrollToClass(classId, courseId) {
+    if (!classId) {
+        alert('Không tìm thấy lớp học!');
+        return;
+    }
+
+    // Directly try enrollment - backend will return 401 if not authenticated
+    fetch('/api/v1/student/enroll', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            classId: parseInt(classId),
+            courseId: courseId ? parseInt(courseId) : null
+        })
+    })
+    .then(response => {
+        if (response.status === 401) {
+            // Not logged in, redirect to login
+            alert('Vui lòng đăng nhập để đăng ký khóa học!');
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+            return Promise.reject('Not authenticated');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert('Đăng ký thành công! Chúc mừng bạn đã join lớp học.');
+            window.location.href = '/student/my-courses';
+        } else {
+            alert(data.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+        }
+    })
+    .catch(error => {
+        console.error('Enrollment error:', error);
+        if (error.message !== 'Not authenticated') {
+            alert('Đã xảy ra lỗi. Vui lòng thử lại sau!');
+        }
+    });
+}
+
+// Attach click handlers to all enroll buttons
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-enroll-class').forEach(button => {
+        button.addEventListener('click', function() {
+            const classId = this.getAttribute('data-class-id');
+            const courseId = this.getAttribute('data-course-id');
+            enrollToClass(classId, courseId);
+        });
+    });
+});
+</script>
 
 </body>
 </html>
