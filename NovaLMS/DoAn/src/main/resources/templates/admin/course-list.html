@@ -3,6 +3,34 @@
 
 <head th:with="isDashboard=true">
     <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý khóa học')}"></th:block>
+    <style>
+        html, body, .dashboard-body {
+             height: auto !important;
+             overflow: visible !important;
+         }
+
+         .dash-main {
+             height: auto !important;
+             min-height: 100vh !important;
+             overflow-y: visible !important;
+             padding-bottom: 5rem !important;
+             display: block !important;
+         }
+
+
+         .filter-section .form-control,
+         .filter-section .form-select,
+         .filter-section .input-group-text,
+         .filter-section .btn {
+             height: 40px !important;
+         }
+
+         .badge-active {
+             background-color: rgba(25, 135, 84, 0.1) !important;
+             color: #198754 !important;
+             border: 1px solid rgba(25, 135, 84, 0.2);
+         }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -26,26 +54,32 @@
         </a>
     </div>
 
-    <div class="card mb-4 border-0 shadow-sm">
+    <div class="card mb-4 border-0 shadow-sm filter-section">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
                     <label class="form-label small fw-bold text-secondary">Search</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                    <div class="input-group">
+                    <span class="input-group-text border-end-0 text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
                         <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Code...">
                     </div>
                 </div>
-                <div class="col-md-3">
+
+                <div class="col-md-4">
                     <label class="form-label small fw-bold text-secondary">Status</label>
-                    <select id="statusFilter" class="form-select form-select-sm bg-light">
+                    <select id="statusFilter" class="form-select bg-light">
                         <option value="">All Status</option>
                         <option value="active">Active</option>
                         <option value="draft">Draft</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" onclick="loadCourseData(0)" class="btn btn-sm btn-primary w-100">Filter</button>
+
+                <div class="col-md-3">
+                    <button type="button" onclick="loadCourseData(0)" class="btn btn-primary w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center" style="background-color: #3b82f6; border: none;">
+                        <i class="bi bi-filter me-2"></i> Filter
+                    </button>
                 </div>
             </div>
         </div>
@@ -131,13 +165,23 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
 
     // Hàm vẽ bảng
     function renderTable(courses) {
-        const tbody = document.getElementById('courseDataBody');
-        if (!courses || courses.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
-            return;
+    const tbody = document.getElementById('courseDataBody');
+    if (!courses || courses.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = courses.map(course => {
+        // CHUYỂN HẾT VỀ CHỮ THƯỜNG ĐỂ SO SÁNH
+        const status = (course.status || 'draft').toLowerCase();
+
+        // Xác định class màu sắc đồng nhất
+        let badgeClass = 'bg-warning bg-opacity-10 text-warning'; // Mặc định cho draft
+        if (status === 'active') {
+            badgeClass = 'bg-success bg-opacity-10 text-success';
         }
 
-        tbody.innerHTML = courses.map(course => `
+        return `
             <tr>
                 <td class="ps-4 text-muted small">#${course.courseId}</td>
                 <td>
@@ -153,8 +197,8 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                 </td>
                 <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
                 <td>
-                    <span class="badge px-2 py-1 fw-semibold ${course.status === 'active' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}">
-                        ${course.status || 'draft'}
+                    <span class="badge px-2 py-1 fw-bold text-uppercase ${badgeClass}" style="font-size: 10px;">
+                        ${status}
                     </span>
                 </td>
                 <td class="text-end pe-4">
@@ -166,8 +210,9 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                     </button>
                 </td>
             </tr>
-        `).join('');
-    }
+        `;
+    }).join('');
+}
 
     // Hàm vẽ phân trang
     function renderPagination(currentPage, totalPages) {
