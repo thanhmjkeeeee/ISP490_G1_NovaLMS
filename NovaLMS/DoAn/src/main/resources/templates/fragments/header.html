@@ -86,6 +86,10 @@
 
         <a sec:authorize="!isAuthenticated()" class="btn-getstarted"
            th:href="@{/login}">Đăng nhập</a>
+        <a sec:authorize="!isAuthenticated()" class="btn-getstarted" th:href="@{/register.html}"
+           style="padding: 8px 20px;">
+            Đăng ký
+        </a>
 
     </div>
 </header>
