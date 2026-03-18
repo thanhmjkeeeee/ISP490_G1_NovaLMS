@@ -45,7 +45,8 @@ public class ClassPublicServiceImpl implements ClassPublicService {
 
         List<ClassPublicResponseDTO> dtoList = classPage.getContent().stream().map(clazz -> ClassPublicResponseDTO.builder()
                 .classId(clazz.getClassId())
-                .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
+                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
+                .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getTitle() : "N/A")
                 .categoryName((clazz.getCourse() != null && clazz.getCourse().getCategory() != null) ? clazz.getCourse().getCategory().getName() : "N/A")
                 .className(clazz.getClassName())
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Đang cập nhật")

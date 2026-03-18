@@ -25,6 +25,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 
 @Configuration
 @EnableWebSecurity
@@ -44,6 +46,7 @@ public class SecurityConfig {
             "/", "/index", "/index.html",
             "/courses", "/courses.html",
             "/course-details", "/course-details.html",
+            "/course/details", "/course/details/**",
             "/instructors", "/instructors.html", "/instructor-profile", "/instructor-profile.html",
             "/about", "/about.html", "/pricing", "/pricing.html",
             "/blog", "/blog.html", "/contact", "/contact.html",
@@ -57,6 +60,17 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // Cần thiết cho Thymeleaf
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"status\":401,\"message\":\"Unauthorized\"}");
+                            } else {
+                                response.sendRedirect("/login.html?redirect=" + request.getRequestURI());
+                            }
+                        })
+                )
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(STATIC_RESOURCES).permitAll()

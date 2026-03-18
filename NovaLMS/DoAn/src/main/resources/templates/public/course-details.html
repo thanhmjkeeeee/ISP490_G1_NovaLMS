@@ -243,12 +243,12 @@ function enrollToClass(classId, courseId) {
             // Not logged in, redirect to login
             alert('Vui lòng đăng nhập để đăng ký khóa học!');
             window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-            return Promise.reject('Not authenticated');
+            return Promise.reject({ message: 'not_authenticated' });
         }
         return response.json();
     })
     .then(data => {
-        if (data.success) {
+        if (data.success || data.status === 200) {
             alert('Đăng ký thành công! Chúc mừng bạn đã join lớp học.');
             window.location.href = '/student/my-courses';
         } else {
@@ -257,9 +257,7 @@ function enrollToClass(classId, courseId) {
     })
     .catch(error => {
         console.error('Enrollment error:', error);
-        if (error.message !== 'Not authenticated') {
-            alert('Đã xảy ra lỗi. Vui lòng thử lại sau!');
-        }
+        // Không hiển thị alert lỗi khi redirect
     });
 }
 
