@@ -55,17 +55,17 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
                     <thead class="table-light">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
+                        <th class="ps-4 py-3 text-uppercase small text-muted" style="width: 60px;">ID</th>
                         <th class="py-3 text-uppercase small text-muted">Học viên</th>
                         <th class="py-3 text-uppercase small text-muted">Khóa học</th>
                         <th class="py-3 text-uppercase small text-muted">Lớp học</th>
-                        <th class="py-3 text-uppercase small text-muted">Ngày đăng ký</th>
-                        <th class="py-3 text-uppercase small text-muted">Giá</th>
-                        <th class="py-3 text-uppercase small text-muted">Trạng thái</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Thao tác</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 120px;">Ngày đăng ký</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 100px;">Giá</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 100px;">Trạng thái</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small text-muted" style="width: 80px;">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody id="registrationDataBody">
@@ -112,9 +112,65 @@
     </div>
 </div>
 
+<style>
+#registrationDataBody td {
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#registrationDataBody td:nth-child(2) {
+    white-space: normal;
+    min-width: 150px;
+}
+#registrationDataBody td:nth-child(3),
+#registrationDataBody td:nth-child(4) {
+    white-space: normal;
+    min-width: 120px;
+}
+</style>
+
 <script th:inline="javascript">
 let currentPage = 0;
 const pageSize = 10;
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Remove existing toast if any
+    const existingToast = document.getElementById('toastContainer');
+    if (existingToast) existingToast.remove();
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.id = 'toastContainer';
+    toast.className = `toast-container position-fixed top-0 end-0 p-3`;
+    toast.style.zIndex = '9999';
+
+    const toastInner = document.createElement('div');
+    toastInner.className = `toast show`;
+    toastInner.setAttribute('role', 'alert');
+    toastInner.setAttribute('aria-live', 'assertive');
+    toastInner.setAttribute('aria-atomic', 'true');
+
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+
+    toastInner.innerHTML = `
+        <div class="toast-header ${bgClass} text-white">
+            <strong class="me-auto">${icon} ${type === 'success' ? 'Thành công' : type === 'error' ? 'Lỗi' : 'Thông báo'}</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">${message}</div>
+    `;
+
+    toast.appendChild(toastInner);
+    document.body.appendChild(toast);
+
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
 
 function loadRegistrationData(page = 0) {
     currentPage = page;
@@ -136,7 +192,7 @@ function loadRegistrationData(page = 0) {
             renderTable(data.data.items);
             renderPagination(data.data);
         } else {
-            alert(data.message || 'Lỗi tải dữ liệu');
+            showToast(data.message || 'Lỗi tải dữ liệu', 'error');
         }
     })
     .catch(error => console.error('Error:', error));
@@ -238,17 +294,17 @@ function updateStatus() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert('Cập nhật thành công!');
+        if (data.status === 200) {
+            showToast('Cập nhật trạng thái thành công!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
             loadRegistrationData(currentPage);
         } else {
-            alert(data.message || 'Cập nhật thất bại');
+            showToast(data.message || 'Cập nhật thất bại', 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Đã xảy ra lỗi');
+        showToast('Đã xảy ra lỗi kết nối', 'error');
     });
 }
 
