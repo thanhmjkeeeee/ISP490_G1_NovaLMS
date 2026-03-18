@@ -103,7 +103,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Lấy Role mặc định từ bảng Setting
-        Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
+        Setting studentRole = settingRepository.findRoleByName("ROLE_STUDENT")
                 .orElseThrow(() -> new ResourceNotFoundException("Cấu hình hệ thống lỗi: Không tìm thấy Role học viên."));
 
         User newUser = User.builder()
