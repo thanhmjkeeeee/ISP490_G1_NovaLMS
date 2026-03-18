@@ -7,6 +7,7 @@ import lombok.Data;
 @Builder
 public class ClassPublicResponseDTO {
     private Integer classId;
+    private Integer courseId;
     private String courseTitle;
     private String categoryName;
     private String className;
