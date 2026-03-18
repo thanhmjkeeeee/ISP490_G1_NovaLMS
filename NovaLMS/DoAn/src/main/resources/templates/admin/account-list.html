@@ -3,6 +3,22 @@
 
 <head th:with="isDashboard=true">
     <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý tài khoản')}"></th:block>
+    <style>
+        /* Ép chiều cao chuẩn để nút bấm và input bằng chằn chặn */
+        .filter-section .form-control,
+        .filter-section .form-select,
+        .filter-section .input-group-text,
+        .filter-section .btn {
+            height: 38px !important;
+            display: flex;
+            align-items: center;
+        }
+        /* Fix lỗi icon search bị lệch */
+        .filter-section .input-group-text {
+            justify-content: center;
+            width: 40px;
+        }
+    </style>
 </head>
 
 <body class="dashboard-body">
@@ -26,19 +42,19 @@
         </a>
     </div>
 
-    <div class="card mb-4 border-0 shadow-sm">
+    <div class="card mb-4 border-0 shadow-sm filter-section">
         <div class="card-body">
-            <div class="row g-3">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small fw-bold text-secondary">Search</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                         <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Email...">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary">Role</label>
-                    <select id="roleFilter" class="form-select form-select-sm bg-light">
+                    <select id="roleFilter" class="form-select bg-light">
                         <option value="">All Roles</option>
                         <option value="1">Admin</option>
                         <option value="2">Manager</option>
@@ -48,15 +64,15 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-secondary">Status</label>
-                    <select id="statusFilter" class="form-select form-select-sm bg-light">
+                    <select id="statusFilter" class="form-select bg-light">
                         <option value="">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" onclick="loadAccountData(0)" class="btn btn-sm btn-primary w-100 fw-bold shadow-sm">
-                        <i class="bi bi-filter me-1"></i> Filter
+                <div class="col-md-2">
+                    <button type="button" onclick="loadAccountData(0)" class="btn btn-primary w-100 fw-bold shadow-sm justify-content-center" style="background-color: #3b82f6; border: none;">
+                        <i class="bi bi-filter me-2"></i> Filter
                     </button>
                 </div>
             </div>
@@ -138,13 +154,22 @@
 
     // Hàm vẽ bảng (Tuân theo UI của Course)
     function renderTable(users) {
-        const tbody = document.getElementById('accountDataBody');
-        if (!users || users.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block"></i> No users found.</td></tr>`;
-            return;
-        }
+    const tbody = document.getElementById('accountDataBody');
+    if (!users || users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block"></i> No users found.</td></tr>`;
+        return;
+    }
 
-        tbody.innerHTML = users.map(u => `
+    tbody.innerHTML = users.map(u => {
+        // 1. Chuẩn hóa trạng thái về chữ thường để so sánh chính xác
+        const statusRaw = u.status || 'Inactive';
+        const statusLower = statusRaw.toLowerCase();
+
+        // 2. Quyết định màu sắc dựa trên status đã chuẩn hóa
+        const isActive = (statusLower === 'active');
+        const badgeClass = isActive ? 'bg-success text-success' : 'bg-danger text-danger';
+
+        return `
             <tr>
                 <td class="ps-4 text-muted small">#${u.userId}</td>
                 <td>
@@ -164,21 +189,22 @@
                     </span>
                 </td>
                 <td>
-                    <span class="badge px-2 py-1 fw-semibold ${u.status === 'Active' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'}">
-                        ${u.status || 'Inactive'}
+                    <span class="badge px-2 py-1 fw-bold bg-opacity-10 border ${badgeClass}" style="font-size: 11px; text-transform: uppercase;">
+                        ${statusRaw}
                     </span>
                 </td>
                 <td class="text-end pe-4">
                     <button class="btn btn-sm btn-light border shadow-sm" onclick="toggleStatus(${u.userId})" title="Toggle Lock">
-                        <i class="bi ${u.status === 'Active' ? 'bi-lock text-danger' : 'bi-unlock text-success'}"></i>
+                        <i class="bi ${isActive ? 'bi-lock text-danger' : 'bi-unlock text-success'}"></i>
                     </button>
-                    <a href="/admin/accounts/detail/${u.userId}" class="btn btn-sm btn-light border shadow-sm ms-1" title="Edit Profile">
+                    <a href="/admin/accounts/detail/${u.userId}" class="btn btn-sm btn-light border shadow-sm ms-1">
                         <i class="bi bi-pencil-square text-primary"></i>
                     </a>
                 </td>
             </tr>
-        `).join('');
-    }
+        `;
+    }).join('');
+}
 
     // Hàm vẽ phân trang
     function renderPagination(currentPage, totalPages) {

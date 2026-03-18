@@ -74,6 +74,12 @@
 
           <div class="courses-grid">
             <div class="row" id="courseContainer">
+              <!-- Courses will be loaded here via AJAX -->
+
+              <div class="col-12 text-center py-5" id="loadingState">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Đang tải...</p>
+              </div>
 
               <div class="col-lg-6 col-md-6" th:each="course : ${courseList}">
                 <div class="course-card">
@@ -81,7 +87,6 @@
                   <div class="course-image">
                     <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/default-course.jpg'}"
                          alt="Course Image" class="img-fluid">
-                    <div class="course-badge" th:text="${course.status}">Status</div>
                   </div>
 
                   <div class="course-content">
@@ -93,12 +98,19 @@
                     <p th:text="${#strings.abbreviate(course.description, 100)}">Short description...</p>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="h5 fw-bold text-primary mb-0"
-                              th:if="${course.price != null && course.price > 0}"
-                              th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                        </span>
-                      <span class="h5 fw-bold text-success mb-0"
-                            th:if="${course.price == null || course.price == 0}">
+                        <div th:if="${course.price != null && course.price > 0}" th:with="saleAmount=${course.sale != null ? course.sale : 0}">
+                            <span th:if="${saleAmount > 0}" class="text-decoration-line-through text-muted small me-2"
+                                  th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                            <span class="h5 fw-bold text-primary mb-0"
+                                  th:text="${#numbers.formatDecimal(course.price - saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                            <span th:if="${saleAmount > 0}" class="badge bg-danger ms-1"
+                                  th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                            </span>
+                        </div>
+                        <span class="h5 fw-bold text-success mb-0"
+                              th:if="${course.price == null || course.price == 0}">
                             Free
                         </span>
                     </div>
@@ -121,6 +133,9 @@
 
             </div>
           </div>
+
+          <!-- Pagination -->
+          <div class="mt-4" id="pagination-container"></div>
         </div>
       </div>
     </div>
@@ -131,18 +146,27 @@
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
-<script>
-  function loadCourses() {
+<script th:inline="javascript">
+  // Biến toàn cục cho phân trang
+  let currentPage = 0;
+  let currentTotalPages = 0;
+
+  // Kiểm tra xem user đã đăng nhập chưa
+  var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+
+  function loadCourses(page = 0) {
+    currentPage = page;
+
     // 1. Lấy giá trị từ các bộ lọc
-    const keyword = document.getElementById('searchInput').value;
-    const sortValue = document.getElementById('sortSelect').value;
+    const keyword = document.getElementById('searchInput')?.value || '';
+    const sortValue = document.getElementById('sortSelect')?.value || 'newest';
     const selectedCategory = document.querySelector('input[name="categoryId"]:checked');
+    const categoryId = (selectedCategory && selectedCategory.value !== "") ? selectedCategory.value : '';
 
     // 2. URL gọi đến @RestController
-    let url = `/api/v1/public/courses/filter?keyword=${encodeURIComponent(keyword)}&sortBy=${sortValue}`;
-    if (selectedCategory && selectedCategory.value !== "") {
-      url += `&categoryId=${selectedCategory.value}`;
-    }
+    let url = `/api/v1/public/courses/filter?page=${page}&size=6&sortBy=${sortValue}`;
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+    if (categoryId) url += `&categoryId=${categoryId}`;
 
     // 3. Gọi Fetch API
     fetch(url)
@@ -150,16 +174,20 @@
               if (!response.ok) {
                 throw new Error('Network response was not ok');
               }
-              // Chuyển response thành JSON
               return response.json();
             })
             .then(jsonResponse => {
-              // Lấy mảng dữ liệu khóa học từ ResponseData (field 'data')
-              const courses = jsonResponse.data;
+              // Lấy dữ liệu từ ResponseData (field 'data' chứa PageResponse)
+              const pageData = jsonResponse.data;
+              const courses = pageData.items;
+              currentTotalPages = pageData.totalPages;
+
               const container = document.getElementById('courseContainer');
 
-              // Xóa sạch nội dung cũ
+              // Xóa sạch nội dung cũ (trừ loading state)
+              const loadingState = document.getElementById('loadingState');
               container.innerHTML = '';
+              if (loadingState) container.appendChild(loadingState);
 
               // Nếu mảng rỗng
               if (!courses || courses.length === 0) {
@@ -168,6 +196,7 @@
               <h3>Không tìm thấy khóa học nào.</h3>
               <p>Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
             </div>`;
+                renderPagination(0);
                 return;
               }
 
@@ -175,57 +204,57 @@
               let htmlContent = '';
               courses.forEach(course => {
 
-                // Xử lý giá tiền
+                // Xử lý giá tiền và sale
                 let priceHtml = '';
                 if (course.price != null && course.price > 0) {
                   const formattedPrice = course.price.toLocaleString('vi-VN');
-                  priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+                  if (course.sale != null && course.sale > 0) {
+                    const salePrice = (course.price - course.sale).toLocaleString('vi-VN');
+                    const saleAmount = course.sale.toLocaleString('vi-VN');
+                    priceHtml = `<span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
+                                 <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>
+                                 <span class="badge bg-danger ms-1">-${saleAmount} đ</span>`;
+                  } else {
+                    priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+                  }
                 } else {
                   priceHtml = `<span class="h5 fw-bold text-success mb-0">Free</span>`;
                 }
 
-                // Xử lý mô tả ngắn (cắt chuỗi 100 ký tự)
+                // Xử lý mô tả ngắn
                 let shortDesc = course.description ? course.description : '';
                 if (shortDesc.length > 100) {
                   shortDesc = shortDesc.substring(0, 100) + '...';
                 }
 
-                // Xử lý thông tin giảng viên (Expert)
+                // Xử lý thông tin giảng viên
                 let expertHtml = '';
                 if (course.expert != null) {
                   const avatar = course.expert.avatarUrl ? course.expert.avatarUrl : '/assets/img/default-avatar.png';
-                  expertHtml = `
-                <div class="instructor-info">
-                  <img src="${avatar}" alt="Instructor" class="instructor-avatar">
-                  <span class="instructor-name">${course.expert.fullName}</span>
-                </div>`;
+                  expertHtml = `<div class="instructor-info">
+                    <img src="${avatar}" alt="Instructor" class="instructor-avatar">
+                    <span class="instructor-name">${course.expert.fullName}</span>
+                  </div>`;
                 }
 
-                // Xử lý ảnh khóa học
                 const imageUrl = course.imageUrl ? course.imageUrl : '/assets/img/default-course.jpg';
 
-                // Ghép thành thẻ HTML (Giữ nguyên class CSS của bạn)
                 htmlContent += `
             <div class="col-lg-6 col-md-6">
               <div class="course-card">
                 <div class="course-image">
                   <img src="${imageUrl}" alt="Course Image" class="img-fluid">
-                  <div class="course-badge">${course.status}</div>
                 </div>
                 <div class="course-content">
                   <div class="course-meta">
                     <span class="category">${course.categoryName}</span>
                   </div>
-
                   <h3>${course.courseName}</h3>
                   <p>${shortDesc}</p>
-
                   <div class="d-flex justify-content-between align-items-center mb-3">
                       ${priceHtml}
                   </div>
-
                   ${expertHtml}
-
                   <a href="/course/details/${course.courseId}" class="btn-course">Xem chi tiết</a>
                 </div>
               </div>
@@ -234,11 +263,52 @@
 
               // 5. Đẩy toàn bộ HTML mới vào container
               container.innerHTML = htmlContent;
+
+              // 6. Vẽ phân trang
+              renderPagination(currentTotalPages);
+
+              // 7. Ẩn loading
+              if (loadingState) loadingState.style.display = 'none';
             })
             .catch(error => {
               console.error('Error loading courses:', error);
+              const loadingState = document.getElementById('loadingState');
+              if (loadingState) loadingState.style.display = 'none';
             });
   }
+
+  function renderPagination(totalPages) {
+    let paginationHtml = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    paginationHtml += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+      <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${currentPage - 1})">Trước</a>
+    </li>`;
+
+    // Page numbers
+    for (let i = 0; i < totalPages; i++) {
+      paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${i})">${i + 1}</a>
+      </li>`;
+    }
+
+    // Next button
+    paginationHtml += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
+      <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${currentPage + 1})">Sau</a>
+    </li>`;
+
+    const paginationContainer = document.getElementById('pagination-container');
+    if (paginationContainer) {
+      paginationContainer.innerHTML = `<ul class="pagination justify-content-center">${paginationHtml}</ul>`;
+    }
+  }
+
+  // Initial load
+  document.addEventListener('DOMContentLoaded', function() {
+    loadCourses(0);
+  });
 </script>
 
 </body>

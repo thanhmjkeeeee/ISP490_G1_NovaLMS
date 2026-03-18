@@ -59,6 +59,21 @@
                       <input type="text" id="mobile" class="form-control bg-light border-start-0 shadow-none" placeholder="09xxxxxxxx">
                     </div>
                   </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary text-uppercase">Mật khẩu <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
+                      <input type="password" id="password" class="form-control bg-light border-start-0 shadow-none" placeholder="Nhập mật khẩu" required>
+                    </div>
+                    <small class="text-muted">Tối thiểu 6 ký tự, 1 chữ hoa, 1 số, 1 ký tự đặc biệt</small>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary text-uppercase">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill"></i></span>
+                      <input type="password" id="confirmPassword" class="form-control bg-light border-start-0 shadow-none" placeholder="Nhập lại mật khẩu" required>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -107,11 +122,37 @@
   document.getElementById('addAccountForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      // Validate password
+      if (password.length < 6) {
+          alert("Mật khẩu phải có ít nhất 6 ký tự!");
+          return;
+      }
+      if (!/[A-Z]/.test(password)) {
+          alert("Mật khẩu phải có ít nhất 1 ký tự viết hoa!");
+          return;
+      }
+      if (!/[0-9]/.test(password)) {
+          alert("Mật khẩu phải có ít nhất 1 ký tự số!");
+          return;
+      }
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+          alert("Mật khẩu phải có ít nhất 1 ký tự đặc biệt!");
+          return;
+      }
+      if (password !== confirmPassword) {
+          alert("Mật khẩu xác nhận không khớp!");
+          return;
+      }
+
       // Thu thập dữ liệu
       const payload = {
           fullName: document.getElementById('fullName').value,
           email: document.getElementById('email').value,
           mobile: document.getElementById('mobile').value,
+          password: password,
           roleId: parseInt(document.getElementById('roleId').value),
           status: "Active"
       };
