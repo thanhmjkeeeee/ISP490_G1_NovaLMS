@@ -21,5 +21,8 @@ public class AccountRequestDTO implements Serializable {
     @NotNull(message = "Role ID must not be null")
     private Integer roleId;
 
+    @NotBlank(message = "Password must not be blank")
+    private String password;
+
     private String status; // ACTIVE | INACTIVE
 }

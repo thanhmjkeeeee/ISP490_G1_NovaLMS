@@ -8,6 +8,7 @@ public record CoursePublicResponseDTO(
         String courseName,
         String description,
         Double price,
+        Double sale,
         String categoryName,
         long studentCount,
         String imageUrl,

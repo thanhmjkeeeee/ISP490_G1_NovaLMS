@@ -1,10 +1,14 @@
 package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.response.CoursePublicResponseDTO;
+import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +37,7 @@ public class CoursePublicServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CoursePublicResponseDTO> searchAndFilterCourses(String keyword, Integer categoryId, String sortBy) {
+    public PageResponse<CoursePublicResponseDTO> searchAndFilterCourses(String keyword, Integer categoryId, String sortBy, int page, int size) {
         String searchKey = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
         Sort sort = switch (Optional.ofNullable(sortBy).orElse("newest")) {
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
@@ -41,8 +45,19 @@ public class CoursePublicServiceImpl implements CourseService {
             default -> Sort.by(Sort.Direction.DESC, "courseId");
         };
 
-        return courseRepository.searchCourses(searchKey, categoryId, "Active", sort)
-                .stream().map(this::mapToPublicDTO).toList();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Course> coursePage = courseRepository.searchCourses(searchKey, categoryId, "Active", pageable);
+
+        List<CoursePublicResponseDTO> list = coursePage.getContent().stream()
+                .map(this::mapToPublicDTO)
+                .toList();
+
+        return PageResponse.<CoursePublicResponseDTO>builder()
+                .pageNo(page)
+                .pageSize(size)
+                .totalPages(coursePage.getTotalPages())
+                .items(list)
+                .build();
     }
 
     @Override
@@ -93,17 +108,18 @@ public class CoursePublicServiceImpl implements CourseService {
         }
 
         // 4. Chuẩn bị dữ liệu cơ bản
-        String categoryName = (course.getCategory() != null) ? course.getCategory().getValue() : "N/A";
+        String categoryName = (course.getCategory() != null) ? course.getCategory().getName() : "N/A";
         long studentCount = registrationRepository.countByCourse_CourseIdAndStatus(id, "Approved");
         String imgUrl = (course.getImageUrl() != null && !course.getImageUrl().isEmpty())
                 ? course.getImageUrl() : "/assets/img/default-course.jpg";
 
-        // 5. Trả về DTO tổng thể (Khớp 11 trường dữ liệu của Record)
+        // 5. Trả về DTO tổng thể (Khớp 12 trường dữ liệu của Record)
         return new CoursePublicResponseDTO(
                 id,
                 course.getCourseName(),
                 course.getDescription(),
                 course.getPrice(),
+                course.getSale(),
                 categoryName,
                 studentCount,
                 imgUrl,

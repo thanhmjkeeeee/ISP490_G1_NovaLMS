@@ -208,15 +208,6 @@ function renderTable(registrations) {
     tbody.innerHTML = registrations.map(r => `
         <tr>
             <td class="ps-4">#${r.registrationId}</td>
-            <td>
-                <div class="d-flex align-items-center">
-                    <div class="avatar-circle bg-primary text-white me-2">${r.userName ? r.userName.charAt(0).toUpperCase() : '?'}</div>
-                    <div>
-                        <div class="fw-bold">${r.userName || 'N/A'}</div>
-                        <small class="text-muted">${r.userEmail || ''}</small>
-                    </div>
-                </div>
-            </td>
             <td>${r.courseName || 'N/A'}</td>
             <td>${r.className || 'N/A'}</td>
             <td>${r.registrationTime ? new Date(r.registrationTime).toLocaleDateString('vi-VN') : 'N/A'}</td>

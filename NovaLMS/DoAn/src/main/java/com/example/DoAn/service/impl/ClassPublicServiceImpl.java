@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class ClassPublicServiceImpl implements ClassPublicService {
 
     @Override
     public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").ascending());
         Specification<Clazz> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -44,7 +45,7 @@ public class ClassPublicServiceImpl implements ClassPublicService {
 
         List<ClassPublicResponseDTO> dtoList = classPage.getContent().stream().map(clazz -> ClassPublicResponseDTO.builder()
                 .classId(clazz.getClassId())
-                .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getTitle() : "N/A")
+                .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
                 .categoryName((clazz.getCourse() != null && clazz.getCourse().getCategory() != null) ? clazz.getCourse().getCategory().getName() : "N/A")
                 .className(clazz.getClassName())
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Đang cập nhật")

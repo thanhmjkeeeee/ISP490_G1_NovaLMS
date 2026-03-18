@@ -64,12 +64,19 @@ public class StudentServiceImpl implements StudentService {
 
             if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
 
+            // Tính giá: price - sale
+            Course course = clazz.getCourse();
+            Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
+            Double saleAmount = course.getSale() != null ? course.getSale() : 0.0;
+            Double finalPrice = originalPrice - saleAmount;
+            if (finalPrice < 0) finalPrice = 0.0;
+
             Registration reg = Registration.builder()
                     .user(user)
                     .clazz(clazz)
-                    .course(clazz.getCourse())
+                    .course(course)
                     .status("Submitted")
-                    .registrationPrice(new BigDecimal("5000000"))
+                    .registrationPrice(BigDecimal.valueOf(finalPrice))
                     .note("Đăng ký trực tuyến")
                     .build();
 

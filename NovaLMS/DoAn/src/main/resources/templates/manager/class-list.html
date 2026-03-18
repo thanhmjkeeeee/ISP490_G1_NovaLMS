@@ -55,6 +55,18 @@
             background-color: #0d6efd;
             color: #fff;
         }
+        .input-custom {
+    height: 42px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 40px !important; /* Căn giữa chữ theo chiều dọc */
+    vertical-align: middle;
+}
+
+/* Riêng với thẻ select, đôi khi browser mặc định làm lệch chữ */
+select.input-custom {
+    display: flex;
+    align-items: center;
     </style>
 </head>
 
@@ -81,22 +93,25 @@
 
         <div class="card card-custom mb-4">
             <div class="card-body p-4">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <div class="col-md-5">
                         <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
-                        <input type="text" id="searchInput" class="form-control input-custom" placeholder="Tên lớp, khóa học...">
+                        <input type="text" id="searchInput" class="form-control input-custom"
+                               placeholder="Tên lớp, khóa học...">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="statusFilter" class="form-select input-custom">
                             <option value="">Tất cả</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Open">Open</option>
-                            <option value="Closed">Closed</option>
+                            <option value="pending">Pending</option>
+                            <option value="open">Open</option>
+                            <option value="closed">Closed</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="button" onclick="loadClassData(0)" class="btn btn-primary w-100 fw-bold rounded-pill">
+                    <div class="col-md-3">
+                        <button type="button" onclick="loadClassData(0)"
+                                class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm btn-filter-custom"
+                                style="background-color: #3b82f6;">
                             <i class="bi bi-filter me-1"></i> Lọc dữ liệu
                         </button>
                     </div>
@@ -125,7 +140,9 @@
             <div class="card-footer bg-white py-4 border-0">
                 <div class="d-flex justify-content-between align-items-center">
                     <span id="paginationInfo" class="small text-muted"></span>
-                    <nav><ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul></nav>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -156,13 +173,18 @@
     }
 
     function renderTable(classes) {
-        const tbody = document.getElementById('classDataBody');
-        if (!classes || classes.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5">Không có dữ liệu.</td></tr>`;
-            return;
-        }
+    const tbody = document.getElementById('classDataBody');
+    if (!classes || classes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5">Không có dữ liệu.</td></tr>`;
+        return;
+    }
 
-        tbody.innerHTML = classes.map(c => `
+    tbody.innerHTML = classes.map(c => {
+        // Chuẩn hóa status về chữ thường để so sánh class CSS
+        const statusText = c.status || 'Pending';
+        const statusKey = statusText.toLowerCase();
+
+        return `
             <tr>
                 <td class="ps-4 text-muted small">#${c.classId}</td>
                 <td>
@@ -171,20 +193,24 @@
                 </td>
                 <td class="small fw-semibold">${c.teacherName || 'Chưa phân công'}</td>
                 <td class="small text-muted">${c.schedule || ''}<br>${c.slotTime || ''}</td>
-                <td><span class="status-badge ${getStatusClass(c.status)}">${c.status || 'Pending'}</span></td>
+                <td>
+                    <span class="status-badge ${getStatusClass(statusKey)}">${statusText}</span>
+                </td>
                 <td class="text-end pe-4">
-                    <a href="/manager/class/detail/${c.classId}" class="btn btn-sm btn-light text-info me-1"><i class="bi bi-eye"></i></a>
-                    <a href="/manager/class/edit/${c.classId}" class="btn btn-sm btn-light text-primary"><i class="bi bi-pencil"></i></a>
+                    <a href="/manager/class/detail/${c.classId}" class="btn btn-sm btn-light text-info me-1 border shadow-sm"><i class="bi bi-eye"></i></a>
+                    <a href="/manager/class/edit/${c.classId}" class="btn btn-sm btn-light text-primary border shadow-sm"><i class="bi bi-pencil"></i></a>
                 </td>
             </tr>
-        `).join('');
-    }
+        `;
+    }).join('');
+}
 
-    function getStatusClass(status) {
-        if (status === 'Open') return 'st-open';
-        if (status === 'Pending') return 'st-pending';
-        return 'st-closed';
-    }
+// Cập nhật lại hàm này để nhận giá trị chữ thường
+function getStatusClass(statusKey) {
+    if (statusKey === 'open' || statusKey === 'active') return 'st-open';
+    if (statusKey === 'pending' || statusKey === 'draft') return 'st-pending';
+    return 'st-closed';
+}
 
     function renderPagination(currentPage, totalPages) {
         document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
