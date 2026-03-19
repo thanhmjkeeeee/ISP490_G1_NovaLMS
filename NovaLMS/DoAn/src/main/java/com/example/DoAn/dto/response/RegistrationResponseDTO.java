@@ -10,12 +10,15 @@ import java.time.LocalDateTime;
 @Builder
 public class RegistrationResponseDTO {
     private Integer registrationId;
-    private String courseName;
+    private Integer userId;
+    private String userName;
+    private String userEmail;
+    private Integer classId;
     private String className;
+    private Integer courseId;
+    private String courseName;
     private String status;
     private BigDecimal registrationPrice;
     private String note;
-    private String userName;
-    private String userEmail;
     private LocalDateTime registrationTime;
 }

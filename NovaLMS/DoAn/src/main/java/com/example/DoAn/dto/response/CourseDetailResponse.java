@@ -15,4 +15,6 @@ public class CourseDetailResponse implements Serializable {
     private Double price;
     private Double sale;
     private String avatar;
+    private Integer categoryId;
+    private String categoryName;
 }
