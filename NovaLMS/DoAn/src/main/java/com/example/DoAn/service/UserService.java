@@ -1,5 +1,6 @@
 package com.example.DoAn.service;
 
+import com.example.DoAn.dto.request.ChangePasswordRequest;
 import com.example.DoAn.dto.response.ProfileResponseDTO;
 import com.example.DoAn.dto.request.ProfileRequestDTO;
 import com.example.DoAn.dto.response.ResponseData;
@@ -9,4 +10,5 @@ public interface UserService {
     ResponseData<ProfileResponseDTO> getUserProfile(String email);
     ResponseData<Void> updateUserProfile(String email, ProfileRequestDTO dto);
     ResponseData<String> updateAvatar(String email, MultipartFile file);
+    ResponseData<Void> changePassword(String email, ChangePasswordRequest request);
 }
