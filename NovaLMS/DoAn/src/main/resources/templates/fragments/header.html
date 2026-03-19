@@ -132,7 +132,7 @@
 
             <!-- User dropdown -->
             <div class="dash-user-menu">
-                <button class="dash-user-btn" id="userMenuToggle" type="button">
+                <button class="dash-user-btn" id="userMenuToggle" type="button" onclick="event.stopPropagation(); document.getElementById('userMenuDropdown').classList.toggle('show');">
                     <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-m-2.webp'}"
                          alt="Avatar"
                          class="rounded-circle"
@@ -177,17 +177,12 @@
     <script>
         (function () {
             // ── User dropdown ──
-            var toggle = document.getElementById('userMenuToggle');
             var dropdown = document.getElementById('userMenuDropdown');
-            if (toggle && dropdown) {
-                toggle.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    dropdown.classList.toggle('show');
-                });
-                document.addEventListener('click', function () {
+            document.addEventListener('click', function (e) {
+                if (dropdown && !dropdown.contains(e.target)) {
                     dropdown.classList.remove('show');
-                });
-            }
+                }
+            });
 
             // ── Sidebar toggle ──
             var sidebarBtn = document.getElementById('sidebarToggle');
