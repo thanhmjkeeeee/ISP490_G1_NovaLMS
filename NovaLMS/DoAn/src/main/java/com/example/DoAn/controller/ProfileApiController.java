@@ -1,5 +1,6 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.request.ChangePasswordRequest;
 import com.example.DoAn.dto.request.ProfileRequestDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.UserService;
@@ -34,5 +35,10 @@ public class ProfileApiController {
     public ResponseData<String> uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal) {
         if (principal == null) return ResponseData.error(401, "Unauthorized");
         return userService.updateAvatar(getEmailFromPrincipal(principal), file);
+    }
+    @PutMapping("/change-password")
+    public ResponseData<Void> changePassword(@RequestBody ChangePasswordRequest request, Principal principal) {
+        String email = getEmailFromPrincipal(principal); // Hoặc principal.getName()
+        return userService.changePassword(email, request);
     }
 }
