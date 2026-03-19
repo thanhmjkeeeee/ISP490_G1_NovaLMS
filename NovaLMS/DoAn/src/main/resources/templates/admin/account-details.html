@@ -89,10 +89,11 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-secondary">VAI TRÒ HỆ THỐNG</label>
                                     <select id="roleId" class="form-select form-select-sm bg-light shadow-none" required>
-                                        <option value="1">Admin</option>
-                                        <option value="2">Manager</option>
-                                        <option value="3">Teacher</option>
-                                        <option value="4">Student</option>
+                                        <option value="201">Admin</option>
+                                        <option value="202">Manager</option>
+                                        <option value="203">Expert</option>
+                                        <option value="204">Teacher</option>
+                                        <option value="205">Student</option>
                                     </select>
                                 </div>
 
@@ -102,6 +103,22 @@
                                         <option value="Active">Đang hoạt động</option>
                                         <option value="Inactive">Tạm khóa</option>
                                     </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">MẬT KHẨU MỚI <span class="text-muted">(Để trống nếu không đổi)</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
+                                        <input type="password" id="password" class="form-control border-start-0 bg-light shadow-none" placeholder="Nhập mật khẩu mới">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-secondary">XÁC NHẬN MẬT KHẨU</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill"></i></span>
+                                        <input type="password" id="confirmPassword" class="form-control border-start-0 bg-light shadow-none" placeholder="Nhập lại mật khẩu">
+                                    </div>
                                 </div>
                             </div>
 
@@ -159,6 +176,34 @@
         // 3. Xử lý Update bằng AJAX (PUT)
         document.getElementById('accountForm').addEventListener('submit', function(e) {
             e.preventDefault();
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate password if provided
+            if (password || confirmPassword) {
+                if (password.length < 6) {
+                    alert("Mật khẩu phải có ít nhất 6 ký tự!");
+                    return;
+                }
+                if (!/[A-Z]/.test(password)) {
+                    alert("Mật khẩu phải có ít nhất 1 ký tự viết hoa!");
+                    return;
+                }
+                if (!/[0-9]/.test(password)) {
+                    alert("Mật khẩu phải có ít nhất 1 ký tự số!");
+                    return;
+                }
+                if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+                    alert("Mật khẩu phải có ít nhất 1 ký tự đặc biệt!");
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    alert("Mật khẩu xác nhận không khớp!");
+                    return;
+                }
+            }
+
             const id = document.getElementById('userId').value;
             const payload = {
                 fullName: document.getElementById('fullName').value,
@@ -167,6 +212,11 @@
                 roleId: parseInt(document.getElementById('roleId').value),
                 status: document.getElementById('status').value
             };
+
+            // Only add password if user entered new password
+            if (password) {
+                payload.password = password;
+            }
 
             fetch(`/api/v1/accounts/${id}`, {
                 method: 'PUT',
