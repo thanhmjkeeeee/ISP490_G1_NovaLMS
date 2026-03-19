@@ -97,7 +97,7 @@ public class StudentServiceImpl implements StudentService {
             List<Registration> list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
             List<RegistrationResponseDTO> dtoList = list.stream().map(reg -> RegistrationResponseDTO.builder()
                     .registrationId(reg.getRegistrationId())
-                    .courseName(reg.getCourse().getTitle())
+                    .courseName(reg.getCourse().getCourseName())
                     .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "N/A")
                     .status(reg.getStatus())
                     .registrationPrice(reg.getRegistrationPrice())
@@ -125,7 +125,7 @@ public class StudentServiceImpl implements StudentService {
 
             List<MyCourseDTO> dtoList = regPage.getContent().stream().map(reg -> MyCourseDTO.builder()
                     .courseId(reg.getCourse().getCourseId())
-                    .title(reg.getCourse().getTitle())
+                    .title(reg.getCourse().getCourseName())
                     .description(reg.getCourse().getDescription())
                     .imageUrl(reg.getCourse().getImageUrl())
                     .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "N/A")
@@ -177,7 +177,7 @@ public class StudentServiceImpl implements StudentService {
             List<Registration> filtered = allRegistrations.stream()
                     .filter(r -> (keyword == null || keyword.isEmpty() ||
                             (r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(keyword.toLowerCase())) ||
-                            (r.getCourse().getTitle() != null && r.getCourse().getTitle().toLowerCase().contains(keyword.toLowerCase())) ||
+                            (r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(keyword.toLowerCase())) ||
                             (r.getUser().getFullName() != null && r.getUser().getFullName().toLowerCase().contains(keyword.toLowerCase())) ||
                             (r.getUser().getEmail() != null && r.getUser().getEmail().toLowerCase().contains(keyword.toLowerCase()))))
                     .filter(r -> (status == null || status.isEmpty() || r.getStatus().equalsIgnoreCase(status)))
@@ -193,7 +193,7 @@ public class StudentServiceImpl implements StudentService {
                     .map(r -> {
                         String courseName = r.getCourse().getCourseName();
                         if (courseName == null || courseName.isEmpty()) {
-                            courseName = r.getCourse().getTitle();
+                            courseName = r.getCourse().getCourseName();
                         }
                         return RegistrationResponseDTO.builder()
                                 .registrationId(r.getRegistrationId())

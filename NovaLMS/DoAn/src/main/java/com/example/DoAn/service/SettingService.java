@@ -15,4 +15,14 @@ public class SettingService {
     public List<Setting> getCourseCategories(){
         return settingRepository.findBySettingTypeAndStatus("COURSE_CATEGORY", "Active");
     }
+
+    public Setting saveCourseCategory(String name, String value) {
+        Setting setting = Setting.builder()
+                .name(name)
+                .value(value)
+                .settingType("COURSE_CATEGORY")
+                .status("Active")
+                .build();
+        return settingRepository.save(setting);
+    }
 }
