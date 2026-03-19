@@ -26,8 +26,7 @@
 
     <div class="row g-4">
         <div class="col-xl-4">
-            <div class="dash-card text-center h-100 d-flex flex-column justify-content-center align-items-center py-5">
-
+            <div class="dash-card text-center mb-4 d-flex flex-column justify-content-center align-items-center py-5">
                 <img id="avatarImage" th:src="@{${userProfile.avatarUrl != null ? userProfile.avatarUrl : '/assets/img/person/person-1.jpg'}}"
                      alt="Profile" class="rounded-circle mb-3 shadow-sm"
                      style="width: 130px; height: 130px; object-fit: cover; border: 4px solid #e2e8f0;">
@@ -48,7 +47,16 @@
                         <i class="bi bi-camera me-1"></i> Đổi ảnh đại diện
                     </button>
                 </form>
+            </div>
 
+            <div class="dash-card">
+                <h6 class="fw-bold text-muted mb-3">CÀI ĐẶT BẢO MẬT</h6>
+                <p class="text-muted" style="font-size: 0.85rem;">Cập nhật mật khẩu thường xuyên để tăng cường bảo vệ tài khoản của bạn.</p>
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-dark rounded-pill px-4 fw-medium" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="bi bi-key-fill me-1"></i> Đổi mật khẩu
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -57,12 +65,10 @@
                 <h5 class="fw-bold border-bottom pb-3 mb-4" style="color: var(--dash-text-primary);">Chi tiết hồ sơ</h5>
 
                 <form id="profileForm" th:object="${userProfile}">
-
                     <div class="row mb-3 align-items-center">
                         <label for="email" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Email đăng nhập <span class="text-danger">*</span></label>
                         <div class="col-md-9">
                             <input type="email" class="form-control bg-light" id="email" th:field="*{email}" readonly style="color: #64748b; border-color: #e2e8f0;">
-                            <small class="text-muted" style="font-size: 0.8rem;">Email dùng để đăng nhập nên không thể thay đổi.</small>
                         </div>
                     </div>
 
@@ -76,24 +82,71 @@
                     <div class="row mb-3 align-items-center">
                         <label for="mobile" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Số điện thoại</label>
                         <div class="col-md-9">
-                            <input type="text" class="form-control" id="mobile" th:field="*{mobile}" style="border-color: #cbd5e1;" placeholder="Ví dụ: 0987654321">
+                            <input type="text" class="form-control" id="mobile" th:field="*{mobile}" style="border-color: #cbd5e1;"
+                                   placeholder="Ví dụ: 0987654321" pattern="^(0|\+84)[3|5|7|8|9][0-9]{8}$" title="Vui lòng nhập số điện thoại Việt Nam hợp lệ (10 số)">
                         </div>
                     </div>
 
                     <div class="row mb-3">
-                        <label for="note" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Giới thiệu bản thân</label>
+                        <label for="note" class="col-md-3 col-form-label fw-medium" style="color: var(--dash-text-secondary); font-size: 0.9rem;">Giới thiệu</label>
                         <div class="col-md-9">
-                            <textarea class="form-control" id="note" style="height: 120px; border-color: #cbd5e1;" th:field="*{note}" placeholder="Vài nét về kinh nghiệm hoặc mục tiêu học tập của bạn..."></textarea>
+                            <textarea class="form-control" id="note" style="height: 120px; border-color: #cbd5e1;" th:field="*{note}" placeholder="Vài nét về kinh nghiệm..."></textarea>
                         </div>
                     </div>
 
                     <div class="text-end mt-4 pt-3 border-top">
-                        <button type="reset" class="btn btn-light rounded-pill px-4 me-2 fw-medium border">Hủy</button>
                         <button type="submit" id="btnSubmitProfile" class="btn rounded-pill px-4 fw-medium text-white" style="background-color: var(--dash-accent);">
                             <i class="bi bi-floppy me-1"></i> Lưu thay đổi
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0" style="border-radius: 1rem;">
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="changePasswordModalLabel" style="color: var(--dash-text-primary);">Đổi mật khẩu tài khoản</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="changePasswordForm">
+                    <div class="modal-body">
+
+                        <div id="modalAlertBox" class="alert d-none shadow-sm small" role="alert">
+                            <span id="modalAlertMessage"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="oldPassword" class="form-label fw-medium small" style="color: var(--dash-text-secondary);">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="oldPassword" required placeholder="Nhập mật khẩu hiện tại" style="border-color: #cbd5e1;">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label fw-medium small" style="color: var(--dash-text-secondary);">Mật khẩu mới <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="newPassword" required style="border-color: #cbd5e1;">
+                            <small class="text-muted" style="font-size: 0.8rem;">
+                                Quy tắc: Ít nhất 6 ký tự, có 1 chữ hoa, 1 ký tự đặc biệt (!@#$...).
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label fw-medium small" style="color: var(--dash-text-secondary);">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirmPassword" required style="border-color: #cbd5e1;">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-3 me-2 fw-medium" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" id="btnSubmitPassword" class="btn rounded-pill px-4 fw-medium text-white" style="background-color: var(--dash-accent);">
+                            <i class="bi bi-shield-lock me-1"></i> Cập nhật mật khẩu
+                        </button>
+                    </div>
+                </form>
+
             </div>
         </div>
     </div>
@@ -108,19 +161,33 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script>
+    // Hàm hiển thị Alert chung cho trang Profile
     function showAlert(message, isSuccess) {
         const alertBox = document.getElementById('alertBox');
         const alertMessage = document.getElementById('alertMessage');
         alertBox.className = `alert alert-dismissible fade show shadow-sm ${isSuccess ? 'alert-success' : 'alert-danger'}`;
         alertBox.classList.remove('d-none');
         alertMessage.innerHTML = `<i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2"></i> ${message}`;
-        setTimeout(() => alertBox.classList.add('d-none'), 3000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => alertBox.classList.add('d-none'), 4000);
     }
 
+    // Hàm hiển thị Alert dành riêng cho trong Modal (để ko làm trôi trang)
+    function showModalAlert(message, isSuccess) {
+        const alertBox = document.getElementById('modalAlertBox');
+        const alertMessage = document.getElementById('modalAlertMessage');
+        alertBox.className = `alert shadow-sm small ${isSuccess ? 'alert-success' : 'alert-danger'}`;
+        alertBox.classList.remove('d-none');
+        alertMessage.innerHTML = `<i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} me-2"></i> ${message}`;
+        setTimeout(() => alertBox.classList.add('d-none'), 4000);
+    }
+
+    // Luồng Cập Nhật Hồ Sơ
     document.getElementById('profileForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmitProfile');
         btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
         const payload = {
             fullName: document.getElementById('fullName').value,
@@ -145,9 +212,11 @@
             showAlert("Lỗi kết nối máy chủ", false);
         } finally {
             btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy me-1"></i> Lưu thay đổi';
         }
     });
 
+    // Luồng Cập Nhật Ảnh Đại Diện
     document.getElementById('avatarInput').addEventListener('change', async function() {
         if (!this.files[0]) return;
 
@@ -169,6 +238,63 @@
             }
         } catch (error) {
             showAlert("Lỗi tải ảnh lên máy chủ", false);
+        }
+    });
+
+    // 🟢 LUỒNG ĐỔI MẬT KHẨU (XỬ LÝ TRONG POP-UP MODAL)
+    document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const oldPassword = document.getElementById('oldPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        // 🟢 VALIDATE BIỂU THỨC CHÍNH QUY (REGEX) TRÊN FRONTEND
+        // Regex: (?=.*[A-Z]) (ít nhất 1 hoa), (?=.*[!@#$&*]) (ít nhất 1 đặc biệt), (?=.{6,}) (ít nhất 6 ký tự)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+-=<>?]).{6,}$/;
+
+        if (!passwordRegex.test(newPassword)) {
+            showModalAlert("Mật khẩu không đạt yêu cầu bảo mật (Ít nhất 6 kí tự, 1 viết hoa, 1 kí tự đặc biệt)!", false);
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            showModalAlert("Mật khẩu xác nhận không khớp!", false);
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitPassword');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+        try {
+            const response = await fetch('/api/v1/profile/change-password', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    oldPassword: oldPassword,
+                    newPassword: newPassword,
+                    confirmPassword: confirmPassword
+                })
+            });
+            const result = await response.json();
+
+            if (result.status === 200) {
+                // Thành công -> Đóng Modal
+                const passwordModal = bootstrap.Modal.getInstance(document.getElementById('changePasswordModal'));
+                passwordModal.hide();
+                // Hiện thông báo ở trang chính
+                showAlert(result.message, true);
+                document.getElementById('changePasswordForm').reset();
+            } else {
+                // Lỗi API -> Hiện alert ngay trong Modal
+                showModalAlert(result.message, false);
+            }
+        } catch (error) {
+            showModalAlert("Lỗi kết nối hệ thống", false);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-shield-lock me-1"></i> Cập nhật mật khẩu';
         }
     });
 </script>
