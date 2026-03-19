@@ -3,6 +3,8 @@ package com.example.DoAn.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class ClassDetailResponse {
@@ -17,4 +19,5 @@ public class ClassDetailResponse {
     private String status;
     private String schedule;
     private String slotTime;
+    private List<RegistrationResponseDTO> registrations;
 }

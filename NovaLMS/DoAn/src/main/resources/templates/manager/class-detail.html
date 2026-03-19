@@ -149,7 +149,8 @@
         }
 
         // Học viên
-        renderStudents(d.students || d.registrations || []);
+        console.log("Registrations data:", d.registrations);
+        renderStudents(d.registrations);
 
     } catch (err) {
         console.error("Lỗi thực thi JS:", err);
@@ -158,29 +159,43 @@
   });
 
   function renderStudents(list) {
+      console.log("renderStudents called with:", list);
       const tbody = document.getElementById('studentTableBody');
       const countLabel = document.getElementById('studentCount');
-      if (!tbody) return;
 
-      // Chuẩn hóa danh sách (Lấy user từ registration nếu cần)
-      const students = list.map(item => item.user ? item.user : item);
-      if (countLabel) countLabel.innerText = students.length;
-
-      if (students.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4">Chưa có học viên</td></tr>';
+      if (!tbody) {
+          console.error("studentTableBody not found!");
           return;
       }
 
-      tbody.innerHTML = students.map(s => `
-          <tr>
-              <td class="ps-4">
-                  <div class="fw-bold">${s.fullName || s.full_name || '---'}</div>
-                  <div class="small text-muted">${s.email || ''}</div>
-              </td>
-              <td>---</td>
-              <td class="text-end pe-4"><span class="badge bg-success bg-opacity-10 text-success">Active</span></td>
-          </tr>
-      `).join('');
+      // Ensure list is an array
+      const students = Array.isArray(list) ? list : [];
+
+      if (countLabel) countLabel.innerText = students.length;
+
+      if (students.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">Chưa có học viên</td></tr>';
+          return;
+      }
+
+      let html = '';
+      for (let i = 0; i < students.length; i++) {
+          const reg = students[i];
+          const statusClass = reg.status === 'Approved' ? 'bg-success' : (reg.status === 'Rejected' ? 'bg-danger' : 'bg-warning');
+          const regDate = reg.registrationTime ? new Date(reg.registrationTime).toLocaleDateString('vi-VN') : '---';
+          html += '<tr>' +
+              '<td class="ps-4">' +
+                  '<div class="fw-bold">' + (reg.userName || '---') + '</div>' +
+                  '<div class="small text-muted">' + (reg.userEmail || '') + '</div>' +
+              '</td>' +
+              '<td>' + regDate + '</td>' +
+              '<td class="text-end pe-4">' +
+                  '<span class="badge ' + statusClass + '">' + (reg.status || 'Pending') + '</span>' +
+              '</td>' +
+          '</tr>';
+      }
+      tbody.innerHTML = html;
+  }
   }
 
   function goToEdit() {
