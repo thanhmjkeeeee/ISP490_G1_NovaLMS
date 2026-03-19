@@ -335,7 +335,8 @@
                   startDate: d.startDate || d.start_date,
                   endDate: d.endDate || d.end_date,
                   courseName: d.courseName || d.course_name || 'N/A',
-                  teacherName: d.teacherName || d.teacher_name || 'Chưa phân công'
+                  teacherName: d.teacherName || d.teacher_name || 'Chưa phân công',
+                  registrations: d.registrations || []
               };
 
               return window.classData;
@@ -405,25 +406,38 @@
       const badge = document.getElementById('detailStatusBadge');
       badge.innerText = st;
       badge.className = `st-badge st-${st}`;
+
+      // Render students list
+      if (data.registrations && data.registrations.length > 0) {
+          renderStudents(data.registrations);
+      }
   }
 
   function renderStudents(list) {
       const tbody = document.getElementById('studentTableBody');
+      if (!tbody) return;
+
       document.getElementById('studentCount').innerText = list.length;
+
       if (!list || list.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4">Chưa có học viên</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3" class="text-center py-4 text-muted">Chưa có học viên</td></tr>';
           return;
       }
-      tbody.innerHTML = list.map(s => `
-          <tr>
-              <td class="ps-4">
-                  <div class="fw-bold">${s.full_name || s.fullName || '---'}</div>
-                  <div class="small text-muted">${s.email || ''}</div>
-              </td>
-              <td>${formatDate(s.registration_date || s.registrationDate)}</td>
-              <td class="text-end pe-4"><span class="badge bg-success bg-opacity-10 text-success">Active</span></td>
-          </tr>
-      `).join('');
+
+      let html = '';
+      for (let i = 0; i < list.length; i++) {
+          const s = list[i];
+          const statusClass = s.status === 'Approved' ? 'bg-success' : (s.status === 'Rejected' ? 'bg-danger' : 'bg-warning');
+          html += '<tr>' +
+              '<td class="ps-4">' +
+                  '<div class="fw-bold">' + (s.userName || '---') + '</div>' +
+                  '<div class="small text-muted">' + (s.userEmail || '') + '</div>' +
+              '</td>' +
+              '<td>' + formatDate(s.registrationTime) + '</td>' +
+              '<td class="text-end pe-4"><span class="badge ' + statusClass + '">' + (s.status || 'Pending') + '</span></td>' +
+          '</tr>';
+      }
+      tbody.innerHTML = html;
   }
 
   function formatDate(str) {
