@@ -175,13 +175,16 @@ public class StudentServiceImpl implements StudentService {
 
             // Apply filters in memory
             List<Registration> filtered = allRegistrations.stream()
-                    .filter(r -> (keyword == null || keyword.isEmpty() ||
-                            (r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(keyword.toLowerCase())) ||
-                            (r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(keyword.toLowerCase())) ||
-                            (r.getUser().getFullName() != null && r.getUser().getFullName().toLowerCase().contains(keyword.toLowerCase())) ||
-                            (r.getUser().getEmail() != null && r.getUser().getEmail().toLowerCase().contains(keyword.toLowerCase()))))
+                    .filter(r -> {
+                        if (keyword == null || keyword.isEmpty()) return true;
+                        String k = keyword.toLowerCase();
+                        if (r.getCourse() != null && r.getCourse().getCourseName() != null && r.getCourse().getCourseName().toLowerCase().contains(k)) return true;
+                        if (r.getUser() != null && r.getUser().getFullName() != null && r.getUser().getFullName().toLowerCase().contains(k)) return true;
+                        if (r.getUser() != null && r.getUser().getEmail() != null && r.getUser().getEmail().toLowerCase().contains(k)) return true;
+                        return false;
+                    })
                     .filter(r -> (status == null || status.isEmpty() || r.getStatus().equalsIgnoreCase(status)))
-                    .filter(r -> (courseId == null || r.getCourse().getCourseId().equals(courseId)))
+                    .filter(r -> (courseId == null || r.getCourse() == null || r.getCourse().getCourseId().equals(courseId)))
                     .collect(Collectors.toList());
 
             // Manual pagination
@@ -191,19 +194,20 @@ public class StudentServiceImpl implements StudentService {
 
             List<RegistrationResponseDTO> dtoList = pagedList.stream()
                     .map(r -> {
-                        String courseName = r.getCourse().getCourseName();
-                        if (courseName == null || courseName.isEmpty()) {
-                            courseName = r.getCourse().getCourseName();
-                        }
+                        String courseName = r.getCourse() != null ? r.getCourse().getCourseName() : "N/A";
+                        String className = r.getClazz() != null ? r.getClazz().getClassName() : "N/A";
+                        String userName = r.getUser() != null ? r.getUser().getFullName() : "N/A";
+                        String userEmail = r.getUser() != null ? r.getUser().getEmail() : "N/A";
+
                         return RegistrationResponseDTO.builder()
                                 .registrationId(r.getRegistrationId())
                                 .courseName(courseName)
-                                .className(r.getClazz().getClassName())
+                                .className(className)
                                 .status(r.getStatus())
                                 .registrationPrice(r.getRegistrationPrice())
                                 .note(r.getNote())
-                                .userName(r.getUser().getFullName())
-                                .userEmail(r.getUser().getEmail())
+                                .userName(userName)
+                                .userEmail(userEmail)
                                 .registrationTime(r.getRegistrationTime())
                                 .build();
                     })
