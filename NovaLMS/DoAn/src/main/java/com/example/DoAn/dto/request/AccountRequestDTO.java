@@ -15,13 +15,12 @@ public class AccountRequestDTO implements Serializable {
     @NotBlank(message = "Email must not be blank")
     private String email;
 
-    @NotBlank(message = "Mobile must not be blank")
     private String mobile;
 
     @NotNull(message = "Role ID must not be null")
     private Integer roleId;
 
-    @NotBlank(message = "Password must not be blank")
+    // Password is optional - only required for create, optional for update
     private String password;
 
     private String status; // ACTIVE | INACTIVE

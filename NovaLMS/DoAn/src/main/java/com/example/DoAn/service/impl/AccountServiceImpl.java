@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class AccountServiceImpl implements AccountService {
 
     private final UserRepository userRepository;
     private final SettingRepository settingRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public Integer saveAccount(AccountRequestDTO request) {
@@ -33,7 +35,7 @@ public class AccountServiceImpl implements AccountService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .mobile(request.getMobile())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .role(settingRepository.findById(request.getRoleId()).orElse(null))
                 .status("Active")
                 .build();
@@ -50,6 +52,11 @@ public class AccountServiceImpl implements AccountService {
         user.setMobile(request.getMobile());
         user.setRole(settingRepository.findById(request.getRoleId()).orElse(null));
         if(request.getStatus() != null) user.setStatus(request.getStatus());
+
+        // Update password if provided
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
 
         userRepository.save(user);
         log.info("User updated successfully, userId={}", id);
