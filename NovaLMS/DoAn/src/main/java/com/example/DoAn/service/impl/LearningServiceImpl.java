@@ -53,7 +53,7 @@ public class LearningServiceImpl implements LearningService {
 
             CourseLearningInfoDTO courseInfo = new CourseLearningInfoDTO();
             courseInfo.setCourseId(course.getCourseId().longValue());
-            courseInfo.setTitle(course.getTitle());
+            courseInfo.setTitle(course.getCourseName());
             courseInfo.setDescription(course.getDescription());
 
             if (reg != null && reg.getClazz() != null) {

@@ -4,7 +4,9 @@ import com.example.DoAn.dto.request.CourseRequestDTO;
 import com.example.DoAn.dto.response.CourseDetailResponse;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.model.Course;
+import com.example.DoAn.model.Setting;
 import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.service.ICourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +26,15 @@ import java.util.List;
 public class CourseServiceImpl implements ICourseService {
 
     private final CourseRepository courseRepository;
+    private final SettingRepository settingRepository;
 
     @Override
     public Integer saveCourse(CourseRequestDTO request) {
+        Setting category = null;
+        if (request.getCategoryId() != null) {
+            category = settingRepository.findById(request.getCategoryId()).orElse(null);
+        }
+
         Course course = Course.builder()
                 .title(request.getCourseCode())
                 .courseName(request.getCourseName())
@@ -35,6 +43,7 @@ public class CourseServiceImpl implements ICourseService {
                 .sale(request.getSale())
                 .avatar(request.getAvatar())
                 .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
+                .category(category)
                 .build();
 
         courseRepository.save(course);
@@ -54,6 +63,12 @@ public class CourseServiceImpl implements ICourseService {
         course.setSale(request.getSale());
         course.setAvatar(request.getAvatar());
         course.setStatus(request.getStatus());
+
+        // Update category if provided
+        if (request.getCategoryId() != null) {
+            Setting category = settingRepository.findById(request.getCategoryId()).orElse(null);
+            course.setCategory(category);
+        }
 
         courseRepository.save(course);
         log.info("Course updated successfully, courseId={}", id);
@@ -122,13 +137,15 @@ public class CourseServiceImpl implements ICourseService {
     private CourseDetailResponse mapToResponse(Course course) {
         return CourseDetailResponse.builder()
                 .courseId(course.getCourseId())
-                .courseCode(course.getTitle())
+                .courseCode(course.getCourseName())
                 .courseName(course.getCourseName())
                 .description(course.getDescription())
                 .price(course.getPrice())
                 .sale(course.getSale())
                 .avatar(course.getAvatar())
                 .status(course.getStatus())
+                .categoryId(course.getCategory() != null ? course.getCategory().getSettingId() : null)
+                .categoryName(course.getCategory() != null ? course.getCategory().getName() : null)
                 .build();
     }
 }

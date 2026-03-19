@@ -25,4 +25,6 @@ public class CourseRequestDTO implements Serializable {
     private String avatar;
 
     private String status;
+
+    private Integer categoryId;
 }
