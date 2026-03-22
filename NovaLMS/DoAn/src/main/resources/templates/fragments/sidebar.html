@@ -91,6 +91,9 @@
             <a th:href="@{/expert/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
+            <a th:href="@{/expert/modules}" th:classappend="${activePage == 'modules'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-layers"></i><span>Quản lý Chương</span>
+            </a>
             <a th:href="@{/expert/content}" th:classappend="${activePage == 'content'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-file-earmark-text"></i><span>Nội dung khóa học</span>
             </a>

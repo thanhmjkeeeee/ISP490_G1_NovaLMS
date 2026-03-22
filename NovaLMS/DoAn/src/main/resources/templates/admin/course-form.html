@@ -25,34 +25,12 @@
             <form id="courseForm" class="row g-3">
               <input type="hidden" id="courseId">
 
-              <div class="col-md-6">
-                <label class="form-label fw-bold small">Chương trình (Category) <span class="text-danger">*</span></label>
-                <div class="input-group">
-                  <select id="categoryId" class="form-select" required>
-                    <option value="">-- Chọn chương trình --</option>
-                  </select>
-                  <button type="button" class="btn btn-outline-primary" onclick="showAddCategoryModal()">
-                    <i class="bi bi-plus-lg"></i> Thêm mới
-                  </button>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label fw-bold small">Mã khóa học (Title)</label>
-                <input type="text" id="courseCode" class="form-control" placeholder="C01, C02...">
-              </div>
-
-              <div class="col-md-12">
-                <label class="form-label fw-bold small">Tên khóa học</label>
+              <div class="col-md-8">
+                <label class="form-label fw-bold small">Tên khóa học <span class="text-danger">*</span></label>
                 <input type="text" id="courseName" class="form-control" placeholder="Nhập tên khóa học..." required>
               </div>
 
-              <div class="col-md-6">
-                <label class="form-label fw-bold small">Học phí (VND)</label>
-                <input type="number" id="price" class="form-control" placeholder="0">
-              </div>
-
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label class="form-label fw-bold small">Trạng thái</label>
                 <select id="status" class="form-select">
                   <option value="active">Hoạt động</option>
@@ -61,12 +39,38 @@
                 </select>
               </div>
 
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Chương trình (Category)</label>
+                <select id="categoryId" class="form-select">
+                  <option value="">-- Chọn chương trình --</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">&nbsp;</label>
+                <button type="button" class="btn btn-outline-primary w-100" onclick="showAddCategoryModal()">
+                  <i class="bi bi-plus-lg me-1"></i> Thêm chương trình
+                </button>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Chuyên gia (Expert)</label>
+                <select id="expertId" class="form-select">
+                  <option value="">-- Chọn chuyên gia --</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Học phí (VND)</label>
+                <input type="number" id="price" class="form-control" placeholder="0">
+              </div>
+
               <div class="col-md-6">
                 <label class="form-label fw-bold small">Giảm giá (VND)</label>
                 <input type="number" id="sale" class="form-control" placeholder="0" value="0">
               </div>
 
-              <div class="col-md-6">
+              <div class="col-12">
                 <label class="form-label fw-bold small">Avatar URL</label>
                 <input type="text" id="avatar" class="form-control" placeholder="https://example.com/image.jpg">
               </div>
@@ -91,46 +95,55 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <!-- Modal Thêm Category mới -->
-<div class="modal fade" id="addCategoryModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Thêm Chương trình mới</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="color:#223a58;">Thêm Chương trình mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body pt-2">
         <div class="mb-3">
-          <label class="form-label">Tên chương trình</label>
+          <label class="form-label small fw-bold text-secondary">Tên chương trình <span class="text-danger">*</span></label>
           <input type="text" id="newCategoryName" class="form-control" placeholder="Ví dụ: IELTS Academic">
         </div>
         <div class="mb-3">
-          <label class="form-label">Giá trị (Value)</label>
+          <label class="form-label small fw-bold text-secondary">Giá trị (Value) <span class="text-danger">*</span></label>
           <input type="text" id="newCategoryValue" class="form-control" placeholder="Ví dụ: CAT_IELTS_ACADEMIC">
+          <div class="form-text small">Dùng ký tự không dấu, gạch dưới. VD: CAT_IELTS_ACADEMIC</div>
         </div>
+        <div id="categoryError" class="text-danger small" style="display:none;"></div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-        <button type="button" class="btn btn-primary" onclick="saveCategory()">Lưu</button>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn text-white fw-bold" style="background-color:#136ad5; border:none;" onclick="saveCategory()">
+          <i class="bi bi-check-lg me-1"></i> Lưu
+        </button>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-  // Load categories on page load
-  document.addEventListener("DOMContentLoaded", function() {
-    loadCategories();
-  });
+  // ============================================================
+  //  HELPERS (defined outside DOMContentLoaded so modal can call)
+  // ============================================================
+
+  function showAddCategoryModal() {
+    document.getElementById('newCategoryName').value = '';
+    document.getElementById('newCategoryValue').value = '';
+    document.getElementById('categoryError').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+  }
 
   async function loadCategories() {
     try {
       const res = await fetch('/admin/settings/categories');
       const result = await res.json();
       const select = document.getElementById('categoryId');
-
-      // Keep first option
       select.innerHTML = '<option value="">-- Chọn chương trình --</option>';
-
       if (result.data) {
         result.data.forEach(cat => {
           const opt = document.createElement('option');
@@ -144,18 +157,33 @@
     }
   }
 
-  function showAddCategoryModal() {
-    document.getElementById('newCategoryName').value = '';
-    document.getElementById('newCategoryValue').value = '';
-    new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+  async function loadExperts() {
+    try {
+      const res = await fetch('/api/v1/accounts/experts');
+      const result = await res.json();
+      const select = document.getElementById('expertId');
+      select.innerHTML = '<option value="">-- Chọn chuyên gia --</option>';
+      if (result.data) {
+        result.data.forEach(expert => {
+          const opt = document.createElement('option');
+          opt.value = expert.userId;
+          opt.textContent = expert.fullName + ' (' + (expert.email || '') + ')';
+          select.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.error('Error loading experts:', err);
+    }
   }
 
   async function saveCategory() {
-    const name = document.getElementById('newCategoryName').value;
-    const value = document.getElementById('newCategoryValue').value;
+    const name = document.getElementById('newCategoryName').value.trim();
+    const value = document.getElementById('newCategoryValue').value.trim().toUpperCase().replace(/\s+/g, '_');
+    const errorEl = document.getElementById('categoryError');
 
     if (!name || !value) {
-      alert('Vui lòng nhập đầy đủ thông tin!');
+      errorEl.textContent = 'Vui lòng nhập đầy đủ thông tin.';
+      errorEl.style.display = 'block';
       return;
     }
 
@@ -168,83 +196,97 @@
       const result = await res.json();
 
       if (result.status === 201 || result.status === 200) {
-        alert('Thêm thành công!');
         bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-        loadCategories();
-
-        // Auto select newly added category
+        await loadCategories();
         if (result.data && result.data.settingId) {
-          document.getElementById('categoryId').value = result.data.settingId;
+          setTimeout(() => { document.getElementById('categoryId').value = result.data.settingId; }, 300);
         }
       } else {
-        alert('Lỗi: ' + result.message);
+        errorEl.textContent = result.message || 'Lỗi khi lưu.';
+        errorEl.style.display = 'block';
       }
     } catch (err) {
-      console.error('Error saving category:', err);
-      alert('Lỗi kết nối!');
+      errorEl.textContent = 'Lỗi kết nối.';
+      errorEl.style.display = 'block';
     }
   }
 
-  // --- PHẦN 1: XỬ LÝ ĐỔ DỮ LIỆU KHI EDIT ---
+  // Chờ dropdown có > 1 option (tức đã load xong), rồi chạy callback
+  function waitForDropdown(selectId, callback) {
+    const el = document.getElementById(selectId);
+    const check = () => {
+      if (el && el.options.length > 1) {
+        callback();
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  }
 
-    // Lấy ID từ URL (Ví dụ: /admin/courses/edit/4)
+  // ============================================================
+  //  DOMContentLoaded — tất cả code chạy khi DOM sẵn sàng
+  // ============================================================
+  document.addEventListener("DOMContentLoaded", function() {
+
+    // 1. Load dropdowns
+    loadCategories();
+    loadExperts();
+
+    // 2. Load course data nếu đang ở trang edit
     const pathSegments = window.location.pathname.split('/');
     const courseIdFromUrl = pathSegments[pathSegments.length - 1];
 
-    // Nếu ID là số hợp lệ, tiến hành gọi API lấy dữ liệu cũ
     if (courseIdFromUrl && !isNaN(courseIdFromUrl)) {
-        fetch(`/api/v1/courses/${courseIdFromUrl}`)
-            .then(response => response.json())
-            .then(res => {
-                if (res.status === 200) {
-                    const course = res.data;
+      fetch(`/api/v1/courses/${courseIdFromUrl}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.status === 200) {
+            const course = res.data;
+            document.getElementById('courseId').value = course.courseId;
+            document.getElementById('courseName').value = course.courseName || '';
+            document.getElementById('price').value = course.price || 0;
+            document.getElementById('sale').value = course.sale || 0;
+            document.getElementById('avatar').value = course.avatar || '';
+            document.getElementById('status').value = (course.status || 'active').toLowerCase();
+            document.getElementById('description').value = course.description || '';
 
-                    // Điền dữ liệu vào các ô input (Mapping)
-                    document.getElementById('courseId').value = course.courseId;
-                    document.getElementById('courseCode').value = course.courseCode || '';
-                    document.getElementById('courseName').value = course.courseName || '';
-                    document.getElementById('price').value = course.price || 0;
-                    document.getElementById('sale').value = course.sale || 0;
-                    document.getElementById('avatar').value = course.avatar || '';
-                    document.getElementById('status').value = (course.status || 'active').toLowerCase();
-                    document.getElementById('description').value = course.description || '';
+            // Chờ dropdowns load xong rồi set giá trị
+            if (course.categoryId) {
+              waitForDropdown('categoryId', () => {
+                document.getElementById('categoryId').value = course.categoryId;
+              });
+            }
+            if (course.expertId) {
+              waitForDropdown('expertId', () => {
+                document.getElementById('expertId').value = course.expertId;
+              });
+            }
 
-                    // Set category if exists
-                    if (course.categoryId) {
-                        // Wait for categories to load then set selected
-                        setTimeout(() => {
-                            document.getElementById('categoryId').value = course.categoryId;
-                        }, 500);
-                    }
-
-                    // Cập nhật tiêu đề giao diện
-                    document.querySelector('.fw-bold.m-0').innerText = "Chỉnh sửa khóa học";
-                }
-            })
-            .catch(err => console.error("Lỗi khi nạp dữ liệu cũ:", err));
+            document.querySelector('.fw-bold.m-0').innerText = "Chỉnh sửa khóa học";
+          }
+        })
+        .catch(err => console.error("Lỗi khi nạp dữ liệu cũ:", err));
     }
 
-    // --- PHẦN 2: XỬ LÝ SUBMIT FORM (POST/PUT) ---
-
+    // 3. Form submit — POST tạo mới / PUT cập nhật
     document.getElementById('courseForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
       const courseId = document.getElementById('courseId').value;
-
-      // Thu thập dữ liệu (Khớp với CourseRequestDTO ở Backend)
       const categoryId = document.getElementById('categoryId').value;
+      const expertId = document.getElementById('expertId').value;
       const formData = {
-        courseCode: document.getElementById('courseCode').value, // Map vào field courseCode của DTO
         courseName: document.getElementById('courseName').value,
         price: parseFloat(document.getElementById('price').value) || 0,
         sale: parseFloat(document.getElementById('sale').value) || 0,
         avatar: document.getElementById('avatar').value,
         status: document.getElementById('status').value,
         description: document.getElementById('description').value,
-        categoryId: categoryId ? parseInt(categoryId) : null
+        categoryId: categoryId ? parseInt(categoryId) : null,
+        expertId: expertId ? parseInt(expertId) : null
       };
 
-      // Quyết định URL và Method: Nếu có courseId thì là cập nhật (PUT)
       const url = courseId ? `/api/v1/courses/${courseId}` : '/api/v1/courses/';
       const method = courseId ? 'PUT' : 'POST';
 
@@ -253,21 +295,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
-      .then(response => response.json())
+      .then(res => res.json())
       .then(res => {
-          // Xử lý kết quả trả về từ ResponseData
-          if (res.status === 200 || res.status === 201 || res.status === 202) {
-              alert(courseId ? "Cập nhật thành công!" : "Thêm mới thành công!");
-              window.location.href = "/admin/courses";
-          } else {
-              alert("Thao tác thất bại: " + (res.message || "Lỗi hệ thống"));
-          }
+        if (res.status === 200 || res.status === 201 || res.status === 202) {
+          alert(courseId ? "Cập nhật thành công!" : "Thêm mới thành công!");
+          window.location.href = "/admin/courses";
+        } else {
+          alert("Thao tác thất bại: " + (res.message || "Lỗi hệ thống"));
+        }
       })
       .catch(err => {
-          console.error("Lỗi kết nối API:", err);
-          alert("Không thể kết nối tới máy chủ!");
+        console.error("Lỗi kết nối API:", err);
+        alert("Không thể kết nối tới máy chủ!");
       });
     });
-  });
+
+  }); // end DOMContentLoaded
 </script>
 </html>

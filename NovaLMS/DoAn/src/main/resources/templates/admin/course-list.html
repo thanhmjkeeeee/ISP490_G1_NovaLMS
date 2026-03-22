@@ -93,6 +93,7 @@
                     <tr>
                         <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
                         <th class="py-3 text-uppercase small text-muted">Course Info</th>
+                        <th class="py-3 text-uppercase small text-muted">Chuyên gia</th>
                         <th class="py-3 text-uppercase small text-muted">Price</th>
                         <th class="py-3 text-uppercase small text-muted">Status</th>
                         <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
@@ -167,7 +168,7 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
     function renderTable(courses) {
     const tbody = document.getElementById('courseDataBody');
     if (!courses || courses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
         return;
     }
 
@@ -194,6 +195,11 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                             <div class="small text-muted">Code: ${course.courseCode || 'N/A'}</div>
                         </div>
                     </div>
+                </td>
+                <td>
+                    ${course.expertName
+                        ? `<span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1" style="font-size:10px;">${course.expertName}</span>`
+                        : '<span class="text-muted small">—</span>'}
                 </td>
                 <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
                 <td>

@@ -8,8 +8,7 @@ import java.io.Serializable;
 
 @Getter
 public class CourseRequestDTO implements Serializable {
-    @NotBlank(message = "Course code must not be blank")
-    private String courseCode;
+    private String courseCode; // optional — used as course.title
 
     @NotBlank(message = "Course name must not be blank")
     private String courseName;
@@ -27,4 +26,6 @@ public class CourseRequestDTO implements Serializable {
     private String status;
 
     private Integer categoryId;
+
+    private Integer expertId;
 }

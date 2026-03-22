@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Quản lý Chương')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý Chương', breadcrumb='Expert / Chương')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='modules')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main" id="dashMain">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý Chương</h3>
+            <p class="text-muted small m-0">Tạo, sửa, xóa chương trong các khóa học của bạn.</p>
+        </div>
+        <button class="btn btn-sm fw-bold shadow-sm rounded-pill px-3 text-white"
+                style="background-color: #136ad5; border: none;"
+                onclick="openCreateModal()">
+            <i class="bi bi-plus-lg me-1"></i> Thêm chương mới
+        </button>
+    </div>
+
+    <!-- Filter by course -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2 d-flex align-items-center gap-3">
+            <span class="small fw-bold text-secondary">Lọc theo khóa học:</span>
+            <select id="courseFilter" class="form-select form-select-sm" style="max-width: 280px;">
+                <option value="">Tất cả khóa học</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Module table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="m-0 fw-bold" style="color: #223a58;">
+                <i class="bi bi-layers me-2"></i>Danh sách chương
+                <span class="badge bg-secondary ms-2" id="moduleCount">0</span>
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 py-3 text-uppercase small text-muted" style="width:50px;">#</th>
+                            <th class="py-3 text-uppercase small text-muted">Chương</th>
+                            <th class="py-3 text-uppercase small text-muted">Khóa học</th>
+                            <th class="py-3 text-uppercase small text-muted">Thứ tự</th>
+                            <th class="py-3 text-uppercase small text-muted">Bài học</th>
+                            <th class="py-3 text-uppercase small text-muted">Câu hỏi</th>
+                            <th class="text-end pe-4 py-3 text-uppercase small text-muted">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moduleTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                Đang tải...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Create / Edit Modal -->
+<div class="modal fade" id="moduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:#223a58;" id="modalTitle">Thêm chương mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="moduleId">
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">
+                        Khóa học <span class="text-danger">*</span>
+                    </label>
+                    <select id="moduleCourseId" class="form-select" required>
+                        <option value="">— Chọn khóa học —</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">
+                        Tên chương <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" id="moduleName" class="form-control"
+                           placeholder="VD: Unit 1 - Introduction" maxlength="200">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Thứ tự</label>
+                    <input type="number" id="moduleOrder" class="form-control"
+                           placeholder="Để trống = tự động" min="1">
+                </div>
+
+                <div id="modalError" class="text-danger small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn text-white fw-bold"
+                        style="background-color: #136ad5; border: none;"
+                        onclick="saveModule()" id="modalSaveBtn">
+                    <i class="bi bi-check-lg me-1"></i> Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Uses ExpertModuleController:
+     GET    /api/v1/expert/modules/all          → all modules
+     GET    /api/v1/expert/modules?courseId=X   → by course
+     POST   /api/v1/expert/modules
+     PUT    /api/v1/expert/modules/{moduleId}
+     DELETE /api/v1/expert/modules/{moduleId}
+   ───────────────────────────────────────────────────────────── */
+
+const ALL_COURSES = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────
+(async function() {
+    await loadCourseFilter();
+    await loadModules();
+})();
+
+// ── Load course filter options ──────────────────────────────────────────
+async function loadCourseFilter() {
+    try {
+        const res = await fetch('/api/v1/expert/modules/courses');
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            result.data.forEach(function(c) {
+                ALL_COURSES.push(c);
+                const opt = document.createElement('option');
+                opt.value = c.courseId;
+                opt.textContent = c.courseName;
+                document.getElementById('moduleCourseId').appendChild(opt.cloneNode(true));
+                document.getElementById('courseFilter').appendChild(opt);
+            });
+        }
+    } catch(e) { console.error(e); }
+}
+
+document.getElementById('courseFilter').addEventListener('change', loadModules);
+
+// ── Load modules ────────────────────────────────────────────────────────
+async function loadModules() {
+    const courseId = document.getElementById('courseFilter').value;
+    let url = courseId
+        ? '/api/v1/expert/modules?courseId=' + courseId
+        : '/api/v1/expert/modules/all';
+
+    const tbody = document.getElementById('moduleTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5">' +
+        '<div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>';
+
+    try {
+        const res = await fetch(url);
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            document.getElementById('moduleCount').textContent = result.data.length;
+            renderModuleTable(result.data);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-5">' +
+                (result.message || 'Lỗi tải dữ liệu.') + '</td></tr>';
+        }
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-5">Lỗi: ' + e.message + '</td></tr>';
+    }
+}
+
+function renderModuleTable(modules) {
+    const tbody = document.getElementById('moduleTableBody');
+    if (!modules.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">' +
+            '<i class="bi bi-layers fs-2 d-block mb-2"></i>Chưa có chương nào.</td></tr>';
+        return;
+    }
+    var courseMap = {};
+    ALL_COURSES.forEach(function(c) { courseMap[c.courseId] = c.courseName; });
+
+    tbody.innerHTML = modules.map(function(m, i) {
+        return '<tr>' +
+            '<td class="ps-4 text-muted small">#' + (i + 1) + '</td>' +
+            '<td class="fw-medium text-dark">' + escape(m.moduleName || '—') + '</td>' +
+            '<td><span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1" style="font-size:11px;">' +
+                escape(courseMap[m.courseId] || '—') + '</span></td>' +
+            '<td><span class="badge bg-secondary">' + (m.orderIndex || '—') + '</span></td>' +
+            '<td><span class="badge bg-secondary">' + (m.lessonCount || 0) + '</span></td>' +
+            '<td><span class="badge bg-primary">' + (m.questionCount || 0) + '</span></td>' +
+            '<td class="text-end pe-4">' +
+                '<button class="btn btn-sm btn-light border shadow-sm" onclick="openEditModal(' + m.moduleId + ')" title="Sửa">' +
+                    '<i class="bi bi-pencil-square text-primary"></i>' +
+                '</button> ' +
+                '<button class="btn btn-sm btn-light border shadow-sm" onclick="deleteModule(' + m.moduleId + ')" title="Xóa">' +
+                    '<i class="bi bi-trash text-danger"></i>' +
+                '</button>' +
+            '</td>' +
+        '</tr>';
+    }).join('');
+}
+
+function escape(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────
+var moduleModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    moduleModal = new bootstrap.Modal(document.getElementById('moduleModal'));
+});
+
+function openCreateModal() {
+    document.getElementById('modalTitle').textContent = 'Thêm chương mới';
+    document.getElementById('moduleId').value = '';
+    document.getElementById('moduleCourseId').value = '';
+    document.getElementById('moduleName').value = '';
+    document.getElementById('moduleOrder').value = '';
+    document.getElementById('modalError').style.display = 'none';
+    moduleModal.show();
+}
+
+function openEditModal(moduleId) {
+    var modules = window._allModules || [];
+    var m = null;
+    for (var i = 0; i < modules.length; i++) {
+        if (modules[i].moduleId === moduleId) { m = modules[i]; break; }
+    }
+    if (!m) return;
+
+    document.getElementById('modalTitle').textContent = 'Sửa chương';
+    document.getElementById('moduleId').value = m.moduleId;
+    document.getElementById('moduleCourseId').value = m.courseId || '';
+    document.getElementById('moduleName').value = m.moduleName || '';
+    document.getElementById('moduleOrder').value = m.orderIndex || '';
+    document.getElementById('modalError').style.display = 'none';
+    moduleModal.show();
+}
+
+// Store modules globally for edit lookup
+var _allModules = [];
+var _origFetch = window.fetch;
+var _origLoadModules = loadModules;
+
+// Patch loadModules to cache data
+window.loadModules = async function() {
+    await (0, _origLoadModules)();
+    // Re-fetch and cache for edit modal
+    try {
+        var res = await _origFetch('/api/v1/expert/modules/all');
+        var result = await res.json();
+        if (result.status === 200) _allModules = result.data || [];
+    } catch(e) {}
+};
+loadModules();
+
+// ── Save (create or update) ─────────────────────────────────────────────
+async function saveModule() {
+    var moduleId = document.getElementById('moduleId').value;
+    var courseId = parseInt(document.getElementById('moduleCourseId').value);
+    var moduleName = document.getElementById('moduleName').value.trim();
+    var orderStr = document.getElementById('moduleOrder').value.trim();
+    var errorEl = document.getElementById('modalError');
+
+    if (!courseId) {
+        errorEl.textContent = 'Vui lòng chọn khóa học.';
+        errorEl.style.display = 'block'; return;
+    }
+    if (!moduleName) {
+        errorEl.textContent = 'Tên chương không được để trống.';
+        errorEl.style.display = 'block'; return;
+    }
+
+    var body = {
+        courseId: courseId,
+        moduleName: moduleName,
+        orderIndex: orderStr ? parseInt(orderStr) : null
+    };
+
+    var method = moduleId ? 'PUT' : 'POST';
+    var url = moduleId ? '/api/v1/expert/modules/' + moduleId : '/api/v1/expert/modules';
+
+    try {
+        var res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(moduleId ? Object.assign({}, body, { moduleId: parseInt(moduleId) }) : body)
+        });
+        var result = await res.json();
+        if (result.status === 200 || result.status === 201) {
+            moduleModal.hide();
+            loadModules();
+        } else {
+            errorEl.textContent = result.message || 'Lỗi lưu chương.';
+            errorEl.style.display = 'block';
+        }
+    } catch(e) {
+        errorEl.textContent = 'Lỗi: ' + e.message;
+        errorEl.style.display = 'block';
+    }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+async function deleteModule(moduleId) {
+    if (!confirm('Xác nhận xóa chương này? Tất cả bài học trong chương sẽ bị xóa.')) return;
+    try {
+        var res = await fetch('/api/v1/expert/modules/' + moduleId, { method: 'DELETE' });
+        var result = await res.json();
+        if (result.status === 200) loadModules();
+        else alert('Lỗi: ' + (result.message || 'Xóa thất bại.'));
+    } catch(e) { alert('Lỗi: ' + e.message); }
+}
+</script>
+
+</body>
+</html>

@@ -2,6 +2,7 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.AccountRequestDTO;
 import com.example.DoAn.dto.response.*;
+import lombok.RequiredArgsConstructor;
 import com.example.DoAn.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/accounts")
@@ -78,6 +81,17 @@ public class AccountController {
         try {
             AccountDetailResponse response = accountService.getAccountById(id);
             return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get all experts (role = Expert)")
+    @GetMapping("/experts")
+    public ResponseData<List<?>> getExperts() {
+        try {
+            PageResponse<?> response = accountService.getAllAccounts(0, 1000, null, 203, null);
+            return new ResponseData<>(HttpStatus.OK.value(), "Danh sách chuyên gia", (List<?>) response.getItems());
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
