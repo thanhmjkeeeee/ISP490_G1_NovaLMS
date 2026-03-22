@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Tổng quan - Expert')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan', breadcrumb='Expert')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Tổng quan Expert</h3>
+            <p class="text-muted small m-0">Quản lý nội dung khóa học của bạn.</p>
+        </div>
+        <div>
+            <a th:href="@{/expert/content}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
+                <i class="bi bi-plus-lg me-1"></i> Quản lý nội dung
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="dash-stat-card">
+                <div class="dash-stat-icon" style="background: rgba(19,106,213,0.1); color: #136ad5;">
+                    <i class="bi bi-book-half"></i>
+                </div>
+                <div>
+                    <span class="dash-stat-label text-uppercase fw-bold mb-1">Khóa học</span>
+                    <span class="dash-stat-value" id="courseCount">—</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="dash-stat-card">
+                <div class="dash-stat-icon" style="background: rgba(16,185,129,0.1); color: #059669;">
+                    <i class="bi bi-layers"></i>
+                </div>
+                <div>
+                    <span class="dash-stat-label text-uppercase fw-bold mb-1">Chương</span>
+                    <span class="dash-stat-value" id="moduleCount">—</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="dash-stat-card">
+                <div class="dash-stat-icon" style="background: rgba(245,158,11,0.1); color: #d97706;">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div>
+                    <span class="dash-stat-label text-uppercase fw-bold mb-1">Câu hỏi</span>
+                    <span class="dash-stat-value" id="questionCount">—</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="dash-stat-card">
+                <div class="dash-stat-icon" style="background: rgba(139,92,246,0.1); color: #7c3aed;">
+                    <i class="bi bi-play-circle"></i>
+                </div>
+                <div>
+                    <span class="dash-stat-label text-uppercase fw-bold mb-1">Bài học</span>
+                    <span class="dash-stat-value" id="lessonCount">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Courses -->
+    <div class="card border-0 shadow-sm mb-auto">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h6 class="m-0 fw-bold" style="color: #223a58;">Khóa học gần đây</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="px-4 py-3">Khóa học</th>
+                        <th>Chương</th>
+                        <th>Bài học</th>
+                        <th>Câu hỏi</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end px-4 py-3">Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recentCoursesTable">
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Đang tải...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+(async function() {
+    try {
+        const res = await fetch('/api/v1/expert/modules/courses');
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            document.getElementById('courseCount').textContent = result.data.length;
+
+            // Build table rows
+            const tbody = document.getElementById('recentCoursesTable');
+            tbody.innerHTML = '';
+            result.data.slice(0, 5).forEach(course => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-4 py-3 fw-medium">${course.courseName || '—'}</td>
+                        <td><span class="badge bg-secondary">—</span></td>
+                        <td><span class="badge bg-secondary">—</span></td>
+                        <td><span class="badge bg-secondary">—</span></td>
+                        <td><span class="badge ${course.status === 'Active' ? 'bg-success' : 'bg-warning'}">${course.status || '—'}</span></td>
+                        <td class="text-end px-4 py-3">
+                            <a href="/expert/content/course/${course.courseId}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Quản lý
+                            </a>
+                        </td>
+                    </tr>`;
+            });
+            if (result.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có khóa học nào.</td></tr>';
+            }
+        }
+    } catch(e) {
+        console.error(e);
+    }
+})();
+</script>
+</body>
+</html>
