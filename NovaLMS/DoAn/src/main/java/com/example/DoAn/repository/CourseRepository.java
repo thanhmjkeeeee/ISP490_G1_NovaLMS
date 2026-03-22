@@ -48,6 +48,8 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                                @Param("status") String status,
                                Pageable pageable);
 
+    List<Course> findByExpertUserId(Integer expertUserId);
+
 }
 
 
