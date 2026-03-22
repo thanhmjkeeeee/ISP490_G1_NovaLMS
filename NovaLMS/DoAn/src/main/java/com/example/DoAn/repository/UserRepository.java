@@ -29,6 +29,9 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
     boolean existsByEmail(String email);
     List<User> findByRole_Value(String roleValue);
 
+    @Query("SELECT u FROM User u WHERE u.role.settingId = :roleId")
+    List<User> findByRoleSettingId(@Param("roleId") Integer roleId);
+
     // thông tin role
     @Transactional
     @Modifying

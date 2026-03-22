@@ -5,8 +5,10 @@ import com.example.DoAn.dto.response.CourseDetailResponse;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Setting;
+import com.example.DoAn.model.User;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.SettingRepository;
+import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.ICourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ public class CourseServiceImpl implements ICourseService {
 
     private final CourseRepository courseRepository;
     private final SettingRepository settingRepository;
+    private final UserRepository userRepository;
 
     @Override
     public Integer saveCourse(CourseRequestDTO request) {
@@ -34,9 +37,13 @@ public class CourseServiceImpl implements ICourseService {
         if (request.getCategoryId() != null) {
             category = settingRepository.findById(request.getCategoryId()).orElse(null);
         }
+        User expert = null;
+        if (request.getExpertId() != null) {
+            expert = userRepository.findById(request.getExpertId()).orElse(null);
+        }
 
         Course course = Course.builder()
-                .title(request.getCourseCode())
+                .title(request.getCourseName())
                 .courseName(request.getCourseName())
                 .description(request.getDescription())
                 .price(request.getPrice())
@@ -44,6 +51,7 @@ public class CourseServiceImpl implements ICourseService {
                 .avatar(request.getAvatar())
                 .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
                 .category(category)
+                .expert(expert)
                 .build();
 
         courseRepository.save(course);
@@ -56,7 +64,7 @@ public class CourseServiceImpl implements ICourseService {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        course.setTitle(request.getCourseCode());
+        course.setTitle(request.getCourseName());
         course.setCourseName(request.getCourseName());
         course.setDescription(request.getDescription());
         course.setPrice(request.getPrice());
@@ -68,6 +76,12 @@ public class CourseServiceImpl implements ICourseService {
         if (request.getCategoryId() != null) {
             Setting category = settingRepository.findById(request.getCategoryId()).orElse(null);
             course.setCategory(category);
+        }
+
+        // Update expert if provided
+        if (request.getExpertId() != null) {
+            User expert = userRepository.findById(request.getExpertId()).orElse(null);
+            course.setExpert(expert);
         }
 
         courseRepository.save(course);
@@ -146,6 +160,8 @@ public class CourseServiceImpl implements ICourseService {
                 .status(course.getStatus())
                 .categoryId(course.getCategory() != null ? course.getCategory().getSettingId() : null)
                 .categoryName(course.getCategory() != null ? course.getCategory().getName() : null)
+                .expertId(course.getExpert() != null ? course.getExpert().getUserId() : null)
+                .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
                 .build();
     }
 }
