@@ -2,6 +2,7 @@ package com.example.DoAn.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "quiz_question")
@@ -27,4 +28,11 @@ public class QuizQuestion {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
     private QuestionGroup questionGroup;
+
+    @Column(name = "order_index")
+    private Integer orderIndex;
+
+    // Điểm cho câu hỏi này trong quiz
+    @Column(name = "points", precision = 5, scale = 2)
+    private BigDecimal points;
 }

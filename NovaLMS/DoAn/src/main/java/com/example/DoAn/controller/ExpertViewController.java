@@ -69,7 +69,7 @@ public class ExpertViewController {
         return "expert/content-course";
     }
 
-    // ── Quiz Bank ─────────────────────────────────────────────────────────
+    // ── Quiz Bank (Legacy) ───────────────────────────────────────────────
 
     @GetMapping("/quiz-bank")
     public String quizBankPage(Model model, Principal principal) {
@@ -92,5 +92,58 @@ public class ExpertViewController {
         model.addAttribute("modules", modulesResult);
         model.addAttribute("isDashboard", true);
         return "expert/quiz-bank-course";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  QUESTION BANK (Master Question Bank)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/question-bank")
+    public String questionBankPage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/question-bank";
+    }
+
+    @GetMapping("/question-bank/create")
+    public String questionCreatePage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/question-create";
+    }
+
+    @GetMapping("/question-bank/{questionId}/edit")
+    public String questionEditPage(@PathVariable Integer questionId, Model model) {
+        model.addAttribute("isDashboard", true);
+        model.addAttribute("questionId", questionId);
+        return "expert/question-edit";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  QUIZ MANAGEMENT
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/quiz-management")
+    public String quizListPage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/quiz-list";
+    }
+
+    @GetMapping("/quiz-management/create")
+    public String quizCreatePage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/quiz-create";
+    }
+
+    @GetMapping("/quiz-management/{quizId}/edit")
+    public String quizEditPage(@PathVariable Integer quizId, Model model) {
+        model.addAttribute("isDashboard", true);
+        model.addAttribute("quizId", quizId);
+        return "expert/quiz-edit";
+    }
+
+    @GetMapping("/quiz-management/{quizId}/questions")
+    public String quizQuestionsPage(@PathVariable Integer quizId, Model model) {
+        model.addAttribute("isDashboard", true);
+        model.addAttribute("quizId", quizId);
+        return "expert/quiz-questions";
     }
 }

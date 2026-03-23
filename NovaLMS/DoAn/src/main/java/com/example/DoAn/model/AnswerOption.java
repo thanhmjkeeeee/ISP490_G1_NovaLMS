@@ -25,4 +25,11 @@ public class AnswerOption {
 
     @Column(name = "correct_answer")
     private Boolean correctAnswer;
+
+    @Column(name = "order_index")
+    private Integer orderIndex;
+
+    // Dùng cho dạng Matching — chứa nội dung cần ghép nối
+    @Column(name = "match_target", length = 500)
+    private String matchTarget;
 }

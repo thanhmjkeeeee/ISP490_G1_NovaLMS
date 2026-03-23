@@ -8,4 +8,6 @@ import java.util.Optional;
 @Repository
 public interface QuizResultRepository extends JpaRepository<QuizResult, Integer> {
     Optional<QuizResult> findByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
+
+    long countByQuizQuizId(Integer quizId);
 }
