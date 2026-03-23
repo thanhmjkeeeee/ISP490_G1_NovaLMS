@@ -30,6 +30,12 @@ public class QuizResult {
     @Column(name = "correct_rate", precision = 5, scale = 2)
     private BigDecimal correctRate;
 
+    @Column(name = "score")
+    private Integer score;
+
+    @Column(name = "passed")
+    private Boolean passed;
+
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
