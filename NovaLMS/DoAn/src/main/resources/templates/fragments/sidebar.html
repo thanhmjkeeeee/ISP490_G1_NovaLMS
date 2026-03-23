@@ -14,7 +14,7 @@
        TEACHER : dashboard | my-classes | schedule | students | quiz-bank | profile
        ADMIN   : dashboard | users | courses | classes | registrations | settings | profile
        MANAGER : dashboard | courses | staff | reports | profile
-       EXPERT  : dashboard | content | quiz-bank | reviews | profile
+       EXPERT  : dashboard | modules | content | quiz-bank | question-bank | quiz-management | reviews | profile
      ================================================================ -->
 <nav th:fragment="dash-sidebar(activePage)" class="dash-sidebar" id="dashSidebar">
 
@@ -99,6 +99,12 @@
             </a>
             <a th:href="@{/expert/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
+            </a>
+            <a th:href="@{/expert/question-bank}" th:classappend="${activePage == 'question-bank'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-question-square"></i><span>Quản lý Câu hỏi</span>
+            </a>
+            <a th:href="@{/expert/quiz-management}" th:classappend="${activePage == 'quiz-management'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-patch-question"></i><span>Quản lý Quiz</span>
             </a>
             <a th:href="@{/expert/reviews}" th:classappend="${activePage == 'reviews'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-star-half"></i><span>Đánh giá nội dung</span>

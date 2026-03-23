@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Ngân hàng Quiz - Expert')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Ngân hàng Quiz', breadcrumb='Expert / Quiz Bank')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-bank')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Ngân hàng Quiz</h3>
+            <p class="text-muted small m-0">Chọn khóa học để xem và quản lý Quiz.</p>
+        </div>
+    </div>
+
+    <!-- Course cards -->
+    <div class="row g-4" id="courseList">
+        <div class="col-12">
+            <div class="text-center text-muted py-5">Đang tải danh sách khóa học...</div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+(async function() {
+    try {
+        const res = await fetch('/api/v1/expert/modules/courses');
+        const result = await res.json();
+        const container = document.getElementById('courseList');
+
+        if (result.status !== 200 || !result.data || result.data.length === 0) {
+            container.innerHTML = '<div class="col-12"><div class="alert alert-info">Bạn chưa sở hữu khóa học nào.</div></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        result.data.forEach(course => {
+            const statusBadge = course.status === 'Active'
+                ? '<span class="badge bg-success ms-2">Hoạt động</span>'
+                : '<span class="badge bg-warning text-dark ms-2">' + (course.status || 'Tạm dừng') + '</span>';
+
+            container.innerHTML += `
+                <div class="col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1" style="color:#223a58;">${escape(course.courseName || '—')}</h5>
+                                    <div class="small text-muted">${escape(course.categoryName || 'Chưa phân loại')}</div>
+                                </div>
+                                ${statusBadge}
+                            </div>
+                            <a th:href="@{/expert/quiz-bank/course/${course.courseId}}"
+                               href="/expert/quiz-bank/course/${course.courseId}"
+                               class="btn btn-sm w-100"
+                               style="background:#136ad5;color:#fff;border:none;">
+                                <i class="bi bi-collection me-1"></i> Quản lý Quiz
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+        });
+    } catch(e) {
+        document.getElementById('courseList').innerHTML =
+            '<div class="col-12"><div class="alert alert-danger">Lỗi tải dữ liệu: ' + e.message + '</div></div>';
+    }
+})();
+
+function escape(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
