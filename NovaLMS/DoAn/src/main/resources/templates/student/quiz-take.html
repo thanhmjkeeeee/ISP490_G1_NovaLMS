@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Làm Bài Kiểm Tra')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Bài Kiểm Tra', breadcrumb='Khóa học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        
+        <!-- Header Bài Quiz -->
+        <div class="card shadow-sm border-0 mb-4 rounded-4">
+          <div class="card-body p-4">
+            <h3 class="fw-bold mb-2" th:text="${quiz.title}">Tên Quiz</h3>
+            <p class="text-muted mb-3" th:text="${quiz.description}">Mô tả ngắn...</p>
+            <div class="d-flex align-items-center gap-4">
+              <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fs-6">
+                <i class="bi bi-ui-checks-grid me-1"></i> <span th:text="${quiz.totalQuestions}"></span> Câu hỏi
+              </div>
+              <div class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill fs-6" th:if="${quiz.timeLimitMinutes != null}">
+                <i class="bi bi-clock-history me-1"></i> <span id="timerText" th:text="${quiz.timeLimitMinutes} + ' Phút'"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form id="quizForm" class="mb-5">
+          <input type="hidden" id="quizId" th:value="${quiz.quizId}">
+          <input type="hidden" id="timeLimitMinutes" th:value="${quiz.timeLimitMinutes}">
+          
+          <div th:each="question, stat : ${quiz.questions}" class="card shadow-sm border-0 mb-4 rounded-4 question-card">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between mb-3">
+                <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span> <span class="text-muted fw-normal">/ <span th:text="${quiz.totalQuestions}"></span></span></h5>
+                <span class="badge bg-secondary" th:text="${question.points} + ' Điểm'"></span>
+              </div>
+              
+              <div class="mb-4">
+                <p class="fs-5 mb-0" th:utext="${question.content}"></p>
+              </div>
+
+              <!-- Trắc nghiệm 1 đáp án -->
+              <div th:if="${question.questionType == 'MULTIPLE_CHOICE_SINGLE'}">
+                <div th:each="opt : ${question.options}" class="form-check custom-radio mb-3">
+                  <input class="form-check-input" type="radio" th:name="'q_' + ${question.questionId}" th:id="'opt_' + ${opt.answerOptionId}" th:value="${opt.answerOptionId}">
+                  <label class="form-check-label w-100 p-3 rounded-3 border" th:for="'opt_' + ${opt.answerOptionId}" th:text="${opt.title}"></label>
+                </div>
+              </div>
+
+              <!-- Trắc nghiệm nhiều đáp án -->
+              <div th:if="${question.questionType == 'MULTIPLE_CHOICE_MULTI'}">
+                <div th:each="opt : ${question.options}" class="form-check custom-checkbox mb-3">
+                  <input class="form-check-input" type="checkbox" th:name="'q_' + ${question.questionId}" th:id="'opt_' + ${opt.answerOptionId}" th:value="${opt.answerOptionId}">
+                  <label class="form-check-label w-100 p-3 rounded-3 border" th:for="'opt_' + ${opt.answerOptionId}" th:text="${opt.title}"></label>
+                </div>
+              </div>
+
+              <!-- Điền vào chỗ trống -->
+              <div th:if="${question.questionType == 'FILL_IN_BLANK'}">
+                <input type="text" class="form-control p-3 border-2" th:name="'q_' + ${question.questionId}" placeholder="Nhập câu trả lời...">
+              </div>
+
+              <!-- Tự luận (Writing / Speaking) -->
+              <div th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
+                <textarea class="form-control p-3 border-2" th:name="'q_' + ${question.questionId}" rows="5" placeholder="Nhập nội dung bài làm..."></textarea>
+              </div>
+
+              <!-- Nối từ (Matching) -->
+              <div th:if="${question.questionType == 'MATCHING'}" class="matching-container">
+                <div th:each="opt : ${question.options}" class="row mb-3 align-items-center">
+                  <div class="col-md-5">
+                    <div class="p-3 border rounded-3 bg-light" th:text="${opt.title}"></div>
+                  </div>
+                  <div class="col-md-2 text-center text-muted">
+                    <i class="bi bi-arrow-right-short fs-3"></i>
+                  </div>
+                  <div class="col-md-5">
+                    <select class="form-select p-3 border-2" th:name="'q_' + ${question.questionId} + '_' + ${opt.answerOptionId}">
+                      <option value="">-- Chọn đáp án tương ứng --</option>
+                      <!-- Random matches frontend logic can populate, for simplicity just list them all -->
+                      <option th:each="matchOpt : ${question.options}" th:value="${matchOpt.matchTarget}" th:text="${matchOpt.matchTarget}"></option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="text-center mt-5 mb-5">
+            <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow" onclick="submitQuiz()">Nộp Bài</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<style>
+  .custom-radio input[type="radio"]:checked + label {
+    border-color: var(--dash-accent) !important;
+    background-color: rgba(19, 106, 213, 0.05);
+  }
+  .custom-checkbox input[type="checkbox"]:checked + label {
+    border-color: var(--dash-accent) !important;
+    background-color: rgba(19, 106, 213, 0.05);
+  }
+</style>
+
+<script>
+  let timerInterval;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const timeLimit = parseInt(document.getElementById('timeLimitMinutes').value);
+    if (timeLimit && !isNaN(timeLimit)) {
+      startTimer(timeLimit * 60);
+    }
+  });
+
+  function startTimer(durationSeconds) {
+    let timer = durationSeconds;
+    const timerDisplay = document.getElementById('timerText');
+    
+    timerInterval = setInterval(() => {
+      let minutes = parseInt(timer / 60, 10);
+      let seconds = parseInt(timer % 60, 10);
+      
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      
+      if(timerDisplay) timerDisplay.textContent = minutes + ":" + seconds;
+      
+      if (--timer < 0) {
+        clearInterval(timerInterval);
+        alert("Hết giờ! Bài làm sẽ tự động được nộp.");
+        submitQuiz(true);
+      }
+    }, 1000);
+  }
+
+  async function submitQuiz(autoSubmit = false) {
+    if (!autoSubmit) {
+      if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+    }
+    
+    if (timerInterval) clearInterval(timerInterval);
+    
+    const quizId = document.getElementById('quizId').value;
+    const form = document.getElementById('quizForm');
+    const formData = new FormData(form);
+    
+    let answers = {};
+    
+    formData.forEach((value, key) => {
+      if (key.startsWith('q_')) {
+        const parts = key.split('_');
+        const questionId = parts[1];
+        
+        // Handle MATCHING specially (q_{id}_{optId})
+        if (parts.length === 3) {
+           const optId = parts[2];
+           if (!answers[questionId]) answers[questionId] = {};
+           answers[questionId][optId] = value;
+        } else {
+           // MULTIPLE_CHOICE_MULTI could have multiple values for same key in FormData
+           // Handle arrays for checkboxes
+           const allVals = formData.getAll(key);
+           if (allVals.length > 1) {
+             answers[questionId] = allVals.map(v => parseInt(v));
+           } else {
+             // Try parse integer for single choice, else keep string for fill in blank
+             const intVal = parseInt(value);
+             answers[questionId] = isNaN(intVal) ? value : parseInt(value);
+             // if it was a checkbox with 1 selected, we might still want array. 
+             // for simplicity, backend handles single id vs list
+           }
+        }
+      }
+    });
+
+    const payload = {
+      quizId: parseInt(quizId),
+      answers: answers
+    };
+
+    try {
+      const response = await fetch('/api/v1/student/quiz/submit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        window.location.href = `/student/quiz/result/${result.resultId}`;
+      } else {
+        alert("Lỗi nộp bài: " + (result.message || 'Unknown error'));
+      }
+    } catch (e) {
+      alert("Lỗi kết nối khi nộp bài!");
+    }
+  }
+</script>
+
+</body>
+</html>

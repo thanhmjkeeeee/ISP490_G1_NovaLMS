@@ -15,16 +15,23 @@
         <p class="dash-page-subtitle">Không gian học tập của bạn đã sẵn sàng.</p>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 d-flex flex-column align-items-center justify-content-center text-center mt-3" style="min-height: 50vh;">
+    <div class="container-fluid py-4" id="courseCardsContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="card border-0 shadow-sm rounded-4 d-flex flex-column align-items-center justify-content-center text-center mt-3 d-none" style="min-height: 50vh;">
         <div style="font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem;">
             <i class="bi bi-grid-1x2"></i>
         </div>
-        <h4 style="color: #475569; font-weight: 700;">Blank Dashboard</h4>
+        <h4 style="color: #475569; font-weight: 700;">Chưa đăng ký khóa học nào</h4>
         <p style="color: #64748b; max-width: 500px;">
-            Cấu trúc Layout đã được nâng cấp lên chuẩn API-First.
+            Bạn chưa tham gia khóa học nào. Hãy khám phá và đăng ký khóa học phù hợp với bạn nhé!
         </p>
-        <a th:href="@{/student/my-courses}" class="btn btn-primary mt-3 px-4 rounded-pill shadow-sm">
-            <i class="bi bi-play-btn me-2"></i>Vào khóa học của tôi
+        <a href="/courses.html" class="btn btn-primary mt-3 px-4 rounded-pill shadow-sm">
+            <i class="bi bi-search me-2"></i>Khám phá khóa học
         </a>
     </div>
 
@@ -39,14 +46,61 @@
 <script>
     document.addEventListener("DOMContentLoaded", async function() {
         try {
-            const response = await fetch('/api/v1/student/dashboard/data');
+            const response = await fetch('/api/v1/dashboard/data'); // from StudentViewController
             const result = await response.json();
-
-            if (result.status === 200) {
-                document.getElementById('userNamePlaceholder').textContent = result.data.fullName;
+            const data = result;
+            
+            if (data && data.fullName) {
+                document.getElementById('userNamePlaceholder').textContent = data.fullName;
+                
+                const container = document.getElementById('courseCardsContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (!data.enrolledCourses || data.enrolledCourses.length === 0) {
+                    container.classList.add('d-none');
+                    emptyState.classList.remove('d-none');
+                } else {
+                    let html = '<div class="row g-4">';
+                    data.enrolledCourses.forEach(course => {
+                        html += `
+                        <div class="col-xl-4 col-md-6">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden course-card">
+                                <div class="position-relative">
+                                    <img src="${course.thumbnailUrl || '/assets/images/course-placeholder.jpg'}" class="card-img-top" alt="Course Image" style="height: 180px; object-fit: cover;">
+                                    ${course.progressPercent === 100 ? '<span class="position-absolute top-0 end-0 m-3 badge bg-success fw-bold p-2"><i class="bi bi-check-circle me-1"></i>Hoàn thành</span>' : ''}
+                                </div>
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <h5 class="fw-bold mb-2 text-truncate" title="${course.title}">${course.title}</h5>
+                                    <p class="text-muted small mb-3"><i class="bi bi-person-video3 me-2"></i> ${course.teacherName} | ${course.className ? 'Lớp ' + course.className : ''}</p>
+                                    
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-end mb-2">
+                                            <span class="small fw-semibold text-muted">Tiến độ</span>
+                                            <span class="small fw-bold text-primary">${course.progressPercent.toFixed(1)}%</span>
+                                        </div>
+                                        <div class="progress mb-3" style="height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: ${course.progressPercent}%"></div>
+                                        </div>
+                                        
+                                        ${course.progressPercent === 100 
+                                            ? `<a href="/student/lesson/view/${course.nextLessonId || ''}" class="btn btn-outline-success w-100 rounded-pill fw-bold">Xem lại bài học</a>`
+                                            : course.nextLessonId 
+                                                ? `<a href="/student/lesson/view/${course.nextLessonId}" class="btn btn-primary w-100 rounded-pill fw-bold">Tiếp tục bài ${course.nextLessonTitle || ''}</a>`
+                                                : `<a href="/student/lesson/${course.courseId}/continue" class="btn btn-primary w-100 rounded-pill fw-bold">Bắt đầu khóa học</a>`
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                }
             }
         } catch (error) {
+            console.error(error);
             document.getElementById('userNamePlaceholder').textContent = "Học viên";
+            document.getElementById('courseCardsContainer').innerHTML = '<div class="alert alert-danger">Có lỗi xảy ra khi tải dữ liệu!</div>';
         }
     });
 </script>

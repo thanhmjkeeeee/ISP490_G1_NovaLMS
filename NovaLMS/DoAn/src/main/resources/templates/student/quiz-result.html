@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Kết Quả Kiểm Tra')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Kết Quả Điểm', breadcrumb='Khóa học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        
+        <!-- Score Banner -->
+        <div class="card shadow rounded-4 border-0 mb-4 overflow-hidden position-relative" th:classappend="${result.passed == true ? 'border-success' : (result.passed == false ? 'border-danger' : 'border-warning')}">
+          <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" th:classappend="${result.passed == true ? 'bg-success' : (result.passed == false ? 'bg-danger' : 'bg-warning')}"></div>
+          <div class="card-body p-5 text-center position-relative z-1">
+            <h2 class="fw-bold mb-3" th:text="${result.quizTitle}">Title</h2>
+            
+            <div th:if="${result.passed != null}">
+               <div class="display-3 fw-bold mb-2 disabled" th:classappend="${result.passed ? 'text-success' : 'text-danger'}">
+                 <span th:text="${result.correctRate}"></span>%
+               </div>
+               <p class="text-muted fs-5 mb-4"><span th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span> Điểm</p>
+               
+               <div class="badge rounded-pill fw-bold fs-5 px-4 py-2 text-white" th:classappend="${result.passed ? 'bg-success' : 'bg-danger'}" th:text="${result.passed ? 'ĐẠT (PASSED)' : 'CHƯA ĐẠT (FAILED)'}"></div>
+               <p class="mt-3 text-muted" th:text="${result.passScoreDescription}">Passing score...</p>
+            </div>
+            
+            <div th:if="${result.passed == null}">
+               <div class="display-3 fw-bold mb-2 text-warning"><i class="bi bi-hourglass-split"></i></div>
+               <h4 class="fw-bold mt-3 text-warning">Chờ Chấm Điểm (PENDING)</h4>
+               <p class="text-muted mt-2">Bài làm của bạn có câu hỏi tự luận cần giáo viên chấm điểm.</p>
+            </div>
+            
+            <div class="mt-4">
+               <button class="btn btn-outline-secondary rounded-pill fw-bold px-4" onclick="window.history.back()">Quay Lại Lớp Học</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions Review -->
+        <h4 class="fw-bold mb-4">Chi tiết bài làm</h4>
+        
+        <div th:each="question, stat : ${result.questions}" class="card shadow-sm border-0 mb-4 rounded-4">
+          <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span> <span class="badge ms-2" th:classappend="${question.isCorrect == true ? 'bg-success' : (question.isCorrect == false ? 'bg-danger' : 'bg-warning')}" th:text="${question.isCorrect == true ? '+ ' + question.points + ' Điểm' : (question.isCorrect == false ? '0 Điểm' : 'Chờ chấm')}"></span></h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="mb-4">
+              <p class="fs-5 mb-0" th:utext="${question.content}"></p>
+            </div>
+            
+            <!-- User Answer -->
+            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;">
+               <p class="fw-bold mb-1 small text-muted">Câu trả lời của bạn:</p>
+               <div th:if="${question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
+                  <p class="mb-0 text-dark" th:text="${question.userAnswerDisplay}"></p>
+               </div>
+               <div th:if="${question.userAnswerDisplay == null or question.userAnswerDisplay == ''}">
+                  <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>
+               </div>
+            </div>
+
+            <!-- Correct Answer (Only if showAnswer is true) -->
+            <div th:if="${result.showAnswer and question.correctAnswerDisplay != null}" class="mb-3 p-3 rounded bg-success bg-opacity-10 border border-success border-opacity-25">
+               <p class="fw-bold mb-1 small text-success">Đáp án đúng:</p>
+               <p class="mb-0 text-dark fw-medium" th:text="${question.correctAnswerDisplay}"></p>
+               <p class="mt-2 mb-0 small text-muted" th:if="${question.explanation}"><i class="bi bi-info-circle"></i> <span th:text="${question.explanation}"></span></p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+</body>
+</html>

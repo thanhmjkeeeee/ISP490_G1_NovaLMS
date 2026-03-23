@@ -68,17 +68,19 @@
                    <h4 class="mt-3">Tài liệu đọc</h4><p class="text-muted mb-4">${lesson.contentText || ''}</p></div>`;
       } else if (lesson.type === 'QUIZ') {
           html += `<div class="lesson-header mb-4 text-center py-5"><div style="font-size: 4rem; color: #10b981;"><i class="bi bi-patch-question-fill"></i></div>
-                   <h4 class="mt-3">Bài kiểm tra</h4><a href="/student/quiz/take/${lesson.lessonId}" class="btn btn-success rounded-pill px-5">Bắt đầu <i class="bi bi-arrow-right"></i></a></div>`;
+                   <h4 class="mt-3">Bài kiểm tra cuối khóa</h4><a href="/student/quiz/take/${lesson.quiz_id || lesson.quizId}" class="btn btn-success rounded-pill px-5 shadow-sm fw-bold">Bắt đầu Quiz <i class="bi bi-arrow-right"></i></a></div>`;
       }
 
-      html += `
-        <div class="lesson-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div><span class="badge bg-primary mb-2">${lesson.type}</span><h3 class="fw-bold mb-1">${lesson.lessonTitle}</h3>
-          <p class="text-muted mb-0 small"><i class="bi bi-clock me-1"></i> ${lesson.duration}</p></div>
-          <button class="btn btn-outline-success rounded-pill fw-bold px-4" onclick="markCompleted(${lesson.lessonId})">
-            <i class="bi bi-check-circle me-1"></i> Đánh dấu hoàn thành
-          </button>
-        </div>`;
+      if(lesson.type !== 'QUIZ') {
+          html += `
+            <div class="lesson-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div><span class="badge bg-primary mb-2">${lesson.type}</span><h3 class="fw-bold mb-1">${lesson.lessonTitle}</h3>
+              <p class="text-muted mb-0 small"><i class="bi bi-clock me-1"></i> ${lesson.duration}</p></div>
+              <button class="btn btn-outline-success rounded-pill fw-bold px-4" onclick="markCompleted(${lesson.lessonId})">
+                <i class="bi bi-check-circle me-1"></i> Đánh dấu hoàn thành
+              </button>
+            </div>`;
+      }
 
       area.innerHTML = html;
   };

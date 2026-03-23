@@ -36,29 +36,53 @@
 
     <div class="row g-4 mb-4">
         <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3">
+            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
                 <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
-                         style="width:50px; height:50px; font-size:24px; background-color: rgba(19, 106, 213, 0.1); color: #136ad5;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px; background-color: rgba(19, 106, 213, 0.1); color: #136ad5;">
                         <i class="bi bi-people-fill"></i>
                     </div>
                     <div>
                         <h6 class="text-muted small text-uppercase fw-bold mb-1">Students</h6>
-                        <h4 class="fw-bold mb-0 text-dark">1,245</h4>
+                        <h4 class="fw-bold mb-0 text-dark" id="statStudents">-</h4>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3">
+            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
                 <div class="d-flex align-items-center">
                     <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
                         <i class="bi bi-journal-bookmark-fill"></i>
                     </div>
                     <div>
                         <h6 class="text-muted small text-uppercase fw-bold mb-1">Courses</h6>
-                        <h4 class="fw-bold mb-0 text-dark">32</h4>
+                        <h4 class="fw-bold mb-0 text-dark" id="statCourses">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
+                        <i class="bi bi-easel-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted small text-uppercase fw-bold mb-1">Classes</h6>
+                        <h4 class="fw-bold mb-0 text-dark" id="statClasses">-</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted small text-uppercase fw-bold mb-1">New Enrollments</h6>
+                        <h4 class="fw-bold mb-0 text-dark" id="statNewRegs">-</h4>
                     </div>
                 </div>
             </div>
@@ -66,12 +90,27 @@
     </div>
 
     <!-- Thêm mb-auto để đẩy các thành phần nếu có xuống đáy -->
-    <div class="card border-0 shadow-sm mb-auto">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h6 class="m-0 fw-bold" style="color: #223a58;">New Registrations</h6>
+    <div class="card border-0 shadow-sm mb-auto rounded-4 mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="m-0 fw-bold" style="color: #223a58;">Recent Registrations</h6>
         </div>
-        <div class="card-body">
-            <p class="text-muted text-center py-4">Table content here...</p>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+               <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light text-muted small">
+                     <tr>
+                        <th class="ps-4">Student</th>
+                        <th>Email</th>
+                        <th>Course</th>
+                        <th>Date Enrolled</th>
+                        <th>Status</th>
+                     </tr>
+                  </thead>
+                  <tbody id="recentRegistrationsTbody">
+                     <tr><td colspan="5" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm" role="status"></div> Loading...</td></tr>
+                  </tbody>
+               </table>
+            </div>
         </div>
     </div>
 
@@ -80,6 +119,42 @@
 <!-- 5. Gọi Script Components thay cho admin-footer cũ -->
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    document.addEventListener("DOMContentLoaded", async function() {
+        try {
+            const response = await fetch('/manager/api/v1/dashboard/data');
+            const data = await response.json();
+            
+            if (data) {
+                document.getElementById('statStudents').textContent = data.totalStudents || 0;
+                document.getElementById('statCourses').textContent = data.totalCourses || 0;
+                document.getElementById('statClasses').textContent = data.totalClasses || 0;
+                document.getElementById('statNewRegs').textContent = data.newRegistrationsThisWeek || 0;
+                
+                const tbody = document.getElementById('recentRegistrationsTbody');
+                if (data.recentRegistrations && data.recentRegistrations.length > 0) {
+                    tbody.innerHTML = data.recentRegistrations.map(r => `
+                        <tr>
+                            <td class="ps-4 fw-medium text-dark">${r.studentName}</td>
+                            <td class="text-muted">${r.studentEmail}</td>
+                            <td>${r.courseName}</td>
+                            <td>${new Date(r.enrolledAt).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                                <span class="badge ${r.status === 'Approved' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}">${r.status}</span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No recent registrations found.</td></tr>';
+                }
+            }
+        } catch (error) {
+            console.error("Dashboard error:", error);
+            document.getElementById('recentRegistrationsTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load data.</td></tr>';
+        }
+    });
+</script>
 
 </body>
 </html>

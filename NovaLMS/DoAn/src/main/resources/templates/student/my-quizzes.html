@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Lịch sử kiểm tra')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Đang học', breadcrumb='Lịch sử kiểm tra')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+            <h5 class="fw-bold mb-2">Lịch sử bài kiểm tra của bạn</h5>
+            <p class="text-muted">Danh sách các bài Quiz mà bạn đã hoàn thành.</p>
+        </div>
+        <div class="card-body px-4 pb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Bài Kiểm Tra</th>
+                            <th>Khóa Học</th>
+                            <th>Nộp Lúc</th>
+                            <th>Điểm Số</th>
+                            <th>Trạng Thái</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav id="historyPagination" class="mt-4" style="display: none;">
+                <ul class="pagination justify-content-center"></ul>
+            </nav>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+let currentPage = 0;
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadHistory(currentPage);
+});
+
+async function loadHistory(page) {
+    try {
+        const res = await fetch(`/api/v1/student/quiz/history?page=${page}&size=15`);
+        const result = await res.json();
+        
+        let html = '';
+        if(result.status === 200 && result.data && result.data.items.length > 0) {
+            result.data.items.forEach((item, index) => {
+                const date = new Date(item.submittedAt).toLocaleString('vi-VN');
+                const isPending = item.passed === null;
+                let statusBadge = '';
+                if (isPending) {
+                    statusBadge = '<span class="badge bg-warning text-dark">Chờ chấm điểm</span>';
+                } else {
+                    statusBadge = item.passed ? '<span class="badge bg-success">Đạt</span>' : '<span class="badge bg-danger">Không Đạt</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td>${page * 15 + index + 1}</td>
+                        <td><div class="fw-bold text-dark">${item.quizTitle}</div></td>
+                        <td><span class="badge bg-secondary">${item.courseName || 'N/A'}</span></td>
+                        <td><span class="small text-muted"><i class="bi bi-clock me-1"></i>${date}</span></td>
+                        <td><span class="fw-bold fs-5">${item.score}</span> <span class="text-muted">/ ${item.maxScore}</span></td>
+                        <td>${statusBadge}</td>
+                        <td><a href="/student/quiz/result/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Chi Tiết <i class="bi bi-arrow-right"></i></a></td>
+                    </tr>
+                `;
+            });
+            renderPagination(result.data.totalPages, page);
+        } else {
+            html = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-journal-x fs-1 d-block mb-3"></i> Bạn chưa thực hiện bài kiểm tra nào.</td></tr>`;
+            document.getElementById('historyPagination').style.display = 'none';
+        }
+        document.getElementById('historyTableBody').innerHTML = html;
+        
+    } catch(e) {
+        document.getElementById('historyTableBody').innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối khi tải dữ liệu.</td></tr>`;
+    }
+}
+
+function renderPagination(totalPages, currentPageIdx) {
+    if(totalPages <= 1) {
+        document.getElementById('historyPagination').style.display = 'none';
+        return;
+    }
+    const nav = document.getElementById('historyPagination');
+    nav.style.display = 'block';
+    const ul = nav.querySelector('ul');
+    
+    let paginationHtml = `<li class="page-item ${currentPageIdx === 0 ? 'disabled' : ''}"><button class="page-link" onclick="loadHistory(${currentPageIdx - 1})">Trang trước</button></li>`;
+    for(let i=0; i<totalPages; i++) {
+        paginationHtml += `<li class="page-item ${i === currentPageIdx ? 'active' : ''}"><button class="page-link" onclick="loadHistory(${i})">${i + 1}</button></li>`;
+    }
+    paginationHtml += `<li class="page-item ${currentPageIdx === totalPages - 1 ? 'disabled' : ''}"><button class="page-link" onclick="loadHistory(${currentPageIdx + 1})">Trang sau</button></li>`;
+    ul.innerHTML = paginationHtml;
+}
+</script>
+
+</body>
+</html>

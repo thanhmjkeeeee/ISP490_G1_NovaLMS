@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chấm Bài: ' + ${result.quizTitle})}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='teacher-dashboard')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-3" th:text="${result.quizTitle}"></h4>
+            <div class="row text-muted small">
+                <div class="col-md-4 mb-2"><i class="bi bi-clock me-1"></i>Nộp lúc: <span th:text="${#temporals.format(result.submittedAt, 'dd/MM/yyyy HH:mm')}"></span></div>
+                <div class="col-md-4 mb-2"><i class="bi bi-journal-text me-1"></i>Khóa học: <span th:text="${result.courseName}"></span></div>
+                <div class="col-md-4 mb-2"><i class="bi bi-check-circle me-1"></i>Trạng thái: Đang chờ chấm bài</div>
+            </div>
+            
+            <hr class="my-4">
+            <p class="text-primary fw-medium"><i class="bi bi-info-circle me-2"></i> Chỉ các câu trả lời Tự Luận (WRITING/SPEAKING) mới yêu cầu chấm điểm. Điểm trắc nghiệm (Tự động chấm) hiện tại: <span class="fw-bold" th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span></p>
+            <div class="d-flex align-items-center">
+                <a href="/teacher/quiz/grading" class="btn btn-sm btn-outline-secondary rounded-pill me-3"><i class="bi bi-arrow-left"></i> Quay lại</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Questions List -->
+    <div class="d-flex flex-column gap-4" id="gradingForm">
+        <div th:each="q, iterStat : ${result.questions}" class="card border-0 shadow-sm rounded-4" th:id="'qty-' + ${q.questionType}">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary rounded-pill px-3 py-2 fw-medium text-uppercase" th:text="${q.skill}"></span>
+                    <span class="badge bg-light text-dark border px-3 py-2 fw-medium"><span th:text="${q.points}"></span> Điểm</span>
+                </div>
+                <h5 class="fw-bold lh-base">
+                    <span class="text-primary me-2" th:text="'Câu ' + ${iterStat.count} + ':'"></span>
+                    <span th:text="${q.content}"></span>
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                
+                <!-- Display Student's Answer -->
+                <div class="p-3 bg-light rounded-3 mb-4">
+                    <h6 class="fw-bold text-muted mb-2">Câu trả lời của học viên:</h6>
+                    <div th:if="${q.questionType == 'WRITING' or q.questionType == 'SPEAKING'}">
+                        <div class="text-dark" th:utext="${q.userAnswerDisplay != null && q.userAnswerDisplay.length() > 2 ? #strings.replace(q.userAnswerDisplay, '&quot;', '') : '<i>(Học viên không trả lời)</i>'}"></div>
+                    </div>
+                    
+                    <div th:unless="${q.questionType == 'WRITING' or q.questionType == 'SPEAKING'}">
+                        <em class="text-muted">(Câu hỏi trắc nghiệm tự động chấm)</em>
+                        <br>
+                        <span class="badge" th:classappend="${q.isCorrect == true ? 'bg-success' : (q.isCorrect == false ? 'bg-danger' : 'bg-secondary')}" th:text="${q.isCorrect == true ? 'Đúng' : (q.isCorrect == false ? 'Sai' : 'Chưa rõ')}"></span>
+                    </div>
+                </div>
+
+                <!-- Grading Input (Only for Writing/Speaking) -->
+                <div th:if="${q.questionType == 'WRITING' or q.questionType == 'SPEAKING'}" class="bg-success bg-opacity-10 p-4 rounded-3 grading-box" th:data-qid="${q.questionId}">
+                    <label class="form-label fw-bold text-success">Chấm điểm cho câu này (Tối đa: <span th:text="${q.points}"></span>đ)</label>
+                    <input type="number" class="form-control score-input border-success" style="max-width: 150px" min="0" th:max="${q.points}" value="0" step="1">
+                    <div class="form-text text-success mt-2"><i class="bi bi-exclamation-circle me-1"></i>Nhập số điểm bạn muốn cộng cho bài nộp này.</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4 text-center sticky-bottom z-3">
+        <div class="card-body p-4">
+             <button id="submitGradesBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm">
+                Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>
+             </button>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+    document.getElementById('submitGradesBtn').addEventListener('click', async () => {
+        const gradingBoxes = document.querySelectorAll('.grading-box');
+        const payload = [];
+
+        gradingBoxes.forEach(box => {
+            const qId = box.getAttribute('data-qid');
+            const scoreInput = box.querySelector('.score-input').value;
+            payload.push({
+                questionId: parseInt(qId),
+                pointsAwarded: parseFloat(scoreInput || 0)
+            });
+        });
+
+        const btn = document.getElementById('submitGradesBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...';
+        btn.disabled = true;
+
+        try {
+            const resultId = window.location.pathname.split('/').pop();
+            const res = await fetch(`/api/v1/teacher/quiz-results/${resultId}/grade`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if(data.status === 200) {
+                alert('Chấm điểm thành công!');
+                window.location.href = '/teacher/quiz/grading';
+            } else {
+                alert(data.message || 'Có lỗi xảy ra!');
+            }
+        } catch(e) {
+            alert('Lỗi kết nối máy chủ!');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>

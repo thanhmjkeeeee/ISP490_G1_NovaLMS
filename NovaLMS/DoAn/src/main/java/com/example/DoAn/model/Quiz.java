@@ -63,6 +63,10 @@ public class Quiz {
     @Column(name = "question_order", length = 10)
     private String questionOrder;
 
+    // Target number of questions for the quiz
+    @Column(name = "number_of_questions")
+    private Integer numberOfQuestions;
+
     // true = hiển thị đáp án ngay sau nộp
     @Column(name = "show_answer_after_submit")
     private Boolean showAnswerAfterSubmit;
