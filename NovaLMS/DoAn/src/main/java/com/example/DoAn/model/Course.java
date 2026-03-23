@@ -25,6 +25,9 @@ public class Course {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "level_tag", length = 10)
+    private String levelTag; // A1, A2, B1, B2, C1, C2
+
     private String status;
 
     @Column(name = "price")
