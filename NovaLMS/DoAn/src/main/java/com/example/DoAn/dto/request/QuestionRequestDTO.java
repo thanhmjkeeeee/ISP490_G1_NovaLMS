@@ -13,16 +13,30 @@ import java.util.List;
 @Builder
 public class QuestionRequestDTO {
 
-    @NotNull(message = "moduleId is required")
     private Integer moduleId;
 
+    @NotBlank(message = "Content is required")
     private String content;
+
+    @NotBlank(message = "Question type is required")
+    private String questionType;
+
+    @NotBlank(message = "Skill is required")
+    private String skill;
+
+    @NotBlank(message = "CEFR level is required")
+    private String cefrLevel;
+
+    private String topic;
+    private String tags;
+    private String explanation;
+    private String audioUrl;
+    private String imageUrl;
+    private String status;
 
     @NotEmpty(message = "At least one answer option is required")
     @Valid
     private List<AnswerOptionDTO> options;
-
-    private String status;
 
     @Data
     @NoArgsConstructor
