@@ -137,6 +137,7 @@ public class LearningServiceImpl implements LearningService {
                     .duration(currentLesson.getDuration())
                     .videoUrl(currentLesson.getVideoUrl())
                     .contentText(currentLesson.getContent_text())
+                    .quizId(currentLesson.getQuiz_id())
                     .isCompleted(false)
                     .isLocked(false)
                     .build();

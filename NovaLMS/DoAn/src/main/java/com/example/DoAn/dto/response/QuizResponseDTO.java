@@ -20,6 +20,7 @@ public class QuizResponseDTO {
     private Integer timeLimitMinutes;
     private BigDecimal passScore;
     private Integer maxAttempts;
+    private Integer numberOfQuestions;
     private String questionOrder;
     private Boolean showAnswerAfterSubmit;
     private String createdByName;

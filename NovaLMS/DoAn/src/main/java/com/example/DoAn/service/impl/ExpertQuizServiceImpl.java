@@ -52,6 +52,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .timeLimitMinutes(request.getTimeLimitMinutes())
                 .passScore(request.getPassScore())
                 .maxAttempts(request.getMaxAttempts())
+                .numberOfQuestions(request.getNumberOfQuestions())
                 .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
                 .showAnswerAfterSubmit(request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
                 .user(expert)
@@ -88,6 +89,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
         quiz.setPassScore(request.getPassScore());
         quiz.setMaxAttempts(request.getMaxAttempts());
+
+        if (request.getNumberOfQuestions() != null) {
+            quiz.setNumberOfQuestions(request.getNumberOfQuestions());
+        }
 
         if (request.getQuestionOrder() != null) {
             quiz.setQuestionOrder(request.getQuestionOrder());
@@ -182,11 +187,14 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             );
         }
 
-        // Publish cần ít nhất 1 câu hỏi
+        // Publish cần ít nhất 1 câu hỏi và đủ số lượng câu hỏi
         if ("PUBLISHED".equals(newStatus)) {
             int questionCount = quizQuestionRepository.countByQuizQuizId(quizId);
             if (questionCount == 0) {
                 throw new InvalidDataException("Không thể xuất bản quiz chưa có câu hỏi nào.");
+            }
+            if (quiz.getNumberOfQuestions() != null && questionCount < quiz.getNumberOfQuestions()) {
+                throw new InvalidDataException("Số lượng câu hỏi chưa đủ (" + questionCount + "/" + quiz.getNumberOfQuestions() + "). Chờ thêm câu hỏi để xuất bản.");
             }
         }
 
@@ -341,6 +349,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
                 .passScore(quiz.getPassScore())
                 .maxAttempts(quiz.getMaxAttempts())
+                .numberOfQuestions(quiz.getNumberOfQuestions())
                 .questionOrder(quiz.getQuestionOrder())
                 .showAnswerAfterSubmit(quiz.getShowAnswerAfterSubmit())
                 .createdByName(quiz.getUser() != null ? quiz.getUser().getFullName() : null)

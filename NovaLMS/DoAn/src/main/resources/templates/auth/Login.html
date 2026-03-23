@@ -3,11 +3,16 @@
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Đăng nhập')}"></head>
 <script th:inline="javascript">
-    // Lưu redirect URL vào sessionStorage nếu có
+    // Kiểm tra xem có param logout không, nếu có thì xóa redirect cũ
     const urlParams = new URLSearchParams(window.location.search);
-    const redirectUrl = urlParams.get('redirect');
-    if (redirectUrl) {
-        sessionStorage.setItem('loginRedirect', redirectUrl);
+    if (urlParams.has('logout')) {
+        sessionStorage.removeItem('loginRedirect');
+    } else {
+        // Lưu redirect URL vào sessionStorage nếu có
+        const redirectUrl = urlParams.get('redirect');
+        if (redirectUrl) {
+            sessionStorage.setItem('loginRedirect', redirectUrl);
+        }
     }
 </script>
 
