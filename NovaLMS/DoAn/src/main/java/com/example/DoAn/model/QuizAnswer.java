@@ -26,4 +26,7 @@ public class QuizAnswer {
 
     @Column(name = "answered_options", columnDefinition = "TEXT")
     private String answeredOptions;
+
+    @Column(name = "is_correct")
+    private Boolean isCorrect;
 }

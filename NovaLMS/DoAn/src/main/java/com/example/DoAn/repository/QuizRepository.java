@@ -17,6 +17,9 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     List<Quiz> findByQuizCategoryAndStatus(String category, String status);
 
+    @Query("SELECT q FROM Quiz q WHERE q.course.courseId = :courseId AND q.quizCategory = :category AND q.status = :status")
+    Optional<Quiz> findByCourseIdAndCategoryAndStatus(@Param("courseId") Integer courseId, @Param("category") String category, @Param("status") String status);
+
     Page<Quiz> findByUserUserId(Integer userId, Pageable pageable);
 
     @Query("SELECT q FROM Quiz q WHERE " +
