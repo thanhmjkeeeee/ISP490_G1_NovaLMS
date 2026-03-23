@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chỉnh sửa câu hỏi - Expert')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chỉnh sửa câu hỏi', breadcrumb='Expert / Question Bank')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='question-bank')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Chỉnh sửa câu hỏi</h3>
+            <p class="text-muted small m-0">Cập nhật thông tin câu hỏi #<span th:text="${questionId}"></span></p>
+        </div>
+        <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-auto">
+        <div class="card-body">
+            <form id="questionForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Loại câu hỏi <span class="text-danger">*</span></label>
+                        <select id="questionType" class="form-select" required onchange="onTypeChange()">
+                            <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Single)</option>
+                            <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Multi)</option>
+                            <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                            <option value="MATCHING">Matching</option>
+                            <option value="WRITING">Writing (Tự luận)</option>
+                            <option value="SPEAKING">Speaking (Ghi âm)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Kỹ năng <span class="text-danger">*</span></label>
+                        <select id="skill" class="form-select" required>
+                            <option value="LISTENING">Listening</option>
+                            <option value="READING">Reading</option>
+                            <option value="WRITING">Writing</option>
+                            <option value="SPEAKING">Speaking</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Cấp độ CEFR <span class="text-danger">*</span></label>
+                        <select id="cefrLevel" class="form-select" required>
+                            <option value="A1">A1</option><option value="A2">A2</option>
+                            <option value="B1">B1</option><option value="B2">B2</option>
+                            <option value="C1">C1</option><option value="C2">C2</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Chủ đề</label>
+                        <input type="text" id="topic" class="form-control">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Tags</label>
+                        <input type="text" id="tags" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Audio URL</label>
+                        <input type="text" id="audioUrl" class="form-control">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Image URL</label>
+                        <input type="text" id="imageUrl" class="form-control">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nội dung câu hỏi <span class="text-danger">*</span></label>
+                    <textarea id="content" class="form-control" rows="4" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Giải thích đáp án</label>
+                    <textarea id="explanation" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div id="optionsSection">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Đáp án</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOption()">
+                            <i class="bi bi-plus-lg me-1"></i> Thêm đáp án
+                        </button>
+                    </div>
+                    <div id="optionsContainer"></div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="updateQuestion()">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+const questionId = /*[[${questionId}]]*/ 0;
+let optionIndex = 0;
+const noOptionsTypes = ['WRITING', 'SPEAKING'];
+
+function onTypeChange() {
+    const type = document.getElementById('questionType').value;
+    document.getElementById('optionsSection').style.display = noOptionsTypes.includes(type) ? 'none' : 'block';
+}
+
+function addOption(data = {}) {
+    const type = document.getElementById('questionType').value;
+    const isMatching = type === 'MATCHING';
+    const container = document.getElementById('optionsContainer');
+    const idx = optionIndex++;
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 align-items-center option-row';
+    div.innerHTML = `
+        <div class="${isMatching ? 'col-md-4' : 'col-md-6'}">
+            <input type="text" class="form-control form-control-sm" data-field="title" value="${data.title || ''}">
+        </div>
+        ${isMatching ? `<div class="col-md-4">
+            <input type="text" class="form-control form-control-sm" data-field="matchTarget" value="${data.matchTarget || ''}">
+        </div>` : ''}
+        <div class="col-md-2">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" data-field="correct" ${data.correctAnswer ? 'checked' : ''}>
+                <label class="form-check-label small">Đúng</label>
+            </div>
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.option-row').remove()"><i class="bi bi-trash"></i></button>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function collectOptions() {
+    return Array.from(document.querySelectorAll('.option-row')).map((row, i) => ({
+        title: row.querySelector('[data-field="title"]').value,
+        correct: row.querySelector('[data-field="correct"]').checked,
+        orderIndex: i,
+        matchTarget: row.querySelector('[data-field="matchTarget"]')?.value || null
+    }));
+}
+
+async function loadQuestion() {
+    try {
+        const res = await fetch(`/api/v1/expert/question-bank/${questionId}`);
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            const q = result.data;
+            document.getElementById('questionType').value = q.questionType;
+            document.getElementById('skill').value = q.skill;
+            document.getElementById('cefrLevel').value = q.cefrLevel;
+            document.getElementById('topic').value = q.topic || '';
+            document.getElementById('tags').value = q.tags || '';
+            document.getElementById('audioUrl').value = q.audioUrl || '';
+            document.getElementById('imageUrl').value = q.imageUrl || '';
+            document.getElementById('content').value = q.content || '';
+            document.getElementById('explanation').value = q.explanation || '';
+            onTypeChange();
+            if (q.options && q.options.length > 0) {
+                q.options.forEach(opt => addOption(opt));
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function updateQuestion() {
+    const type = document.getElementById('questionType').value;
+    const body = {
+        content: document.getElementById('content').value,
+        questionType: type,
+        skill: document.getElementById('skill').value,
+        cefrLevel: document.getElementById('cefrLevel').value,
+        topic: document.getElementById('topic').value || null,
+        tags: document.getElementById('tags').value || null,
+        explanation: document.getElementById('explanation').value || null,
+        audioUrl: document.getElementById('audioUrl').value || null,
+        imageUrl: document.getElementById('imageUrl').value || null,
+        options: noOptionsTypes.includes(type) ? [] : collectOptions()
+    };
+
+    try {
+        const res = await fetch(`/api/v1/expert/question-bank/${questionId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (res.ok) { alert('Cập nhật thành công!'); window.location.href = '/expert/question-bank'; }
+        else { alert(result.message || 'Có lỗi xảy ra.'); }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+loadQuestion();
+</script>
+</body>
+</html>

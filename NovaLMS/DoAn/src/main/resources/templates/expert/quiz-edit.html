@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chỉnh sửa Quiz - Expert')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chỉnh sửa Quiz', breadcrumb='Expert / Quiz Management')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-management')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Chỉnh sửa Quiz</h3>
+            <p class="text-muted small m-0">Cập nhật cấu hình quiz #<span th:text="${quizId}"></span></p>
+        </div>
+        <a th:href="@{/expert/quiz-management}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <div id="attemptWarning" class="alert alert-warning d-none">
+        <i class="bi bi-exclamation-triangle me-2"></i> Quiz này đã có học viên làm bài. Một số thay đổi có thể bị hạn chế.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-auto">
+        <div class="card-body">
+            <form id="quizForm">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" id="title" class="form-control" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Loại Quiz</label>
+                        <select id="quizCategory" class="form-select" disabled>
+                            <option value="ENTRY_TEST">Entry Test</option>
+                            <option value="COURSE_QUIZ">Course Quiz</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Trạng thái</label>
+                        <select id="status" class="form-select">
+                            <option value="DRAFT">Draft</option>
+                            <option value="PUBLISHED">Published</option>
+                            <option value="ARCHIVED">Archived</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Mô tả</label>
+                    <textarea id="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color: #223a58;">Cấu hình Quiz</h6>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Thời gian (phút)</label>
+                        <input type="number" id="timeLimitMinutes" class="form-control" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Điểm đạt (%)</label>
+                        <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Số lần làm lại</label>
+                        <input type="number" id="maxAttempts" class="form-control" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Thứ tự câu hỏi</label>
+                        <select id="questionOrder" class="form-select">
+                            <option value="FIXED">Cố định</option>
+                            <option value="RANDOM">Ngẫu nhiên</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit">
+                        <label class="form-check-label fw-bold" for="showAnswerAfterSubmit">Hiển thị đáp án ngay sau khi nộp bài</label>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a th:href="@{'/expert/quiz-management/' + ${quizId} + '/questions'}" class="btn btn-outline-info">
+                        <i class="bi bi-list-check me-1"></i> Quản lý câu hỏi
+                    </a>
+                    <button type="button" class="btn text-white" style="background-color: #136ad5;" onclick="updateQuiz()">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+const quizId = /*[[${quizId}]]*/ 0;
+
+async function loadQuiz() {
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            const q = result.data;
+            document.getElementById('title').value = q.title || '';
+            document.getElementById('quizCategory').value = q.quizCategory;
+            document.getElementById('status').value = q.status;
+            document.getElementById('description').value = q.description || '';
+            document.getElementById('timeLimitMinutes').value = q.timeLimitMinutes || '';
+            document.getElementById('passScore').value = q.passScore || '';
+            document.getElementById('maxAttempts').value = q.maxAttempts || '';
+            document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
+            document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit || false;
+            if (q.hasAttempts) {
+                document.getElementById('attemptWarning').classList.remove('d-none');
+            }
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function updateQuiz() {
+    const body = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value || null,
+        quizCategory: document.getElementById('quizCategory').value,
+        timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
+        passScore: parseFloat(document.getElementById('passScore').value) || null,
+        maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
+        questionOrder: document.getElementById('questionOrder').value,
+        showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+        status: document.getElementById('status').value
+    };
+
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (res.ok) { alert('Cập nhật thành công!'); }
+        else { alert(result.message || 'Có lỗi xảy ra.'); }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+loadQuiz();
+</script>
+</body>
+</html>
