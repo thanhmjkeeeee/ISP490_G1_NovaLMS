@@ -12,6 +12,7 @@ public class LessonResponseDTO {
     private String duration;
     private String videoUrl;
     private String contentText;
+    private Integer quizId;
     private boolean isCompleted;
     private boolean isLocked;
 }
