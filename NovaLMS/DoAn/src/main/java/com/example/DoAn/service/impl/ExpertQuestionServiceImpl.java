@@ -36,18 +36,32 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
     @Override
     @Transactional
     public QuestionResponseDTO createQuestion(QuestionRequestDTO request, String email) {
-        validateExpertOwnsModule(email, request.getModuleId());
+        if (request.getModuleId() != null) {
+            validateExpertOwnsModule(email, request.getModuleId());
+        }
         validateAnswerOptions(request.getOptions());
 
-        Module module = moduleRepository.findById(request.getModuleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương."));
+        Module module = null;
+        if (request.getModuleId() != null) {
+            module = moduleRepository.findById(request.getModuleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương."));
+        }
         User expert = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
 
         Question question = Question.builder()
                 .module(module)
                 .user(expert)
-                .status(request.getContent() != null ? request.getContent() : "")
+                .content(request.getContent())
+                .questionType(request.getQuestionType())
+                .skill(request.getSkill())
+                .cefrLevel(request.getCefrLevel())
+                .topic(request.getTopic())
+                .tags(request.getTags())
+                .explanation(request.getExplanation())
+                .audioUrl(request.getAudioUrl())
+                .imageUrl(request.getImageUrl())
+                .status(request.getStatus() != null ? request.getStatus() : "DRAFT")
                 .build();
         questionRepository.save(question);
 
@@ -68,18 +82,31 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
     public QuestionResponseDTO updateQuestion(Integer questionId, QuestionRequestDTO request, String email) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi."));
-        validateExpertOwnsModule(email, question.getModule().getModuleId());
+        if (question.getModule() != null) {
+            validateExpertOwnsModule(email, question.getModule().getModuleId());
+        }
+
+        if (request.getModuleId() != null && (question.getModule() == null
+                || !question.getModule().getModuleId().equals(request.getModuleId()))) {
+            Module newModule = moduleRepository.findById(request.getModuleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương."));
+            question.setModule(newModule);
+        }
 
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
             validateAnswerOptions(request.getOptions());
         }
 
-        if (request.getContent() != null) {
-            question.setStatus(request.getContent());
-        }
-        if (request.getStatus() != null) {
-            question.setStatus(request.getStatus());
-        }
+        if (request.getContent() != null) question.setContent(request.getContent());
+        if (request.getQuestionType() != null) question.setQuestionType(request.getQuestionType());
+        if (request.getSkill() != null) question.setSkill(request.getSkill());
+        if (request.getCefrLevel() != null) question.setCefrLevel(request.getCefrLevel());
+        if (request.getTopic() != null) question.setTopic(request.getTopic());
+        if (request.getTags() != null) question.setTags(request.getTags());
+        if (request.getExplanation() != null) question.setExplanation(request.getExplanation());
+        if (request.getAudioUrl() != null) question.setAudioUrl(request.getAudioUrl());
+        if (request.getImageUrl() != null) question.setImageUrl(request.getImageUrl());
+        if (request.getStatus() != null) question.setStatus(request.getStatus());
 
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
             answerOptionRepository.deleteByQuestionQuestionId(questionId);
@@ -102,7 +129,9 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
     public void deleteQuestion(Integer questionId, String email) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi."));
-        validateExpertOwnsModule(email, question.getModule().getModuleId());
+        if (question.getModule() != null) {
+            validateExpertOwnsModule(email, question.getModule().getModuleId());
+        }
         questionRepository.delete(question);
     }
 
@@ -124,9 +153,9 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
 
         return QuestionResponseDTO.builder()
                 .questionId(question.getQuestionId())
-                .moduleId(module.getModuleId())
-                .moduleName(module.getModuleName())
-                .content(question.getStatus())
+                .moduleId(module != null ? module.getModuleId() : null)
+                .moduleName(module != null ? module.getModuleName() : null)
+                .content(question.getContent())
                 .status(question.getStatus())
                 .optionCount(opts.size())
                 .correctOptionCount(correctCount)
