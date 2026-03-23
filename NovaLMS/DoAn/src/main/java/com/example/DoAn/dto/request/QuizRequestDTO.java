@@ -22,6 +22,7 @@ public class QuizRequestDTO {
     private Integer timeLimitMinutes;
     private BigDecimal passScore;
     private Integer maxAttempts;
+    private Integer numberOfQuestions;
     private String questionOrder;    // FIXED | RANDOM
     private Boolean showAnswerAfterSubmit;
     private String status;           // DRAFT | PUBLISHED | ARCHIVED
