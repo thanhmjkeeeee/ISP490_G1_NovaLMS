@@ -79,7 +79,12 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
         // Tạo answer options (nếu có)
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
-            List<AnswerOption> options = new ArrayList<>();
+            if (question.getAnswerOptions() == null) {
+                question.setAnswerOptions(new ArrayList<>());
+            } else {
+                question.getAnswerOptions().clear();
+            }
+            
             for (int i = 0; i < request.getOptions().size(); i++) {
                 QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
                 AnswerOption opt = AnswerOption.builder()
@@ -89,10 +94,10 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                         .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
                         .matchTarget(optDTO.getMatchTarget())
                         .build();
-                options.add(opt);
+                question.getAnswerOptions().add(opt);
             }
-            answerOptionRepository.saveAll(options);
-            question.setAnswerOptions(options);
+            // Sử dụng repository để đảm bảo dữ liệu được lưu tức thì nếu cần
+            answerOptionRepository.saveAll(question.getAnswerOptions());
         }
 
         return toResponseDTO(question);
@@ -129,8 +134,12 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
         // Cập nhật lại answer options
         if (request.getOptions() != null) {
-            answerOptionRepository.deleteByQuestionQuestionId(questionId);
-            List<AnswerOption> newOptions = new ArrayList<>();
+            if (question.getAnswerOptions() == null) {
+                question.setAnswerOptions(new ArrayList<>());
+            } else {
+                question.getAnswerOptions().clear();
+            }
+            
             for (int i = 0; i < request.getOptions().size(); i++) {
                 QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
                 AnswerOption opt = AnswerOption.builder()
@@ -140,10 +149,8 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                         .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
                         .matchTarget(optDTO.getMatchTarget())
                         .build();
-                newOptions.add(opt);
+                question.getAnswerOptions().add(opt);
             }
-            answerOptionRepository.saveAll(newOptions);
-            question.setAnswerOptions(newOptions);
         }
 
         questionRepository.save(question);
