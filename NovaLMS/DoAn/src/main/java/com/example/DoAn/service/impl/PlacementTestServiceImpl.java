@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,13 +36,29 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
     @Override
     @Transactional(readOnly = true)
-    public QuizTakingDTO getPlacementTest() {
-        // Lấy bài test đầu vào đầu tiên đang PUBLISHED
+    public List<PlacementTestSummaryDTO> getAllPlacementTests() {
         List<Quiz> quizzes = quizRepository.findByQuizCategoryAndStatus("ENTRY_TEST", "PUBLISHED");
         if (quizzes.isEmpty()) {
-            throw new RuntimeException("Không tìm thấy bài kiểm tra đầu vào nào đang mở.");
+            return Collections.emptyList();
         }
-        Quiz quiz = quizzes.get(0); // Lấy bài test đầu tiên
+        return quizzes.stream().map(quiz -> PlacementTestSummaryDTO.builder()
+                .quizId(quiz.getQuizId())
+                .title(quiz.getTitle())
+                .description(quiz.getDescription())
+                .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
+                .timeLimitMinutes(quiz.getTimeLimitMinutes())
+                .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuizTakingDTO getPlacementTest(Integer quizId) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra đầu vào."));
+        if (!"PUBLISHED".equals(quiz.getStatus()) || !"ENTRY_TEST".equals(quiz.getQuizCategory())) {
+            throw new RuntimeException("Bài kiểm tra không hợp lệ hoặc chưa được công bố.");
+        }
 
         List<QuizQuestion> quizQuestions = quiz.getQuizQuestions();
         if ("RANDOM".equals(quiz.getQuestionOrder())) {
@@ -268,6 +285,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     .title(opt.getTitle())
                     .matchTarget(opt.getMatchTarget())
                     .isCorrect(opt.getCorrectAnswer())
+                    .correctAnswer(opt.getCorrectAnswer())
                     .build()).collect(Collectors.toList());
 
             questionsRes.add(QuestionResultDTO.builder()
@@ -275,6 +293,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     .content(q.getContent())
                     .questionType(q.getQuestionType())
                     .skill(q.getSkill())
+                    .cefrLevel(q.getCefrLevel())
                     .points(points)
                     .isCorrect(userAns != null ? userAns.getIsCorrect() : null)
                     .userAnswerDisplay(userAnswerDisplay)

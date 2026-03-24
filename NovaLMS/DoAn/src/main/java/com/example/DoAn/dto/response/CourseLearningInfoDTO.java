@@ -27,6 +27,8 @@ public class CourseLearningInfoDTO {
 
     private List<ModuleDTO> modules;
 
+    private QuizInfoDTO courseQuiz;
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -50,7 +52,21 @@ public class CourseLearningInfoDTO {
         private String lessonTitle;
         private String type;
         private String duration;
+        private String videoEmbedUrl; // YouTube embed URL
         private boolean completed;
         private boolean locked;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QuizInfoDTO {
+        private Integer quizId;
+        private String title;
+        private Integer totalQuestions;
+        private Integer timeLimitMinutes;
+        private Integer maxAttempts;   // null = không giới hạn
+        private Integer attemptCount;  // số lần đã làm
     }
 }

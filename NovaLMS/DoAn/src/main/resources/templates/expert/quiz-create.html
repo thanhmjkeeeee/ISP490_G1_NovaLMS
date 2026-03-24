@@ -80,9 +80,22 @@
                     </div>
                 </div>
 
+                <!-- Cảnh báo cho Entry Test -->
+                <div id="entryTestWarning" class="alert alert-warning py-2 px-3 small mb-3" style="display:none;" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Entry Test:</strong> Chỉ nên dùng câu hỏi
+                    <code>MULTIPLE_CHOICE_SINGLE</code>,
+                    <code>MULTIPLE_CHOICE_MULTI</code>,
+                    <code>FILL_IN_BLANK</code> để hệ thống chấm tự động.
+                    <code>WRITING</code> / <code>SPEAKING</code> sẽ bị chấm là <strong>SAI</strong>.
+                </div>
+
                 <div class="d-flex justify-content-end gap-2 mt-4">
                     <button type="button" class="btn btn-outline-secondary" onclick="submitQuiz('DRAFT')">Lưu bản nháp</button>
-                    <button type="button" class="btn text-white" style="background-color: #136ad5;" onclick="submitQuiz('DRAFT')">Tạo Quiz</button>
+                    <button type="button" class="btn text-white" style="background-color: #136ad5;" onclick="submitQuiz('PUBLISHED')" id="btnPublish">
+                        <i class="bi bi-rocket me-1" id="publishIcon"></i>
+                        <span id="publishLabel">Tạo Quiz</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -97,6 +110,27 @@
 function onCategoryChange() {
     const cat = document.getElementById('quizCategory').value;
     document.getElementById('courseSection').style.display = cat === 'COURSE_QUIZ' ? 'block' : 'none';
+
+    if (cat === 'ENTRY_TEST') {
+        // Auto-fill defaults cho Entry Test
+        document.getElementById('timeLimitMinutes').value = 20;
+        document.getElementById('passScore').value = 40;
+        document.getElementById('maxAttempts').value = 1;
+        document.getElementById('questionOrder').value = 'FIXED';
+        document.getElementById('showAnswerAfterSubmit').checked = true;
+        document.getElementById('entryTestWarning').style.display = 'block';
+        document.getElementById('publishLabel').textContent = 'Tạo Entry Test';
+    } else {
+        // Reset về rỗng / mặc định
+        document.getElementById('timeLimitMinutes').value = '';
+        document.getElementById('passScore').value = '';
+        document.getElementById('maxAttempts').value = '';
+        document.getElementById('questionOrder').value = 'FIXED';
+        document.getElementById('showAnswerAfterSubmit').checked = false;
+        document.getElementById('entryTestWarning').style.display = 'none';
+        document.getElementById('publishLabel').textContent = 'Tạo Quiz';
+    }
+
     if (cat === 'COURSE_QUIZ') loadCourses();
 }
 
@@ -117,6 +151,11 @@ async function loadCourses() {
 async function submitQuiz(status) {
     const cat = document.getElementById('quizCategory').value;
     if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
+
+    // Entry Test: luôn lưu DRAFT trước để expert thêm câu hỏi trước khi publish
+    if (cat === 'ENTRY_TEST') {
+        status = 'DRAFT';
+    }
 
     const body = {
         title: document.getElementById('title').value,
@@ -139,7 +178,10 @@ async function submitQuiz(status) {
         });
         const result = await res.json();
         if (res.ok) {
-            alert('Tạo quiz thành công!');
+            const isEntry = cat === 'ENTRY_TEST';
+            alert(isEntry
+                ? 'Entry Test đã được tạo! Vui lòng thêm câu hỏi bên dưới rồi nhấn "Publish" để xuất bản.'
+                : 'Tạo quiz thành công!');
             window.location.href = `/expert/quiz-management/${result.data.quizId}/questions`;
         } else {
             alert(result.message || 'Có lỗi xảy ra.');

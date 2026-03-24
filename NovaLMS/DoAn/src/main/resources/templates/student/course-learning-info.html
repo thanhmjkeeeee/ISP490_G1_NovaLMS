@@ -39,6 +39,9 @@
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#modules" type="button" role="tab">Nội dung bài học</button>
           </li>
           <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#quiz-section" type="button" role="tab" id="tabCourseQuiz">Bài kiểm tra</button>
+          </li>
+          <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#liveclass" type="button" role="tab">Thông tin Lớp Live</button>
           </li>
         </ul>
@@ -46,6 +49,10 @@
         <div class="tab-content">
           <div class="tab-pane fade show active" id="modules" role="tabpanel">
             <div id="accordionModules" class="accordion curriculum-accordion"></div>
+          </div>
+
+          <div class="tab-pane fade" id="quiz-section" role="tabpanel">
+            <div id="courseQuizContent"></div>
           </div>
 
           <div class="tab-pane fade" id="liveclass" role="tabpanel">
@@ -103,7 +110,13 @@
       document.getElementById('bannerDesc').textContent = course.description;
       document.getElementById('bannerProgressText').textContent = `${course.progressPercent}%`;
       document.getElementById('bannerProgressBar').style.width = `${course.progressPercent}%`;
-      document.getElementById('btnContinue').href = `/student/lesson/${course.courseId}/continue`;
+      // Ẩn nút Tiếp tục học khi tiến độ 100%
+      const btnContinue = document.getElementById('btnContinue');
+      if (course.progressPercent === 100) {
+          btnContinue.style.display = 'none';
+      } else {
+          btnContinue.href = `/student/lesson/${course.courseId}/continue`;
+      }
 
       // Teacher
       document.getElementById('teacherName').textContent = course.teacherName || 'Đang cập nhật';
@@ -126,35 +139,62 @@
       const modulesDiv = document.getElementById('accordionModules');
       if (!course.modules || course.modules.length === 0) {
           modulesDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1"></i><p>Chưa có nội dung.</p></div>';
-          return;
+      } else {
+          modulesDiv.innerHTML = course.modules.map((m, index) => {
+              const lessonsHtml = (m.lessons || []).map(l => {
+                  const iconClass = l.type === 'VIDEO' ? 'bi-play-fill icon-video' : (l.type === 'DOC' ? 'bi-file-text-fill icon-doc' : 'bi-patch-question-fill icon-quiz');
+                  const iconBg = l.type === 'VIDEO' ? 'icon-video' : (l.type === 'DOC' ? 'icon-doc' : 'icon-quiz');
+                  return `<a href="${l.isLocked ? 'javascript:void(0)' : '/student/lesson/view/' + l.lessonId}" class="lesson-item ${l.isLocked ? 'locked-lesson' : ''}">
+                      <div class="lesson-icon ${iconBg}"><i class="bi ${iconClass.split(' ')[0]}"></i></div>
+                      <div><p class="fw-bold mb-0 text-dark" style="font-size:0.95rem">${l.lessonTitle}</p><span class="small text-muted"><i class="bi bi-clock"></i> ${l.duration || ''}</span></div>
+                      <div class="ms-auto fs-5">${l.isCompleted ? '<i class="bi bi-check-circle-fill text-success"></i>' : (l.isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '')}</div>
+                  </a>`;
+              }).join('');
+              return `<div class="accordion-item">
+                  <h2 class="accordion-header">
+                      <button class="accordion-button ${index !== 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#mod${m.moduleId}">
+                          <div class="d-flex justify-content-between w-100 pe-3">
+                              <span>${m.moduleTitle}</span><span class="badge bg-white text-primary border">${m.totalLessons} Bài</span>
+                          </div>
+                      </button>
+                  </h2>
+                  <div id="mod${m.moduleId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#accordionModules">
+                      <div class="accordion-body p-0">${lessonsHtml}</div>
+                  </div>
+              </div>`;
+          }).join('');
       }
 
-      modulesDiv.innerHTML = course.modules.map((m, index) => `
-          <div class="accordion-item">
-              <h2 class="accordion-header">
-                  <button class="accordion-button ${index !== 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#mod${m.moduleId}">
-                      <div class="d-flex justify-content-between w-100 pe-3">
-                          <span>${m.moduleTitle}</span><span class="badge bg-white text-primary border">${m.totalLessons} Bài</span>
+      // Course Quiz
+      const quizContent = document.getElementById('courseQuizContent');
+      if (course.courseQuiz) {
+          const q = course.courseQuiz;
+          const attemptCount = q.attemptCount || 0;
+          const maxAttempts = q.maxAttempts;
+          const attemptsLabel = maxAttempts != null
+              ? `<span class="badge bg-warning bg-opacity-10 text-warning border"><i class="bi bi-repeat me-1"></i>${attemptCount} / ${maxAttempts} lần</span>`
+              : (attemptCount > 0 ? `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-check-circle me-1"></i>Đã làm ${attemptCount} lần</span>` : '');
+          const outOfAttempts = maxAttempts != null && attemptCount >= maxAttempts;
+          const btnLabel = outOfAttempts ? 'Đã hết lượt' : (attemptCount > 0 ? 'Làm lại' : 'Làm bài kiểm tra');
+          quizContent.innerHTML = `<div class="card border-0 shadow-sm rounded-4 p-4">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div>
+                      <h5 class="fw-bold text-dark mb-1">${q.title}</h5>
+                      <div class="d-flex gap-2 flex-wrap small mb-2">
+                          <span class="badge bg-light text-dark border"><i class="bi bi-list-task me-1"></i>${q.totalQuestions} câu</span>
+                          ${q.timeLimitMinutes ? '<span class="badge bg-light text-dark border"><i class="bi bi-stopwatch me-1"></i>' + q.timeLimitMinutes + ' phút</span>' : ''}
+                          ${attemptsLabel}
                       </div>
-                  </button>
-              </h2>
-              <div id="mod${m.moduleId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#accordionModules">
-                  <div class="accordion-body p-0">
-                      ${m.lessons.map(l => {
-                          const iconClass = l.type === 'VIDEO' ? 'bi-play-fill icon-video' : (l.type === 'DOC' ? 'bi-file-text-fill icon-doc' : 'bi-patch-question-fill icon-quiz');
-                          return `
-                          <a href="${l.isLocked ? 'javascript:void(0)' : `/student/lesson/view/${l.lessonId}`}" class="lesson-item ${l.isLocked ? 'locked-lesson' : ''}">
-                              <div class="lesson-icon ${iconClass.split(' ')[1]}"><i class="bi ${iconClass.split(' ')[0]}"></i></div>
-                              <div><p class="fw-bold mb-0 text-dark" style="font-size:0.95rem">${l.lessonTitle}</p><span class="small text-muted"><i class="bi bi-clock"></i> ${l.duration}</span></div>
-                              <div class="ms-auto fs-5">
-                                  ${l.isCompleted ? '<i class="bi bi-check-circle-fill text-success"></i>' : (l.isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '')}
-                              </div>
-                          </a>`;
-                      }).join('')}
                   </div>
+                  ${outOfAttempts
+                      ? `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-x-circle me-1"></i> Đã hết lượt</span>`
+                      : `<a href="/student/quiz/take/${q.quizId}" class="btn btn-primary rounded-pill fw-bold px-4"><i class="bi bi-play-circle-fill me-1"></i> ${btnLabel}</a>`
+                  }
               </div>
-          </div>
-      `).join('');
+          </div>`;
+      } else {
+          quizContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-clipboard-x fs-1"></i><p>Khóa học này chưa có bài kiểm tra.</p></div>';
+      }
   };
 </script>
 </body>

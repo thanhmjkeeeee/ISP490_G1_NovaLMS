@@ -58,14 +58,14 @@
                 <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
                     <thead class="table-light">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small text-muted" style="width: 70px;">ID</th>
+                        <th class="ps-4 py-3 text-uppercase small text-muted" style="width: 60px;">ID</th>
                         <th class="py-3 text-uppercase small text-muted">Học viên</th>
                         <th class="py-3 text-uppercase small text-muted">Khóa học</th>
                         <th class="py-3 text-uppercase small text-muted">Lớp học</th>
-                        <th class="py-3 text-uppercase small text-muted" style="width: 120px;">Ngày đăng ký</th>
-                        <th class="py-3 text-uppercase small text-muted" style="width: 120px;">Giá</th>
-                        <th class="py-3 text-uppercase small text-muted" style="width: 110px;">Trạng thái</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small text-muted" style="width: 80px;">Thao tác</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 110px;">Giá</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 130px;">TT Đăng ký</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 130px;">TT Thanh toán</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small text-muted" style="width: 70px;">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody id="registrationDataBody">
@@ -97,6 +97,10 @@
                         <option value="Cancelled">Hủy</option>
                         <option value="Rejected">Từ chối</option>
                     </select>
+                </div>
+                <div id="paidCourseWarning" class="alert alert-warning py-2 d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Khóa học có phí — chỉ duyệt được khi đã thanh toán qua PayOS.
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-medium">Ghi chú</label>
@@ -193,16 +197,14 @@
         tbody.innerHTML = registrations.map(r => `
             <tr>
                 <td class="ps-4 fw-medium text-secondary">#${r.registrationId}</td>
-                <td class="fw-bold text-primary">${r.fullName || r.studentName || r.email || 'N/A'}</td>
+                <td class="fw-bold text-primary">${r.userName || r.userEmail || 'N/A'}</td>
                 <td class="fw-medium text-dark">${r.courseName || 'N/A'}</td>
                 <td><span class="badge bg-light text-dark border">${r.className || 'N/A'}</span></td>
-                <td>${r.registrationTime ? new Date(r.registrationTime).toLocaleDateString('vi-VN') : 'N/A'}</td>
-                <td class="fw-bold text-danger">${r.registrationPrice ? r.registrationPrice.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</td>
-                <td>
-                    <span class="badge ${getStatusBadgeClass(r.status)} px-2 py-1">${r.status || 'N/A'}</span>
-                </td>
+                <td class="fw-bold ${r.registrationPrice && r.registrationPrice > 0 ? 'text-danger' : 'text-success'}">${r.registrationPrice && r.registrationPrice > 0 ? r.registrationPrice.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</td>
+                <td><span class="badge ${getRegStatusBadge(r.status, r.paymentStatus)} px-2 py-1">${getRegStatusLabel(r.status, r.paymentStatus)}</span></td>
+                <td><span class="badge ${getPaymentBadgeClass(r.paymentStatus)} px-2 py-1">${getPaymentStatusLabel(r.paymentStatus)}</span></td>
                 <td class="text-end pe-4">
-                    <button class="btn btn-sm btn-light border text-primary shadow-sm" onclick="openStatusModal(${r.registrationId})" title="Cập nhật">
+                    <button class="btn btn-sm btn-light border text-primary shadow-sm" onclick="openStatusModal(${r.registrationId}, ${r.registrationPrice && r.registrationPrice > 0}, ${r.paymentStatus === 'PAID' ? 'true' : 'false'})" title="Cập nhật">
                         <i class="bi bi-pencil-square"></i>
                     </button>
                 </td>
@@ -213,12 +215,53 @@
     function getStatusBadgeClass(status) {
         switch(status) {
             case 'Approved': return 'bg-success';
-            case 'PAID': return 'bg-success';
             case 'Rejected': return 'bg-danger';
             case 'Cancelled': return 'bg-warning text-dark';
             case 'Submitted': return 'bg-info text-dark';
             default: return 'bg-secondary';
         }
+    }
+
+    function getRegStatusBadge(status, paymentStatus) {
+        if (status === 'Approved') return 'bg-success';
+        if (status === 'Cancelled') return 'bg-warning text-dark';
+        if (status === 'Rejected') return 'bg-danger';
+        if (status === 'Submitted') return 'bg-info text-dark';
+        return 'bg-secondary';
+    }
+
+    function getRegStatusLabel(status, paymentStatus) {
+        const labels = {
+            'Approved': 'Đã duyệt',
+            'Cancelled': 'Đã hủy',
+            'Rejected': 'Từ chối',
+            'Submitted': 'Đã gửi'
+        };
+        return labels[status] || status || 'N/A';
+    }
+
+    function getPaymentBadgeClass(paymentStatus) {
+        switch(paymentStatus) {
+            case 'PAID': return 'bg-success';
+            case 'PENDING': return 'bg-info text-dark';
+            case 'CANCELLED': return 'bg-warning text-dark';
+            case 'FAILED': return 'bg-danger';
+            case 'EXPIRED': return 'bg-warning text-dark';
+            case 'FREE': return 'bg-success';
+            default: return 'bg-secondary';
+        }
+    }
+
+    function getPaymentStatusLabel(paymentStatus) {
+        const labels = {
+            'PAID': 'Đã thanh toán',
+            'PENDING': 'Chờ thanh toán',
+            'CANCELLED': 'Đã hủy',
+            'FAILED': 'Thất bại',
+            'EXPIRED': 'Hết hạn',
+            'FREE': 'Miễn phí'
+        };
+        return labels[paymentStatus] || paymentStatus || 'N/A';
     }
 
     function renderPagination(data) {
@@ -253,9 +296,32 @@
         container.innerHTML = html;
     }
 
-    function openStatusModal(registrationId) {
+    function openStatusModal(registrationId, isPaidCourse, isPaid) {
         document.getElementById('modalRegistrationId').value = registrationId;
-        document.getElementById('newStatus').value = 'Approved';
+
+        const statusSelect = document.getElementById('newStatus');
+        const paidWarning = document.getElementById('paidCourseWarning');
+
+        // Reset
+        statusSelect.value = 'Approved';
+
+        // Nếu khóa có phí mà chưa thanh toán → ẩn nút duyệt
+        if (isPaidCourse && !isPaid) {
+            paidWarning.classList.remove('d-none');
+            // Chỉ cho phép Hủy
+            statusSelect.innerHTML = `
+                <option value="Cancelled">Hủy</option>
+                <option value="Rejected">Từ chối</option>
+            `;
+        } else {
+            paidWarning.classList.add('d-none');
+            statusSelect.innerHTML = `
+                <option value="Approved">Chấp nhận</option>
+                <option value="Cancelled">Hủy</option>
+                <option value="Rejected">Từ chối</option>
+            `;
+        }
+
         document.getElementById('statusNote').value = '';
         const modal = new bootstrap.Modal(document.getElementById('statusModal'));
         modal.show();

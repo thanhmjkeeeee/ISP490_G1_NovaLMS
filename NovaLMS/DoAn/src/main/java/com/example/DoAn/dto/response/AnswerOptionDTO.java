@@ -10,4 +10,5 @@ public class AnswerOptionDTO {
     private String title;
     private String matchTarget;
     private Boolean isCorrect;
+    private Boolean correctAnswer;
 }

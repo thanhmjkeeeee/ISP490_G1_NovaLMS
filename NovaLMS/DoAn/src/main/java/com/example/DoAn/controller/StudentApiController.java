@@ -29,11 +29,22 @@ public class StudentApiController {
         return principal.getName();
     }
 
+    /**
+     * Legacy enroll endpoint — creates PENDING registration.
+     * For actual payment, use POST /api/v1/enroll-with-payment instead.
+     */
     @PostMapping("/enroll")
     public ResponseData<Integer> processEnroll(@Valid @RequestBody EnrollRequestDTO request, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
-        return studentService.enrollCourse(email, request);
+        ResponseData<Integer> result = studentService.enrollCourse(email, request);
+        // Override message to guide user to payment
+        if (result.getStatus() == 200 || result.getStatus() == 201) {
+            return new ResponseData<>(result.getStatus(),
+                    "Đăng ký thành công! Vui lòng gọi POST /api/v1/enroll-with-payment để tạo link thanh toán PayOS.",
+                    result.getData());
+        }
+        return result;
     }
 
     @GetMapping("/my-enrollments/data")
