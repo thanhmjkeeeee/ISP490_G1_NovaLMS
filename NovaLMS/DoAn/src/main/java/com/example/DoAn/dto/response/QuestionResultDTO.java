@@ -11,6 +11,7 @@ public class QuestionResultDTO {
     private String content;
     private String questionType;
     private String skill;
+    private String cefrLevel;
     private Integer points;
     private Boolean isCorrect;
     private String userAnswerDisplay;

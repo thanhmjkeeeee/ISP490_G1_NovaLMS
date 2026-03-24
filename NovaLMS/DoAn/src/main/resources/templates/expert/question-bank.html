@@ -13,7 +13,7 @@
 
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Master Question Bank</h3>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý ngân hàng đề</h3>
             <p class="text-muted small m-0">Quản lý toàn bộ câu hỏi trong hệ thống.</p>
         </div>
         <a th:href="@{/expert/question-bank/create}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
@@ -24,8 +24,8 @@
     <!-- Filters -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-2">
+            <div class="row g-2">
+                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Kỹ năng</label>
                     <select id="filterSkill" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -35,7 +35,7 @@
                         <option value="SPEAKING">Speaking</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">CEFR</label>
                     <select id="filterCefr" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -47,7 +47,7 @@
                         <option value="C2">C2</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Loại</label>
                     <select id="filterType" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -59,7 +59,7 @@
                         <option value="SPEAKING">Speaking</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Trạng thái</label>
                     <select id="filterStatus" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -68,14 +68,14 @@
                         <option value="ARCHIVED">Archived</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-8 col-md-3 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Tìm kiếm</label>
-                    <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Nội dung câu hỏi...">
-                </div>
-                <div class="col-md-1">
-                    <button class="btn btn-sm btn-primary w-100" onclick="loadQuestions()">
-                        <i class="bi bi-search"></i>
-                    </button>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Nội dung câu hỏi..." style="height:32px;">
+                        <button class="btn btn-primary" onclick="loadQuestions()" style="height:32px;padding:0 12px;display:flex;align-items:center;">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
