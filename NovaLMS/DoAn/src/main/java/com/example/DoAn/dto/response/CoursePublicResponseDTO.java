@@ -12,6 +12,7 @@ public record CoursePublicResponseDTO(
         String categoryName,
         long studentCount,
         String imageUrl,
+        String levelTag,
         String status,
         ExpertResponseDTO expert,
         List<ModuleResponseDTO> curriculum,
