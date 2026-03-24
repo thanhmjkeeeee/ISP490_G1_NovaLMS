@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Kiểm tra đầu vào')}"></head>
+
+<body class="placement-test-page bg-light">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='placement-test')}"></header>
+
+<main class="main my-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        
+        <!-- Welcome Card -->
+        <div id="welcome-card" class="card shadow-sm border-0 mb-4 rounded-4" th:if="${quiz != null}">
+          <div class="card-body p-5 text-center">
+            <h2 class="fw-bold mb-3 text-primary" th:text="${quiz.title}">Bài Kiểm Tra Năng Lực Tiếng Anh</h2>
+            <p class="text-muted mb-4 fs-5" th:text="${quiz.description}">Hoàn thành bài test ngắn để đánh giá đúng nhất trình độ CEFR của bạn.</p>
+            
+            <div class="d-flex justify-content-center gap-4 mb-4">
+              <div class="badge bg-primary bg-opacity-10 text-primary px-4 py-2 rounded-pill fs-6 fw-normal">
+                <i class="bi bi-list-task me-1"></i> <span th:text="${quiz.totalQuestions}"></span> Câu hỏi
+              </div>
+              <div class="badge bg-warning bg-opacity-10 text-warning px-4 py-2 rounded-pill fs-6 fw-normal" th:if="${quiz.timeLimitMinutes != null}">
+                <i class="bi bi-stopwatch me-1"></i> <span th:text="${quiz.timeLimitMinutes}"></span> Phút
+              </div>
+            </div>
+
+            <div class="row justify-content-center">
+              <div class="col-md-8">
+                 <div class="form-floating mb-3 text-start">
+                    <input type="text" class="form-control rounded-3" id="guestNameInput" placeholder="Nhập tên của bạn">
+                    <label for="guestNameInput">Tên của bạn (Tùy chọn)</label>
+                 </div>
+                 <div class="form-floating mb-4 text-start">
+                    <input type="email" class="form-control rounded-3" id="guestEmailInput" placeholder="Nhập email của bạn">
+                    <label for="guestEmailInput">Email của bạn (Tùy chọn)</label>
+                 </div>
+                 <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm" onclick="startTest()">
+                     Bắt Đầu Làm Bài <i class="bi bi-arrow-right ms-2"></i>
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz Test Area -->
+        <div id="quiz-area" style="display: none;" th:if="${quiz != null}">
+            
+            <!-- Floating Timer & Progress -->
+            <div class="sticky-top bg-white p-3 shadow-sm rounded-4 mb-4 z-3 d-flex justify-content-between align-items-center">
+                <div class="fw-bold fs-5 text-primary">
+                    <i class="bi bi-pen"></i> Bài Kiểm Tra
+                </div>
+                <div class="fw-bold fs-4 text-danger" th:if="${quiz.timeLimitMinutes != null}">
+                    <i class="bi bi-clock-history"></i> <span id="timerText">--:--</span>
+                </div>
+            </div>
+
+            <form id="quizForm" class="mb-5">
+            <input type="hidden" id="quizId" th:value="${quiz.quizId}">
+            <input type="hidden" id="timeLimitMinutes" th:value="${quiz.timeLimitMinutes}">
+            
+            <div th:each="question, stat : ${quiz.questions}" class="card shadow-sm border-0 mb-4 rounded-4 question-card">
+                <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between mb-4 border-bottom pb-3">
+                    <h5 class="fw-bold mb-0 text-secondary">
+                        Câu <span th:text="${stat.count}" class="text-primary fs-4"></span> 
+                        <span class="text-muted fw-normal fs-6">/ <span th:text="${quiz.totalQuestions}"></span></span>
+                    </h5>
+                    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill"><i class="bi bi-tag me-1"></i> [[${question.skill}]]</span>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="fs-5 lh-base text-dark" th:utext="${question.content}"></div>
+                </div>
+
+                <!-- Multiple Choice Single -->
+                <div th:if="${question.questionType == 'MULTIPLE_CHOICE_SINGLE'}">
+                    <div th:each="opt : ${question.options}" class="form-check custom-radio mb-3">
+                    <input class="form-check-input" type="radio" th:name="'q_' + ${question.questionId}" th:id="'opt_' + ${opt.answerOptionId}" th:value="${opt.answerOptionId}">
+                    <label class="form-check-label w-100 p-3 rounded-3 border bg-white transition-all cursor-pointer" th:for="'opt_' + ${opt.answerOptionId}" th:text="${opt.title}"></label>
+                    </div>
+                </div>
+
+                <!-- Multiple Choice Multi -->
+                <div th:if="${question.questionType == 'MULTIPLE_CHOICE_MULTI'}">
+                    <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Có thể chọn nhiều đáp án</p>
+                    <div th:each="opt : ${question.options}" class="form-check custom-checkbox mb-3">
+                    <input class="form-check-input" type="checkbox" th:name="'q_' + ${question.questionId}" th:id="'opt_' + ${opt.answerOptionId}" th:value="${opt.answerOptionId}">
+                    <label class="form-check-label w-100 p-3 rounded-3 border bg-white transition-all cursor-pointer" th:for="'opt_' + ${opt.answerOptionId}" th:text="${opt.title}"></label>
+                    </div>
+                </div>
+
+                <!-- Fill in Blank -->
+                <div th:if="${question.questionType == 'FILL_IN_BLANK'}">
+                    <input type="text" class="form-control form-control-lg p-3 border-2 rounded-3" th:name="'q_' + ${question.questionId}" placeholder="Nhập câu trả lời...">
+                </div>
+
+                <!-- Matching -->
+                <div th:if="${question.questionType == 'MATCHING'}" class="matching-container bg-light p-4 rounded-4">
+                    <div th:each="opt : ${question.options}" class="row mb-3 align-items-center">
+                    <div class="col-md-5">
+                        <div class="p-3 border rounded-3 bg-white shadow-sm" th:text="${opt.title}"></div>
+                    </div>
+                    <div class="col-md-2 text-center text-muted py-2 py-md-0">
+                        <i class="bi bi-arrow-down d-md-none fs-4"></i>
+                        <i class="bi bi-arrow-right d-none d-md-inline fs-4"></i>
+                    </div>
+                    <div class="col-md-5">
+                        <select class="form-select form-select-lg p-3 border-2 rounded-3 shadow-none" th:name="'q_' + ${question.questionId} + '_' + ${opt.answerOptionId}">
+                        <option value="">-- Chọn đáp án ghép nối --</option>
+                        <option th:each="matchOpt : ${question.options}" th:value="${matchOpt.matchTarget}" th:text="${matchOpt.matchTarget}"></option>
+                        </select>
+                    </div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+
+            <div class="text-center mt-5 mb-5">
+                <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow" onclick="submitTest()">
+                    Hoàn Thành & Xem Kết Quả <i class="bi bi-check-circle ms-2"></i>
+                </button>
+            </div>
+            </form>
+        </div>
+
+        <div th:if="${quiz == null}" class="text-center my-5 py-5">
+            <i class="bi bi-exclamation-circle text-warning display-1 mb-3"></i>
+            <h3>Hiện tại chưa có bài kiểm tra đầu vào nào.</h3>
+            <p class="text-muted">Vui lòng quay lại sau hoặc liên hệ với trung tâm.</p>
+            <a th:href="@{/}" class="btn btn-outline-primary mt-3">Về Trang Chủ</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<style>
+  .custom-radio input[type="radio"]:checked + label {
+    border-color: var(--accent-color) !important;
+    background-color: rgba(var(--accent-color-rgb), 0.05);
+    font-weight: 500;
+    color: var(--accent-color);
+  }
+  .custom-checkbox input[type="checkbox"]:checked + label {
+    border-color: var(--accent-color) !important;
+    background-color: rgba(var(--accent-color-rgb), 0.05);
+    font-weight: 500;
+    color: var(--accent-color);
+  }
+  .transition-all {
+      transition: all 0.2s ease;
+  }
+  .cursor-pointer {
+      cursor: pointer;
+  }
+  .form-check-input {
+      margin-top: 1rem;
+      margin-left: -2rem;
+  }
+</style>
+
+<script>
+  let timerInterval;
+  let guestInfo = { name: '', email: '' };
+
+  function startTest() {
+      guestInfo.name = document.getElementById('guestNameInput').value;
+      guestInfo.email = document.getElementById('guestEmailInput').value;
+
+      document.getElementById('welcome-card').style.display = 'none';
+      document.getElementById('quiz-area').style.display = 'block';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const timeLimit = parseInt(document.getElementById('timeLimitMinutes').value);
+      if (timeLimit && !isNaN(timeLimit)) {
+          startTimer(timeLimit * 60);
+      }
+  }
+
+  function startTimer(durationSeconds) {
+    let timer = durationSeconds;
+    const timerDisplay = document.getElementById('timerText');
+    
+    timerInterval = setInterval(() => {
+      let minutes = parseInt(timer / 60, 10);
+      let seconds = parseInt(timer % 60, 10);
+      
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      
+      if(timerDisplay) timerDisplay.textContent = minutes + ":" + seconds;
+      
+      if (--timer < 0) {
+        clearInterval(timerInterval);
+        alert("Hết giờ! Bài làm sẽ tự động được nộp.");
+        submitTest(true);
+      }
+    }, 1000);
+  }
+
+  async function submitTest(autoSubmit = false) {
+    if (!autoSubmit) {
+      if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+    }
+    
+    if (timerInterval) clearInterval(timerInterval);
+    
+    const submitBtn = document.querySelector('button[onclick="submitTest()"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+    }
+
+    const quizId = document.getElementById('quizId').value;
+    const form = document.getElementById('quizForm');
+    const formData = new FormData(form);
+    
+    let answers = {};
+    
+    formData.forEach((value, key) => {
+      if (key.startsWith('q_')) {
+        const parts = key.split('_');
+        const questionId = parts[1];
+        
+        if (parts.length === 3) {
+           const optId = parts[2];
+           if (!answers[questionId]) answers[questionId] = {};
+           answers[questionId][optId] = value;
+        } else {
+           const allVals = formData.getAll(key);
+           if (allVals.length > 1) {
+             answers[questionId] = allVals.map(v => parseInt(v));
+           } else {
+             const intVal = parseInt(value);
+             answers[questionId] = isNaN(intVal) ? value : parseInt(value);
+           }
+        }
+      }
+    });
+
+    const payload = {
+      quizId: parseInt(quizId),
+      guestName: guestInfo.name,
+      guestEmail: guestInfo.email,
+      answers: answers
+    };
+
+    try {
+      const response = await fetch('/api/v1/public/placement-test/submit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        window.location.href = `/placement-test/results/${result.resultId}`;
+      } else {
+        alert("Lỗi nộp bài: " + (result.message || 'Unknown error'));
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Hoàn Thành & Xem Kết Quả <i class="bi bi-check-circle ms-2"></i>';
+        }
+      }
+    } catch (e) {
+      alert("Lỗi kết nối khi nộp bài!");
+      if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Hoàn Thành & Xem Kết Quả <i class="bi bi-check-circle ms-2"></i>';
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
