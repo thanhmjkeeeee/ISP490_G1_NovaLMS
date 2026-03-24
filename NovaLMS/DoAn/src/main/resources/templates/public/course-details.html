@@ -136,7 +136,7 @@
                       <button class="btn btn-success mt-3 btn-enroll-class"
                               th:data-class-id="${clazz.classId}"
                               th:data-course-id="${course.courseId}">
-                        <i class="bi bi-check-circle me-1"></i> Đăng ký lớp này
+                        <i class="bi bi-credit-card me-1"></i> Đăng ký & Thanh toán
                       </button>
                     </div>
                   </div>
@@ -176,7 +176,7 @@
 
               <button class="btn btn-primary w-100 py-3 fw-bold mb-3 shadow"
                       onclick="enrollFirstClass()">
-                ĐĂNG KÝ NGAY
+                <i class="bi bi-credit-card me-1"></i> ĐĂNG KÝ NGAY
               </button>
 
               <div class="course-specs mt-4 text-start">
@@ -206,32 +206,38 @@
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 <script th:inline="javascript">
+// Show/hide loading overlay
+function showLoading(msg) {
+    document.getElementById('loadingOverlay') &&
+        (document.getElementById('loadingOverlay').style.display = 'flex');
+}
+function hideLoading() {
+    document.getElementById('loadingOverlay') &&
+        (document.getElementById('loadingOverlay').style.display = 'none');
+}
+
 // Enroll first class function - for "ĐĂNG KÝ NGAY" button
 function enrollFirstClass() {
     const firstEnrollBtn = document.querySelector('.btn-enroll-class');
     if (firstEnrollBtn) {
         const classId = firstEnrollBtn.getAttribute('data-class-id');
         const courseId = firstEnrollBtn.getAttribute('data-course-id');
-        enrollToClass(classId, courseId);
+        enrollWithPayment(classId, courseId);
     } else {
-        // No classes available, switch to classes tab
         document.getElementById('classes-tab').click();
     }
 }
 
-// Main enroll function
-function enrollToClass(classId, courseId) {
+// Main enroll + PayOS payment function
+function enrollWithPayment(classId, courseId) {
     if (!classId) {
         alert('Không tìm thấy lớp học!');
         return;
     }
 
-    // Directly try enrollment - backend will return 401 if not authenticated
-    fetch('/api/v1/student/enroll', {
+    fetch('/api/v1/enroll-with-payment', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
             classId: parseInt(classId),
@@ -240,7 +246,6 @@ function enrollToClass(classId, courseId) {
     })
     .then(response => {
         if (response.status === 401) {
-            // Not logged in, redirect to login
             alert('Vui lòng đăng nhập để đăng ký khóa học!');
             window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
             return Promise.reject({ message: 'not_authenticated' });
@@ -248,16 +253,27 @@ function enrollToClass(classId, courseId) {
         return response.json();
     })
     .then(data => {
-        if (data.success || data.status === 200) {
-            alert('Đăng ký thành công! Chúc mừng bạn đã join lớp học.');
-            window.location.href = '/student/my-courses';
+        if (data.status === 200 && data.data) {
+            const result = data.data;
+            if (result.status === 'APPROVED' || result.status === 'FREE') {
+                // Free course — go straight to my courses
+                alert(result.message || 'Đăng ký thành công!');
+                window.location.href = '/student/my-courses';
+            } else if (result.checkoutUrl) {
+                // Paid course — redirect to PayOS checkout
+                alert('Đang chuyển sang trang thanh toán PayOS...');
+                window.location.href = result.checkoutUrl;
+            } else {
+                alert(result.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+            }
         } else {
             alert(data.message || 'Đăng ký thất bại. Vui lòng thử lại!');
         }
     })
     .catch(error => {
-        console.error('Enrollment error:', error);
-        // Không hiển thị alert lỗi khi redirect
+        if (error.message !== 'not_authenticated') {
+            console.error('Enrollment error:', error);
+        }
     });
 }
 
@@ -267,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const classId = this.getAttribute('data-class-id');
             const courseId = this.getAttribute('data-course-id');
-            enrollToClass(classId, courseId);
+            enrollWithPayment(classId, courseId);
         });
     });
 });
