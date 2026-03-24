@@ -51,6 +51,7 @@
             <div class="col-md-6">
               <label class="form-label small fw-bold text-secondary text-uppercase">Tên lớp học <span class="text-danger">*</span></label>
               <input type="text" id="className" class="form-control" placeholder="Ví dụ: Lớp Python cơ bản" required>
+              <div id="classNameError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
@@ -58,42 +59,48 @@
               <select id="courseId" class="form-select" required>
                 <option value="">-- Chọn khóa học --</option>
               </select>
+              <div id="courseIdError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Giảng viên</label>
-              <select id="teacherId" class="form-select">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Giảng viên <span class="text-danger">*</span></label>
+              <select id="teacherId" class="form-select" required>
                 <option value="">-- Chọn giảng viên --</option>
               </select>
+              <div id="teacherIdError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Trạng thái</label>
-              <select id="classStatus" class="form-select">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Trạng thái <span class="text-danger">*</span></label>
+              <select id="classStatus" class="form-select" required>
                 <option value="Pending">Chờ duyệt</option>
                 <option value="Open">Mở</option>
                 <option value="Closed">Đóng</option>
               </select>
+              <div id="classStatusError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày khai giảng</label>
-              <input type="date" id="startDate" class="form-control">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày khai giảng <span class="text-danger">*</span></label>
+              <input type="date" id="startDate" class="form-control" required>
+              <div id="startDateError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày kết thúc</label>
-              <input type="date" id="endDate" class="form-control">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày kết thúc <span class="text-danger">*</span></label>
+              <input type="date" id="endDate" class="form-control" required>
+              <div id="endDateError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Lịch học</label>
-              <input type="text" id="schedule" class="form-control" placeholder="Ví dụ: Thứ 2, 4, 6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Lịch học <span class="text-danger">*</span></label>
+              <input type="text" id="schedule" class="form-control" placeholder="Ví dụ: Thứ 2, 4, 6" required>
+              <div id="scheduleError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Ca học</label>
-              <select id="slotTime" class="form-select">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ca học <span class="text-danger">*</span></label>
+              <select id="slotTime" class="form-select" required>
                 <option value="">-- Chọn ca học --</option>
                 <option value="Sáng (7:00 - 9:00)">Sáng (7:00 - 9:00)</option>
                 <option value="Sáng (9:00 - 11:00)">Sáng (9:00 - 11:00)</option>
@@ -101,10 +108,17 @@
                 <option value="Chiều (15:00 - 17:00)">Chiều (15:00 - 17:00)</option>
                 <option value="Tối (18:00 - 20:00)">Tối (18:00 - 20:00)</option>
               </select>
+              <div id="slotTimeError" class="text-danger small mt-1"></div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Link Google Meet <span class="text-danger">*</span></label>
+              <input type="url" id="meetLink" class="form-control" placeholder="https://meet.google.com/..." required>
+              <div id="meetLinkError" class="text-danger small mt-1"></div>
             </div>
           </div>
 
-          <div class="mt-4 pt-4 border-top d-flex justify-content-end gap-2">
+          <div class="mt-4 pt-4 border-top d-flex justify-content-start gap-2">
             <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4">Hủy</a>
             <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
               <i class="bi bi-check-lg me-1"></i> Lưu
@@ -456,6 +470,82 @@
   document.getElementById('classForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
+      const setError = (fieldId, message) => {
+          const errorEl = document.getElementById(fieldId + 'Error');
+          if (errorEl) errorEl.textContent = message || '';
+      };
+
+      const clearErrors = () => {
+          ['className', 'courseId', 'teacherId', 'classStatus', 'startDate', 'endDate', 'schedule', 'slotTime', 'meetLink'].forEach(id => setError(id, ''));
+      };
+
+      clearErrors();
+
+      const className = document.getElementById('className').value.trim();
+      const courseIdValue = document.getElementById('courseId').value;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const meetLink = document.getElementById('meetLink').value.trim();
+
+      let hasError = false;
+
+      if (!className) {
+          setError('className', 'Vui lòng nhập tên lớp học.');
+          hasError = true;
+      }
+
+      if (!courseIdValue) {
+          setError('courseId', 'Vui lòng chọn khóa học.');
+          hasError = true;
+      }
+
+      if (!document.getElementById('teacherId').value) {
+          setError('teacherId', 'Vui lòng chọn giảng viên.');
+          hasError = true;
+      }
+
+      if (!document.getElementById('classStatus').value) {
+          setError('classStatus', 'Vui lòng chọn trạng thái.');
+          hasError = true;
+      }
+
+      if (!startDate) {
+          setError('startDate', 'Vui lòng chọn ngày khai giảng.');
+          hasError = true;
+      }
+
+      if (!endDate) {
+          setError('endDate', 'Vui lòng chọn ngày kết thúc.');
+          hasError = true;
+      }
+
+      if (!document.getElementById('schedule').value.trim()) {
+          setError('schedule', 'Vui lòng nhập lịch học.');
+          hasError = true;
+      }
+
+      if (!document.getElementById('slotTime').value) {
+          setError('slotTime', 'Vui lòng chọn ca học.');
+          hasError = true;
+      }
+
+      if (!meetLink) {
+          setError('meetLink', 'Vui lòng nhập link meet.');
+          hasError = true;
+      } else if (!/^https:\/\/(meet\.google\.com|.+)$/i.test(meetLink)) {
+          setError('meetLink', 'Link meet phải bắt đầu bằng https://');
+          hasError = true;
+      }
+
+      if (startDate && endDate && endDate < startDate) {
+          setError('endDate', 'Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng.');
+          hasError = true;
+      }
+
+      if (hasError) {
+          return;
+      }
+
       // Convert date format from YYYY-MM-DD to YYYY-MM-DDTHH:mm:ss
       const formatDateTime = (dateStr) => {
           if (!dateStr) return null;
@@ -463,12 +553,12 @@
       };
 
       const payload = {
-          className: document.getElementById('className').value,
-          courseId: parseInt(document.getElementById('courseId').value),
+          className: className,
+          courseId: parseInt(courseIdValue),
           teacherId: document.getElementById('teacherId').value ? parseInt(document.getElementById('teacherId').value) : null,
           status: document.getElementById('classStatus').value,
-          startDate: formatDateTime(document.getElementById('startDate').value),
-          endDate: formatDateTime(document.getElementById('endDate').value),
+          startDate: formatDateTime(startDate),
+          endDate: formatDateTime(endDate),
           schedule: document.getElementById('schedule').value,
           slotTime: document.getElementById('slotTime').value
       };
@@ -488,10 +578,10 @@
               alert('Lưu thành công!');
               window.location.href = '/manager/class/list';
           } else {
-              alert('Lỗi: ' + result.message);
+              setError('className', result.message || 'Lưu thất bại. Vui lòng kiểm tra lại dữ liệu.');
           }
       } catch (err) {
-          alert('Lỗi kết nối!');
+          setError('className', 'Không thể kết nối máy chủ.');
           console.error(err);
       }
   });

@@ -44,6 +44,7 @@
                       <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
                       <input type="text" id="fullName" class="form-control bg-light border-start-0 shadow-none" placeholder="Ví dụ: Nguyễn Văn A" required>
                     </div>
+                    <div id="fullNameError" class="text-danger small mt-1"></div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary text-uppercase">Địa chỉ Email <span class="text-danger">*</span></label>
@@ -51,13 +52,15 @@
                       <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
                       <input type="email" id="email" class="form-control bg-light border-start-0 shadow-none" placeholder="name@example.com" required>
                     </div>
+                    <div id="emailError" class="text-danger small mt-1"></div>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary text-uppercase">Số điện thoại</label>
+                    <label class="form-label small fw-bold text-secondary text-uppercase">Số điện thoại <span class="text-danger">*</span></label>
                     <div class="input-group input-group-sm">
                       <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone"></i></span>
-                      <input type="text" id="mobile" class="form-control bg-light border-start-0 shadow-none" placeholder="09xxxxxxxx">
+                      <input type="text" id="mobile" class="form-control bg-light border-start-0 shadow-none" placeholder="09xxxxxxxx" required>
                     </div>
+                    <div id="mobileError" class="text-danger small mt-1"></div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary text-uppercase">Mật khẩu <span class="text-danger">*</span></label>
@@ -65,6 +68,7 @@
                       <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
                       <input type="password" id="password" class="form-control bg-light border-start-0 shadow-none" placeholder="Nhập mật khẩu" required>
                     </div>
+                    <div id="passwordError" class="text-danger small mt-1"></div>
                     <small class="text-muted">Tối thiểu 6 ký tự, 1 chữ hoa, 1 số, 1 ký tự đặc biệt</small>
                   </div>
                   <div class="col-md-6">
@@ -73,6 +77,7 @@
                       <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock-fill"></i></span>
                       <input type="password" id="confirmPassword" class="form-control bg-light border-start-0 shadow-none" placeholder="Nhập lại mật khẩu" required>
                     </div>
+                    <div id="confirmPasswordError" class="text-danger small mt-1"></div>
                   </div>
                 </div>
               </div>
@@ -83,7 +88,7 @@
                 </h6>
                 <div class="row g-4">
                   <div class="col-md-6">
-                    <label class="form-label small fw-bold text-secondary text-uppercase">Vai trò truy cập</label>
+                    <label class="form-label small fw-bold text-secondary text-uppercase">Vai trò truy cập <span class="text-danger">*</span></label>
                     <select id="roleId" class="form-select form-select-sm bg-light shadow-none" required>
                       <option value="" selected disabled>-- Chọn vai trò --</option>
                       <option value="201">Quản trị viên (Admin)</option>
@@ -92,6 +97,7 @@
                       <option value="204">Giảng viên (Teacher)</option>
                       <option value="205">Học viên (Student)</option>
                     </select>
+                    <div id="roleIdError" class="text-danger small mt-1"></div>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary text-uppercase">Trạng thái mặc định</label>
@@ -103,7 +109,7 @@
                 </div>
               </div>
 
-              <div class="mt-5 pt-4 border-top d-flex justify-content-end gap-2">
+              <div class="mt-5 pt-4 border-top d-flex justify-content-start gap-2">
                 <button type="reset" class="btn btn-sm btn-light rounded-pill px-4 border shadow-sm">Xóa trắng</button>
                 <button type="submit" class="btn btn-sm btn-primary rounded-pill px-5 shadow-sm fw-bold">
                   <i class="bi bi-plus-circle me-1"></i> Xác nhận tạo
@@ -123,38 +129,83 @@
   document.getElementById('addAccountForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
+      const setError = (fieldId, message) => {
+          const errorEl = document.getElementById(fieldId + 'Error');
+          if (errorEl) errorEl.textContent = message || '';
+      };
+
+      ['fullName', 'email', 'mobile', 'password', 'confirmPassword', 'roleId'].forEach(id => setError(id, ''));
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const mobile = document.getElementById('mobile').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
+      const roleIdValue = document.getElementById('roleId').value;
 
-      // Validate password
+      let hasError = false;
+
+      if (!fullName || fullName.length < 2) {
+          setError('fullName', 'Tên phải có ít nhất 2 ký tự.');
+          hasError = true;
+      } else if (!/^[\p{L}\s'.-]+$/u.test(fullName)) {
+          setError('fullName', 'Tên chỉ được chứa chữ cái và khoảng trắng.');
+          hasError = true;
+      }
+
+      if (!email) {
+          setError('email', 'Vui lòng nhập email.');
+          hasError = true;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          setError('email', 'Email không đúng định dạng.');
+          hasError = true;
+      }
+
+      if (!mobile) {
+          setError('mobile', 'Vui lòng nhập số điện thoại.');
+          hasError = true;
+      } else if (!/^(0|\+84)\d{9,10}$/.test(mobile)) {
+          setError('mobile', 'Số điện thoại không đúng định dạng Việt Nam.');
+          hasError = true;
+      }
+
       if (password.length < 6) {
-          alert("Mật khẩu phải có ít nhất 6 ký tự!");
-          return;
+          setError('password', 'Mật khẩu phải có ít nhất 6 ký tự.');
+          hasError = true;
       }
       if (!/[A-Z]/.test(password)) {
-          alert("Mật khẩu phải có ít nhất 1 ký tự viết hoa!");
-          return;
+          setError('password', 'Mật khẩu phải có ít nhất 1 ký tự viết hoa.');
+          hasError = true;
       }
       if (!/[0-9]/.test(password)) {
-          alert("Mật khẩu phải có ít nhất 1 ký tự số!");
-          return;
+          setError('password', 'Mật khẩu phải có ít nhất 1 ký tự số.');
+          hasError = true;
       }
       if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-          alert("Mật khẩu phải có ít nhất 1 ký tự đặc biệt!");
-          return;
+          setError('password', 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt.');
+          hasError = true;
       }
       if (password !== confirmPassword) {
-          alert("Mật khẩu xác nhận không khớp!");
+          setError('confirmPassword', 'Mật khẩu xác nhận không khớp.');
+          hasError = true;
+      }
+
+      if (!roleIdValue) {
+          setError('roleId', 'Vui lòng chọn vai trò.');
+          hasError = true;
+      }
+
+      if (hasError) {
           return;
       }
 
       // Thu thập dữ liệu
       const payload = {
-          fullName: document.getElementById('fullName').value,
-          email: document.getElementById('email').value,
-          mobile: document.getElementById('mobile').value,
+          fullName: fullName,
+          email: email,
+          mobile: mobile,
           password: password,
-          roleId: parseInt(document.getElementById('roleId').value),
+          roleId: parseInt(roleIdValue),
           status: "Active"
       };
 
@@ -170,12 +221,12 @@
               alert("Tạo tài khoản thành công!");
               window.location.href = "/admin/list";
           } else {
-              alert("Lỗi: " + res.message);
+              setError('fullName', res.message || 'Tạo tài khoản thất bại.');
           }
       })
       .catch(err => {
           console.error("Error:", err);
-          alert("Không thể kết nối máy chủ!");
+          setError('fullName', 'Không thể kết nối máy chủ!');
       });
   });
 </script>
