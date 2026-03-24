@@ -26,6 +26,8 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
 
     List<Course> findByStatus(String status);
 
+    List<Course> findByLevelTagAndStatus(String levelTag, String status);
+
     List<Course> findByCategory_SettingIdAndStatus(Integer categoryId, String status);
 
     // (Tùy chọn) Tìm kiếm khóa học theo tên
