@@ -17,6 +17,11 @@
             <p class="text-muted small m-0" id="quizTitle">Đang tải...</p>
         </div>
         <div class="d-flex gap-2">
+            <!-- Nút Publish — hiện khi quiz đang là DRAFT -->
+            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 d-none" id="btnPublish"
+                    onclick="publishQuiz()">
+                <i class="bi bi-rocket me-1"></i> Xuất bản Quiz
+            </button>
             <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="openAddModal()">
                 <i class="bi bi-plus-lg me-1"></i> Thêm câu hỏi
             </button>
@@ -127,6 +132,7 @@
 <script th:inline="javascript">
 const quizId = /*[[${quizId}]]*/ 0;
 let quizQuestions = [];
+let currentBankPage = 0;
 
 const typeName = (t) => ({
     MULTIPLE_CHOICE_SINGLE: 'MC (Single)', MULTIPLE_CHOICE_MULTI: 'MC (Multi)',
@@ -144,6 +150,19 @@ async function loadQuizQuestions() {
             document.getElementById('quizTitle').textContent = `Quiz: ${quiz.title || '—'} (${quiz.quizCategory === 'ENTRY_TEST' ? 'Entry Test' : 'Course Quiz'})`;
             document.getElementById('questionCount').textContent = quiz.totalQuestions;
             quizQuestions = quiz.questions || [];
+
+            // Hiện nút Publish nếu quiz đang là DRAFT và có ≥1 câu hỏi
+            const publishBtn = document.getElementById('btnPublish');
+            if (quiz.status === 'DRAFT' && quiz.totalQuestions > 0) {
+                publishBtn.classList.remove('d-none');
+                publishBtn.disabled = false;
+            } else {
+                publishBtn.classList.add('d-none');
+            }
+            if (quiz.status === 'PUBLISHED') {
+                publishBtn.classList.add('d-none');
+            }
+
             renderQuizQuestions();
         }
     } catch (e) { console.error(e); }
@@ -203,11 +222,17 @@ async function saveOrder() {
 
 // ── Modal: Add questions ──
 function openAddModal() {
+    currentBankPage = 0;
     new bootstrap.Modal(document.getElementById('addQuestionModal')).show();
-    loadBankQuestions();
+    loadBankQuestions(0);
 }
 
-async function loadBankQuestions(page = 0) {
+async function loadBankQuestions(page) {
+    if (page === undefined || page === null) {
+        page = currentBankPage;
+    } else {
+        currentBankPage = page;
+    }
     const params = new URLSearchParams();
     const skill = document.getElementById('modalSkill').value;
     const cefr = document.getElementById('modalCefr').value;
@@ -311,11 +336,40 @@ async function addToQuiz(questionId) {
         const result = await res.json();
         if (res.ok) {
             loadQuizQuestions();
-            loadBankQuestions();
+            loadBankQuestions(currentBankPage);
         } else {
             alert(result.message || 'Không thể thêm.');
         }
     } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+async function publishQuiz() {
+    if (!confirm('Xuất bản quiz? Sau khi xuất bản, quiz sẽ xuất hiện trên trang /placement-test (nếu là Entry Test).')) return;
+
+    const btn = document.getElementById('btnPublish');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xuất bản...';
+
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'PUBLISHED' })
+        });
+        const result = await res.json();
+        if (res.ok) {
+            alert('Xuất bản thành công!');
+            loadQuizQuestions();
+        } else {
+            alert(result.message || 'Lỗi khi xuất bản.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-rocket me-1"></i> Xuất bản Quiz';
+        }
+    } catch (e) {
+        alert('Lỗi: ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-rocket me-1"></i> Xuất bản Quiz';
+    }
 }
 
 loadQuizQuestions();
