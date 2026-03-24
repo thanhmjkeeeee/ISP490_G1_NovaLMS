@@ -50,8 +50,10 @@ public class QuizResultServiceImpl implements QuizResultService {
             if (!enrolled) throw new RuntimeException("User is not enrolled in the course");
         }
 
-        if (quizResultRepository.findByQuizIdAndUserEmail(quizId, email).isPresent()) {
-            throw new RuntimeException("Quiz already attempted");
+        // Kiểm tra số lần đã làm so với giới hạn cho phép
+        long attemptCount = quizResultRepository.countByQuizQuizId(quizId);
+        if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
+            throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
 
         List<QuizQuestion> quizQuestions = quiz.getQuizQuestions();
@@ -111,8 +113,10 @@ public class QuizResultServiceImpl implements QuizResultService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
 
-        if (quizResultRepository.findByQuizIdAndUserEmail(quizId, email).isPresent()) {
-            throw new RuntimeException("Quiz already submitted");
+        // Kiểm tra số lần đã làm so với giới hạn cho phép
+        long attemptCount = quizResultRepository.countByQuizQuizId(quizId);
+        if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
+            throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
 
         int score = 0;
