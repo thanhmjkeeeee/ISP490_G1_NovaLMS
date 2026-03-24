@@ -44,6 +44,8 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PAGES = {
             "/", "/index", "/index.html",
+            "/placement-test", "/placement-test/**",
+            "/placement-test/results/**",
             "/courses", "/courses.html",
             "/course-details", "/course-details.html",
             "/course/details", "/course/details/**",
