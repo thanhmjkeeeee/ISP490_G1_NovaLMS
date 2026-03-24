@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head('Kết Quả Bài Kiểm Tra')}"></head>
+
+<body class="placement-test-page bg-light">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='placement-test')}"></header>
+
+<main class="main my-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <!-- ═══ SCORE CARD ══════════════════════════════════════════ -->
+        <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+          <div class="card-body p-5 text-center" th:style="|background: linear-gradient(135deg, #136ad5, #0d52b0); color: white;|">
+            <div class="mb-3">
+              <span class="badge rounded-pill px-4 py-2 mb-2"
+                    th:style="|background: rgba(255,255,255,0.2); color: #fff; font-size: 1rem;|"
+                    th:text="${result.quizTitle}">Bài Kiểm Tra Năng Lực Đầu Vào</span>
+            </div>
+
+            <!-- CEFR Level Badge -->
+            <div class="my-4">
+              <div class="display-1 fw-bold mb-2" th:text="${result.suggestedLevel}">B1</div>
+              <div class="text-white-50 fs-5 mb-1">Trình độ được đánh giá</div>
+            </div>
+
+            <!-- Score row -->
+            <div class="row g-3 mt-3">
+              <div class="col-4">
+                <div class="bg-white bg-opacity-10 rounded-3 py-3">
+                  <div class="fs-3 fw-bold" th:text="${result.correctRate != null ? #numbers.formatDecimal(result.correctRate, 1, 1) + '%' : '—'}">75%</div>
+                  <div class="small text-white-50">Tỷ lệ đúng</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="bg-white bg-opacity-10 rounded-3 py-3">
+                  <div class="fs-3 fw-bold">
+                    <span th:text="${result.score}">7</span>/<span th:text="${result.totalPoints}">10</span>
+                  </div>
+                  <div class="small text-white-50">Điểm đạt được</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="bg-white bg-opacity-10 rounded-3 py-3">
+                  <div class="fs-3 fw-bold" th:text="${result.passed ? '✓' : '✗'}">✓</div>
+                  <div class="small text-white-50" th:text="${result.passed ? 'Đạt' : 'Chưa đạt'}">Đạt</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ LEVEL DESCRIPTION ══════════════════════════════════ -->
+        <div class="card border-0 shadow-sm mb-4 rounded-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3" style="color:#223a58;">
+              <i class="bi bi-info-circle me-2 text-primary"></i>Chi tiết trình độ của bạn
+            </h5>
+            <div class="alert mb-0"
+                 th:classappend="${'A1'.equals(result.suggestedLevel) ? 'alert-info' : ('A2'.equals(result.suggestedLevel) ? 'alert-success' : ('B1'.equals(result.suggestedLevel) ? 'alert-warning' : 'alert-primary'))}"
+                 th:text="${result.levelDescription}">
+              Mô tả trình độ...
+            </div>
+
+            <!-- CEFR Scale Indicator -->
+            <div class="mt-4">
+              <p class="small text-muted mb-2">Thang đánh giá CEFR:</p>
+              <div class="d-flex gap-2">
+                <th:block th:each="lvl : ${ {'A1','A2','B1','B2','C1','C2'} }">
+                  <div class="flex-fill text-center py-2 rounded-3 fw-bold small"
+                       th:style="|background: ${lvl == result.suggestedLevel ? '#136ad5' : '#f3f4f6'}; color: ${lvl == result.suggestedLevel ? '#fff' : '#9ca3af'};|"
+                       th:text="${lvl}">A1</div>
+                </th:block>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ SUGGESTED COURSES ══════════════════════════════════ -->
+        <div class="card border-0 shadow-sm mb-4 rounded-4" th:if="${result.suggestedCourses != null and !result.suggestedCourses.isEmpty()}">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3" style="color:#223a58;">
+              <i class="bi bi-lightbulb me-2 text-warning"></i>Khóa học gợi ý cho bạn
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-4" th:each="course : ${result.suggestedCourses}">
+                <div class="border rounded-3 p-3 h-100">
+                  <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/course-default.jpg'}"
+                       class="rounded-3 w-100 mb-2" style="height:120px;object-fit:cover;" alt="course">
+                  <h6 class="fw-bold text-truncate mb-1" th:text="${course.courseName}">Course Name</h6>
+                  <div class="small text-muted mb-2" th:text="${course.categoryName}">Category</div>
+                  <a th:href="@{/course/details/{id}(id=${course.courseId})}"
+                     class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-eye me-1"></i> Xem chi tiết
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ CTA BUTTONS ═══════════════════════════════════════ -->
+        <div class="d-flex justify-content-center gap-3 mb-5 flex-wrap">
+          <a th:href="@{/courses}" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm">
+            <i class="bi bi-book me-2"></i> Khám phá khóa học
+          </a>
+          <a th:href="@{/}" class="btn btn-outline-secondary btn-lg rounded-pill px-5">
+            <i class="bi bi-house me-2"></i> Về trang chủ
+          </a>
+        </div>
+
+        <!-- ═══ QUESTION REVIEW ═════════════════════════════════════ -->
+        <h5 class="fw-bold mb-3" style="color:#223a58;">
+          <i class="bi bi-list-check me-2 text-primary"></i>Đáp án chi tiết
+        </h5>
+
+        <div class="accordion" id="resultAccordion">
+          <th:block th:each="q, qStat : ${result.questions}">
+            <div class="accordion-item border-0 mb-3 rounded-3 shadow-sm"
+                 th:style="|border-left: 4px solid ${qStat.index == 0 ? '#198754' : '#dee2e6'} !important|">
+              <div class="accordion-header">
+                <button class="accordion-button py-3 fw-bold"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        th:data-bs-target="'#q' + ${qStat.index}"
+                        th:classappend="${qStat.index != 0} ? 'collapsed' : ''">
+                  <span class="me-3 text-muted small">Câu <span th:text="${qStat.index + 1}">1</span></span>
+                  <span class="badge"
+                        th:classappend="${q.isCorrect} ? 'bg-success' : 'bg-danger'"
+                        th:text="${q.isCorrect} ? '✓ Đúng' : '✗ Sai'">Đúng</span>
+                  <span class="ms-auto badge bg-light text-dark">
+                    <span th:text="${q.skill}">Grammar</span> ·
+                    <span th:text="${q.cefrLevel}">A1</span>
+                  </span>
+                </button>
+              </div>
+              <div th:id="'q' + ${qStat.index}"
+                   class="accordion-collapse collapse"
+                   th:classappend="${qStat.index == 0} ? 'show' : ''"
+                   data-bs-parent="#resultAccordion">
+                <div class="accordion-body">
+                  <p class="fw-medium mb-3" th:utext="${q.content}">Nội dung câu hỏi</p>
+
+                  <!-- Options (nếu có) -->
+                  <div th:if="${q.options != null and !q.options.isEmpty()}">
+                    <div class="mb-2 small text-muted">Các đáp án:</div>
+                    <div class="list-group mb-3">
+                      <div class="list-group-item d-flex align-items-center gap-2 py-2"
+                           th:each="opt : ${q.options}"
+                           th:classappend="${opt.correctAnswer} ? 'list-group-item-success' : ''">
+                        <i class="bi"
+                           th:classappend="${opt.correctAnswer} ? 'bi-check-circle-fill text-success' : 'bi-circle'"></i>
+                        <span th:text="${opt.title}">Option text</span>
+                        <span th:if="${opt.correctAnswer}" class="badge bg-success ms-auto">Đáp án đúng</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Explanation -->
+                  <div th:if="${q.explanation != null}" class="alert alert-light mb-0 small">
+                    <i class="bi bi-lightbulb me-1 text-warning"></i>
+                    <strong>Giải thích:</strong> <span th:text="${q.explanation}">Explanation...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </th:block>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>

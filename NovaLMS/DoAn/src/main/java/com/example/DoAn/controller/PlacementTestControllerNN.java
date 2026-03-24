@@ -1,6 +1,7 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.PlacementTestSubmissionDTO;
+import com.example.DoAn.dto.response.PlacementTestSummaryDTO;
 import com.example.DoAn.dto.response.QuizTakingDTO;
 import com.example.DoAn.service.PlacementTestService;
 import jakarta.servlet.http.HttpSession;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -19,14 +21,28 @@ public class PlacementTestControllerNN {
     private final PlacementTestService placementTestService;
 
     @GetMapping("/placement-test")
-    public String showPlacementTest(Model model) {
+    public String showPlacementTestList(Model model) {
         try {
-            QuizTakingDTO quiz = placementTestService.getPlacementTest();
+            List<PlacementTestSummaryDTO> tests = placementTestService.getAllPlacementTests();
+            model.addAttribute("tests", tests);
+            return "public/placement-test";
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+            return "public/placement-test";
+        }
+    }
+
+    @GetMapping("/placement-test/{quizId}")
+    public String takePlacementTest(@PathVariable Integer quizId, Model model) {
+        try {
+            QuizTakingDTO quiz = placementTestService.getPlacementTest(quizId);
             model.addAttribute("quiz", quiz);
             return "public/placement-test";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "public/index"; // Redirect back to home with error (can be improved)
+            List<PlacementTestSummaryDTO> tests = placementTestService.getAllPlacementTests();
+            model.addAttribute("tests", tests);
+            return "public/placement-test";
         }
     }
 
