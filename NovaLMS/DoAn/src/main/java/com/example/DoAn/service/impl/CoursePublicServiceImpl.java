@@ -113,7 +113,7 @@ public class CoursePublicServiceImpl implements CourseService {
         String imgUrl = (course.getImageUrl() != null && !course.getImageUrl().isEmpty())
                 ? course.getImageUrl() : "/assets/img/default-course.jpg";
 
-        // 5. Trả về DTO tổng thể (Khớp 12 trường dữ liệu của Record)
+        // 5. Trả về DTO tổng thể (Khớp các trường dữ liệu của Record)
         return new CoursePublicResponseDTO(
                 id,
                 course.getCourseName(),
@@ -123,6 +123,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 categoryName,
                 studentCount,
                 imgUrl,
+                course.getLevelTag(),
                 course.getStatus(),
                 expertDTO,
                 curriculum,
