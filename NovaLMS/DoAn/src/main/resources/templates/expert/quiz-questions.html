@@ -140,6 +140,7 @@ async function loadQuizQuestions() {
         const result = await res.json();
         if (result.status === 200 && result.data) {
             const quiz = result.data;
+            window.currentQuiz = quiz;
             document.getElementById('quizTitle').textContent = `Quiz: ${quiz.title || '—'} (${quiz.quizCategory === 'ENTRY_TEST' ? 'Entry Test' : 'Course Quiz'})`;
             document.getElementById('questionCount').textContent = quiz.totalQuestions;
             quizQuestions = quiz.questions || [];
@@ -225,7 +226,27 @@ async function loadBankQuestions(page = 0) {
 
         if (result.status === 200 && result.data && result.data.items.length > 0) {
             const existingIds = new Set(quizQuestions.map(q => q.questionId));
-            tbody.innerHTML = result.data.items.map(q => `
+            let html = '';
+            result.data.items.forEach(q => {
+                let canAdd = true;
+                if (window.currentQuiz && window.currentQuiz.quizCategory === 'ENTRY_TEST') {
+                    if (q.questionType !== 'MULTIPLE_CHOICE_SINGLE' && 
+                        q.questionType !== 'MULTIPLE_CHOICE_MULTI' && 
+                        q.questionType !== 'MATCHING') {
+                        canAdd = false;
+                    }
+                }
+                
+                let actionBtn = '';
+                if (existingIds.has(q.questionId)) {
+                    actionBtn = '<span class="badge bg-light text-dark">Đã thêm</span>';
+                } else if (!canAdd) {
+                    actionBtn = '<span class="badge bg-warning text-dark" title="Không hỗ trợ cho Entry Test">Không hợp lệ</span>';
+                } else {
+                    actionBtn = `<button class="btn btn-sm btn-success" onclick="addToQuiz(${q.questionId})"><i class="bi bi-plus"></i></button>`;
+                }
+
+                html += `
                 <tr>
                     <td style="max-width:250px" class="text-truncate">${q.content || '—'}</td>
                     <td>${typeName(q.questionType)}</td>
@@ -234,22 +255,21 @@ async function loadBankQuestions(page = 0) {
                     <td>${q.topic || '—'}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-info me-1" onclick="previewQuestion(${q.questionId})"><i class="bi bi-eye"></i></button>
-                        ${existingIds.has(q.questionId) ?
-                            '<span class="badge bg-light text-dark">Đã thêm</span>' :
-                            `<button class="btn btn-sm btn-success" onclick="addToQuiz(${q.questionId})"><i class="bi bi-plus"></i></button>`
-                        }
+                        ${actionBtn}
                     </td>
                 </tr>
-            `).join('');
+                `;
+            });
+            tbody.innerHTML = html;
 
             // Pagination
             const pg = document.getElementById('modalPagination');
-            let html = '';
+            let paginationHtml = '';
             for (let i = 0; i < result.data.totalPages; i++) {
-                html += `<li class="page-item ${i === page ? 'active' : ''}">
+                paginationHtml += `<li class="page-item ${i === page ? 'active' : ''}">
                             <a class="page-link" href="javascript:void(0)" onclick="loadBankQuestions(${i})">${i + 1}</a></li>`;
             }
-            pg.innerHTML = html;
+            pg.innerHTML = paginationHtml;
         } else {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Không tìm thấy câu hỏi Published nào.</td></tr>';
         }

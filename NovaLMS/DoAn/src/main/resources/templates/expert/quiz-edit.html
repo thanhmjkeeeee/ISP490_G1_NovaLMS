@@ -102,6 +102,7 @@
 
 <script th:inline="javascript">
 const quizId = /*[[${quizId}]]*/ 0;
+let currentCourseId = null;
 
 async function loadQuiz() {
     try {
@@ -118,6 +119,7 @@ async function loadQuiz() {
             document.getElementById('maxAttempts').value = q.maxAttempts || '';
             document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
             document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit || false;
+            currentCourseId = q.courseId;
             if (q.hasAttempts) {
                 document.getElementById('attemptWarning').classList.remove('d-none');
             }
@@ -130,6 +132,7 @@ async function updateQuiz() {
         title: document.getElementById('title').value,
         description: document.getElementById('description').value || null,
         quizCategory: document.getElementById('quizCategory').value,
+        courseId: currentCourseId,
         timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
         passScore: parseFloat(document.getElementById('passScore').value) || null,
         maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,

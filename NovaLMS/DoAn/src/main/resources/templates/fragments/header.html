@@ -17,6 +17,8 @@
             <ul>
                 <li><a th:href="@{/}"
                        th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
+                <li><a th:href="@{/placement-test}"
+                       th:classappend="${currentPage == 'placement-test'} ? 'active'">Kiểm tra đầu vào</a></li>
                 <li><a th:href="@{/classes}"
                        th:classappend="${currentPage == 'class'} ? 'active'">Lịch khai giảng</a></li>
                 <li><a th:href="@{/courses}"
