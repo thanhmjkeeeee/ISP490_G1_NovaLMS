@@ -107,6 +107,7 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
                 .lessonName(lesson.getLessonName())
                 .type(lesson.getType())
                 .videoUrl(lesson.getVideoUrl())
+                .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()))
                 .contentText(lesson.getContent_text())
                 .quizId(lesson.getQuiz_id())
                 .duration(lesson.getDuration())
