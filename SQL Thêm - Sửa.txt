@@ -10,7 +10,13 @@ Mô tả:
 -- =============================
 -- ALTER TABLE
 -- =============================
+-- 23/03/2026
+Thanh
+Thêm bảng
+ALTER TABLE question MODIFY COLUMN module_id INT NULL
+ALTER TABLE quiz MODIFY COLUMN course_id INT NULL;
 
+-- ===============
 
 -- =============================
 -- INSERT DATA
