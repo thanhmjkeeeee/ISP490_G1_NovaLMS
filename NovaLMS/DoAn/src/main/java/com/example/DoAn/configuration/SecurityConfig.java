@@ -53,7 +53,9 @@ public class SecurityConfig {
             "/about", "/about.html", "/pricing", "/pricing.html",
             "/blog", "/blog.html", "/contact", "/contact.html",
             "/404", "/404.html", "/error", "/classes",
-            "/enroll", "/enroll-class"
+            "/enroll", "/enroll-class",
+            // PayOS payment return URLs
+            "/payment/success", "/payment/cancel"
     };
 
     @Bean
@@ -85,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/classes/**").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/payment/webhook").permitAll()
                         .requestMatchers("/api/**").authenticated()
 
                         // Phân quyền cứng
@@ -129,7 +132,9 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization", "Content-Type", "Cache-Control",
+                "x-payos-signature", "x-client-id", "x-api-key"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

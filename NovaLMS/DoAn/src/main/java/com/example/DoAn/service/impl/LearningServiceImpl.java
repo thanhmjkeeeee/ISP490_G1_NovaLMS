@@ -1,6 +1,7 @@
 package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.response.CourseLearningInfoDTO;
+import com.example.DoAn.dto.response.ExpertLessonResponseDTO;
 import com.example.DoAn.dto.response.LessonResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.Course;
@@ -11,6 +12,8 @@ import com.example.DoAn.model.User;
 import com.example.DoAn.model.UserLesson;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.LessonRepository;
+import com.example.DoAn.repository.QuizRepository;
+import com.example.DoAn.repository.QuizResultRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserLessonRepository;
 import com.example.DoAn.repository.UserRepository;
@@ -31,6 +34,8 @@ public class LearningServiceImpl implements LearningService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final UserLessonRepository userLessonRepository;
+    private final QuizRepository quizRepository;
+    private final QuizResultRepository quizResultRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -93,6 +98,7 @@ public class LearningServiceImpl implements LearningService {
                             lessDTO.setLessonTitle(lesson.getLessonName());
                             lessDTO.setType(lesson.getType());
                             lessDTO.setDuration(lesson.getDuration());
+                            lessDTO.setVideoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()));
                             lessDTO.setCompleted(isCompleted);
                             lessDTO.setLocked(false);
 
@@ -112,6 +118,21 @@ public class LearningServiceImpl implements LearningService {
 
             int progress = totalLessonsCount == 0 ? 0 : Math.round(((float) completedCount / totalLessonsCount) * 100);
             courseInfo.setProgressPercent(progress);
+
+            // Lấy quiz COURSE_QUIZ của khóa học
+            quizRepository.findFirstByCourseCourseIdAndQuizCategoryAndStatus(
+                    course.getCourseId(), "COURSE_QUIZ", "PUBLISHED"
+            ).ifPresent(quiz -> {
+                long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quiz.getQuizId(), user.getUserId());
+                courseInfo.setCourseQuiz(CourseLearningInfoDTO.QuizInfoDTO.builder()
+                        .quizId(quiz.getQuizId())
+                        .title(quiz.getTitle())
+                        .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
+                        .timeLimitMinutes(quiz.getTimeLimitMinutes())
+                        .maxAttempts(quiz.getMaxAttempts())
+                        .attemptCount((int) attemptCount)
+                        .build());
+            });
 
             return ResponseData.success("Thành công", courseInfo);
 
@@ -136,6 +157,7 @@ public class LearningServiceImpl implements LearningService {
                     .type(currentLesson.getType())
                     .duration(currentLesson.getDuration())
                     .videoUrl(currentLesson.getVideoUrl())
+                    .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(currentLesson.getVideoUrl()))
                     .contentText(currentLesson.getContent_text())
                     .quizId(currentLesson.getQuiz_id())
                     .isCompleted(false)

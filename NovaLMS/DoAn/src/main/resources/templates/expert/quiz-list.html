@@ -24,8 +24,8 @@
     <!-- Filters -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3">
+            <div class="row g-2">
+                <div class="col-6 col-md-3 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Loại Quiz</label>
                     <select id="filterCategory" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -33,7 +33,7 @@
                         <option value="COURSE_QUIZ">Course Quiz</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Trạng thái</label>
                     <select id="filterStatus" class="form-select form-select-sm">
                         <option value="">Tất cả</option>
@@ -42,12 +42,14 @@
                         <option value="ARCHIVED">Archived</option>
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-8 col-md-5 d-flex flex-column justify-content-end">
                     <label class="form-label small fw-bold">Tìm kiếm</label>
-                    <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Tên quiz...">
-                </div>
-                <div class="col-md-1">
-                    <button class="btn btn-sm btn-primary w-100" onclick="loadQuizzes()"><i class="bi bi-search"></i></button>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Tên quiz..." style="height:32px;">
+                        <button class="btn btn-primary" onclick="loadQuizzes()" style="height:32px;padding:0 12px;display:flex;align-items:center;">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

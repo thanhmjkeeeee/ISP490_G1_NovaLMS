@@ -42,15 +42,91 @@
     document.addEventListener("DOMContentLoaded", async function() {
         const tbody = document.getElementById('enrollmentTableBody');
 
-        const getStatusBadge = (status) => {
-            if (status === 'Submitted') return '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">Chờ duyệt</span>';
-            if (status === 'Approved') return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">Đã duyệt</span>';
-            if (status === 'Cancelled') return '<span class="badge bg-secondary px-3 py-2 rounded-pill shadow-sm">Đã hủy</span>';
-            return '<span class="badge bg-danger px-3 py-2 rounded-pill shadow-sm">Từ chối</span>';
+        // ── Payment-aware badge logic ──────────────────────────────────────
+        // priority: PAID > EXPIRED/FAILED/CANCELLED > PENDING > status-driven
+        const getStatusBadge = (status, paymentStatus, price) => {
+            const isFree = !price || price <= 0;
+            // Đã thanh toán thành công
+            if (paymentStatus === 'PAID') {
+                if (status === 'Approved') {
+                    return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-check-circle me-1"></i>Đã duyệt & Đã thanh toán</span>';
+                }
+                return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>';
+            }
+            // Miễn phí — không cần thanh toán
+            if (isFree && (status === 'Approved' || status === 'Submitted')) {
+                return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-check-circle me-1"></i>Đã duyệt</span>';
+            }
+            // Thanh toán thất bại / hủy / hết hạn
+            if (paymentStatus === 'FAILED') {
+                return '<span class="badge bg-danger px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-x-circle me-1"></i>Thanh toán thất bại</span>';
+            }
+            if (paymentStatus === 'CANCELLED') {
+                return '<span class="badge bg-secondary px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-slash-circle me-1"></i>Đã hủy</span>';
+            }
+            if (paymentStatus === 'EXPIRED') {
+                return '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Hết hạn thanh toán</span>';
+            }
+            if (status === 'Approved') {
+                return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">Đã duyệt</span>';
+            }
+            if (status === 'Cancelled') {
+                return '<span class="badge bg-secondary px-3 py-2 rounded-pill shadow-sm">Đã hủy</span>';
+            }
+            if (status === 'Rejected') {
+                return '<span class="badge bg-danger px-3 py-2 rounded-pill shadow-sm">Từ chối</span>';
+            }
+            return '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-clock me-1"></i>Chờ xử lý</span>';
+        };
+
+        // ── Action button ─────────────────────────────────────────────────
+        const getActionBtn = (reg) => {
+            const isFree = !reg.registrationPrice || reg.registrationPrice <= 0;
+            const isPaid = reg.paymentStatus === 'PAID';
+            const isApproved = reg.status === 'Approved';
+            const canRetry = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(reg.paymentStatus);
+
+            // Đã duyệt → vào học
+            if (isApproved && (isFree || isPaid)) {
+                return `<a href="/student/my-courses" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-play-circle-fill me-1"></i> Vào học
+                        </a>`;
+            }
+            // Thanh toán thất bại / hết hạn / hủy → nút thử lại
+            if (canRetry) {
+                return `<button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm"
+                                onclick="retryPayment(${reg.registrationId})">
+                            <i class="bi bi-arrow-repeat me-1"></i> Thử lại thanh toán
+                        </button>`;
+            }
+            // Chờ duyệt
+            return `<button class="btn btn-sm btn-light rounded-pill px-3 text-muted" disabled>
+                        <i class="bi bi-hourglass-split me-1"></i> Chờ xử lý
+                    </button>`;
         };
 
         const formatCurrency = (amount) => {
+            if (!amount || amount <= 0) return '<span class="text-success fw-bold">Miễn phí</span>';
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        };
+
+        // ── Retry payment ─────────────────────────────────────────────────
+        window.retryPayment = async (registrationId) => {
+            if (!confirm('Bạn muốn thử lại thanh toán cho đăng ký này?')) return;
+            try {
+                const resp = await fetch(`/api/v1/payment/retry?registrationId=${registrationId}`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                const data = await resp.json();
+                if (data.status === 200 && data.data && data.data.checkoutUrl) {
+                    window.location.href = data.data.checkoutUrl;
+                } else {
+                    alert(data.message || 'Không thể thử lại thanh toán.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối!');
+            }
         };
 
         try {
@@ -60,19 +136,18 @@
             if (result.status === 200 && result.data.length > 0) {
                 tbody.innerHTML = result.data.map(reg => `
                     <tr>
-                        <td class="py-3 fw-bold text-dark">${reg.courseName}</td>
-                        <td class="text-muted">${reg.className}</td>
-                        <td class="text-muted fw-medium">${formatCurrency(reg.registrationPrice)}</td>
-                        <td>${getStatusBadge(reg.status)}</td>
-                        <td>
-                            ${reg.status === 'Approved'
-                                ? `<a href="/student/my-courses" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm"><i class="bi bi-play-circle-fill me-1"></i> Vào học</a>`
-                                : `<button class="btn btn-sm btn-light rounded-pill px-3 text-muted" disabled>Chờ xử lý</button>`}
-                        </td>
+                        <td class="py-3 fw-bold text-dark">${reg.courseName || 'N/A'}</td>
+                        <td class="text-muted">${reg.className || 'N/A'}</td>
+                        <td class="fw-medium">${formatCurrency(reg.registrationPrice)}</td>
+                        <td>${getStatusBadge(reg.status, reg.paymentStatus, reg.registrationPrice)}</td>
+                        <td>${getActionBtn(reg)}</td>
                     </tr>
                 `).join('');
             } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-journal-x fs-1"></i><p>Bạn chưa đăng ký khóa học nào.</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted">
+                    <i class="bi bi-journal-x fs-1 d-block mb-2"></i>
+                    Bạn chưa đăng ký khóa học nào.
+                </td></tr>`;
             }
         } catch (error) {
             tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Lỗi kết nối dữ liệu!</td></tr>`;

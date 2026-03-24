@@ -11,6 +11,7 @@ public class LessonResponseDTO {
     private String type;
     private String duration;
     private String videoUrl;
+    private String videoEmbedUrl; // YouTube embed URL (auto-converted)
     private String contentText;
     private Integer quizId;
     private boolean isCompleted;
