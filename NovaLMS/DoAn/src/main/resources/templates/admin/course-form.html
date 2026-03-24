@@ -28,22 +28,25 @@
               <div class="col-md-8">
                 <label class="form-label fw-bold small">Tên khóa học <span class="text-danger">*</span></label>
                 <input type="text" id="courseName" class="form-control" placeholder="Nhập tên khóa học..." required>
+                <div id="courseNameError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-4">
-                <label class="form-label fw-bold small">Trạng thái</label>
-                <select id="status" class="form-select">
+                <label class="form-label fw-bold small">Trạng thái <span class="text-danger">*</span></label>
+                <select id="status" class="form-select" required>
                   <option value="active">Hoạt động</option>
                   <option value="draft">Bản nháp</option>
                   <option value="inactive">Tạm dừng</option>
                 </select>
+                <div id="statusError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-4">
-                <label class="form-label fw-bold small">Chương trình (Category)</label>
-                <select id="categoryId" class="form-select">
+                <label class="form-label fw-bold small">Chương trình (Category) <span class="text-danger">*</span></label>
+                <select id="categoryId" class="form-select" required>
                   <option value="">-- Chọn chương trình --</option>
                 </select>
+                <div id="categoryIdError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-4">
@@ -54,33 +57,38 @@
               </div>
 
               <div class="col-md-4">
-                <label class="form-label fw-bold small">Chuyên gia (Expert)</label>
-                <select id="expertId" class="form-select">
+                <label class="form-label fw-bold small">Chuyên gia (Expert) <span class="text-danger">*</span></label>
+                <select id="expertId" class="form-select" required>
                   <option value="">-- Chọn chuyên gia --</option>
                 </select>
+                <div id="expertIdError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold small">Học phí (VND)</label>
-                <input type="number" id="price" class="form-control" placeholder="0">
+                <label class="form-label fw-bold small">Học phí (VND) <span class="text-danger">*</span></label>
+                <input type="number" id="price" class="form-control" placeholder="0" required>
+                <div id="priceError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-6">
-                <label class="form-label fw-bold small">Giảm giá (VND)</label>
-                <input type="number" id="sale" class="form-control" placeholder="0" value="0">
+                <label class="form-label fw-bold small">Phần trăm giảm (%) <span class="text-danger">*</span></label>
+                <input type="number" id="sale" class="form-control" placeholder="0" value="0" min="0" max="100" required>
+                <div id="saleError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-12">
-                <label class="form-label fw-bold small">Avatar URL</label>
-                <input type="text" id="avatar" class="form-control" placeholder="https://example.com/image.jpg">
+                <label class="form-label fw-bold small">Avatar URL <span class="text-danger">*</span></label>
+                <input type="text" id="avatar" class="form-control" placeholder="https://example.com/image.jpg" required>
+                <div id="avatarError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-12">
-                <label class="form-label fw-bold small">Mô tả khóa học</label>
-                <textarea id="description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..."></textarea>
+                <label class="form-label fw-bold small">Mô tả khóa học <span class="text-danger">*</span></label>
+                <textarea id="description" class="form-control" rows="4" placeholder="Nhập mô tả chi tiết..." required></textarea>
+                <div id="descriptionError" class="text-danger small mt-1"></div>
               </div>
 
-              <div class="col-12 mt-4 text-end">
+              <div class="col-12 mt-4 text-start">
                 <button type="reset" class="btn btn-light border px-4 me-2">Nhập lại</button>
                 <button type="submit" class="btn btn-primary px-5" style="background-color: #3b82f6; border: none;">Lưu khóa học</button>
               </div>
@@ -246,7 +254,8 @@
             document.getElementById('courseId').value = course.courseId;
             document.getElementById('courseName').value = course.courseName || '';
             document.getElementById('price').value = course.price || 0;
-            document.getElementById('sale').value = course.sale || 0;
+            const salePercent = (course.price && course.sale) ? ((course.sale / course.price) * 100) : 0;
+            document.getElementById('sale').value = salePercent.toFixed(2);
             document.getElementById('avatar').value = course.avatar || '';
             document.getElementById('status').value = (course.status || 'active').toLowerCase();
             document.getElementById('description').value = course.description || '';
@@ -273,18 +282,80 @@
     document.getElementById('courseForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
+      const setError = (fieldId, message) => {
+        const errorEl = document.getElementById(fieldId + 'Error');
+        if (errorEl) errorEl.textContent = message || '';
+      };
+
+      ['courseName', 'price', 'sale', 'categoryId', 'expertId', 'status', 'avatar', 'description'].forEach(id => setError(id, ''));
+
       const courseId = document.getElementById('courseId').value;
       const categoryId = document.getElementById('categoryId').value;
       const expertId = document.getElementById('expertId').value;
+      const status = document.getElementById('status').value;
+      const courseName = document.getElementById('courseName').value.trim();
+      const price = parseFloat(document.getElementById('price').value);
+      const salePercent = parseFloat(document.getElementById('sale').value);
+      const avatar = document.getElementById('avatar').value.trim();
+      const description = document.getElementById('description').value.trim();
+
+      let hasError = false;
+
+      if (!courseName) {
+        setError('courseName', 'Vui lòng nhập tên khóa học.');
+        hasError = true;
+      }
+
+      if (isNaN(price) || price < 0) {
+        setError('price', 'Học phí phải là số lớn hơn hoặc bằng 0.');
+        hasError = true;
+      }
+
+      if (isNaN(salePercent) || salePercent < 0 || salePercent > 100) {
+        setError('sale', 'Phần trăm giảm phải nằm trong khoảng 0-100.');
+        hasError = true;
+      }
+
+      if (!categoryId) {
+        setError('categoryId', 'Vui lòng chọn chương trình.');
+        hasError = true;
+      }
+
+      if (!expertId) {
+        setError('expertId', 'Vui lòng chọn chuyên gia.');
+        hasError = true;
+      }
+
+      if (!status) {
+        setError('status', 'Vui lòng chọn trạng thái.');
+        hasError = true;
+      }
+
+      if (!avatar) {
+        setError('avatar', 'Vui lòng nhập Avatar URL.');
+        hasError = true;
+      }
+
+      if (!description) {
+        setError('description', 'Vui lòng nhập mô tả khóa học.');
+        hasError = true;
+      }
+
+      if (hasError) {
+        return;
+      }
+
+      const saleAmount = ((price || 0) * salePercent) / 100;
+
       const formData = {
-        courseName: document.getElementById('courseName').value,
-        price: parseFloat(document.getElementById('price').value) || 0,
-        sale: parseFloat(document.getElementById('sale').value) || 0,
-        avatar: document.getElementById('avatar').value,
-        status: document.getElementById('status').value,
-        description: document.getElementById('description').value,
-        categoryId: categoryId ? parseInt(categoryId) : null,
-        expertId: expertId ? parseInt(expertId) : null
+        courseName: courseName,
+        price: price || 0,
+        sale: saleAmount,
+        avatar: avatar,
+        status: status,
+        description: description,
+        categoryId: parseInt(categoryId),
+        expertId: parseInt(expertId)
       };
 
       const url = courseId ? `/api/v1/courses/${courseId}` : '/api/v1/courses/';
@@ -301,12 +372,12 @@
           alert(courseId ? "Cập nhật thành công!" : "Thêm mới thành công!");
           window.location.href = "/admin/courses";
         } else {
-          alert("Thao tác thất bại: " + (res.message || "Lỗi hệ thống"));
+          setError('courseName', res.message || 'Thao tác thất bại.');
         }
       })
       .catch(err => {
         console.error("Lỗi kết nối API:", err);
-        alert("Không thể kết nối tới máy chủ!");
+        setError('courseName', 'Không thể kết nối tới máy chủ!');
       });
     });
 
