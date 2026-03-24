@@ -95,7 +95,7 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  QUESTION BANK (Master Question Bank)
+    //  QUESTION BANK (Quản lý ngân hàng đề)
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/question-bank")
