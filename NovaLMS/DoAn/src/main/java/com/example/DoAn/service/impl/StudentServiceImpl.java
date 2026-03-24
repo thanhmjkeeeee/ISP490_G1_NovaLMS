@@ -4,12 +4,15 @@ import com.example.DoAn.dto.response.*;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.Course;
+import com.example.DoAn.model.Payment;
 import com.example.DoAn.model.Registration;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.PaymentRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.service.PayosService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +34,8 @@ public class StudentServiceImpl implements StudentService {
     private final CourseRepository courseRepository;
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final PaymentRepository paymentRepository;
+    private final PayosService payosService;
 
     @Override
     @Transactional(readOnly = true)
@@ -71,17 +76,18 @@ public class StudentServiceImpl implements StudentService {
             Double finalPrice = originalPrice - saleAmount;
             if (finalPrice < 0) finalPrice = 0.0;
 
+            // Status: Submitted — chờ thanh toán PayOS (hoặc Approved nếu free)
             Registration reg = Registration.builder()
                     .user(user)
                     .clazz(clazz)
                     .course(course)
                     .status("Submitted")
                     .registrationPrice(BigDecimal.valueOf(finalPrice))
-                    .note("Đăng ký trực tuyến")
+                    .note("Đăng ký trực tuyến, chờ thanh toán PayOS")
                     .build();
 
             registrationRepository.save(reg);
-            return ResponseData.success("Đăng ký thành công!", clazz.getCourse().getCourseId());
+            return ResponseData.success("Đăng ký thành công! Vui lòng hoàn tất thanh toán.", reg.getRegistrationId());
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
@@ -95,14 +101,35 @@ public class StudentServiceImpl implements StudentService {
             if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             List<Registration> list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
-            List<RegistrationResponseDTO> dtoList = list.stream().map(reg -> RegistrationResponseDTO.builder()
+
+            // ⚡ Sync trạng thái PayOS cho các Payment còn PENDING
+            // PayOS không gửi webhook cho CANCELLED/EXPIRED → phải chủ động hỏi
+            for (Registration reg : list) {
+                paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(reg.getRegistrationId())
+                        .ifPresent(payment -> {
+                            if ("PENDING".equals(payment.getStatus()) || "FAILED".equals(payment.getStatus())) {
+                                payosService.syncPaymentStatus(payment.getPayosOrderCode());
+                            }
+                        });
+            }
+
+            // Reload after sync
+            list = registrationRepository.findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId());
+
+            List<RegistrationResponseDTO> dtoList = list.stream().map(reg ->
+                RegistrationResponseDTO.builder()
                     .registrationId(reg.getRegistrationId())
                     .courseName(reg.getCourse().getCourseName())
                     .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "N/A")
                     .status(reg.getStatus())
                     .registrationPrice(reg.getRegistrationPrice())
                     .note(reg.getNote())
-                    .build()).collect(Collectors.toList());
+                    .paymentStatus(
+                        paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(reg.getRegistrationId())
+                                .map(Payment::getStatus).orElse(null)
+                    )
+                    .build()
+            ).collect(Collectors.toList());
 
             return ResponseData.success("Thành công", dtoList);
         } catch (Exception e) {
@@ -209,6 +236,10 @@ public class StudentServiceImpl implements StudentService {
                                 .userName(userName)
                                 .userEmail(userEmail)
                                 .registrationTime(r.getRegistrationTime())
+                                .paymentStatus(
+                                    paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(r.getRegistrationId())
+                                            .map(Payment::getStatus).orElse(null)
+                                )
                                 .build();
                     })
                     .collect(Collectors.toList());
@@ -241,6 +272,21 @@ public class StudentServiceImpl implements StudentService {
                 return ResponseData.error(404, "Không tìm thấy đăng ký!");
             }
 
+            // Khóa học có phí → chỉ duyệt được khi Payment.status = PAID
+            boolean isPaidCourse = registration.getRegistrationPrice() != null
+                    && registration.getRegistrationPrice().doubleValue() > 0;
+
+            if (isPaidCourse && "Approved".equals(status)) {
+                Payment payment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(null);
+                if (payment == null || !"PAID".equals(payment.getStatus())) {
+                    String currentPayStatus = payment != null ? payment.getStatus() : "chưa có";
+                    return ResponseData.error(403,
+                            "Khóa học có phí — chỉ duyệt được khi đã thanh toán qua PayOS. "
+                            + "Trạng thái thanh toán hiện tại: " + currentPayStatus);
+                }
+            }
+
+            // Cho phép cancel/reject mọi lúc
             registration.setStatus(status);
             if (note != null) {
                 registration.setNote(note);
