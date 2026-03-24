@@ -82,6 +82,14 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             throw new InvalidDataException("Không thể cập nhật quiz đã có học viên làm bài. Hãy chuyển về Draft trước.");
         }
 
+        // Lấy lại danh mục và courseId nếu update không gửi lên
+        if (request.getQuizCategory() == null) {
+            request.setQuizCategory(quiz.getQuizCategory());
+        }
+        if (request.getCourseId() == null && quiz.getCourse() != null) {
+            request.setCourseId(quiz.getCourse().getCourseId());
+        }
+
         validateQuizRequest(request);
 
         quiz.setTitle(request.getTitle());
@@ -221,6 +229,15 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         // Chỉ cho thêm câu hỏi đã Published
         if (!"PUBLISHED".equals(question.getStatus())) {
             throw new InvalidDataException("Chỉ có thể thêm câu hỏi đã Published vào quiz.");
+        }
+
+        if ("ENTRY_TEST".equals(quiz.getQuizCategory())) {
+            String qType = question.getQuestionType();
+            if (!("MULTIPLE_CHOICE_SINGLE".equals(qType) || 
+                  "MULTIPLE_CHOICE_MULTI".equals(qType) || 
+                  "MATCHING".equals(qType))) {
+                throw new InvalidDataException("ENTRY_TEST chỉ cấu hình được những câu hỏi là multiple choices, matching.");
+            }
         }
 
         // Kiểm tra duplicate
