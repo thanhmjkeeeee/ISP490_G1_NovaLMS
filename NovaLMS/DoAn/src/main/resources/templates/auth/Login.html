@@ -98,75 +98,188 @@
     </section>
 </main>
 
-<!-- MODAL QUÊN MẬT KHẨU -->
-<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="forgotPasswordModalLabel">Khôi phục mật khẩu</h5>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary" id="forgotPasswordModalLabel">Khôi phục mật khẩu</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <p class="text-muted mb-3">Nhập email đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.</p>
 
-                <form id="forgotPasswordForm">
-                    <div class="mb-3">
-                        <label for="forgotEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="forgotEmail" required placeholder="name@example.com">
+            <div class="modal-body pt-2 pb-4 px-4">
+                <p class="text-muted small mb-4">Làm theo hướng dẫn để thiết lập lại mật khẩu tài khoản của bạn.</p>
+
+                <div id="forgotModalAlert" class="alert d-none small" role="alert"></div>
+
+                <form id="step1ForgotForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-medium small">Email đã đăng ký <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
+                            <input type="email" class="form-control" id="forgotEmail" placeholder="Ví dụ: hocvien@gmail.com" required>
+                        </div>
                     </div>
-
-                    <!-- Khu vực hiện thông báo -->
-                    <div id="forgotAlert" class="alert d-none"></div>
-
-                    <button type="submit" class="btn btn-primary w-100" id="forgotBtn">
-                        <span id="forgotBtnText">Gửi yêu cầu</span>
-                        <span id="forgotSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    <button type="submit" id="btnSendForgotCode" class="btn btn-primary w-100 fw-bold rounded-pill py-2">
+                        Nhận mã xác minh
                     </button>
                 </form>
+
+                <form id="step2ForgotForm" class="d-none">
+                    <div class="alert alert-info small text-center mb-3">
+                        Mã xác minh 6 số đã gửi tới <br><strong id="forgotDisplayEmail" class="text-dark"></strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small">Mã xác minh (6 số) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control text-center fw-bold text-primary" id="forgotTokenCode" maxlength="6" style="letter-spacing: 5px; font-size: 1.2rem;" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium small">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="forgotNewPassword" required placeholder="Ít nhất 6 ký tự, 1 viết hoa, 1 đặc biệt">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium small">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="forgotConfirmPassword" required placeholder="Nhập lại mật khẩu mới">
+                    </div>
+
+                    <button type="submit" id="btnResetPass" class="btn btn-primary w-100 fw-bold rounded-pill py-2">
+                        <i class="bi bi-shield-check me-1"></i> Đặt lại mật khẩu
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <button type="button" id="btnBackToEmail" class="btn btn-link text-decoration-none small text-muted p-0">
+                            <i class="bi bi-arrow-left"></i> Nhập lại Email khác
+                        </button>
+                    </div>
+                </form>
+
             </div>
         </div>
     </div>
 </div>
 
+
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 <script>
-    // SỬA CHỮ forgotForm THÀNH forgotPasswordForm Ở DÒNG DƯỚI ĐÂY
-    document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
-        e.preventDefault(); // Lệnh này giờ mới hoạt động để chặn reload trang
+    document.addEventListener("DOMContentLoaded", function () {
+        const step1ForgotForm = document.getElementById('step1ForgotForm');
+        const step2ForgotForm = document.getElementById('step2ForgotForm');
+        const forgotModalAlert = document.getElementById('forgotModalAlert');
+        const btnBackToEmail = document.getElementById('btnBackToEmail');
 
-        const email = document.getElementById('forgotEmail').value;
-        const btn = document.getElementById('forgotBtn');
-        const btnText = document.getElementById('forgotBtnText');
-        const alertBox = document.getElementById('forgotAlert');
+        function showForgotAlert(message, type) {
+            forgotModalAlert.className = `alert alert-${type} small`;
+            forgotModalAlert.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-1"></i> ${message}`;
+            forgotModalAlert.classList.remove('d-none');
+        }
 
-        btn.disabled = true;
-        btnText.textContent = 'Đang gửi...';
-
-        try {
-            const response = await fetch('/api/v1/auth/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email })
+        if(btnBackToEmail) {
+            btnBackToEmail.addEventListener('click', function() {
+                step2ForgotForm.classList.add('d-none');
+                step1ForgotForm.classList.remove('d-none');
+                forgotModalAlert.classList.add('d-none');
             });
-            const result = await response.json();
+        }
 
-            alertBox.classList.remove('d-none');
-            if (result.status === 200) {
-                alertBox.className = 'alert alert-success mt-3';
-                alertBox.textContent = result.message;
-            } else {
-                alertBox.className = 'alert alert-danger mt-3';
-                alertBox.textContent = result.message;
-            }
-        } catch (error) {
-            alertBox.classList.remove('d-none');
-            alertBox.className = 'alert alert-danger mt-3';
-            alertBox.textContent = 'Lỗi kết nối máy chủ';
-        } finally {
-            btn.disabled = false;
-            btnText.textContent = 'Gửi yêu cầu';
+        if(step1ForgotForm) {
+            step1ForgotForm.addEventListener('submit', async function (e) {
+                e.preventDefault(); // Chặn load lại trang
+                forgotModalAlert.classList.add('d-none');
+
+                const email = document.getElementById('forgotEmail').value.trim();
+                const btn = document.getElementById('btnSendForgotCode');
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang gửi...';
+
+                try {
+                    const response = await fetch('/api/v1/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email })
+                    });
+                    const result = await response.json();
+
+                    if (result.status === 200) {
+                        step1ForgotForm.classList.add('d-none');
+                        step2ForgotForm.classList.remove('d-none');
+                        document.getElementById('forgotDisplayEmail').textContent = email;
+                        showForgotAlert("Mã xác minh đã gửi đến email của bạn!", "success");
+                    } else {
+                        showForgotAlert(result.message, "danger");
+                    }
+                } catch (error) {
+                    showForgotAlert("Lỗi kết nối máy chủ!", "danger");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Nhận mã xác minh';
+                }
+            });
+        }
+
+        if(step2ForgotForm) {
+            step2ForgotForm.addEventListener('submit', async function (e) {
+                e.preventDefault(); // Chặn load lại trang
+                forgotModalAlert.classList.add('d-none');
+
+                const token = document.getElementById('forgotTokenCode').value.trim();
+                const newPassword = document.getElementById('forgotNewPassword').value;
+                const confirmPassword = document.getElementById('forgotConfirmPassword').value;
+
+                if (token.length !== 6) {
+                    showForgotAlert("Vui lòng nhập đủ 6 số mã xác minh!", "danger");
+                    return;
+                }
+                if (newPassword !== confirmPassword) {
+                    showForgotAlert("Mật khẩu xác nhận không khớp!", "danger");
+                    return;
+                }
+
+                const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+-=<>?]).{6,}$/;
+                if (!passwordRegex.test(newPassword)) {
+                    showForgotAlert("Mật khẩu mới phải có ít nhất 6 ký tự, 1 chữ in hoa và 1 ký tự đặc biệt!", "danger");
+                    return;
+                }
+
+                const btn = document.getElementById('btnResetPass');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+
+                try {
+                    const response = await fetch('/api/v1/auth/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: token, newPassword: newPassword, confirmPassword: confirmPassword })
+                    });
+                    const result = await response.json();
+
+                    if (result.status === 200) {
+                        showForgotAlert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.", "success");
+                        setTimeout(() => {
+                            const modalEl = document.getElementById('forgotPasswordModal');
+                            const modal = bootstrap.Modal.getInstance(modalEl);
+                            modal.hide();
+
+                            step2ForgotForm.classList.add('d-none');
+                            step1ForgotForm.classList.remove('d-none');
+                            step1ForgotForm.reset();
+                            step2ForgotForm.reset();
+                            forgotModalAlert.classList.add('d-none');
+                        }, 2000);
+                    } else {
+                        showForgotAlert(result.message, "danger");
+                    }
+                } catch (error) {
+                    showForgotAlert("Lỗi kết nối máy chủ!", "danger");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-shield-check me-1"></i> Đặt lại mật khẩu';
+                }
+            });
         }
     });
 </script>

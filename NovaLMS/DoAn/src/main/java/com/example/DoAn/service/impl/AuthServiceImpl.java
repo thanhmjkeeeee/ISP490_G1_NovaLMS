@@ -157,35 +157,43 @@ public class AuthServiceImpl implements AuthService {
 
         tokenRepository.deleteByUser(user);
 
-        String tokenStr = UUID.randomUUID().toString();
+        String tokenStr = String.format("%06d", new Random().nextInt(1000000));
+
         PasswordResetToken token = PasswordResetToken.builder()
                 .user(user)
-                .token(tokenStr)
+                .token(tokenStr) // Lưu mã 6 số này vào database đóng vai trò là token
                 .expiryDatetime(LocalDateTime.now().plusMinutes(15))
                 .isUsed(false)
                 .build();
 
         tokenRepository.save(token);
 
-        String resetLink = frontendUrl + "/reset-password.html?token=" + tokenStr;
-        sendEmail(user.getEmail(), "[Nova LMS] Đặt lại mật khẩu",
-                "Vui lòng nhấn vào link sau để đặt lại mật khẩu (Hết hạn sau 15 phút): \n" + resetLink);
+        sendEmail(user.getEmail(), "[Nova LMS] Mã xác minh đặt lại mật khẩu",
+                "Xin chào " + user.getFullName() + ",\n\n" +
+                        "Mã xác minh để đặt lại mật khẩu của bạn là: " + tokenStr + "\n\n" +
+                        "Vui lòng nhập mã này trên trang web để tiếp tục. Mã sẽ hết hạn sau 15 phút.\n" +
+                        "Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.");
 
-        return ResponseData.success("Link đặt lại mật khẩu đã được gửi.", null);
+        return ResponseData.success("Mã xác minh đã được gửi đến email của bạn.", null);
     }
 
     @Override
     @Transactional
     public ResponseData<Void> resetPassword(ResetPasswordRequest request) {
         try {
-            // 1. Tìm token trong DB
+            // 1. KIỂM TRA MẬT KHẨU XÁC NHẬN CÓ KHỚP KHÔNG (Tránh báo lỗi sai)
+            if (request.getConfirmPassword() == null || !request.getNewPassword().equals(request.getConfirmPassword())) {
+                return ResponseData.error(400, "Mật khẩu xác nhận không khớp!");
+            }
+
+            // 2. Tìm mã xác minh (Token) trong DB
             PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken()).orElse(null);
 
             if (resetToken == null) {
-                return ResponseData.error(400, "Token không hợp lệ hoặc không tồn tại!");
+                return ResponseData.error(400, "Mã xác minh không hợp lệ hoặc không tồn tại!");
             }
             if (resetToken.isUsed() || resetToken.getExpiryDatetime().isBefore(LocalDateTime.now())) {
-                return ResponseData.error(400, "Token đã hết hạn hoặc đã được sử dụng!");
+                return ResponseData.error(400, "Mã xác minh đã hết hạn hoặc đã được sử dụng!");
             }
 
             User user = resetToken.getUser();
@@ -206,6 +214,8 @@ public class AuthServiceImpl implements AuthService {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+
     private void sendEmail(String to, String subject, String content) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
