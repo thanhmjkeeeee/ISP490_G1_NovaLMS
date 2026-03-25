@@ -28,10 +28,16 @@ public class QuestionBankRequestDTO {
     private String explanation;
     private String audioUrl;
     private String imageUrl;
-    private String status;         // DRAFT, PUBLISHED, ARCHIVED
+    private String status;         // DRAFT, PUBLISHED, ARCHIVED, PENDING_REVIEW
+    private String source;          // EXPERT_BANK, TEACHER_PRIVATE
 
     @Valid
     private List<AnswerOptionDTO> options;
+
+    // Dùng khi thêm câu hỏi vào quiz
+    private Integer questionIdForQuiz;
+    private Integer orderIndex;
+    private java.math.BigDecimal points;
 
     @Data
     @NoArgsConstructor

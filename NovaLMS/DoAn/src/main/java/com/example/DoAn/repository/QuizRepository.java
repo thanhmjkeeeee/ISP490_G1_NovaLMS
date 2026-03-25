@@ -24,6 +24,8 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     Page<Quiz> findByUserUserId(Integer userId, Pageable pageable);
 
+    List<Quiz> findByClazz_ClassId(Integer classId);
+
     @Query("SELECT q FROM Quiz q WHERE " +
            "(:courseId IS NULL OR q.course.courseId = :courseId) AND " +
            "(:category IS NULL OR q.quizCategory = :category) AND " +

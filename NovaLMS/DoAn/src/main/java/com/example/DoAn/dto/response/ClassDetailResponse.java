@@ -19,5 +19,6 @@ public class ClassDetailResponse {
     private String status;
     private String schedule;
     private String slotTime;
+    private Integer numberOfSessions;
     private List<RegistrationResponseDTO> registrations;
 }

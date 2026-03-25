@@ -59,6 +59,11 @@ public class StudentViewController {
         return "student/my-quizzes";
     }
 
+    @GetMapping("/my-classes")
+    public String viewMyClasses() {
+        return "student/class-list";
+    }
+
     @GetMapping("/dashboard")
     public String viewDashboard() {
         return "student/dashboard";

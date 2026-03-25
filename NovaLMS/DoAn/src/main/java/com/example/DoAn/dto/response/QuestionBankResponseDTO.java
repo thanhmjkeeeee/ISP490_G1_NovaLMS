@@ -20,6 +20,7 @@ public class QuestionBankResponseDTO {
     private String audioUrl;
     private String imageUrl;
     private String status;
+    private String source;         // EXPERT_BANK | TEACHER_PRIVATE
     private String createdByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

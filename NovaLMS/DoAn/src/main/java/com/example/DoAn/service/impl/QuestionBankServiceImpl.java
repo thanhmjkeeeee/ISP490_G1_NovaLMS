@@ -72,6 +72,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .audioUrl(request.getAudioUrl())
                 .imageUrl(request.getImageUrl())
                 .status(request.getStatus() != null ? request.getStatus() : "DRAFT")
+                .source("EXPERT_BANK")
                 .user(expert)
                 .build();
 
@@ -342,6 +343,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .audioUrl(question.getAudioUrl())
                 .imageUrl(question.getImageUrl())
                 .status(question.getStatus())
+                .source(question.getSource())
                 .createdByName(question.getUser() != null ? question.getUser().getFullName() : null)
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
