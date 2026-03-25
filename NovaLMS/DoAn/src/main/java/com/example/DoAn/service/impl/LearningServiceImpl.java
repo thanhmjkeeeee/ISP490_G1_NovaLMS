@@ -44,7 +44,7 @@ public class LearningServiceImpl implements LearningService {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
 
-            Course course = courseRepository.findById(courseId.intValue()).orElse(null);
+            Course course = courseRepository.getCourseLearningData(courseId.intValue()).orElse(null);
             if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học");
 
             Registration reg = registrationRepository.findByUser_UserIdAndCourse_CourseIdAndStatus(
