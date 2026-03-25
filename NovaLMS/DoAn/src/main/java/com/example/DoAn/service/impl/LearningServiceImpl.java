@@ -59,6 +59,7 @@ public class LearningServiceImpl implements LearningService {
             CourseLearningInfoDTO courseInfo = new CourseLearningInfoDTO();
             courseInfo.setCourseId(course.getCourseId().longValue());
             courseInfo.setTitle(course.getCourseName());
+            courseInfo.setCourseName(course.getCourseName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
             courseInfo.setDescription(course.getDescription());
 
             if (reg != null && reg.getClazz() != null) {
@@ -83,6 +84,7 @@ public class LearningServiceImpl implements LearningService {
                     CourseLearningInfoDTO.ModuleDTO modDTO = new CourseLearningInfoDTO.ModuleDTO();
                     modDTO.setModuleId(module.getModuleId().longValue());
                     modDTO.setModuleTitle(module.getModuleName());
+                    modDTO.setModuleName(module.getModuleName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
 
                     List<CourseLearningInfoDTO.LessonDTO> lessonDTOs = new ArrayList<>();
 
@@ -96,8 +98,10 @@ public class LearningServiceImpl implements LearningService {
                             CourseLearningInfoDTO.LessonDTO lessDTO = new CourseLearningInfoDTO.LessonDTO();
                             lessDTO.setLessonId(lesson.getLessonId().longValue());
                             lessDTO.setLessonTitle(lesson.getLessonName());
+                            lessDTO.setLessonName(lesson.getLessonName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
                             lessDTO.setType(lesson.getType());
                             lessDTO.setDuration(lesson.getDuration());
+                            lessDTO.setVideoUrl(lesson.getVideoUrl());     // 🟢 THÊM DÒNG NÀY: Bổ sung Link gốc
                             lessDTO.setVideoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()));
                             lessDTO.setCompleted(isCompleted);
                             lessDTO.setLocked(false);
@@ -154,6 +158,7 @@ public class LearningServiceImpl implements LearningService {
             LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
                     .lessonId(currentLesson.getLessonId())
                     .lessonTitle(currentLesson.getLessonName())
+                    .lessonName(currentLesson.getLessonName()) // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
                     .type(currentLesson.getType())
                     .duration(currentLesson.getDuration())
                     .videoUrl(currentLesson.getVideoUrl())
