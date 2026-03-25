@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -f \"g:/ISP490_G1_NovaLMS/NovaLMS/DoAn/pom.xml\" -q -DskipTests compile)",
+      "Bash(mvn compile:*)"
+    ]
+  }
+}
