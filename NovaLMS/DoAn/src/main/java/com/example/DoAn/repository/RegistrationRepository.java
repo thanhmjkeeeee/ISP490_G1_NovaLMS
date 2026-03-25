@@ -45,7 +45,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
         LEFT JOIN FETCH c.category cat
         WHERE r.user.userId = :userId 
           AND r.status = 'Approved'
-          AND (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:categoryId IS NULL OR cat.settingId = :categoryId)
     """, countQuery = """
         SELECT COUNT(r) FROM Registration r 
@@ -53,7 +53,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
         LEFT JOIN c.category cat
         WHERE r.user.userId = :userId 
           AND r.status = 'Approved'
-          AND (:keyword IS NULL OR LOWER(c.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:categoryId IS NULL OR cat.settingId = :categoryId)
     """)
     Page<Registration> findMyCoursesWithFilters(

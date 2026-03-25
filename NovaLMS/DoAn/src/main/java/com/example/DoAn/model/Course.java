@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 @Entity
 @Table(name = "course")
@@ -70,6 +72,7 @@ public class Course {
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "course-modules")
     @OrderBy("orderIndex ASC")
+    @Fetch(FetchMode.SUBSELECT)
     private List<Module> modules;
 
     public Integer getStudentCount() { return studentCount; }
@@ -80,4 +83,6 @@ public class Course {
     public String toString() {
         return "Course(id=" + courseId + ", title=" + title + ", price=" + price + ")";
     }
+
+
 }
