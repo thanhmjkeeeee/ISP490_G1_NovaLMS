@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -25,4 +26,6 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     Page<QuizResult> findByPassedIsNullAndQuiz_User_EmailOrderBySubmittedAtAsc(String email, Pageable pageable);
 
     Page<QuizResult> findByUserEmailOrderBySubmittedAtDesc(String email, Pageable pageable);
+
+    List<QuizResult> findByUser_Email(String email);
 }

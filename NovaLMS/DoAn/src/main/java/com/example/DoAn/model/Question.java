@@ -58,9 +58,15 @@ public class Question {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    // DRAFT | PUBLISHED | ARCHIVED
+    // DRAFT | PUBLISHED | ARCHIVED | PENDING_REVIEW
     @Column(name = "status", length = 20)
     private String status;
+
+    // EXPERT_BANK | TEACHER_PRIVATE
+    // EXPERT_BANK: câu hỏi từ expert, lưu vào bank, duyệt mới dùng được
+    // TEACHER_PRIVATE: câu hỏi teacher tạo riêng cho quiz, không lưu bank
+    @Column(name = "source", length = 20)
+    private String source;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

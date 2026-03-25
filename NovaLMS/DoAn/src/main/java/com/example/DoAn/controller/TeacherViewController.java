@@ -6,6 +6,7 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -47,6 +48,11 @@ public class TeacherViewController {
         return "teacher/quiz-bank";
     }
 
+    @GetMapping("/sessions")
+    public String classSessionsPage(@RequestParam Integer classId) {
+        return "teacher/class-sessions";
+    }
+
     @GetMapping("/api/my-classes")
     @ResponseBody
     public ResponseData<Map<String, Object>> myClasses(
@@ -75,6 +81,7 @@ public class TeacherViewController {
                             c.endDate as endDate,
                             c.schedule as schedule,
                             c.slotTime as slotTime,
+                            c.numberOfSessions as numberOfSessions,
                             (SELECT COUNT(r.registrationId) FROM Registration r WHERE r.clazz.classId = c.classId) as studentCount
                         )
                         FROM Clazz c

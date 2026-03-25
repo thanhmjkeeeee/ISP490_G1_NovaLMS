@@ -98,7 +98,7 @@
               <div id="scheduleError" class="text-danger small mt-1"></div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label small fw-bold text-secondary text-uppercase">Ca học <span class="text-danger">*</span></label>
               <select id="slotTime" class="form-select" required>
                 <option value="">-- Chọn ca học --</option>
@@ -109,6 +109,12 @@
                 <option value="Tối (18:00 - 20:00)">Tối (18:00 - 20:00)</option>
               </select>
               <div id="slotTimeError" class="text-danger small mt-1"></div>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Số buổi học <span class="text-danger">*</span></label>
+              <input type="number" id="numberOfSessions" class="form-control" placeholder="Ví dụ: 30" min="1" max="100" required>
+              <div id="numberOfSessionsError" class="text-danger small mt-1"></div>
             </div>
 
             <div class="col-12">
@@ -377,6 +383,9 @@
       document.getElementById('classStatus').value = data.status;
       document.getElementById('schedule').value = data.schedule;
       document.getElementById('slotTime').value = data.slotTime;
+      if (data.numberOfSessions) {
+          document.getElementById('numberOfSessions').value = data.numberOfSessions;
+      }
 
       // Format dates
       if (data.startDate) {
@@ -476,7 +485,7 @@
       };
 
       const clearErrors = () => {
-          ['className', 'courseId', 'teacherId', 'classStatus', 'startDate', 'endDate', 'schedule', 'slotTime', 'meetLink'].forEach(id => setError(id, ''));
+          ['className', 'courseId', 'teacherId', 'classStatus', 'startDate', 'endDate', 'schedule', 'slotTime', 'numberOfSessions', 'meetLink'].forEach(id => setError(id, ''));
       };
 
       clearErrors();
@@ -529,6 +538,12 @@
           hasError = true;
       }
 
+      const numberOfSessionsVal = parseInt(document.getElementById('numberOfSessions').value);
+      if (!numberOfSessionsVal || numberOfSessionsVal <= 0) {
+          setError('numberOfSessions', 'Vui lòng nhập số buổi học (>= 1).');
+          hasError = true;
+      }
+
       if (!meetLink) {
           setError('meetLink', 'Vui lòng nhập link meet.');
           hasError = true;
@@ -560,7 +575,8 @@
           startDate: formatDateTime(startDate),
           endDate: formatDateTime(endDate),
           schedule: document.getElementById('schedule').value,
-          slotTime: document.getElementById('slotTime').value
+          slotTime: document.getElementById('slotTime').value,
+          numberOfSessions: numberOfSessionsVal
       };
 
       try {

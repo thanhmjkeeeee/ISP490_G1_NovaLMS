@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Quản lý buổi học')}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý buổi học', breadcrumb='Lớp học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <!-- Class Info Header -->
+    <div class="dash-page-header mb-4">
+        <button class="btn btn-link text-decoration-none p-0 me-3" onclick="history.back()">
+            <i class="bi bi-arrow-left fs-4"></i>
+        </button>
+        <div>
+            <h2 class="dash-page-title mb-1" id="classNameHeader">Đang tải...</h2>
+            <p class="dash-page-subtitle mb-0" id="classCourseHeader"></p>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="small text-muted">
+            <i class="bi bi-calendar-week me-1"></i>
+            <span id="classScheduleInfo">—</span>
+        </div>
+        <button class="btn btn-outline-primary rounded-pill" onclick="openCreateQuizModal()">
+            <i class="bi bi-plus-lg me-1"></i>Tạo Quiz mới
+        </button>
+        <a class="btn btn-primary rounded-pill shadow-sm" th:href="@{/teacher/quiz-bank}">
+            <i class="bi bi-collection me-1"></i>Quiz Bank
+        </a>
+    </div>
+
+    <!-- Sessions Table -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="border-0 py-3 ps-4">#</th>
+                    <th class="border-0 py-3">Ngày</th>
+                    <th class="border-0 py-3">Thời gian</th>
+                    <th class="border-0 py-3">Chủ đề</th>
+                    <th class="border-0 py-3">Quiz</th>
+                    <th class="border-0 py-3 text-end pe-4">Hành động</th>
+                </tr>
+                </thead>
+                <tbody id="sessionsBody">
+                <tr><td colspan="6" class="text-center py-5 text-muted">Đang tải...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="emptySessionsState" class="text-center py-5 d-none">
+            <i class="bi bi-calendar-x fs-1 text-muted"></i>
+            <h6 class="mt-3 text-muted">Chưa có buổi học nào</h6>
+            <p class="text-muted small">Buổi học được tạo tự động khi tạo lớp. Nhấn <b>+ Quiz</b> để tạo quiz cho từng buổi.</p>
+        </div>
+    </div>
+</main>
+
+<!-- ======== ADD / EDIT SESSION MODAL ======== -->
+<div class="modal fade" id="sessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold" id="sessionModalTitle">Thêm buổi học</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editSessionId">
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Số buổi <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control rounded-3" id="inpSessionNumber" min="1" required>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Ngày học</label>
+                        <input type="datetime-local" class="form-control rounded-3" id="inpSessionDate">
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label fw-semibold">Từ</label>
+                        <input type="time" class="form-control rounded-3" id="inpStartTime" value="19:00">
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label fw-semibold">Đến</label>
+                        <input type="time" class="form-control rounded-3" id="inpEndTime" value="21:00">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chủ đề</label>
+                    <input type="text" class="form-control rounded-3" id="inpTopic" placeholder="Ví dụ: Bài 1 - Giới từ">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Ghi chú</label>
+                    <textarea class="form-control rounded-3" id="inpNotes" rows="2" placeholder="Ghi chú thêm cho buổi học..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Quiz bài tập</label>
+                    <select class="form-select rounded-3" id="inpQuizId">
+                        <option value="">— Không có quiz —</option>
+                    </select>
+                    <div class="form-text small">Quiz sẽ hiển thị cho học sinh khi click vào buổi học</div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="saveSession()">
+                    <i class="bi bi-check-lg me-1"></i>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== CREATE / EDIT QUIZ MODAL (Full Builder) ======== -->
+<div class="modal fade" id="quizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width:900px">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <!-- Modal Header -->
+            <div class="modal-header border-0">
+                <div>
+                    <h5 class="modal-title fw-bold" id="quizModalTitle">Tạo Quiz mới</h5>
+                    <small class="text-muted" id="quizModalSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Step indicator -->
+            <div class="px-4 pt-2">
+                <ul class="nav nav-pills nav-fill small" id="quizWizardTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="step1Tab" onclick="switchQuizStep(1)">
+                            <i class="bi bi-info-circle me-1"></i>1. Thông tin
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="step2Tab" onclick="switchQuizStep(2)">
+                            <i class="bi bi-list-check me-1"></i>2. Câu hỏi
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-body p-4">
+                <input type="hidden" id="quizModalSessionId">
+                <input type="hidden" id="editQuizId">
+
+                <!-- ======= STEP 1: Quiz Info ======= -->
+                <div id="quizStep1">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="quizTitle" placeholder="Ví dụ: Buổi 1 - Bài tập từ vựng">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea class="form-control rounded-3" id="quizDescription" rows="2" placeholder="Mô tả quiz..."></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Thời gian (phút)</label>
+                            <input type="number" class="form-control rounded-3" id="quizTimeLimit" placeholder="30" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Điểm đạt (%)</label>
+                            <input type="number" class="form-control rounded-3" id="quizPassScore" placeholder="70" min="0" max="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Số lần làm tối đa</label>
+                            <input type="number" class="form-control rounded-3" id="quizMaxAttempts" placeholder="3" min="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======= STEP 2: Questions Builder ======= -->
+                <div id="quizStep2" class="d-none">
+                    <!-- Quiz ID badge -->
+                    <div id="quizIdBadge" class="d-none mb-3">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                            <i class="bi bi-check-circle me-1"></i>Quiz đã tạo (ID: <span id="createdQuizId"></span>)
+                        </span>
+                    </div>
+
+                    <!-- Tab: Bank / Tạo mới -->
+                    <ul class="nav nav-tabs mb-3" id="questionSourceTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="tabBank" onclick="switchQuestionTab('bank')">
+                                <i class="bi bi-collection me-1"></i>Chọn từ Master Bank
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="tabNew" onclick="switchQuestionTab('new')">
+                                <i class="bi bi-plus-circle me-1"></i>Tạo câu hỏi mới
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- ======= TAB: FROM BANK ======= -->
+                    <div id="bankQuestionPanel">
+                        <!-- Filters -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm rounded-3" id="bankSkillFilter" onchange="loadBankQuestions()">
+                                    <option value="">-- Kỹ năng --</option>
+                                    <option value="READING">Reading</option>
+                                    <option value="LISTENING">Listening</option>
+                                    <option value="WRITING">Writing</option>
+                                    <option value="SPEAKING">Speaking</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select form-select-sm rounded-3" id="bankCefrFilter" onchange="loadBankQuestions()">
+                                    <option value="">-- CEFR --</option>
+                                    <option value="A1">A1</option>
+                                    <option value="A2">A2</option>
+                                    <option value="B1">B1</option>
+                                    <option value="B2">B2</option>
+                                    <option value="C1">C1</option>
+                                    <option value="C2">C2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm rounded-3" id="bankTypeFilter" onchange="loadBankQuestions()">
+                                    <option value="">-- Loại --</option>
+                                    <option value="MULTIPLE_CHOICE_SINGLE">Trắc nghiệm 1 đáp án</option>
+                                    <option value="MULTIPLE_CHOICE_MULTI">Trắc nghiệm nhiều đáp án</option>
+                                    <option value="FILL_IN_BLANK">Điền từ</option>
+                                    <option value="MATCHING">Nối từ</option>
+                                    <option value="WRITING">Viết</option>
+                                    <option value="SPEAKING">Nói</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control form-control-sm rounded-3" id="bankKeywordFilter" placeholder="Tìm kiếm..." onkeyup="loadBankQuestions()">
+                            </div>
+                        </div>
+
+                        <!-- Question list from bank -->
+                        <div id="bankQuestionList" style="max-height:300px; overflow-y:auto;">
+                            <div class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                Đang tải câu hỏi...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ======= TAB: CREATE NEW ======= -->
+                    <div id="newQuestionPanel" class="d-none">
+                        <div class="alert alert-info small py-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Câu hỏi mới tạo sẽ <strong>không lưu vào Master Bank</strong>.
+                            Nếu muốn lưu, hãy gửi duyệt để Expert xác nhận trước khi thêm vào bank.
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Loại câu hỏi <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-3" id="newQType" onchange="toggleNewQOptions()">
+                                    <option value="MULTIPLE_CHOICE_SINGLE">Trắc nghiệm 1 đáp án</option>
+                                    <option value="MULTIPLE_CHOICE_MULTI">Trắc nghiệm nhiều đáp án</option>
+                                    <option value="FILL_IN_BLANK">Điền từ</option>
+                                    <option value="MATCHING">Nối từ</option>
+                                    <option value="WRITING">Viết</option>
+                                    <option value="SPEAKING">Nói</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Kỹ năng <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-3" id="newQSkill">
+                                    <option value="READING">Reading</option>
+                                    <option value="LISTENING">Listening</option>
+                                    <option value="WRITING">Writing</option>
+                                    <option value="SPEAKING">Speaking</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Cấp độ CEFR <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-3" id="newQCefr">
+                                    <option value="A1">A1</option>
+                                    <option value="A2">A2</option>
+                                    <option value="B1">B1</option>
+                                    <option value="B2">B2</option>
+                                    <option value="C1">C1</option>
+                                    <option value="C2">C2</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Nội dung câu hỏi <span class="text-danger">*</span></label>
+                                <textarea class="form-control rounded-3" id="newQContent" rows="3" placeholder="Nhập nội dung câu hỏi..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Chủ đề</label>
+                                <input type="text" class="form-control rounded-3" id="newQTopic" placeholder="Ví dụ: Ngữ pháp">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Giải thích</label>
+                                <input type="text" class="form-control rounded-3" id="newQExplanation" placeholder="Giải thích đáp án đúng">
+                            </div>
+                        </div>
+
+                        <!-- Answer options for choice questions -->
+                        <div id="newQOptionsSection" class="mt-3">
+                            <label class="form-label fw-semibold small">Đáp án</label>
+                            <div id="newQOptionsContainer">
+                                <div class="input-group mb-2">
+                                    <div class="input-group-text rounded-3 rounded-end-0">
+                                        <input type="checkbox" class="form-check-input correct-answer" data-index="0">
+                                    </div>
+                                    <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án A" data-index="0">
+                                </div>
+                                <div class="input-group mb-2">
+                                    <div class="input-group-text rounded-3 rounded-end-0">
+                                        <input type="checkbox" class="form-check-input correct-answer" data-index="1">
+                                    </div>
+                                    <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án B" data-index="1">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="addNewOption()">
+                                <i class="bi bi-plus"></i> Thêm đáp án
+                            </button>
+                        </div>
+
+                        <!-- For Writing/Speaking, hide options -->
+                        <div id="newQWritingSection" class="d-none mt-3 alert alert-warning small py-2">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Câu hỏi Writing/Speaking không cần đáp án trắc nghiệm.
+                        </div>
+
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary rounded-pill" onclick="createNewQuestion()">
+                                <i class="bi bi-plus-lg me-1"></i>Tạo & Thêm vào Quiz
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ======= Selected Questions in this Quiz ======= -->
+                    <div class="mt-4 border-top pt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-1"></i>Câu hỏi trong Quiz</h6>
+                            <span class="badge bg-primary rounded-pill" id="quizQuestionCount">0</span>
+                        </div>
+                        <div id="selectedQuestionsList">
+                            <div class="text-center py-3 text-muted small">Chưa có câu hỏi nào. Hãy thêm câu hỏi từ bank hoặc tạo mới.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-0" id="quizModalFooter">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-outline-primary rounded-pill d-none" id="quizBackBtn" onclick="switchQuizStep(1)">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại
+                </button>
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" id="quizNextBtn" onclick="goQuizNextStep()">
+                    Tiếp theo <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== ASSIGN QUIZ MODAL ======== -->
+<div class="modal fade" id="assignQuizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold">Gắn Quiz vào buổi học</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="assignQuizSessionId">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chọn buổi học</label>
+                    <select class="form-select rounded-3" id="assignQuizSessionSelect">
+                        <option value="">-- Chọn buổi học --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chọn Quiz có sẵn</label>
+                    <select class="form-select rounded-3" id="assignQuizSelect">
+                        <option value="">-- Chọn Quiz --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="assignQuiz()">
+                    <i class="bi bi-check-lg me-1"></i>Gắn Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== DELETE CONFIRM MODAL ======== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                <h5 class="mt-3 mb-2">Xóa buổi học?</h5>
+                <p class="text-muted small mb-3">Hành động này không thể hoàn tác.</p>
+                <input type="hidden" id="deleteSessionId">
+                <button class="btn btn-outline-secondary rounded-pill me-2" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-danger rounded-pill" onclick="confirmDelete()">
+                    <i class="bi bi-trash me-1"></i>Xóa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    const classId = new URLSearchParams(window.location.search).get('classId');
+    let sessionModal, deleteModal, quizModal, assignQuizModal;
+    let sessions = [];
+
+    // ======== QUIZ BUILDER STATE ========
+    let currentQuizId = null;
+    let currentQuizStep = 1;
+    let selectedQuestions = []; // { questionId, content, questionType, skill, cefrLevel, status, source, options }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        sessionModal = new bootstrap.Modal(document.getElementById('sessionModal'));
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        quizModal = new bootstrap.Modal(document.getElementById('quizModal'));
+        assignQuizModal = new bootstrap.Modal(document.getElementById('assignQuizModal'));
+        loadData();
+    });
+
+    // ======== QUIZ STEP NAVIGATION ========
+    const switchQuizStep = (step) => {
+        currentQuizStep = step;
+        document.getElementById('quizStep1').classList.toggle('d-none', step !== 1);
+        document.getElementById('quizStep2').classList.toggle('d-none', step !== 2);
+
+        document.getElementById('step1Tab').classList.toggle('active', step === 1);
+        document.getElementById('step2Tab').classList.toggle('active', step === 2);
+        document.getElementById('step1Tab').classList.toggle('text-muted', step === 1);
+        document.getElementById('step2Tab').classList.toggle('text-muted', step === 2);
+
+        const backBtn = document.getElementById('quizBackBtn');
+        const nextBtn = document.getElementById('quizNextBtn');
+
+        backBtn.classList.toggle('d-none', step === 1);
+
+        if (step === 1) {
+            nextBtn.innerHTML = 'Tiếp theo <i class="bi bi-arrow-right ms-1"></i>';
+        } else {
+            nextBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Hoàn tất';
+        }
+
+        // Load bank questions when entering step 2
+        if (step === 2 && currentQuizId) {
+            loadBankQuestionsOnTab();
+        }
+    };
+
+    // ======== QUESTION TAB SWITCH ========
+    const switchQuestionTab = (tab) => {
+        document.getElementById('bankQuestionPanel').classList.toggle('d-none', tab !== 'bank');
+        document.getElementById('newQuestionPanel').classList.toggle('d-none', tab !== 'new');
+        document.getElementById('tabBank').classList.toggle('active', tab === 'bank');
+        document.getElementById('tabNew').classList.toggle('active', tab === 'new');
+
+        if (tab === 'bank') {
+            loadBankQuestionsOnTab();
+        }
+    };
+
+    // ======== GO TO NEXT STEP (or submit) ========
+    const goQuizNextStep = async () => {
+        if (currentQuizStep === 1) {
+            // Step 1 -> Create quiz via TeacherQuizService API
+            const title = document.getElementById('quizTitle').value.trim();
+            const description = document.getElementById('quizDescription').value.trim();
+            const timeLimit = document.getElementById('quizTimeLimit').value;
+            const passScore = document.getElementById('quizPassScore').value;
+            const maxAttempts = document.getElementById('quizMaxAttempts').value;
+
+            if (!title) {
+                alert('Vui lòng nhập tên quiz');
+                return;
+            }
+
+            const payload = {
+                title,
+                description,
+                classId: parseInt(classId)
+            };
+            if (timeLimit) payload.timeLimitMinutes = parseInt(timeLimit);
+            if (passScore) payload.passScore = parseFloat(passScore);
+            if (maxAttempts) payload.maxAttempts = parseInt(maxAttempts);
+
+            try {
+                const res = await fetch('/api/v1/teacher/quizzes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.status === 200 || json.status === 201) {
+                    currentQuizId = json.data.quizId;
+                    document.getElementById('quizIdBadge').classList.remove('d-none');
+                    document.getElementById('createdQuizId').textContent = currentQuizId;
+                    switchQuizStep(2);
+                } else {
+                    alert(json.message || 'Lỗi khi tạo quiz');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối: ' + e.message);
+            }
+        } else {
+            // Step 2 -> Finalize: assign quiz to session if specified, then close
+            const sessionId = document.getElementById('quizModalSessionId').value;
+            if (sessionId && currentQuizId) {
+                try {
+                    await fetch(`/api/v1/teacher/class-sessions/update/${sessionId}?quizId=${currentQuizId}`, {
+                        method: 'PUT'
+                    });
+                } catch (e) { /* ignore */ }
+            }
+            quizModal.hide();
+            loadData();
+            alert('Quiz đã được tạo thành công!');
+        }
+    };
+
+    // ======== LOAD BANK QUESTIONS ========
+    const loadBankQuestions = async () => {
+        const skill = document.getElementById('bankSkillFilter').value;
+        const cefr = document.getElementById('bankCefrFilter').value;
+        const type = document.getElementById('bankTypeFilter').value;
+        const keyword = document.getElementById('bankKeywordFilter').value;
+
+        const params = new URLSearchParams();
+        if (skill) params.append('skill', skill);
+        if (cefr) params.append('cefrLevel', cefr);
+        if (type) params.append('questionType', type);
+        if (keyword) params.append('keyword', keyword);
+
+        const container = document.getElementById('bankQuestionList');
+        container.innerHTML = `<div class="text-center py-4 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            Đang tải câu hỏi...
+        </div>`;
+
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/bank-questions?' + params.toString());
+            const json = await res.json();
+
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-muted small">Không có câu hỏi nào trong Master Bank</div>';
+                return;
+            }
+
+            container.innerHTML = json.data.map(q => {
+                // Cache question data for addBankQuestion
+                bankQuestionDataCache.set(q.questionId, q);
+                const isAdded = selectedQuestions.some(sq => sq.questionId === q.questionId) ||
+                    (q._added);
+                const typeLabels = {
+                    'MULTIPLE_CHOICE_SINGLE': 'Trắc nghiệm 1 đáp án',
+                    'MULTIPLE_CHOICE_MULTI': 'Trắc nghiệm nhiều đáp án',
+                    'FILL_IN_BLANK': 'Điền từ',
+                    'MATCHING': 'Nối từ',
+                    'WRITING': 'Viết',
+                    'SPEAKING': 'Nói'
+                };
+                const typeLabel = typeLabels[q.questionType] || q.questionType;
+
+                let optionsHtml = '';
+                if (q.options && q.options.length > 0 && !['WRITING', 'SPEAKING'].includes(q.questionType)) {
+                    optionsHtml = q.options.map(o =>
+                        `<div class="small ${o.correctAnswer ? 'text-success fw-semibold' : 'text-muted'}">
+                            <i class="bi ${o.correctAnswer ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${o.title}
+                        </div>`
+                    ).join('');
+                }
+
+                return `<div class="border rounded-3 p-3 mb-2 bg-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex gap-2 mb-1 flex-wrap">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.skill || ''}</span>
+                                <span class="badge bg-info bg-opacity-10 text-info border">${q.cefrLevel || ''}</span>
+                                <span class="badge bg-warning bg-opacity-10 text-warning border">${typeLabel}</span>
+                            </div>
+                            <p class="mb-1 small fw-medium">${q.content || ''}</p>
+                            ${optionsHtml ? `<div class="mt-1">${optionsHtml}</div>` : ''}
+                        </div>
+                        <div class="ms-2">
+                            ${isAdded
+                                ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="removeQuestionFromQuiz(${q.questionId})" title="Xóa khỏi quiz">
+                                    <i class="bi bi-dash-lg"></i></button>`
+                                : `<button class="btn btn-sm btn-success rounded-pill" onclick="addBankQuestion(${q.questionId})" title="Thêm vào quiz">
+                                    <i class="bi bi-plus"></i></button>`
+                            }
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            container.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi tải câu hỏi: ' + e.message + '</div>';
+        }
+    };
+
+    const loadBankQuestionsOnTab = () => {
+        if (!currentQuizId) return;
+        loadBankQuestions();
+    };
+
+    // ======== ADD BANK QUESTION (captures data from rendered list) ========
+    // Called from the bank list rendered HTML — questionData extracted from closure
+    const bankQuestionDataCache = new Map();
+
+    const addBankQuestion = (questionId) => {
+        const data = bankQuestionDataCache.get(questionId);
+        if (data) {
+            data._added = true;
+            addQuestionToQuiz(questionId, data);
+        } else {
+            // Fallback: just add by ID
+            addQuestionToQuiz(questionId, { questionId });
+        }
+    };
+
+    // ======== ADD QUESTION FROM BANK TO QUIZ ========
+    const addQuestionToQuiz = async (questionId, questionData) => {
+        if (!currentQuizId) {
+            alert('Vui lòng tạo quiz trước (bước 1)');
+            return;
+        }
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${currentQuizId}/questions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questionIdForQuiz: questionId })
+            });
+            const json = await res.json();
+            if (json.status === 200 || json.status === 201) {
+                // Track in local state
+                if (!selectedQuestions.some(sq => sq.questionId === questionId)) {
+                    selectedQuestions.push(questionData);
+                }
+                renderSelectedQuestions();
+                loadBankQuestions();
+            } else {
+                alert(json.message || 'Lỗi khi thêm câu hỏi');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== REMOVE QUESTION FROM QUIZ ========
+    const removeQuestionFromQuiz = async (questionId) => {
+        if (!currentQuizId) return;
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${currentQuizId}/questions/${questionId}`, {
+                method: 'DELETE'
+            });
+            const json = await res.json();
+            if (json.status === 200 || json.status === 201) {
+                // Clear cache flag
+                const cached = bankQuestionDataCache.get(questionId);
+                if (cached) cached._added = false;
+                selectedQuestions = selectedQuestions.filter(sq => sq.questionId !== questionId);
+                renderSelectedQuestions();
+                loadBankQuestions();
+            } else {
+                alert(json.message || 'Lỗi khi xóa câu hỏi');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== REMOVE FROM SELECTED PANEL ========
+    const removeSelectedQuestion = async (questionId) => {
+        selectedQuestions = selectedQuestions.filter(sq => sq.questionId !== questionId);
+        renderSelectedQuestions();
+        if (currentQuizId) {
+            try {
+                await fetch(`/api/v1/teacher/quizzes/${currentQuizId}/questions/${questionId}`, { method: 'DELETE' });
+            } catch (e) { /* ignore */ }
+        }
+        loadBankQuestions();
+    };
+
+    // ======== RENDER SELECTED QUESTIONS PANEL ========
+    const renderSelectedQuestions = () => {
+        const container = document.getElementById('selectedQuestionsList');
+        document.getElementById('quizQuestionCount').textContent = selectedQuestions.length;
+
+        if (selectedQuestions.length === 0) {
+            container.innerHTML = '<div class="text-center py-3 text-muted small">Chưa có câu hỏi nào. Hãy thêm câu hỏi từ bank hoặc tạo mới.</div>';
+            return;
+        }
+
+        const typeLabels = {
+            'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án',
+            'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
+            'FILL_IN_BLANK': 'Điền từ',
+            'MATCHING': 'Nối từ',
+            'WRITING': 'Viết',
+            'SPEAKING': 'Nói'
+        };
+
+        container.innerHTML = selectedQuestions.map((q, idx) => {
+            const sourceBadge = q.source === 'TEACHER_PRIVATE'
+                ? `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning small">Private</span>`
+                : `<span class="badge bg-info bg-opacity-10 text-info border border-info small">Bank</span>`;
+            const statusBadge = q.status === 'PENDING_REVIEW'
+                ? `<span class="badge bg-secondary bg-opacity-10 text-secondary border small">Chờ duyệt</span>` : '';
+
+            return `<div class="d-flex align-items-start gap-2 p-2 border rounded-3 mb-2 bg-light">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill align-self-center" style="min-width:24px">${idx + 1}</span>
+                <div class="flex-grow-1">
+                    <p class="mb-1 small fw-medium">${q.content || ''}</p>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">${q.skill || ''}</span>
+                        <span class="badge bg-info bg-opacity-10 text-info border small">${q.cefrLevel || ''}</span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">${typeLabels[q.questionType] || q.questionType || ''}</span>
+                        ${sourceBadge}
+                        ${statusBadge}
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger rounded-pill align-self-center" onclick="removeSelectedQuestion(${q.questionId})" title="Xóa">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>`;
+        }).join('');
+    };
+
+    // ======== TOGGLE OPTION VISIBILITY ========
+    const toggleNewQOptions = () => {
+        const type = document.getElementById('newQType').value;
+        const isWriting = ['WRITING', 'SPEAKING'].includes(type);
+        document.getElementById('newQOptionsSection').classList.toggle('d-none', isWriting);
+        document.getElementById('newQWritingSection').classList.toggle('d-none', !isWriting);
+    };
+
+    // ======== ADD ANSWER OPTION ========
+    const addNewOption = () => {
+        const container = document.getElementById('newQOptionsContainer');
+        const index = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML = `
+            <div class="input-group-text rounded-3 rounded-end-0">
+                <input type="checkbox" class="form-check-input correct-answer" data-index="${index}">
+            </div>
+            <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input"
+                   placeholder="Đáp án ${String.fromCharCode(65 + index)}" data-index="${index}">
+            <button class="btn btn-outline-danger rounded-3 rounded-start-0" type="button" onclick="this.parentElement.remove()">
+                <i class="bi bi-x"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    };
+
+    // ======== CREATE NEW PRIVATE QUESTION ========
+    const createNewQuestion = async () => {
+        if (!currentQuizId) {
+            alert('Vui lòng tạo quiz trước (bước 1)');
+            return;
+        }
+
+        const questionType = document.getElementById('newQType').value;
+        const skill = document.getElementById('newQSkill').value;
+        const cefrLevel = document.getElementById('newQCefr').value;
+        const content = document.getElementById('newQContent').value.trim();
+        const topic = document.getElementById('newQTopic').value.trim();
+        const explanation = document.getElementById('newQExplanation').value.trim();
+
+        if (!content) {
+            alert('Vui lòng nhập nội dung câu hỏi');
+            return;
+        }
+
+        // Build options
+        const options = [];
+        const isNoOptions = ['WRITING', 'SPEAKING'].includes(questionType);
+
+        if (!isNoOptions) {
+            const inputs = document.querySelectorAll('.new-option-input');
+            const checkboxes = document.querySelectorAll('.correct-answer');
+            inputs.forEach((inp, i) => {
+                const title = inp.value.trim();
+                if (title) {
+                    const isCorrect = checkboxes[i] && checkboxes[i].checked;
+                    options.push({
+                        title,
+                        correct: isCorrect,
+                        orderIndex: i
+                    });
+                }
+            });
+
+            if (options.length < 2) {
+                alert('Vui lòng nhập ít nhất 2 đáp án');
+                return;
+            }
+
+            const hasCorrect = options.some(o => o.correct);
+            if (!hasCorrect) {
+                alert('Vui lòng chọn ít nhất 1 đáp án đúng');
+                return;
+            }
+        }
+
+        const payload = {
+            content,
+            questionType,
+            skill,
+            cefrLevel,
+            topic,
+            explanation,
+            status: 'PENDING_REVIEW',
+            source: 'TEACHER_PRIVATE',
+            options
+        };
+
+        try {
+            // 1. Create private question
+            const resQ = await fetch('/api/v1/teacher/quizzes/questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const jsonQ = await resQ.json();
+
+            if (jsonQ.status !== 200 && jsonQ.status !== 201) {
+                alert(jsonQ.message || 'Lỗi khi tạo câu hỏi');
+                return;
+            }
+
+            const newQuestionId = jsonQ.data.questionId;
+
+            // 2. Add question to quiz
+            const resAdd = await fetch(`/api/v1/teacher/quizzes/${currentQuizId}/questions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questionIdForQuiz: newQuestionId })
+            });
+            const jsonAdd = await resAdd.json();
+
+            if (jsonAdd.status === 200 || jsonAdd.status === 201) {
+                // Track new question in selectedQuestions
+                selectedQuestions.push({
+                    questionId: newQuestionId,
+                    content,
+                    questionType,
+                    skill,
+                    cefrLevel,
+                    status: 'PENDING_REVIEW',
+                    source: 'TEACHER_PRIVATE'
+                });
+                renderSelectedQuestions();
+                alert('Đã tạo câu hỏi và thêm vào quiz! Câu hỏi đang chờ Expert duyệt trước khi lưu vào Master Bank.');
+                // Reset form
+                document.getElementById('newQContent').value = '';
+                document.getElementById('newQTopic').value = '';
+                document.getElementById('newQExplanation').value = '';
+                document.getElementById('newQOptionsContainer').innerHTML = `
+                    <div class="input-group mb-2">
+                        <div class="input-group-text rounded-3 rounded-end-0">
+                            <input type="checkbox" class="form-check-input correct-answer" data-index="0">
+                        </div>
+                        <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án A" data-index="0">
+                    </div>
+                    <div class="input-group mb-2">
+                        <div class="input-group-text rounded-3 rounded-end-0">
+                            <input type="checkbox" class="form-check-input correct-answer" data-index="1">
+                        </div>
+                        <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án B" data-index="1">
+                    </div>
+                `;
+                // Refresh bank list
+                loadBankQuestions();
+            } else {
+                alert('Câu hỏi đã tạo nhưng lỗi khi thêm vào quiz: ' + (jsonAdd.message || ''));
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== LOAD DATA ========
+    const loadData = async () => {
+        // Load class detail
+        const detailRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/detail`);
+        const detailJson = await detailRes.json();
+        if (detailJson.status === 200 && detailJson.data) {
+            const d = detailJson.data;
+            document.getElementById('classNameHeader').textContent = d.className || 'Lớp #' + classId;
+            document.getElementById('classCourseHeader').textContent = d.courseName || '';
+            document.getElementById('classScheduleInfo').textContent =
+                `${d.schedule || ''} ${d.slotTime ? '| ' + d.slotTime : ''}`.trim() || '';
+        }
+
+        // Load sessions
+        const res = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
+        const json = await res.json();
+        sessions = json.status === 200 ? (json.data || []) : [];
+        renderSessions();
+    };
+
+    const renderSessions = () => {
+        const tbody = document.getElementById('sessionsBody');
+        const empty = document.getElementById('emptySessionsState');
+
+        if (sessions.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        empty.classList.add('d-none');
+        tbody.innerHTML = sessions.map((s, idx) => {
+            const dateStr = s.sessionDate ? formatDate(s.sessionDate) : '—';
+            const timeStr = s.startTime ? `${s.startTime}${s.endTime ? ' - ' + s.endTime : ''}` : '—';
+
+            // Quiz status badge
+            let quizStatusBadge = '';
+            if (s.quizId && s.quizStatus) {
+                if (s.quizStatus === 'PUBLISHED') {
+                    quizStatusBadge = `<span class="badge bg-success bg-opacity-10 text-success border border-success ms-1"><i class="bi bi-check-circle me-1"></i>Đã mở</span>`;
+                } else if (s.quizStatus === 'DRAFT') {
+                    quizStatusBadge = `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary ms-1"><i class="bi bi-pencil me-1"></i>Nháp</span>`;
+                } else if (s.quizStatus === 'ARCHIVED') {
+                    quizStatusBadge = `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger ms-1"><i class="bi bi-archive me-1"></i>Đã đóng</span>`;
+                }
+            }
+
+            const quizBadge = s.quizId
+                ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25"><i class="bi bi-patch-question me-1"></i>${s.quizTitle || 'Quiz'}</span>${quizStatusBadge}`
+                : `<span class="badge bg-light text-muted border">Chưa có quiz</span>`;
+            const quizBtn = s.quizId
+                ? `<button class="btn btn-sm btn-outline-primary rounded-pill" onclick="openAssignQuizModal(${s.sessionId})" title="Đổi quiz"><i class="bi bi-arrow-repeat"></i></button>`
+                : `<button class="btn btn-sm btn-success rounded-pill" onclick="openCreateQuizForSession(${s.sessionId})" title="Tạo quiz"><i class="bi bi-plus"></i></button>`;
+            const publishBtn = (s.quizId && s.quizStatus === 'DRAFT')
+                ? `<button class="btn btn-sm btn-success rounded-pill ms-1" onclick="publishQuiz(${s.quizId})" title="Mở quiz cho sinh viên"><i class="bi bi-rocket-takeoff"></i></button>`
+                : '';
+
+            return `<tr>
+                <td class="ps-4 fw-bold text-primary">${s.sessionNumber}</td>
+                <td><i class="bi bi-calendar3 me-1 text-muted"></i>${dateStr}</td>
+                <td><i class="bi bi-clock me-1 text-muted"></i>${timeStr}</td>
+                <td class="fw-medium">${s.topic || '<span class="text-muted">—</span>'}</td>
+                <td>${quizBadge} ${quizBtn}${publishBtn}</td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill me-1" onclick="openEditSessionModal(${idx})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="openDeleteModal(${s.sessionId})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    };
+
+    // ======== QUIZZES FOR MODAL ========
+    const loadQuizzesForModal = async () => {
+        const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+        const json = await res.json();
+        const select = document.getElementById('inpQuizId');
+        select.innerHTML = '<option value="">— Không có quiz —</option>';
+        if (json.status === 200 && json.data) {
+            json.data.forEach(q => {
+                const sel = q.quizId == (document.getElementById('editSessionId').value || '') ? 'selected' : '';
+                select.innerHTML += `<option value="${q.quizId}" ${sel}>${q.title} (${q.status})</option>`;
+            });
+        }
+    };
+
+    // ======== ADD SESSION ========
+    const openAddSessionModal = () => {
+        document.getElementById('editSessionId').value = '';
+        document.getElementById('sessionModalTitle').textContent = 'Thêm buổi học';
+        document.getElementById('inpSessionNumber').value = sessions.length + 1;
+        document.getElementById('inpSessionDate').value = '';
+        document.getElementById('inpStartTime').value = '19:00';
+        document.getElementById('inpEndTime').value = '21:00';
+        document.getElementById('inpTopic').value = '';
+        document.getElementById('inpNotes').value = '';
+        loadQuizzesForModal();
+        sessionModal.show();
+    };
+
+    // ======== EDIT SESSION ========
+    const openEditSessionModal = (index) => {
+        const s = sessions[index];
+        document.getElementById('editSessionId').value = s.sessionId;
+        document.getElementById('sessionModalTitle').textContent = `Sửa buổi ${s.sessionNumber}`;
+        document.getElementById('inpSessionNumber').value = s.sessionNumber;
+        document.getElementById('inpSessionDate').value = s.sessionDate ? s.sessionDate.slice(0, 16) : '';
+        document.getElementById('inpStartTime').value = s.startTime || '19:00';
+        document.getElementById('inpEndTime').value = s.endTime || '21:00';
+        document.getElementById('inpTopic').value = s.topic || '';
+        document.getElementById('inpNotes').value = s.notes || '';
+
+        // Load quizzes and pre-select current
+        (async () => {
+            await loadQuizzesForModal();
+            if (s.quizId) {
+                document.getElementById('inpQuizId').value = s.quizId;
+            }
+        })();
+
+        sessionModal.show();
+    };
+
+    // ======== SAVE SESSION ========
+    const saveSession = async () => {
+        const sessionId = document.getElementById('editSessionId').value;
+        const sessionNumber = parseInt(document.getElementById('inpSessionNumber').value);
+        const sessionDate = document.getElementById('inpSessionDate').value;
+        const startTime = document.getElementById('inpStartTime').value;
+        const endTime = document.getElementById('inpEndTime').value;
+        const topic = document.getElementById('inpTopic').value;
+        const notes = document.getElementById('inpNotes').value;
+        const quizId = document.getElementById('inpQuizId').value;
+
+        if (!sessionNumber) {
+            alert('Vui lòng nhập số buổi học');
+            return;
+        }
+
+        const params = new URLSearchParams({ sessionNumber, startTime, endTime, topic, notes });
+        if (sessionDate) params.append('sessionDate', sessionDate);
+        if (quizId) params.append('quizId', quizId);
+
+        const url = sessionId
+            ? `/api/v1/teacher/class-sessions/update/${sessionId}?${params}`
+            : `/api/v1/teacher/class-sessions/${classId}?${params}`;
+
+        const method = sessionId ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, { method });
+            const json = await res.json();
+            if (json.status === 200) {
+                sessionModal.hide();
+                loadData();
+            } else {
+                alert(json.message || 'Lỗi khi lưu');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== OPEN CREATE QUIZ MODAL (reset state) ========
+    const openCreateQuizForSession = (sessionId) => {
+        resetQuizBuilder();
+        document.getElementById('quizModalSessionId').value = sessionId;
+        const session = sessions.find(s => s.sessionId == sessionId);
+        document.getElementById('quizTitle').value = session ? `Quiz - Buổi ${session.sessionNumber}` : '';
+        document.getElementById('quizDescription').value = '';
+        document.getElementById('quizTimeLimit').value = '';
+        document.getElementById('quizPassScore').value = '70';
+        document.getElementById('quizMaxAttempts').value = '3';
+        document.getElementById('quizModalTitle').textContent = session
+            ? `Tạo Quiz cho Buổi ${session.sessionNumber}`
+            : 'Tạo Quiz mới';
+        switchQuizStep(1);
+        quizModal.show();
+    };
+
+    const openCreateQuizModal = () => {
+        resetQuizBuilder();
+        document.getElementById('quizModalSessionId').value = '';
+        document.getElementById('quizTitle').value = '';
+        document.getElementById('quizDescription').value = '';
+        document.getElementById('quizTimeLimit').value = '';
+        document.getElementById('quizPassScore').value = '70';
+        document.getElementById('quizMaxAttempts').value = '3';
+        document.getElementById('quizModalTitle').textContent = 'Tạo Quiz mới';
+        switchQuizStep(1);
+        quizModal.show();
+    };
+
+    const resetQuizBuilder = () => {
+        currentQuizId = null;
+        currentQuizStep = 1;
+        selectedQuestions = [];
+        bankQuestionDataCache.clear();
+        document.getElementById('quizIdBadge').classList.add('d-none');
+        document.getElementById('createdQuizId').textContent = '';
+        document.getElementById('bankSkillFilter').value = '';
+        document.getElementById('bankCefrFilter').value = '';
+        document.getElementById('bankTypeFilter').value = '';
+        document.getElementById('bankKeywordFilter').value = '';
+        document.getElementById('bankQuestionList').innerHTML = '<div class="text-center py-4 text-muted">Chuyển sang bước 2 để xem câu hỏi từ Master Bank.</div>';
+        switchQuestionTab('bank');
+        toggleNewQOptions();
+    };
+
+    // ======== PUBLISH QUIZ ========
+    const publishQuiz = async (quizId) => {
+        if (!confirm('Mở quiz để sinh viên có thể làm bài?')) return;
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${quizId}/publish`, { method: 'POST' });
+            const json = await res.json();
+            if (json.status === 200) {
+                alert('Quiz đã được mở! Sinh viên có thể làm bài.');
+                loadData();
+            } else {
+                alert(json.message || 'Lỗi khi mở quiz');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== ASSIGN EXISTING QUIZ TO SESSION ========
+    const openAssignQuizModal = (sessionId) => {
+        document.getElementById('assignQuizSessionId').value = sessionId;
+        const sessionSelect = document.getElementById('assignQuizSessionSelect');
+        sessionSelect.innerHTML = sessions.map(s =>
+            `<option value="${s.sessionId}" ${s.sessionId == sessionId ? 'selected' : ''}>Buổi ${s.sessionNumber}</option>`
+        ).join('');
+        (async () => {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+            const json = await res.json();
+            const quizSelect = document.getElementById('assignQuizSelect');
+            quizSelect.innerHTML = '<option value="">-- Chọn Quiz --</option>';
+            if (json.status === 200 && json.data) {
+                json.data.forEach(q => {
+                    quizSelect.innerHTML += `<option value="${q.quizId}">${q.title} (${q.status})</option>`;
+                });
+            }
+        })();
+        assignQuizModal.show();
+    };
+
+    const assignQuiz = async () => {
+        const sessionId = document.getElementById('assignQuizSessionId').value;
+        const quizId = document.getElementById('assignQuizSelect').value;
+
+        if (!quizId) {
+            alert('Vui lòng chọn quiz');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/update/${sessionId}?quizId=${quizId}`, {
+                method: 'PUT'
+            });
+            const json = await res.json();
+            if (json.status === 200) {
+                assignQuizModal.hide();
+                loadData();
+            } else {
+                alert(json.message || 'Lỗi khi gắn quiz');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== DELETE SESSION ========
+    const openDeleteModal = (sessionId) => {
+        document.getElementById('deleteSessionId').value = sessionId;
+        deleteModal.show();
+    };
+
+    const confirmDelete = async () => {
+        const sessionId = document.getElementById('deleteSessionId').value;
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (json.status === 200) {
+                deleteModal.hide();
+                loadData();
+            } else {
+                alert(json.message || 'Lỗi khi xóa');
+            }
+        } catch (e) {
+            alert('Lỗi kết nối: ' + e.message);
+        }
+    };
+
+    // ======== UTILITIES ========
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        try {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } catch (e) { return dateStr; }
+    };
+</script>
+</body>
+</html>

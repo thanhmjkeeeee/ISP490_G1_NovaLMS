@@ -21,6 +21,8 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r FROM Registration r WHERE r.user.email = :email ORDER BY r.registrationTime DESC")
     List<Registration> findByUserEmail(@Param("email") String email);
 
+    Optional<Registration> findByClazz_ClassIdAndStatus(Integer classId, String status);
+
     // Kiểm tra xem User đã đăng ký lớp học này với trạng thái khác status truyền vào chưa
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status <> :status")
     boolean existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
@@ -93,5 +95,12 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     List<Registration> findTop10ByOrderByRegistrationTimeDesc();
 
     long countByRegistrationTimeAfter(java.time.LocalDateTime date);
+
+    // Kiểm tra enrollment theo class (dùng cho quiz gắn với class)
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status = 'Approved'")
+    boolean existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+            @Param("userId") Integer userId,
+            @Param("classId") Integer classId
+    );
 
 }

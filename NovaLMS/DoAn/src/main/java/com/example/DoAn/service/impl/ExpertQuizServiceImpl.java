@@ -31,6 +31,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final QuizResultRepository quizResultRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final ClazzRepository clazzRepository;
 
     private static final Set<String> VALID_CATEGORIES = Set.of("ENTRY_TEST", "COURSE_QUIZ");
     private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
@@ -63,6 +64,17 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             Course course = courseRepository.findById(request.getCourseId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + request.getCourseId()));
             quiz.setCourse(course);
+        }
+
+        // Gắn class nếu teacher tạo quiz từ class-sessions
+        if (request.getClassId() != null) {
+            Clazz clazz = clazzRepository.findById(request.getClassId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp với ID: " + request.getClassId()));
+            quiz.setClazz(clazz);
+            // Tự động lấy course từ lớp nếu chưa có
+            if (quiz.getCourse() == null && clazz.getCourse() != null) {
+                quiz.setCourse(clazz.getCourse());
+            }
         }
 
         quizRepository.save(quiz);

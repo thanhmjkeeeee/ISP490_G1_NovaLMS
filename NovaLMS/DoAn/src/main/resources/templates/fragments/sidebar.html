@@ -28,6 +28,9 @@
             <a th:href="@{/student/my-courses}" th:classappend="${activePage == 'my-courses'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-play-btn"></i><span>Khóa học của tôi</span>
             </a>
+            <a th:href="@{/student/my-classes}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-people"></i><span>Lớp học của tôi</span>
+            </a>
             <a th:href="@{/student/my-enrollments}" th:classappend="${activePage == 'my-enrollments'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-journal-check"></i><span>Lịch sử đăng ký</span>
             </a>

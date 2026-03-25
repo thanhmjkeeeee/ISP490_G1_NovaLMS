@@ -45,9 +45,19 @@ public class QuizResultServiceImpl implements QuizResultService {
             throw new RuntimeException("Quiz is not published");
         }
 
-        if ("COURSE_QUIZ".equals(quiz.getQuizCategory()) && quiz.getCourse() != null) {
-            boolean enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
-            if (!enrolled) throw new RuntimeException("User is not enrolled in the course");
+        if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
+            boolean enrolled = false;
+            // Ưu tiên kiểm tra enrollment theo CLASS (quiz gắn với class)
+            if (quiz.getClazz() != null) {
+                enrolled = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                        user.getUserId(), quiz.getClazz().getClassId());
+            }
+            // Fallback: kiểm tra enrollment theo COURSE
+            if (!enrolled && quiz.getCourse() != null) {
+                enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                        user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
+            }
+            if (!enrolled) throw new RuntimeException("User is not enrolled in this course");
         }
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép

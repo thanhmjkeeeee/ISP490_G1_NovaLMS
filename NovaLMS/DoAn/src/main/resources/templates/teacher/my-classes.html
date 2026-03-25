@@ -21,11 +21,13 @@
                         <th>Khóa học</th>
                         <th>Lịch học</th>
                         <th>Học viên</th>
+                        <th>Số buổi</th>
                         <th>Trạng thái</th>
+                        <th class="text-end">Hành động</th>
                     </tr>
                     </thead>
                     <tbody id="classesBody">
-                    <tr><td colspan="6" class="text-center py-4">Đang tải...</td></tr>
+                    <tr><td colspan="7" class="text-center py-4">Đang tải...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -44,7 +46,7 @@ async function loadClasses(page = 0) {
     const pag = document.getElementById('classesPagination');
 
     if (json.status !== 200 || !json.data || !json.data.items || json.data.items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Không có lớp nào.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Không có lớp nào.</td></tr>';
         pag.innerHTML = '';
         return;
     }
@@ -52,11 +54,17 @@ async function loadClasses(page = 0) {
     tbody.innerHTML = json.data.items.map((c, idx) => `
         <tr>
             <td>${page * 10 + idx + 1}</td>
-            <td>${c.className || ''}</td>
+            <td class="fw-semibold">${c.className || ''}</td>
             <td>${c.courseName || ''}</td>
             <td>${c.schedule || ''} ${c.slotTime ? '- ' + c.slotTime : ''}</td>
             <td>${c.studentCount || 0}</td>
+            <td>${c.numberOfSessions || 0}</td>
             <td>${c.status || ''}</td>
+            <td class="text-end">
+                <a href="/teacher/sessions?classId=${c.classId}" class="btn btn-sm btn-outline-primary rounded-pill">
+                    <i class="bi bi-calendar-event me-1"></i>Quản lý buổi học
+                </a>
+            </td>
         </tr>
     `).join('');
 

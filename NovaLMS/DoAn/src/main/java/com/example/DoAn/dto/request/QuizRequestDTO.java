@@ -19,6 +19,7 @@ public class QuizRequestDTO {
     private String quizCategory;    // ENTRY_TEST | COURSE_QUIZ
 
     private Integer courseId;        // bắt buộc nếu COURSE_QUIZ
+    private Integer classId;         // gắn quiz với lớp học (cho teacher tạo quiz)
     private Integer timeLimitMinutes;
     private BigDecimal passScore;
     private Integer maxAttempts;
