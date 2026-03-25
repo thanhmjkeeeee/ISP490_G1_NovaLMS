@@ -9,4 +9,5 @@ public class EnrollRequestDTO {
     private Integer classId;
 
     private Integer courseId;
+    private String note;
 }
