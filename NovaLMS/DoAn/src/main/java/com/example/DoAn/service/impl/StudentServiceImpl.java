@@ -83,8 +83,7 @@ public class StudentServiceImpl implements StudentService {
                     .course(course)
                     .status("Submitted")
                     .registrationPrice(BigDecimal.valueOf(finalPrice))
-                    .note("Đăng ký trực tuyến, chờ thanh toán PayOS")
-                    .build();
+                    .note(request.getNote() != null && !request.getNote().trim().isEmpty() ? request.getNote() : "Đăng ký trực tuyến, chờ thanh toán PayOS")                    .build();
 
             registrationRepository.save(reg);
             return ResponseData.success("Đăng ký thành công! Vui lòng hoàn tất thanh toán.", reg.getRegistrationId());
