@@ -5,6 +5,8 @@ import lombok.*;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 @Entity
 @Table(name = "module")
@@ -33,5 +35,6 @@ public class Module {
     @OneToMany(mappedBy = "module", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference(value = "module-lessons")
     @OrderBy("orderIndex ASC")
+    @Fetch(FetchMode.SUBSELECT)
     private List<Lesson> lessons;
 }

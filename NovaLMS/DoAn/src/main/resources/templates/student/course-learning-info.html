@@ -81,11 +81,17 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", async () => {
-      // Lấy courseId từ URL (ví dụ: /student/learn/1)
-      const pathParts = window.location.pathname.split('/');
+      // 1. Lấy courseId từ URL một cách an toàn (Loại bỏ dấu / dư thừa ở cuối nếu có)
+      const pathParts = window.location.pathname.replace(/\/$/, "").split('/');
       const courseId = pathParts[pathParts.length - 1];
 
+      if (!courseId || isNaN(courseId)) {
+          document.getElementById('loadingIndicator').innerHTML = '<span class="text-danger">ID khóa học không hợp lệ!</span>';
+          return;
+      }
+
       try {
+          // 2. Gọi API Backend (Đã khớp với LearningApiController vừa tạo)
           const response = await fetch(`/api/v1/learning/course/${courseId}`);
           const result = await response.json();
 
@@ -93,109 +99,166 @@
               renderCourseData(result.data);
               document.getElementById('loadingIndicator').classList.add('d-none');
               document.getElementById('courseContent').classList.remove('d-none');
+          } else {
+              document.getElementById('loadingIndicator').innerHTML = `<span class="text-danger">${result.message}</span>`;
           }
       } catch (error) {
-          document.getElementById('loadingIndicator').innerHTML = '<span class="text-danger">Lỗi tải dữ liệu khóa học</span>';
+          document.getElementById('loadingIndicator').innerHTML = '<span class="text-danger">Lỗi kết nối đến máy chủ</span>';
       }
   });
 
   const renderCourseData = (course) => {
-      // Banner
+      // --- Banner ---
       if(course.className) {
-          document.getElementById('bannerClassName').textContent = course.className;
+          const classBadge = document.getElementById('bannerClassName');
+          classBadge.textContent = course.className;
+          classBadge.style.display = 'inline-block';
       } else {
           document.getElementById('bannerClassName').style.display = 'none';
       }
-      document.getElementById('bannerTitle').textContent = course.title;
-      document.getElementById('bannerDesc').textContent = course.description;
+
+      // Đồng bộ tên biến mới: courseName (fallback về title)
+      document.getElementById('bannerTitle').textContent = course.courseName || course.title;
+      document.getElementById('bannerDesc').textContent = course.description || '';
       document.getElementById('bannerProgressText').textContent = `${course.progressPercent}%`;
       document.getElementById('bannerProgressBar').style.width = `${course.progressPercent}%`;
-      // Ẩn nút Tiếp tục học khi tiến độ 100%
+
+      // Nút Tiếp tục học
       const btnContinue = document.getElementById('btnContinue');
-      if (course.progressPercent === 100) {
+      // Fix logic: Nếu khóa học chưa có bài học nào, ẩn nút luôn
+      if (!course.modules || course.modules.length === 0) {
           btnContinue.style.display = 'none';
       } else {
           btnContinue.href = `/student/lesson/${course.courseId}/continue`;
+          // Nút đổi thành Xem lại nếu đã 100%
+          if (course.progressPercent === 100) {
+              btnContinue.innerHTML = 'Xem lại khóa học <i class="bi bi-arrow-repeat ms-1"></i>';
+              btnContinue.classList.replace('btn-primary', 'btn-outline-light');
+          }
       }
 
-      // Teacher
+      // --- Giảng viên ---
       document.getElementById('teacherName').textContent = course.teacherName || 'Đang cập nhật';
-      if(course.teacherAvatar) document.getElementById('teacherAvatar').src = course.teacherAvatar;
+      if(course.teacherAvatar) {
+          document.getElementById('teacherAvatar').src = course.teacherAvatar;
+      }
 
-      // Live Class
+      // --- Live Class ---
       const liveDiv = document.getElementById('liveClassInfo');
       if (!course.className) {
           liveDiv.innerHTML = '<div class="text-muted text-center py-4">Khóa học này không phải là lớp học Live trực tuyến.</div>';
       } else {
           liveDiv.innerHTML = `
               <div class="row mb-3 align-items-center"><div class="col-sm-4 text-muted fw-bold"><i class="bi bi-tags me-2"></i>Tên/Mã lớp:</div><div class="col-sm-8 fw-bold text-dark">${course.className}</div></div>
-              <div class="row mb-3 align-items-center"><div class="col-sm-4 text-muted fw-bold"><i class="bi bi-calendar-event me-2"></i>Lịch học:</div><div class="col-sm-8">${course.schedule || ''}</div></div>
+              <div class="row mb-3 align-items-center"><div class="col-sm-4 text-muted fw-bold"><i class="bi bi-calendar-event me-2"></i>Lịch học:</div><div class="col-sm-8">${course.schedule || 'Đang cập nhật'}</div></div>
               <div class="row mb-4 align-items-center"><div class="col-sm-4 text-muted fw-bold"><i class="bi bi-link-45deg me-2"></i>Link phòng Live:</div>
               <div class="col-sm-8">${course.liveMeetingLink ? `<a href="${course.liveMeetingLink}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="bi bi-camera-video me-1"></i> Tham gia</a>` : '<span class="text-danger small">Chưa cập nhật</span>'}</div></div>
           `;
       }
 
-      // Modules
+      // --- Modules & Lessons ---
       const modulesDiv = document.getElementById('accordionModules');
       if (!course.modules || course.modules.length === 0) {
-          modulesDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1"></i><p>Chưa có nội dung.</p></div>';
+          modulesDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1"></i><p>Khóa học này đang trong quá trình cập nhật nội dung.</p></div>';
       } else {
           modulesDiv.innerHTML = course.modules.map((m, index) => {
               const lessonsHtml = (m.lessons || []).map(l => {
-                  const iconClass = l.type === 'VIDEO' ? 'bi-play-fill icon-video' : (l.type === 'DOC' ? 'bi-file-text-fill icon-doc' : 'bi-patch-question-fill icon-quiz');
-                  const iconBg = l.type === 'VIDEO' ? 'icon-video' : (l.type === 'DOC' ? 'icon-doc' : 'icon-quiz');
-                  return `<a href="${l.isLocked ? 'javascript:void(0)' : '/student/lesson/view/' + l.lessonId}" class="lesson-item ${l.isLocked ? 'locked-lesson' : ''}">
-                      <div class="lesson-icon ${iconBg}"><i class="bi ${iconClass.split(' ')[0]}"></i></div>
-                      <div><p class="fw-bold mb-0 text-dark" style="font-size:0.95rem">${l.lessonTitle}</p><span class="small text-muted"><i class="bi bi-clock"></i> ${l.duration || ''}</span></div>
-                      <div class="ms-auto fs-5">${l.isCompleted ? '<i class="bi bi-check-circle-fill text-success"></i>' : (l.isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '')}</div>
+                  const isLocked = l.locked || false;
+                  const isCompleted = l.completed || false;
+                  const lessonName = l.lessonName || l.lessonTitle || 'Bài học không tên';
+
+                  // Set icon dựa trên type
+                  let iconClass = 'bi-file-text-fill';
+                  let iconBg = 'bg-primary bg-opacity-10 text-primary';
+                  if (l.type === 'VIDEO') { iconClass = 'bi-play-fill'; iconBg = 'bg-danger bg-opacity-10 text-danger'; }
+                  if (l.type === 'QUIZ')  { iconClass = 'bi-patch-question-fill'; iconBg = 'bg-warning bg-opacity-10 text-warning'; }
+
+                  return `
+                  <a href="${isLocked ? 'javascript:void(0)' : '/student/lesson/view/' + l.lessonId}"
+                     class="d-flex align-items-center text-decoration-none border-bottom py-3 px-3 transition-all ${isLocked ? 'opacity-50' : 'text-dark hover-bg-light'}">
+                      <div class="rounded-circle d-flex align-items-center justify-content-center me-3 ${iconBg}" style="width: 40px; height: 40px;">
+                          <i class="bi ${iconClass} fs-5"></i>
+                      </div>
+                      <div class="flex-grow-1">
+                          <p class="fw-bold mb-0" style="font-size:0.95rem">${lessonName}</p>
+                          <span class="small text-muted"><i class="bi bi-clock me-1"></i> ${l.duration || '--:--'}</span>
+                      </div>
+                      <div class="ms-auto fs-5">
+                          ${isCompleted ? '<i class="bi bi-check-circle-fill text-success" title="Đã hoàn thành"></i>' :
+                           (isLocked ? '<i class="bi bi-lock-fill text-muted" title="Chưa mở khóa"></i>' : '')}
+                      </div>
                   </a>`;
               }).join('');
-              return `<div class="accordion-item">
+
+              const moduleName = m.moduleName || m.moduleTitle || 'Chương không tên';
+
+              return `
+              <div class="accordion-item mb-3 border-0 shadow-sm rounded-4 overflow-hidden">
                   <h2 class="accordion-header">
-                      <button class="accordion-button ${index !== 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#mod${m.moduleId}">
-                          <div class="d-flex justify-content-between w-100 pe-3">
-                              <span>${m.moduleTitle}</span><span class="badge bg-white text-primary border">${m.totalLessons} Bài</span>
+                      <button class="accordion-button ${index !== 0 ? 'collapsed' : ''} bg-light fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#mod${m.moduleId}">
+                          <div class="d-flex justify-content-between w-100 pe-3 align-items-center">
+                              <span>${moduleName}</span>
+                              <span class="badge bg-white text-primary border rounded-pill">${m.totalLessons || (m.lessons ? m.lessons.length : 0)} Bài</span>
                           </div>
                       </button>
                   </h2>
                   <div id="mod${m.moduleId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#accordionModules">
-                      <div class="accordion-body p-0">${lessonsHtml}</div>
+                      <div class="accordion-body p-0">
+                          ${lessonsHtml || '<div class="p-3 text-muted text-center small fst-italic">Chương này chưa có bài học</div>'}
+                      </div>
                   </div>
               </div>`;
           }).join('');
       }
 
-      // Course Quiz
+      // --- Course Quiz (Bỏ qua nếu không có) ---
       const quizContent = document.getElementById('courseQuizContent');
-      if (course.courseQuiz) {
+      if (course.courseQuiz && course.courseQuiz.quizId) {
           const q = course.courseQuiz;
           const attemptCount = q.attemptCount || 0;
-          const maxAttempts = q.maxAttempts;
-          const attemptsLabel = maxAttempts != null
-              ? `<span class="badge bg-warning bg-opacity-10 text-warning border"><i class="bi bi-repeat me-1"></i>${attemptCount} / ${maxAttempts} lần</span>`
-              : (attemptCount > 0 ? `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-check-circle me-1"></i>Đã làm ${attemptCount} lần</span>` : '');
+          const maxAttempts = q.maxAttempts; // Có thể null
+
+          let attemptsLabel = '';
+          if (maxAttempts != null) {
+             attemptsLabel = `<span class="badge bg-warning bg-opacity-10 text-warning border"><i class="bi bi-repeat me-1"></i>${attemptCount} / ${maxAttempts} lần</span>`;
+          } else if (attemptCount > 0) {
+             attemptsLabel = `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-check-circle me-1"></i>Đã làm ${attemptCount} lần</span>`;
+          }
+
           const outOfAttempts = maxAttempts != null && attemptCount >= maxAttempts;
-          const btnLabel = outOfAttempts ? 'Đã hết lượt' : (attemptCount > 0 ? 'Làm lại' : 'Làm bài kiểm tra');
-          quizContent.innerHTML = `<div class="card border-0 shadow-sm rounded-4 p-4">
+
+          let btnHtml = '';
+          if (outOfAttempts) {
+              btnHtml = `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-x-circle me-1"></i> Đã hết lượt</span>`;
+          } else {
+              const btnLabel = attemptCount > 0 ? 'Làm lại' : 'Làm bài kiểm tra';
+              btnHtml = `<a href="/student/quiz/take/${q.quizId}" class="btn btn-primary rounded-pill fw-bold px-4"><i class="bi bi-play-circle-fill me-1"></i> ${btnLabel}</a>`;
+          }
+
+          quizContent.innerHTML = `
+          <div class="card border-0 shadow-sm rounded-4 p-4 mt-2">
               <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
                   <div>
-                      <h5 class="fw-bold text-dark mb-1">${q.title}</h5>
-                      <div class="d-flex gap-2 flex-wrap small mb-2">
-                          <span class="badge bg-light text-dark border"><i class="bi bi-list-task me-1"></i>${q.totalQuestions} câu</span>
-                          ${q.timeLimitMinutes ? '<span class="badge bg-light text-dark border"><i class="bi bi-stopwatch me-1"></i>' + q.timeLimitMinutes + ' phút</span>' : ''}
+                      <h5 class="fw-bold text-dark mb-2">${q.title || 'Bài kiểm tra cuối khóa'}</h5>
+                      <div class="d-flex gap-2 flex-wrap small">
+                          <span class="badge bg-light text-dark border"><i class="bi bi-list-task me-1"></i>${q.totalQuestions || 0} câu</span>
+                          ${q.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-stopwatch me-1"></i>${q.timeLimitMinutes} phút</span>` : ''}
                           ${attemptsLabel}
                       </div>
                   </div>
-                  ${outOfAttempts
-                      ? `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-x-circle me-1"></i> Đã hết lượt</span>`
-                      : `<a href="/student/quiz/take/${q.quizId}" class="btn btn-primary rounded-pill fw-bold px-4"><i class="bi bi-play-circle-fill me-1"></i> ${btnLabel}</a>`
-                  }
+                  ${btnHtml}
               </div>
           </div>`;
       } else {
-          quizContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-clipboard-x fs-1"></i><p>Khóa học này chưa có bài kiểm tra.</p></div>';
+          quizContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-clipboard-x fs-1 mb-2"></i><p>Khóa học này chưa có bài kiểm tra cuối khóa.</p></div>';
       }
   };
 </script>
+
+<style>
+  .hover-bg-light:hover { background-color: #f8f9fa !important; }
+  .transition-all { transition: all 0.2s ease; }
+</style>
+
 </body>
 </html>

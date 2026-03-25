@@ -14,6 +14,7 @@ import java.util.List;
 public class CourseLearningInfoDTO {
 
     private Long courseId;
+    private String courseName; // Bổ sung để map từ Entity Course
     private String title;
     private String description;
     private int progressPercent;
@@ -36,6 +37,7 @@ public class CourseLearningInfoDTO {
     public static class ModuleDTO {
 
         private Long moduleId;
+        private String moduleName; // Bổ sung để map từ Entity Module
         private String moduleTitle;
         private int totalLessons;
 
@@ -49,9 +51,11 @@ public class CourseLearningInfoDTO {
     public static class LessonDTO {
 
         private Long lessonId;
+        private String lessonName; // Bổ sung để map từ Entity Lesson
         private String lessonTitle;
         private String type;
         private String duration;
+        private String videoUrl;   // Bổ sung URL gốc
         private String videoEmbedUrl; // YouTube embed URL
         private boolean completed;
         private boolean locked;

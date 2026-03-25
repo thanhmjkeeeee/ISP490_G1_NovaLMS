@@ -37,11 +37,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
     @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByCategory_SettingIdAndStatus(Integer categoryId, String status);
 
-    @Query("SELECT DISTINCT c FROM Course c " +
-            "LEFT JOIN FETCH c.modules m " +
-            "LEFT JOIN FETCH m.lessons l " +
-            "WHERE c.courseId = :courseId " +
-            "ORDER BY m.orderIndex ASC, l.orderIndex ASC")
+    @Query("SELECT c FROM Course c WHERE c.courseId = :courseId")
     Optional<Course> getCourseLearningData(@Param("courseId") Integer courseId);
 
     // (Tùy chọn) Tìm kiếm khóa học theo tên
