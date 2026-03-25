@@ -3,6 +3,7 @@ package com.example.DoAn.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "course")
@@ -46,25 +47,28 @@ public class Course {
     private String description;
 
     // KẾT NỐI VỚI CATEGORY (Bảng setting)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id") // Khớp với tên cột trong file abc.sql
     private Setting category;
 
     // KẾT NỐI VỚI GIẢNG VIÊN (Bảng user)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expert_id") // Khớp với tên cột trong file abc.sql
     private User expert;
 
     // Nếu bạn muốn đếm số học viên, có thể thêm map với bảng registration
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "course-registrations")
     private List<Registration> registrations;
 
     // 1. Thêm để lấy danh sách các lớp thuộc khóa học này
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "course-classes")
     private List<Clazz> classes;
 
     // Thêm vào trong class Course
-    @OneToMany(mappedBy = "course")
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "course-modules")
     @OrderBy("orderIndex ASC")
     private List<Module> modules;
 

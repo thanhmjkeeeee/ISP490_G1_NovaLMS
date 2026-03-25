@@ -2,6 +2,7 @@ package com.example.DoAn.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "lesson")
@@ -38,8 +39,9 @@ public class Lesson {
     @Column(name = "order_index")
     private Integer orderIndex;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
+    @JsonBackReference(value = "module-lessons")
     private Module module;
 
 }

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.Param;
@@ -24,14 +25,30 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
     @Query(value = "UPDATE tbl_course SET status = :status WHERE course_id = :id", nativeQuery = true)
     void updateStatusNative(@Param("status") String status, @Param("id") Integer id);
 
+    @EntityGraph(attributePaths = {"category", "expert", "expert.role"})
+    Optional<Course> findById(Integer courseId);
+
+    @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByStatus(String status);
 
+    @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByLevelTagAndStatus(String levelTag, String status);
 
+    @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByCategory_SettingIdAndStatus(Integer categoryId, String status);
 
+    @Query("SELECT DISTINCT c FROM Course c " +
+            "LEFT JOIN FETCH c.modules m " +
+            "LEFT JOIN FETCH m.lessons l " +
+            "WHERE c.courseId = :courseId " +
+            "ORDER BY m.orderIndex ASC, l.orderIndex ASC")
+    Optional<Course> getCourseLearningData(@Param("courseId") Integer courseId);
+
     // (Tùy chọn) Tìm kiếm khóa học theo tên
+    @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByTitleContainingIgnoreCaseAndStatus(String title, String status);
+    
+    @EntityGraph(attributePaths = {"category", "expert"})
     @Query("SELECT c FROM Course c WHERE " +
             "c.status = :status AND " +
             "(:categoryId IS NULL OR c.category.settingId = :categoryId) AND " +
@@ -41,6 +58,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                                @Param("status") String status,
                                Sort sort);
 
+    @EntityGraph(attributePaths = {"category", "expert"})
     @Query("SELECT c FROM Course c WHERE " +
             "c.status = :status AND " +
             "(:categoryId IS NULL OR c.category.settingId = :categoryId) AND " +
@@ -50,6 +68,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
                                @Param("status") String status,
                                Pageable pageable);
 
+    @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByExpertUserId(Integer expertUserId);
 
 }
