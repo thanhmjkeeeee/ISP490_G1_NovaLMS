@@ -7,8 +7,9 @@ import lombok.Data;
 @Builder
 public class LessonResponseDTO {
     private Integer lessonId;
-    private String lessonTitle;
     private String type;
+    private String lessonTitle;
+    private String lessonName;
     private String duration;
     private String videoUrl;
     private String videoEmbedUrl; // YouTube embed URL (auto-converted)

@@ -4,6 +4,7 @@ import com.example.DoAn.dto.response.CourseLearningInfoDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.LearningService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,9 +26,14 @@ public class LearningApiController {
     }
 
     @GetMapping("/course/{courseId}")
-    public ResponseData<CourseLearningInfoDTO> getCourseData(@PathVariable Long courseId, Principal principal) {
+    public ResponseEntity<ResponseData<CourseLearningInfoDTO>> getCourseInfo(@PathVariable Long courseId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
-        return learningService.getCourseLearningInfo(courseId, email);
+        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+
+        ResponseData<CourseLearningInfoDTO> response = learningService.getCourseLearningInfo(courseId, email);
+        if (response.getStatus() != 200) {
+            return ResponseEntity.status(response.getStatus()).body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 }
