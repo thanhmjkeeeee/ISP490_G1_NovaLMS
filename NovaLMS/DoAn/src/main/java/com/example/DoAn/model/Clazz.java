@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.util.List;
 
@@ -24,11 +26,12 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
     @Column(name = "class_id")
     private Integer classId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
+    @JsonBackReference(value = "course-classes")
     private Course course;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private User teacher;
 
@@ -47,7 +50,8 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
     private LocalDateTime endDate;
 
     // Thêm quan hệ này để biết lớp này có bao nhiêu học viên đã đăng ký
-    @OneToMany(mappedBy = "clazz")
+    @OneToMany(mappedBy = "clazz", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "clazz-registrations")
     private List<Registration> registrations;
 
     @Column(name = "schedule") // Ví dụ: "Mon-Wed-Fri"

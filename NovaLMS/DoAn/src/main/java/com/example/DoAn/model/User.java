@@ -28,7 +28,7 @@ public class User {
     @Column(nullable = false)
     private String password; // DB mới dùng 'password', không phải 'password_hash'
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")
     private Setting role; // Trỏ tới bảng setting
 
