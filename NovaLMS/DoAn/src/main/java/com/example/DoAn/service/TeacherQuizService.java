@@ -152,6 +152,30 @@ public class TeacherQuizService {
     }
 
     /**
+     * Mở/đóng quiz cho học sinh làm (toggle isOpen).
+     * Teacher có thể mở/đóng quiz bất kỳ lúc nào mà không cần đổi status DRAFT/PUBLISHED.
+     */
+    @Transactional
+    public ResponseData<TeacherQuizDTO> toggleQuizOpen(Integer quizId, String email) {
+        try {
+            Quiz quiz = quizRepository.findById(quizId).orElse(null);
+            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+
+            // Toggle: false -> true (mở), true -> false (đóng)
+            Boolean current = quiz.getIsOpen();
+            Boolean updated = (current == null || !current) ? true : false;
+            quiz.setIsOpen(updated);
+            quizRepository.save(quiz);
+
+            String action = updated ? "mở" : "đóng";
+            return ResponseData.success("Quiz đã được " + action + "! Học sinh có thể làm bài.",
+                    toTeacherQuizDTO(quiz));
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    /**
      * Xóa quiz.
      */
     @Transactional
@@ -186,12 +210,41 @@ public class TeacherQuizService {
     }
 
     /**
-     * Danh sách quiz của một class.
+     * Lấy tất cả COURSE_QUIZ của course mà classId thuộc về.
+     * API: GET /api/v1/teacher/quizzes/class/{classId}
+     * - Xác thực: classId phải thuộc một lớp mà teacher phụ trách
+     * - Trả về: TẤT CẢ quiz (DRAFT + PUBLISHED) của course của lớp đó
      */
     @Transactional(readOnly = true)
-    public ResponseData<List<TeacherQuizDTO>> getQuizzesByClass(Integer classId) {
+    public ResponseData<List<TeacherQuizDTO>> getQuizzesByClass(Integer classId, String email) {
         try {
-            List<Quiz> quizzes = quizRepository.findByClazz_ClassId(classId);
+            // 1. Xác thực: tìm teacher theo email
+            User teacher = userRepository.findByEmail(email).orElse(null);
+            if (teacher == null) {
+                return ResponseData.error(401, "Không tìm thấy người dùng");
+            }
+
+            // 2. Lấy tất cả lớp mà teacher phụ trách
+            List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
+            if (teacherClasses.isEmpty()) {
+                return ResponseData.success("Không có lớp nào được phân công", List.of());
+            }
+
+            // 3. Kiểm tra classId có thuộc lớp của teacher không
+            Clazz targetClass = teacherClasses.stream()
+                    .filter(c -> c.getClassId().equals(classId))
+                    .findFirst().orElse(null);
+            if (targetClass == null) {
+                return ResponseData.error(403, "Bạn không phải giáo viên của lớp này");
+            }
+
+            // 4. Lấy quiz của course mà lớp này thuộc về
+            List<Quiz> quizzes = List.of();
+            if (targetClass.getCourse() != null) {
+                quizzes = quizRepository.findAllByCourseCourseIdIn(
+                        List.of(targetClass.getCourse().getCourseId()));
+            }
+
             List<TeacherQuizDTO> dtos = quizzes.stream()
                     .map(this::toTeacherQuizDTO)
                     .collect(Collectors.toList());
@@ -488,6 +541,7 @@ public class TeacherQuizService {
                 .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
                 .status(quiz.getStatus())
+                .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
                 .passScore(quiz.getPassScore())
                 .maxAttempts(quiz.getMaxAttempts())
@@ -551,6 +605,7 @@ public class TeacherQuizService {
         private Integer courseId;
         private String courseName;
         private String status;
+        private Boolean isOpen; // Teacher mở/đóng quiz cho học sinh
         private Integer timeLimitMinutes;
         private java.math.BigDecimal passScore;
         private Integer maxAttempts;

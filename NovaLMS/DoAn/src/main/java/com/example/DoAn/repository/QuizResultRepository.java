@@ -25,6 +25,23 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
 
     Page<QuizResult> findByPassedIsNullAndQuiz_User_EmailOrderBySubmittedAtAsc(String email, Pageable pageable);
 
+    // Tìm quiz results chờ chấm mà teacher có quyền:
+    // - Teacher tạo quiz (q.user.email) HOẶC
+    // - Teacher được phân công lớp của quiz (q.clazz.teacher.email) HOẶC
+    // - Quiz thuộc course mà teacher phụ trách qua bất kỳ lớp nào (EXISTS: tc.course = q.course AND tc.teacher.email = :email)
+    @Query("SELECT qr FROM QuizResult qr " +
+           "JOIN FETCH qr.quiz q " +
+           "LEFT JOIN FETCH qr.user stu " +
+           "LEFT JOIN FETCH q.course " +
+           "LEFT JOIN FETCH q.clazz c " +
+           "LEFT JOIN FETCH c.teacher " +
+           "WHERE qr.passed IS NULL " +
+           "AND (q.user.email = :email " +
+           "     OR c.teacher.email = :email " +
+           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
+           "ORDER BY qr.submittedAt ASC")
+    Page<QuizResult> findPendingGradingForTeacher(@org.springframework.data.repository.query.Param("email") String email, Pageable pageable);
+
     Page<QuizResult> findByUserEmailOrderBySubmittedAtDesc(String email, Pageable pageable);
 
     List<QuizResult> findByUser_Email(String email);

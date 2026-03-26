@@ -61,7 +61,7 @@ public class TeacherQuizApiController {
     public ResponseData<List<TeacherQuizService.TeacherQuizDTO>> getQuizzesByClass(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
-        return teacherQuizService.getQuizzesByClass(classId);
+        return teacherQuizService.getQuizzesByClass(classId, email);
     }
 
     /**
@@ -84,6 +84,17 @@ public class TeacherQuizApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return teacherQuizService.publishQuiz(quizId, email);
+    }
+
+    /**
+     * Mở/đóng quiz cho học sinh làm (toggle isOpen).
+     * PATCH /api/v1/teacher/quizzes/{quizId}/toggle-open
+     */
+    @PatchMapping("/{quizId}/toggle-open")
+    public ResponseData<?> toggleQuizOpen(@PathVariable Integer quizId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return teacherQuizService.toggleQuizOpen(quizId, email);
     }
 
     /**
