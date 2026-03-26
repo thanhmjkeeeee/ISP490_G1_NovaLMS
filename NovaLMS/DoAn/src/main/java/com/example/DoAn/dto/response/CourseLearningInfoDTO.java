@@ -28,7 +28,7 @@ public class CourseLearningInfoDTO {
 
     private List<ModuleDTO> modules;
 
-    private QuizInfoDTO courseQuiz;
+    private List<QuizInfoDTO> quizzes;
 
     @Data
     @Builder
@@ -72,5 +72,6 @@ public class CourseLearningInfoDTO {
         private Integer timeLimitMinutes;
         private Integer maxAttempts;   // null = không giới hạn
         private Integer attemptCount;  // số lần đã làm
+        private Boolean isOpen;        // teacher mở/đóng quiz
     }
 }
