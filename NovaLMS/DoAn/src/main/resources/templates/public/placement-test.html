@@ -16,32 +16,90 @@
              VIEW 1: Danh sách bài test — khi chưa chọn quiz
              ===================================================== -->
         <th:block th:if="${tests != null and not #lists.isEmpty(tests)}">
-        <div class="text-center mb-5">
+        <div class="text-center mb-4">
           <h2 class="fw-bold text-primary mb-2">Bài Kiểm Tra Đầu Vào</h2>
           <p class="text-muted">Chọn một bài kiểm tra phù hợp để đánh giá trình độ của bạn.</p>
         </div>
 
-        <div class="row g-4">
-          <div class="col-md-6 col-lg-4" th:each="test : ${tests}">
-            <div class="card h-100 shadow-sm border-0 rounded-4 hover-card">
-              <div class="card-body p-4 d-flex flex-column">
-                <h5 class="fw-bold text-dark mb-2" th:text="${test.title}">Bài Test Năng Lực</h5>
-                <p class="text-muted small flex-grow-1" th:text="${test.description}">Mô tả bài test</p>
-                <div class="d-flex flex-wrap gap-2 mb-3 small text-muted">
-                  <span class="badge bg-light text-dark border">
-                    <i class="bi bi-list-task me-1"></i><span th:text="${test.totalQuestions}">0</span> câu
-                  </span>
-                  <span class="badge bg-light text-dark border" th:if="${test.timeLimitMinutes != null}">
-                    <i class="bi bi-stopwatch me-1"></i><span th:text="${test.timeLimitMinutes}">0</span> phút
-                  </span>
+        <!-- ── Filter Card ── -->
+        <div class="card mb-4 border-0 shadow-sm filter-section" th:if="${quiz == null}">
+          <div class="card-body py-3">
+            <div class="row g-3 align-items-end">
+              <!-- Search Input -->
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold text-muted mb-1">Tìm kiếm</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" id="searchInput" class="form-control border-start-0 ps-0"
+                         placeholder="Tên bài kiểm tra..."
+                         th:value="${keyword}">
                 </div>
-                <a th:href="@{/placement-test/{id}(id=${test.quizId})}"
-                   class="btn btn-primary rounded-pill fw-bold w-100">
-                  Làm Bài <i class="bi bi-arrow-right ms-1"></i>
-                </a>
+              </div>
+              <!-- Skill Filter -->
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted mb-1">Kỹ năng</label>
+                <select id="skillFilter" class="form-select">
+                  <option value="">Tất cả kỹ năng</option>
+                  <option value="Grammar" th:selected="${skill == 'Grammar'}">Grammar</option>
+                  <option value="Vocabulary" th:selected="${skill == 'Vocabulary'}">Vocabulary</option>
+                  <option value="Listening" th:selected="${skill == 'Listening'}">Listening</option>
+                  <option value="Reading" th:selected="${skill == 'Reading'}">Reading</option>
+                  <option value="Writing" th:selected="${skill == 'Writing'}">Writing</option>
+                  <option value="Speaking" th:selected="${skill == 'Speaking'}">Speaking</option>
+                </select>
+              </div>
+              <!-- Filter Button -->
+              <div class="col-md-2">
+                <button onclick="applyFilters()" class="btn btn-primary w-100 fw-semibold">
+                  <i class="bi bi-funnel me-1"></i> Lọc
+                </button>
+              </div>
+              <!-- Reset Button -->
+              <div class="col-md-2">
+                <button onclick="resetFilters()" class="btn btn-outline-secondary w-100 fw-semibold">
+                  <i class="bi bi-x-circle me-1"></i> Đặt lại
+                </button>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Results info -->
+        <div id="resultsInfo" class="d-flex justify-content-between align-items-center mb-3" style="display:none;">
+          <p class="text-muted small mb-0" id="resultsCount"></p>
+        </div>
+
+        <!-- Card Grid -->
+        <div id="testsContainer">
+          <div class="row g-4">
+            <div class="col-md-6 col-lg-4" th:each="test : ${tests}">
+              <div class="card h-100 shadow-sm border-0 rounded-4 hover-card">
+                <div class="card-body p-4 d-flex flex-column">
+                  <h5 class="fw-bold text-dark mb-2" th:text="${test.title}">Bài Test Năng Lực</h5>
+                  <p class="text-muted small flex-grow-1" th:text="${test.description}">Mô tả bài test</p>
+                  <div class="d-flex flex-wrap gap-2 mb-3 small text-muted">
+                    <span class="badge bg-light text-dark border">
+                      <i class="bi bi-list-task me-1"></i><span th:text="${test.totalQuestions}">0</span> câu
+                    </span>
+                    <span class="badge bg-light text-dark border" th:if="${test.timeLimitMinutes != null}">
+                      <i class="bi bi-stopwatch me-1"></i><span th:text="${test.timeLimitMinutes}">0</span> phút
+                    </span>
+                  </div>
+                  <a th:href="@{/placement-test/{id}(id=${test.quizId})}"
+                     class="btn btn-primary rounded-pill fw-bold w-100">
+                    Làm Bài <i class="bi bi-arrow-right ms-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State (shown when no results) -->
+        <div id="emptyState" class="text-center py-5" style="display:none;">
+          <i class="bi bi-search text-muted display-1 mb-3"></i>
+          <h5 class="text-muted">Không tìm thấy bài kiểm tra nào</h5>
+          <p class="text-muted small">Thử thay đổi từ khóa hoặc bộ lọc</p>
         </div>
         </th:block>
 
@@ -243,6 +301,31 @@
 <script>
   let timerInterval;
   let guestInfo = { name: '', email: '' };
+
+  // ── Search & Filter ──────────────────────────────────────────
+  function applyFilters() {
+    const keyword = document.getElementById('searchInput')?.value?.trim() || '';
+    const skill   = document.getElementById('skillFilter')?.value || '';
+
+    let url = '/placement-test?';
+    if (keyword) url += 'keyword=' + encodeURIComponent(keyword) + '&';
+    if (skill)   url += 'skill='   + encodeURIComponent(skill);
+    window.location.href = url;
+  }
+
+  function resetFilters() {
+    window.location.href = '/placement-test';
+  }
+
+  // Enter key triggers search
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') applyFilters();
+      });
+    }
+  });
 
   function startTest() {
       guestInfo.name = document.getElementById('guestNameInput').value;
