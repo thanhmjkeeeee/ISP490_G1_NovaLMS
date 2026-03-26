@@ -211,46 +211,58 @@
           }).join('');
       }
 
-      // --- Course Quiz (Bỏ qua nếu không có) ---
+      // --- Course Quiz (Hỗ trợ nhiều quiz) ---
       const quizContent = document.getElementById('courseQuizContent');
-      if (course.courseQuiz && course.courseQuiz.quizId) {
-          const q = course.courseQuiz;
-          const attemptCount = q.attemptCount || 0;
-          const maxAttempts = q.maxAttempts; // Có thể null
+      const quizzes = course.quizzes || [];
 
-          let attemptsLabel = '';
-          if (maxAttempts != null) {
-             attemptsLabel = `<span class="badge bg-warning bg-opacity-10 text-warning border"><i class="bi bi-repeat me-1"></i>${attemptCount} / ${maxAttempts} lần</span>`;
-          } else if (attemptCount > 0) {
-             attemptsLabel = `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-check-circle me-1"></i>Đã làm ${attemptCount} lần</span>`;
-          }
-
-          const outOfAttempts = maxAttempts != null && attemptCount >= maxAttempts;
-
-          let btnHtml = '';
-          if (outOfAttempts) {
-              btnHtml = `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-x-circle me-1"></i> Đã hết lượt</span>`;
-          } else {
-              const btnLabel = attemptCount > 0 ? 'Làm lại' : 'Làm bài kiểm tra';
-              btnHtml = `<a href="/student/quiz/take/${q.quizId}" class="btn btn-primary rounded-pill fw-bold px-4"><i class="bi bi-play-circle-fill me-1"></i> ${btnLabel}</a>`;
-          }
-
-          quizContent.innerHTML = `
-          <div class="card border-0 shadow-sm rounded-4 p-4 mt-2">
-              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                  <div>
-                      <h5 class="fw-bold text-dark mb-2">${q.title || 'Bài kiểm tra cuối khóa'}</h5>
-                      <div class="d-flex gap-2 flex-wrap small">
-                          <span class="badge bg-light text-dark border"><i class="bi bi-list-task me-1"></i>${q.totalQuestions || 0} câu</span>
-                          ${q.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-stopwatch me-1"></i>${q.timeLimitMinutes} phút</span>` : ''}
-                          ${attemptsLabel}
-                      </div>
-                  </div>
-                  ${btnHtml}
-              </div>
-          </div>`;
-      } else {
+      if (quizzes.length === 0) {
           quizContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-clipboard-x fs-1 mb-2"></i><p>Khóa học này chưa có bài kiểm tra cuối khóa.</p></div>';
+      } else {
+          quizContent.innerHTML = quizzes.map(q => {
+              const attemptCount = q.attemptCount || 0;
+              const maxAttempts = q.maxAttempts;
+              const isOpen = q.isOpen === true;
+
+              let attemptsLabel = '';
+              if (maxAttempts != null) {
+                  attemptsLabel = `<span class="badge bg-warning bg-opacity-10 text-warning border"><i class="bi bi-repeat me-1"></i>${attemptCount} / ${maxAttempts} lần</span>`;
+              } else if (attemptCount > 0) {
+                  attemptsLabel = `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-check-circle me-1"></i>Đã làm ${attemptCount} lần</span>`;
+              }
+
+              // Badge trạng thái mở/đóng
+              const statusBadge = isOpen
+                  ? `<span class="badge bg-success bg-opacity-10 text-success border"><i class="bi bi-unlock-fill me-1"></i>Đang mở</span>`
+                  : `<span class="badge bg-secondary bg-opacity-10 text-secondary border"><i class="bi bi-lock-fill me-1"></i>Đang đóng</span>`;
+
+              const outOfAttempts = maxAttempts != null && attemptCount >= maxAttempts;
+
+              let btnHtml = '';
+              if (outOfAttempts) {
+                  btnHtml = `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-x-circle me-1"></i> Đã hết lượt</span>`;
+              } else if (!isOpen) {
+                  btnHtml = `<span class="btn btn-secondary rounded-pill fw-bold px-4" style="cursor:not-allowed;"><i class="bi bi-lock-fill me-1"></i> Quiz đang đóng</span>`;
+              } else {
+                  const btnLabel = attemptCount > 0 ? 'Làm lại' : 'Làm bài kiểm tra';
+                  btnHtml = `<a href="/student/quiz/take/${q.quizId}" class="btn btn-primary rounded-pill fw-bold px-4"><i class="bi bi-play-circle-fill me-1"></i> ${btnLabel}</a>`;
+              }
+
+              return `
+              <div class="card border-0 shadow-sm rounded-4 p-4 mt-2">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div>
+                          <h5 class="fw-bold text-dark mb-2">${q.title || 'Bài kiểm tra cuối khóa'}</h5>
+                          <div class="d-flex gap-2 flex-wrap small">
+                              <span class="badge bg-light text-dark border"><i class="bi bi-list-task me-1"></i>${q.totalQuestions || 0} câu</span>
+                              ${q.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-stopwatch me-1"></i>${q.timeLimitMinutes} phút</span>` : ''}
+                              ${attemptsLabel}
+                              ${statusBadge}
+                          </div>
+                      </div>
+                      ${btnHtml}
+                  </div>
+              </div>`;
+          }).join('');
       }
   };
 </script>

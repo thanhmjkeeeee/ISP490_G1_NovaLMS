@@ -8,7 +8,10 @@ import com.example.DoAn.dto.response.QuizTakingDTO;
 import java.util.List;
 
 public interface PlacementTestService {
-    // Load danh sách tất cả bài ENTRY_TEST đang PUBLISHED để guest chọn
+    // Load danh sách tất cả bài ENTRY_TEST đang PUBLISHED để guest chọn (có tìm kiếm + lọc)
+    List<PlacementTestSummaryDTO> getPlacementTests(String keyword, String skill);
+
+    // Load danh sách tất cả (không filter - dùng cho backward compat)
     List<PlacementTestSummaryDTO> getAllPlacementTests();
 
     // Load quiz ENTRY_TEST để guest làm (theo quizId cụ thể)

@@ -285,7 +285,15 @@ public class StudentServiceImpl implements StudentService {
                 }
             }
 
-            // Cho phép cancel/reject mọi lúc
+            // Không cho phép hủy / từ chối khi đã thanh toán thành công
+            if (("Cancelled".equals(status) || "Rejected".equals(status)) && isPaidCourse) {
+                Payment payment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(null);
+                if (payment != null && "PAID".equals(payment.getStatus())) {
+                    return ResponseData.error(403,
+                            "Không thể hủy hoặc từ chối đăng ký đã thanh toán thành công!");
+                }
+            }
+
             registration.setStatus(status);
             if (note != null) {
                 registration.setNote(note);

@@ -109,7 +109,7 @@
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary px-4" onclick="updateStatus()">Lưu thay đổi</button>
+                <button type="button" class="btn btn-primary px-4" id="saveStatusBtn" onclick="updateStatus()">Lưu thay đổi</button>
             </div>
         </div>
     </div>
@@ -204,7 +204,7 @@
                 <td><span class="badge ${getRegStatusBadge(r.status, r.paymentStatus)} px-2 py-1">${getRegStatusLabel(r.status, r.paymentStatus)}</span></td>
                 <td><span class="badge ${getPaymentBadgeClass(r.paymentStatus)} px-2 py-1">${getPaymentStatusLabel(r.paymentStatus)}</span></td>
                 <td class="text-end pe-4">
-                    <button class="btn btn-sm btn-light border text-primary shadow-sm" onclick="openStatusModal(${r.registrationId}, ${r.registrationPrice && r.registrationPrice > 0}, ${r.paymentStatus === 'PAID' ? 'true' : 'false'})" title="Cập nhật">
+                    <button class="btn btn-sm btn-light border text-primary shadow-sm" onclick="openStatusModal(${r.registrationId}, ${r.registrationPrice && r.registrationPrice > 0}, ${r.paymentStatus === 'PAID' ? 'true' : 'false'}, '${r.status}')" title="Cập nhật">
                         <i class="bi bi-pencil-square"></i>
                     </button>
                 </td>
@@ -296,19 +296,37 @@
         container.innerHTML = html;
     }
 
-    function openStatusModal(registrationId, isPaidCourse, isPaid) {
+    function openStatusModal(registrationId, isPaidCourse, isPaid, currentStatus) {
         document.getElementById('modalRegistrationId').value = registrationId;
 
         const statusSelect = document.getElementById('newStatus');
         const paidWarning = document.getElementById('paidCourseWarning');
+        const saveBtn = document.getElementById('saveStatusBtn');
 
-        // Reset
+        // Nếu đã thanh toán và đã duyệt → không cho chỉnh sửa
+        if (currentStatus === 'Approved' && isPaid) {
+            paidWarning.classList.remove('d-none');
+            paidWarning.className = 'alert alert-secondary py-2';
+            paidWarning.innerHTML = '<i class="bi bi-info-circle me-1"></i> Đăng ký đã được thanh toán và duyệt. Không thể thay đổi trạng thái.';
+            statusSelect.innerHTML = '<option value="">-- Không thể thay đổi --</option>';
+            statusSelect.disabled = true;
+            saveBtn.disabled = true;
+            document.getElementById('statusNote').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('statusModal'));
+            modal.show();
+            return;
+        }
+
+        // Reset trạng thái bình thường
+        statusSelect.disabled = false;
+        saveBtn.disabled = false;
+        paidWarning.className = 'alert alert-warning py-2 d-none';
+        paidWarning.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Khóa học có phí — chỉ duyệt được khi đã thanh toán qua PayOS.';
         statusSelect.value = 'Approved';
 
         // Nếu khóa có phí mà chưa thanh toán → ẩn nút duyệt
         if (isPaidCourse && !isPaid) {
             paidWarning.classList.remove('d-none');
-            // Chỉ cho phép Hủy
             statusSelect.innerHTML = `
                 <option value="Cancelled">Hủy</option>
                 <option value="Rejected">Từ chối</option>
