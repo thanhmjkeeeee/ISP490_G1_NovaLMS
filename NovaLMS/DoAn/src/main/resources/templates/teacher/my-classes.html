@@ -22,12 +22,12 @@
                         <th>Lịch học</th>
                         <th>Học viên</th>
                         <th>Số buổi</th>
-                        <th>Trạng thái</th>
+                        <th>Quiz</th>
                         <th class="text-end">Hành động</th>
                     </tr>
                     </thead>
                     <tbody id="classesBody">
-                    <tr><td colspan="7" class="text-center py-4">Đang tải...</td></tr>
+                    <tr><td colspan="8" class="text-center py-4">Đang tải...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -36,8 +36,24 @@
     </div>
 </main>
 
+<!-- Quiz Management Modal -->
+<div class="modal fade" id="quizModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quản lý Quiz - <span id="quizModalClassName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="quizModalBody">
+                <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
 <script>
 async function loadClasses(page = 0) {
     const res = await fetch(`/teacher/api/my-classes?page=${page}&size=10`);
@@ -59,7 +75,11 @@ async function loadClasses(page = 0) {
             <td>${c.schedule || ''} ${c.slotTime ? '- ' + c.slotTime : ''}</td>
             <td>${c.studentCount || 0}</td>
             <td>${c.numberOfSessions || 0}</td>
-            <td>${c.status || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-info rounded-pill" onclick="openQuizModal(${c.classId}, '${(c.className || '').replace(/'/g, "\\'")}')">
+                    <i class="bi bi-patch-question me-1"></i>Quiz
+                </button>
+            </td>
             <td class="text-end">
                 <a href="/teacher/sessions?classId=${c.classId}" class="btn btn-sm btn-outline-primary rounded-pill">
                     <i class="bi bi-calendar-event me-1"></i>Quản lý buổi học
@@ -77,6 +97,85 @@ async function loadClasses(page = 0) {
     html += `<li class="page-item ${page === totalPages - 1 ? 'disabled' : ''}"><button class="page-link" onclick="loadClasses(${page + 1})">Sau</button></li>`;
     pag.innerHTML = html;
 }
+
+async function openQuizModal(classId, className) {
+    document.getElementById('quizModalClassName').textContent = className;
+    document.getElementById('quizModalBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+    const modal = new bootstrap.Modal(document.getElementById('quizModal'));
+    modal.show();
+
+    try {
+        const res = await fetch(`/api/v1/teacher/quizzes/class/${classId}`);
+        const json = await res.json();
+        const body = document.getElementById('quizModalBody');
+
+        if (json.status !== 200 || !json.data || json.data.length === 0) {
+            body.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-patch-question fs-1 d-block mb-2"></i>Chưa có quiz nào cho lớp này.</div>';
+            return;
+        }
+
+        body.innerHTML = json.data.map(q => {
+            const isOpen = q.isOpen === true;
+            const toggleLabel = isOpen ? 'Đóng Quiz' : 'Mở Quiz';
+            const toggleClass = isOpen ? 'btn-warning' : 'btn-success';
+            const badge = isOpen
+                ? '<span class="badge bg-success"><i class="bi bi-unlock-fill me-1"></i>Đang mở</span>'
+                : '<span class="badge bg-secondary"><i class="bi bi-lock-fill me-1"></i>Đang đóng</span>';
+
+            return `
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="fw-bold mb-1">${q.title || 'Quiz không tên'}</h6>
+                            <div class="small text-muted">
+                                <i class="bi bi-list-task me-1"></i>${q.totalQuestions || 0} câu |
+                                <i class="bi bi-stopwatch me-1"></i>${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'} |
+                                Trạng thái: <span class="badge bg-info">${q.status}</span> ${badge}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm rounded-pill ${toggleClass} fw-bold"
+                                onclick="toggleQuizOpen(${q.quizId}, this)">
+                            <i class="bi ${isOpen ? 'bi-lock-fill' : 'bi-unlock-fill'} me-1"></i>${toggleLabel}
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        document.getElementById('quizModalBody').innerHTML =
+            '<div class="text-center text-danger py-4">Lỗi tải quiz. Vui lòng thử lại.</div>';
+    }
+}
+
+async function toggleQuizOpen(quizId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...';
+    try {
+        const res = await fetch(`/api/v1/teacher/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
+        const json = await res.json();
+        if (json.status === 200) {
+            const isOpen = json.data && json.data.isOpen === true;
+            btn.className = `btn btn-sm rounded-pill ${isOpen ? 'btn-warning' : 'btn-success'} fw-bold`;
+            btn.innerHTML = `<i class="bi ${isOpen ? 'bi-lock-fill' : 'bi-unlock-fill'} me-1"></i>${isOpen ? 'Đóng Quiz' : 'Mở Quiz'}`;
+            const card = btn.closest('.card');
+            const badge = card.querySelector('.badge.bg-success, .badge.bg-secondary');
+            if (badge) {
+                badge.className = isOpen ? 'badge bg-success' : 'badge bg-secondary';
+                badge.innerHTML = isOpen
+                    ? '<i class="bi bi-unlock-fill me-1"></i>Đang mở'
+                    : '<i class="bi bi-lock-fill me-1"></i>Đang đóng';
+            }
+        } else {
+            alert(json.message || 'Lỗi khi đổi trạng thái quiz');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('Lỗi kết nối!');
+        btn.disabled = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => loadClasses(0));
 </script>
 </body>

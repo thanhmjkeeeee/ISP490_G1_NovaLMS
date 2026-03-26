@@ -375,6 +375,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
                 .status(quiz.getStatus())
+                .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
                 .passScore(quiz.getPassScore())
                 .maxAttempts(quiz.getMaxAttempts())
