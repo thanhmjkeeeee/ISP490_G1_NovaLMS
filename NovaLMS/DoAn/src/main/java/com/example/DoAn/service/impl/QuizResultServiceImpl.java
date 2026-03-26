@@ -33,6 +33,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final LearningService learningService;
+    private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -43,6 +44,11 @@ public class QuizResultServiceImpl implements QuizResultService {
 
         if (!"PUBLISHED".equals(quiz.getStatus())) {
             throw new RuntimeException("Quiz is not published");
+        }
+
+        // Teacher đã publish nhưng chưa mở quiz cho học sinh
+        if (quiz.getIsOpen() == null || !quiz.getIsOpen()) {
+            throw new RuntimeException("Quiz hiện đang đóng. Vui lòng liên hệ giáo viên để mở quiz.");
         }
 
         if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
@@ -242,13 +248,29 @@ public class QuizResultServiceImpl implements QuizResultService {
     public QuizResultDetailDTO getQuizResult(Integer resultId, String email) {
         QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Result not found"));
         boolean isStudent = qr.getUser().getEmail().equals(email);
-        boolean isTeacher = qr.getQuiz().getUser() != null && qr.getQuiz().getUser().getEmail().equals(email);
-        
+
+        // Teacher có quyền xem nếu: tạo quiz HOẶC được gán lớp quiz HOẶC phụ trách course quiz (qua lớp khác)
+        Quiz quiz = qr.getQuiz();
+        boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
+        boolean isAssignedTeacher = quiz.getClazz() != null
+                && quiz.getClazz().getTeacher() != null
+                && quiz.getClazz().getTeacher().getEmail().equals(email);
+        boolean isCourseTeacher = false;
+        if (quiz.getCourse() != null && !isAssignedTeacher) {
+            User teacher = userRepository.findByEmail(email).orElse(null);
+            if (teacher != null) {
+                List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
+                isCourseTeacher = teacherClasses.stream()
+                        .anyMatch(c -> c.getCourse() != null
+                                && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+            }
+        }
+        boolean isTeacher = isCreator || isAssignedTeacher || isCourseTeacher;
+
         if (!isStudent && !isTeacher) {
             throw new RuntimeException("Unauthorized");
         }
 
-        Quiz quiz = qr.getQuiz();
         List<QuizAnswer> answers = qr.getQuizAnswers();
         boolean showAnswer = isTeacher || Boolean.TRUE.equals(quiz.getShowAnswerAfterSubmit());
 
@@ -330,7 +352,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional(readOnly = true)
     public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findByPassedIsNullAndQuiz_User_EmailOrderBySubmittedAtAsc(email, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findPendingGradingForTeacher(email, pageable);
 
         List<QuizResultPendingDTO> dtoList = resultPage.getContent().stream().map(qr -> QuizResultPendingDTO.builder()
                 .resultId(qr.getResultId())
@@ -393,8 +415,23 @@ public class QuizResultServiceImpl implements QuizResultService {
         QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Result not found"));
         Quiz quiz = qr.getQuiz();
 
-        if (quiz.getUser() == null || !quiz.getUser().getEmail().equals(email)) {
-            throw new RuntimeException("Unauthorized: Bạn không phải người tạo bài Quiz này");
+        // Cho phép teacher đã tạo quiz HOẶC teacher được phân công lớp HOẶC teacher phụ trách course của quiz (qua lớp khác)
+        boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
+        boolean isAssignedTeacher = quiz.getClazz() != null
+                && quiz.getClazz().getTeacher() != null
+                && quiz.getClazz().getTeacher().getEmail().equals(email);
+        boolean isCourseTeacher = false;
+        if (quiz.getCourse() != null && !isAssignedTeacher) {
+            User teacher = userRepository.findByEmail(email).orElse(null);
+            if (teacher != null) {
+                List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
+                isCourseTeacher = teacherClasses.stream()
+                        .anyMatch(c -> c.getCourse() != null
+                                && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+            }
+        }
+        if (!isCreator && !isAssignedTeacher && !isCourseTeacher) {
+            throw new RuntimeException("Unauthorized: Bạn không có quyền chấm bài Quiz này");
         }
 
         if (qr.getPassed() != null) {

@@ -34,16 +34,25 @@ public class StudentApiController {
      * For actual payment, use POST /api/v1/enroll-with-payment instead.
      */
     @PostMapping("/enroll")
-    public ResponseData<Integer> processEnroll(@Valid @RequestBody EnrollRequestDTO request, Principal principal) {
+    public ResponseData<?> processEnroll(@Valid @RequestBody EnrollRequestDTO request, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         ResponseData<Integer> result = studentService.enrollCourse(email, request);
-        // Override message to guide user to payment
+
         if (result.getStatus() == 200 || result.getStatus() == 201) {
             return new ResponseData<>(result.getStatus(),
                     "Đăng ký thành công! Vui lòng gọi POST /api/v1/enroll-with-payment để tạo link thanh toán PayOS.",
                     result.getData());
         }
+
+        // Nếu đã đăng ký rồi (status != Cancelled) → gợi ý retry thanh toán hoặc liên hệ admin
+        if (result.getStatus() == 400) {
+            return new ResponseData<>(result.getStatus(),
+                    "Bạn đã có đăng ký chờ xử lý cho lớp này. "
+                    + "Vui lòng thanh toán hoặc liên hệ quản trị viên để được hỗ trợ.",
+                    null);
+        }
+
         return result;
     }
 
