@@ -43,7 +43,7 @@
         const tbody = document.getElementById('enrollmentTableBody');
 
         // ── Payment-aware badge logic ──────────────────────────────────────
-        // priority: PAID > EXPIRED/FAILED/CANCELLED > PENDING > status-driven
+        // priority: PAID > PENDING > EXPIRED/FAILED/CANCELLED > status-driven
         const getStatusBadge = (status, paymentStatus, price) => {
             const isFree = !price || price <= 0;
             // Đã thanh toán thành công
@@ -56,6 +56,10 @@
             // Miễn phí — không cần thanh toán
             if (isFree && (status === 'Approved' || status === 'Submitted')) {
                 return '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-check-circle me-1"></i>Đã duyệt</span>';
+            }
+            // Đang chờ thanh toán PayOS — trước tiên hiển thị badge này
+            if (paymentStatus === 'PENDING') {
+                return '<span class="badge bg-info px-3 py-2 rounded-pill shadow-sm"><i class="bi bi-hourglass-split me-1"></i>Chờ thanh toán PayOS</span>';
             }
             // Thanh toán thất bại / hủy / hết hạn
             if (paymentStatus === 'FAILED') {
@@ -84,7 +88,6 @@
             const isFree = !reg.registrationPrice || reg.registrationPrice <= 0;
             const isPaid = reg.paymentStatus === 'PAID';
             const isApproved = reg.status === 'Approved';
-            const canRetry = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(reg.paymentStatus);
 
             // Đã duyệt → vào học
             if (isApproved && (isFree || isPaid)) {
@@ -92,14 +95,22 @@
                             <i class="bi bi-play-circle-fill me-1"></i> Vào học
                         </a>`;
             }
+            // Đang chờ thanh toán PayOS → nút "Thanh toán ngay"
+            if (reg.paymentStatus === 'PENDING') {
+                return `<button class="btn btn-sm btn-warning rounded-pill px-3 shadow-sm fw-bold"
+                                onclick="retryPayment(${reg.registrationId})">
+                            <i class="bi bi-credit-card me-1"></i> Thanh toán ngay
+                        </button>`;
+            }
             // Thanh toán thất bại / hết hạn / hủy → nút thử lại
+            const canRetry = ['FAILED', 'CANCELLED', 'EXPIRED'].includes(reg.paymentStatus);
             if (canRetry) {
                 return `<button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm"
                                 onclick="retryPayment(${reg.registrationId})">
                             <i class="bi bi-arrow-repeat me-1"></i> Thử lại thanh toán
                         </button>`;
             }
-            // Chờ duyệt
+            // Chờ duyệt (không phải thanh toán)
             return `<button class="btn btn-sm btn-light rounded-pill px-3 text-muted" disabled>
                         <i class="bi bi-hourglass-split me-1"></i> Chờ xử lý
                     </button>`;

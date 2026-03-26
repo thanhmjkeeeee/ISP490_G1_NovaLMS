@@ -133,6 +133,13 @@ public class PaymentController {
             } catch (NumberFormatException ignored) {}
 
             payosService.handlePaymentSuccess(paymentLinkId, orderCodeStr);
+
+            // Sync latest status from PayOS (in case webhook was delayed)
+            if (orderCodeStr != null) {
+                try {
+                    payosService.syncPaymentStatus(Long.parseLong(orderCodeStr));
+                } catch (Exception ignored) {}
+            }
         } catch (Exception e) {
             log.error("Error processing payment success return", e);
         }
