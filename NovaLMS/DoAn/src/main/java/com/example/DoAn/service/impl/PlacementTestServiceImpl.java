@@ -37,7 +37,35 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     @Override
     @Transactional(readOnly = true)
     public List<PlacementTestSummaryDTO> getAllPlacementTests() {
-        List<Quiz> quizzes = quizRepository.findByQuizCategoryAndStatus("ENTRY_TEST", "PUBLISHED");
+        return getPlacementTests(null, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PlacementTestSummaryDTO> getPlacementTests(String keyword, String skill) {
+        List<Quiz> quizzes;
+
+        if ((keyword == null || keyword.isBlank()) && (skill == null || skill.isBlank())) {
+            quizzes = quizRepository.findByQuizCategoryAndStatus("ENTRY_TEST", "PUBLISHED");
+        } else {
+            quizzes = quizRepository.findByQuizCategoryAndStatus("ENTRY_TEST", "PUBLISHED");
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = keyword.toLowerCase().trim();
+                quizzes = quizzes.stream()
+                        .filter(q -> (q.getTitle() != null && q.getTitle().toLowerCase().contains(kw))
+                                || (q.getDescription() != null && q.getDescription().toLowerCase().contains(kw)))
+                        .collect(Collectors.toList());
+            }
+            if (skill != null && !skill.isBlank()) {
+                quizzes = quizzes.stream()
+                        .filter(q -> q.getQuizQuestions() != null && q.getQuizQuestions().stream()
+                                .anyMatch(qq -> qq.getQuestion() != null
+                                        && qq.getQuestion().getSkill() != null
+                                        && qq.getQuestion().getSkill().equalsIgnoreCase(skill)))
+                        .collect(Collectors.toList());
+            }
+        }
+
         if (quizzes.isEmpty()) {
             return Collections.emptyList();
         }
