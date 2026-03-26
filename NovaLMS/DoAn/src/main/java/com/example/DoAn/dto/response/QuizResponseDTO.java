@@ -17,6 +17,7 @@ public class QuizResponseDTO {
     private Integer courseId;
     private String courseName;
     private String status;
+    private Boolean isOpen; // Teacher mở/đóng quiz cho học sinh
     private Integer timeLimitMinutes;
     private BigDecimal passScore;
     private Integer maxAttempts;

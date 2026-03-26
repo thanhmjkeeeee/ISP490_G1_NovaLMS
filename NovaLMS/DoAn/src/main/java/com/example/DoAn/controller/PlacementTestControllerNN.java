@@ -21,14 +21,30 @@ public class PlacementTestControllerNN {
     private final PlacementTestService placementTestService;
 
     @GetMapping("/placement-test")
-    public String showPlacementTestList(Model model) {
+    public String showPlacementTestList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String skill,
+            Model model) {
         try {
-            List<PlacementTestSummaryDTO> tests = placementTestService.getAllPlacementTests();
+            List<PlacementTestSummaryDTO> tests = placementTestService.getPlacementTests(keyword, skill);
             model.addAttribute("tests", tests);
             return "public/placement-test";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
             return "public/placement-test";
+        }
+    }
+
+    @GetMapping("/api/v1/public/placement-tests")
+    @ResponseBody
+    public ResponseEntity<?> getPlacementTestsApi(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String skill) {
+        try {
+            List<PlacementTestSummaryDTO> tests = placementTestService.getPlacementTests(keyword, skill);
+            return ResponseEntity.ok(Map.of("status", 200, "data", tests));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
         }
     }
 

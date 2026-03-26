@@ -161,13 +161,38 @@ public class PayosServiceImpl implements PayosService {
         Payment currentPayment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(null);
         String currentStatus = currentPayment != null ? currentPayment.getStatus() : registration.getStatus();
 
-        if ("PAID".equals(currentStatus) || "FREE".equals(registration.getStatus())) {
+        if ("PAID".equals(currentStatus)) {
             throw new RuntimeException("Đăng ký này đã được thanh toán.");
         }
+
+        // PENDING — vẫn còn link thanh toán → sync rồi trả về checkoutUrl
         if ("PENDING".equals(currentStatus)) {
-            throw new RuntimeException("Đăng ký đang chờ thanh toán. Vui lòng hoàn tất hoặc hủy trước.");
+            // Sync từ PayOS phòng trường hợp đã thanh toán rồi nhưng chưa cập nhật
+            try {
+                if (currentPayment.getPayosOrderCode() != null) {
+                    syncPaymentStatus(currentPayment.getPayosOrderCode());
+                    // Reload sau sync
+                    currentPayment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(currentPayment);
+                }
+            } catch (Exception ignored) {}
+
+            // Kiểm tra lại sau sync
+            if (currentPayment != null && "PAID".equals(currentPayment.getStatus())) {
+                throw new RuntimeException("Đăng ký này đã được thanh toán. Vui lòng kiểm tra trang Khóa học của tôi.");
+            }
+            if (currentPayment != null && currentPayment.getCheckoutUrl() != null) {
+                return PaymentLinkResponseDTO.builder()
+                        .registrationId(registrationId)
+                        .payosPaymentLinkId(currentPayment.getPayosPaymentLinkId())
+                        .checkoutUrl(currentPayment.getCheckoutUrl())
+                        .paymentUrl(currentPayment.getCheckoutUrl())
+                        .status("PENDING")
+                        .message("Link thanh toán hiện tại vẫn còn hiệu lực.")
+                        .build();
+            }
         }
 
+        // EXPIRED / FAILED / CANCELLED / Submitted — tạo payment link mới
         // Registration về Submitted để createPaymentLink tạo lại PENDING
         registration.setStatus("Submitted");
         registrationRepository.save(registration);
@@ -270,7 +295,17 @@ public class PayosServiceImpl implements PayosService {
             }
             paymentRepository.save(payment);
 
-            log.info("✅ Payment SUCCESS (chờ admin duyệt): paymentId={}, registrationId={}",
+            // Tự động duyệt đăng ký khi thanh toán thành công
+            Integer registrationId = payment.getRegistrationId();
+            if (registrationId != null) {
+                registrationRepository.findById(registrationId).ifPresent(reg -> {
+                    reg.setStatus("Approved");
+                    registrationRepository.save(reg);
+                    log.info("✅ Registration auto-approved: registrationId={}", registrationId);
+                });
+            }
+
+            log.info("✅ Payment SUCCESS + auto-approved: paymentId={}, registrationId={}",
                     payment.getId(), payment.getRegistrationId());
 
         } catch (Exception e) {
@@ -340,11 +375,21 @@ public class PayosServiceImpl implements PayosService {
 
             switch (payosStatus) {
                 case "PAID" -> {
-                    // Chỉ cập nhật Payment — admin tự duyệt
+                    // Cập nhật Payment + tự động duyệt đăng ký
                     payment.setStatus("PAID");
                     payment.setPaidAt(LocalDateTime.now());
                     paymentRepository.save(payment);
-                    log.info("✅ Synced PAID (chờ admin duyệt): paymentId={}", payment.getId());
+                    Integer registrationId = payment.getRegistrationId();
+                    if (registrationId != null) {
+                        registrationRepository.findById(registrationId).ifPresent(reg -> {
+                            if (!"Approved".equals(reg.getStatus())) {
+                                reg.setStatus("Approved");
+                                registrationRepository.save(reg);
+                                log.info("✅ Synced + auto-approved: paymentId={}, registrationId={}", payment.getId(), registrationId);
+                            }
+                        });
+                    }
+                    log.info("✅ Synced PAID + auto-approved: paymentId={}", payment.getId());
                 }
                 case "CANCELLED" -> {
                     if (!"CANCELLED".equals(payment.getStatus())) {

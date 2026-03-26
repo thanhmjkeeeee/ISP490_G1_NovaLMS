@@ -80,7 +80,7 @@
         alertBox.classList.add('d-none');
 
         try {
-            const response = await fetch('/api/v1/student/enroll', {
+            const response = await fetch('/api/v1/enroll-with-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -90,13 +90,25 @@
             });
             const result = await response.json();
 
-            if (result.status === 200) {
-                alertBox.className = 'alert alert-success';
-                alertBox.textContent = 'Đăng ký thành công! Đang chuyển hướng...';
-                alertBox.classList.remove('d-none');
-                setTimeout(() => {
-                    window.location.href = '/student/my-enrollments';
-                }, 1500);
+            if (result.status === 200 || result.status === 201) {
+                const data = result.data;
+                // Khóa miễn phí — đã duyệt tự động
+                if (data && data.status === 'APPROVED') {
+                    alertBox.className = 'alert alert-success';
+                    alertBox.textContent = 'Đăng ký thành công! Đang chuyển hướng...';
+                    alertBox.classList.remove('d-none');
+                    setTimeout(() => {
+                        window.location.href = '/student/my-courses';
+                    }, 1500);
+                    return;
+                }
+                // Khóa có phí — chuyển sang PayOS thanh toán
+                if (data && data.checkoutUrl) {
+                    window.location.href = data.checkoutUrl;
+                    return;
+                }
+                // Fallback — chuyển về danh sách đăng ký
+                window.location.href = '/student/my-enrollments';
             } else {
                 alertBox.className = 'alert alert-danger';
                 alertBox.textContent = result.message || 'Đăng ký thất bại!';

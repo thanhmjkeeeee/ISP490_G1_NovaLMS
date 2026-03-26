@@ -3,8 +3,10 @@ package com.example.DoAn.controller;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
 import com.example.DoAn.dto.response.PaymentLinkResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.model.Payment;
 import com.example.DoAn.model.Registration;
 import com.example.DoAn.model.User;
+import com.example.DoAn.repository.PaymentRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.PayosService;
@@ -38,6 +40,7 @@ public class EnrollmentController {
     private final PayosService payosService;
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
+    private final PaymentRepository paymentRepository;
 
     private String getEmail(Principal principal) {
         if (principal == null) return null;
@@ -70,7 +73,50 @@ public class EnrollmentController {
         }
         User user = optUser.get();
 
-        // Step 1: Create registration (status=PENDING, paymentStatus=null)
+        // ── Kiểm tra đăng ký đang chờ (PENDING/Submitted) — cho phép retry thanh toán ──
+        // Nếu user back trình duyệt rồi đăng ký lại, vẫn redirect về PayOS thay vì chặn
+        Optional<Registration> existingReg = registrationRepository
+                .findByUser_UserIdAndClazz_ClassIdAndStatusIn(
+                        user.getUserId(), request.getClassId(), java.util.List.of("PENDING", "Submitted"));
+        if (existingReg.isPresent()) {
+            Registration reg = existingReg.get();
+            // Sync PayOS trạng thái mới nhất
+            paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(reg.getRegistrationId())
+                    .ifPresent(payment -> {
+                        if ("PENDING".equals(payment.getStatus()) || "FAILED".equals(payment.getStatus())) {
+                            try {
+                                payosService.syncPaymentStatus(payment.getPayosOrderCode());
+                            } catch (Exception ignored) {}
+                        }
+                    });
+            // Tìm lại payment sau sync
+            Optional<Payment> syncedPayment = paymentRepository
+                    .findFirstByRegistrationIdOrderByCreatedAtDesc(reg.getRegistrationId());
+            if (syncedPayment.isPresent()) {
+                Payment p = syncedPayment.get();
+                if ("PAID".equals(p.getStatus())) {
+                    // Đã thanh toán rồi → thông báo
+                    return ResponseData.error(400, "Bạn đã thanh toán đăng ký này. Vui lòng kiểm tra trang Khóa học của tôi.");
+                }
+                if (p.getCheckoutUrl() != null && !"CANCELLED".equals(p.getStatus())) {
+                    // Vẫn còn link thanh toán → trả về redirect luôn
+                    return ResponseData.success("Đăng ký đang chờ thanh toán — đang chuyển hướng...", PaymentLinkResponseDTO.builder()
+                            .registrationId(reg.getRegistrationId())
+                            .checkoutUrl(p.getCheckoutUrl())
+                            .paymentUrl(p.getCheckoutUrl())
+                            .status("PENDING")
+                            .message("Đăng ký đang chờ thanh toán.")
+                            .build());
+                }
+            }
+            // Không có checkoutUrl hoặc đã hủy → cho đăng ký lại (xóa cái cũ)
+            reg.setStatus("Cancelled");
+            registrationRepository.save(reg);
+            log.info("Previous pending registration {} cancelled, allowing new enrollment for user {} class {}",
+                    reg.getRegistrationId(), email, request.getClassId());
+        }
+
+        // Step 1: Create registration
         ResponseData<Integer> enrollResult = studentService.enrollCourse(email, request);
         if (enrollResult.getStatus() != 200 && enrollResult.getStatus() != 201) {
             return ResponseData.error(enrollResult.getStatus(),

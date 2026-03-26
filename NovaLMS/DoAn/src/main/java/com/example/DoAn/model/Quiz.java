@@ -71,6 +71,10 @@ public class Quiz {
     @Column(name = "show_answer_after_submit")
     private Boolean showAnswerAfterSubmit;
 
+    // Teacher/Giáo viên mở/đóng quiz cho học sinh làm — độc lập với status DRAFT/PUBLISHED/ARCHIVED
+    @Column(name = "is_open")
+    private Boolean isOpen = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -87,6 +91,7 @@ public class Quiz {
         if (status == null) status = "DRAFT";
         if (questionOrder == null) questionOrder = "FIXED";
         if (showAnswerAfterSubmit == null) showAnswerAfterSubmit = false;
+        if (isOpen == null) isOpen = false;
     }
 
     @PreUpdate

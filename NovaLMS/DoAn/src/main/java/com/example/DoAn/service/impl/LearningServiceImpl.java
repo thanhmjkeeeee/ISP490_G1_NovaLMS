@@ -4,12 +4,8 @@ import com.example.DoAn.dto.response.CourseLearningInfoDTO;
 import com.example.DoAn.dto.response.ExpertLessonResponseDTO;
 import com.example.DoAn.dto.response.LessonResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
-import com.example.DoAn.model.Course;
-import com.example.DoAn.model.Lesson;
+import com.example.DoAn.model.*;
 import com.example.DoAn.model.Module;
-import com.example.DoAn.model.Registration;
-import com.example.DoAn.model.User;
-import com.example.DoAn.model.UserLesson;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.LessonRepository;
 import com.example.DoAn.repository.QuizRepository;
@@ -123,20 +119,24 @@ public class LearningServiceImpl implements LearningService {
             int progress = totalLessonsCount == 0 ? 0 : Math.round(((float) completedCount / totalLessonsCount) * 100);
             courseInfo.setProgressPercent(progress);
 
-            // Lấy quiz COURSE_QUIZ của khóa học
-            quizRepository.findFirstByCourseCourseIdAndQuizCategoryAndStatus(
+            // Lấy tất cả quiz COURSE_QUIZ đã publish của khóa học
+            List<CourseLearningInfoDTO.QuizInfoDTO> quizList = new ArrayList<>();
+            List<Quiz> publishedQuizzes = quizRepository.findAllByCourseCourseIdAndQuizCategoryAndStatus(
                     course.getCourseId(), "COURSE_QUIZ", "PUBLISHED"
-            ).ifPresent(quiz -> {
+            );
+            for (Quiz quiz : publishedQuizzes) {
                 long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quiz.getQuizId(), user.getUserId());
-                courseInfo.setCourseQuiz(CourseLearningInfoDTO.QuizInfoDTO.builder()
+                quizList.add(CourseLearningInfoDTO.QuizInfoDTO.builder()
                         .quizId(quiz.getQuizId())
                         .title(quiz.getTitle())
                         .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
                         .timeLimitMinutes(quiz.getTimeLimitMinutes())
                         .maxAttempts(quiz.getMaxAttempts())
                         .attemptCount((int) attemptCount)
+                        .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                         .build());
-            });
+            }
+            courseInfo.setQuizzes(quizList);
 
             return ResponseData.success("Thành công", courseInfo);
 
