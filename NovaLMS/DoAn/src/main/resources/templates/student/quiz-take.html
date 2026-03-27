@@ -5,8 +5,8 @@
 
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Bài Kiểm Tra', breadcrumb='Khóa học')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Bài Kiểm Tra', breadcrumb='Lớp học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
@@ -33,6 +33,8 @@
         <form id="quizForm" class="mb-5">
           <input type="hidden" id="quizId" th:value="${quiz.quizId}">
           <input type="hidden" id="timeLimitMinutes" th:value="${quiz.timeLimitMinutes}">
+          <input type="hidden" id="classId" th:value="${classId}">
+          <input type="hidden" id="sessionId" th:value="${sessionId}">
           
           <div th:each="question, stat : ${quiz.questions}" class="card shadow-sm border-0 mb-4 rounded-4 question-card">
             <div class="card-body p-4">
@@ -201,7 +203,14 @@
       const result = await response.json();
       
       if (response.ok) {
-        window.location.href = `/student/quiz/result/${result.resultId}`;
+        const classId = document.getElementById('classId') ? document.getElementById('classId').value : null;
+        const sessionId = document.getElementById('sessionId') ? document.getElementById('sessionId').value : null;
+        let resultUrl = `/student/quiz/result/${result.resultId}`;
+        const params = [];
+        if (classId) params.push('classId=' + classId);
+        if (sessionId) params.push('sessionId=' + sessionId);
+        if (params.length > 0) resultUrl += '?' + params.join('&');
+        window.location.href = resultUrl;
       } else {
         alert("Lỗi nộp bài: " + (result.message || 'Unknown error'));
       }

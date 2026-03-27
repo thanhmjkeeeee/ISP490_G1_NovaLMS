@@ -49,6 +49,9 @@ public class ClassSession {
     @JoinColumn(name = "quiz_id")
     private Quiz quiz;
 
+    @Column(name = "materials", columnDefinition = "TEXT")
+    private String materials;
+
     @PrePersist
     protected void onCreate() {
         if (sessionNumber == null) sessionNumber = 1;

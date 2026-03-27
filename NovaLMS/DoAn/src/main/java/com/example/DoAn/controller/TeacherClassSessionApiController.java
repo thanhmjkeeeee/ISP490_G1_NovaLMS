@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -84,5 +85,112 @@ public class TeacherClassSessionApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return sessionService.deleteSession(email, sessionId);
+    }
+
+    // ─────────────────────────────────────────────
+    //  MULTI-QUIZ MANAGEMENT
+    // ─────────────────────────────────────────────
+
+    /**
+     * Gắn quiz vào session.
+     * POST /api/v1/teacher/class-sessions/{sessionId}/quizzes
+     * Body: { "quizId": 123 }
+     */
+    @PostMapping("/{sessionId}/quizzes")
+    public ResponseData<?> addQuizToSession(
+            @PathVariable Integer sessionId,
+            @RequestBody Map<String, Integer> body,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        Integer quizId = body.get("quizId");
+        if (quizId == null) return ResponseData.error(400, "quizId is required");
+        return sessionService.addQuizToSession(email, sessionId, quizId);
+    }
+
+    /**
+     * Xóa quiz khỏi session.
+     * DELETE /api/v1/teacher/class-sessions/{sessionId}/quizzes/{quizId}
+     */
+    @DeleteMapping("/{sessionId}/quizzes/{quizId}")
+    public ResponseData<Void> removeQuizFromSession(
+            @PathVariable Integer sessionId,
+            @PathVariable Integer quizId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.removeQuizFromSession(email, sessionId, quizId);
+    }
+
+    /**
+     * Toggle mở/đóng 1 quiz trong session.
+     * PATCH /api/v1/teacher/class-sessions/{sessionId}/quizzes/{quizId}/toggle-open
+     */
+    @PatchMapping("/{sessionId}/quizzes/{quizId}/toggle-open")
+    public ResponseData<?> toggleQuizOpenInSession(
+            @PathVariable Integer sessionId,
+            @PathVariable Integer quizId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.toggleQuizOpenInSession(email, sessionId, quizId);
+    }
+
+    /**
+     * Mở tất cả quiz trong session.
+     * PATCH /api/v1/teacher/class-sessions/{sessionId}/quizzes/open-all
+     */
+    @PatchMapping("/{sessionId}/quizzes/open-all")
+    public ResponseData<?> openAllQuizzesInSession(
+            @PathVariable Integer sessionId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.openAllQuizzesInSession(email, sessionId);
+    }
+
+    /**
+     * Đóng tất cả quiz trong session.
+     * PATCH /api/v1/teacher/class-sessions/{sessionId}/quizzes/close-all
+     */
+    @PatchMapping("/{sessionId}/quizzes/close-all")
+    public ResponseData<?> closeAllQuizzesInSession(
+            @PathVariable Integer sessionId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.closeAllQuizzesInSession(email, sessionId);
+    }
+
+    // ─────────────────────────────────────────────
+    //  MATERIALS (FILE UPLOAD)
+    // ─────────────────────────────────────────────
+
+    /**
+     * Upload file tài liệu cho session.
+     * POST /api/v1/teacher/class-sessions/{sessionId}/materials
+     */
+    @PostMapping("/{sessionId}/materials")
+    public ResponseData<?> uploadMaterials(
+            @PathVariable Integer sessionId,
+            @RequestParam("files") List<MultipartFile> files,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.uploadMaterials(email, sessionId, files);
+    }
+
+    /**
+     * Xóa file tài liệu khỏi session.
+     * DELETE /api/v1/teacher/class-sessions/{sessionId}/materials/{filename}
+     */
+    @DeleteMapping("/{sessionId}/materials/{filename}")
+    public ResponseData<?> deleteMaterial(
+            @PathVariable Integer sessionId,
+            @PathVariable String filename,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.deleteMaterial(email, sessionId, filename);
     }
 }
