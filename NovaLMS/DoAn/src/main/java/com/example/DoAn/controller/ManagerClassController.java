@@ -79,4 +79,18 @@ public class ManagerClassController {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
+
+    @Operation(summary = "Get available slot times by teacher and schedule")
+    @GetMapping("/available-slots")
+    public ResponseData<java.util.List<String>> getAvailableSlots(
+            @RequestParam Integer teacherId,
+            @RequestParam String schedule,
+            @RequestParam(required = false) Integer excludeClassId) {
+        try {
+            java.util.List<String> slots = classService.getAvailableSlotTimes(teacherId, schedule, excludeClassId);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", slots);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
 }

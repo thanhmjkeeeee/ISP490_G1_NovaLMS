@@ -211,9 +211,11 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                     <a href="/admin/courses/detail/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="View">
                         <i class="bi bi-eye text-primary"></i>
                     </a>
-                    <button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Delete">
-                        <i class="bi bi-trash text-danger"></i>
-                    </button>
+                    ${(!course.registrationCount || course.registrationCount === 0)
+                        ? `<button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Delete">
+                               <i class="bi bi-trash text-danger"></i>
+                           </button>`
+                        : ''}
                 </td>
             </tr>
         `;
