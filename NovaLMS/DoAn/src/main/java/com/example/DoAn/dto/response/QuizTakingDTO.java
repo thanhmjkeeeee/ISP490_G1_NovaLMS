@@ -14,4 +14,6 @@ public class QuizTakingDTO {
     private Integer totalQuestions;
     private String questionOrder;
     private List<QuizQuestionPayloadDTO> questions;
+    private Integer classId; // dùng để redirect về lớp học sau khi submit
+    private Integer sessionId; // dùng để auto-open modal session khi redirect về class
 }

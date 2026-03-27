@@ -35,6 +35,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final LearningService learningService;
     private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
+    private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,12 +44,47 @@ public class QuizResultServiceImpl implements QuizResultService {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
 
         if (!"PUBLISHED".equals(quiz.getStatus())) {
-            throw new RuntimeException("Quiz is not published");
+            throw new RuntimeException("Quiz chưa được xuất bản");
         }
 
-        // Teacher đã publish nhưng chưa mở quiz cho học sinh
-        if (quiz.getIsOpen() == null || !quiz.getIsOpen()) {
-            throw new RuntimeException("Quiz hiện đang đóng. Vui lòng liên hệ giáo viên để mở quiz.");
+        // Tìm classId và sessionId để redirect đúng
+        // Ưu tiên lấy từ session_quiz (buổi học N:N) — luôn đúng cho quiz gắn buổi học
+        // Fallback sang quiz.getClazz() cho quiz gắn class trực tiếp
+        Integer classId = null;
+        Integer sessionId = null;
+
+        List<com.example.DoAn.model.SessionQuiz> sqList = sessionQuizRepository.findAllByQuizId(quizId);
+        if (!sqList.isEmpty()) {
+            // Quiz có trong session_quiz
+            // Tìm session mà user ĐANG ĐĂNG KÝ và quiz ĐANG MỞ
+            com.example.DoAn.model.SessionQuiz openSq = sqList.stream()
+                    .filter(sq -> Boolean.TRUE.equals(sq.getIsOpen()))
+                    .filter(sq -> {
+                        // Chỉ cho phép nếu quiz mở trong session thuộc class mà user đã đăng ký
+                        if (sq.getSession() == null || sq.getSession().getClazz() == null) return false;
+                        Integer clazzId = sq.getSession().getClazz().getClassId();
+                        return registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                                user.getUserId(), clazzId);
+                    })
+                    .findFirst()
+                    .orElse(null);
+
+            if (openSq != null) {
+                // Quiz đang mở trong session thuộc lớp user đã đăng ký
+                classId = openSq.getSession().getClazz().getClassId();
+                sessionId = openSq.getSession().getSessionId();
+            } else {
+                // Quiz không mở ở session nào mà user đã đăng ký
+                throw new RuntimeException("Quiz hiện đang đóng. Vui lòng liên hệ giáo viên để mở quiz.");
+            }
+        } else if (quiz.getClazz() != null) {
+            // Không có session_quiz → quiz gắn class trực tiếp → dùng quiz.getClazz()
+            classId = quiz.getClazz().getClassId();
+            // Kiểm tra quiz.isOpen
+            boolean quizOpen = Boolean.TRUE.equals(quiz.getIsOpen());
+            if (!quizOpen) {
+                throw new RuntimeException("Quiz hiện đang đóng. Vui lòng liên hệ giáo viên để mở quiz.");
+            }
         }
 
         if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
@@ -120,6 +156,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .totalQuestions(quizQuestions.size())
                 .questionOrder(quiz.getQuestionOrder())
                 .questions(questionsDTO)
+                .classId(classId)
+                .sessionId(sessionId)
                 .build();
     }
 

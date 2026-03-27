@@ -19,6 +19,7 @@ public class StudentClassService {
     private final QuizRepository quizRepository;
     private final QuizResultRepository quizResultRepository;
     private final UserRepository userRepository;
+    private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
 
     @Transactional(readOnly = true)
     public ResponseData<List<MyClassDTO>> getMyClasses(String email) {
@@ -80,12 +81,44 @@ public class StudentClassService {
             // Sessions — gắn quiz info vào mỗi session
             List<ClassSession> sessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
             List<ClassSessionDTO> sessionDTOs = sessions.stream().map(s -> {
-                Quiz quiz = s.getQuiz();
-                Integer quizId = quiz != null ? quiz.getQuizId() : null;
-                List<QuizResult> quizResults = resultsByQuiz.getOrDefault(quizId, List.of());
-                boolean hasAttempted = !quizResults.isEmpty();
-                int attemptCount = quizResults.size();
-                Integer bestScore = quizResults.stream()
+                // Lấy quizzes từ session_quiz table (N:1)
+                List<com.example.DoAn.model.SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionIdOrderByOrderIndexAsc(s.getSessionId());
+
+                // Build quiz info per session
+                List<SessionQuizInfoDTO> quizInfoList = sqList.stream().map(sq -> {
+                    Quiz q = sq.getQuiz();
+                    List<QuizResult> qResults = resultsByQuiz.getOrDefault(q.getQuizId(), List.of());
+                    boolean qHasAttempted = !qResults.isEmpty();
+                    int qAttemptCount = qResults.size();
+                    Integer qBestScore = qResults.stream()
+                            .map(QuizResult::getScore)
+                            .filter(Objects::nonNull)
+                            .max(Integer::compareTo)
+                            .orElse(null);
+                    return SessionQuizInfoDTO.builder()
+                            .quizId(q.getQuizId())
+                            .title(q.getTitle())
+                            .description(q.getDescription())
+                            .timeLimitMinutes(q.getTimeLimitMinutes())
+                            .passScore(q.getPassScore())
+                            .maxAttempts(q.getMaxAttempts())
+                            .status(q.getStatus())
+                            .isOpen(sq.getIsOpen())
+                            .hasAttempted(qHasAttempted)
+                            .attemptCount(qAttemptCount)
+                            .bestScore(qBestScore != null ? java.math.BigDecimal.valueOf(qBestScore) : null)
+                            .build();
+                }).toList();
+
+                boolean allOpen = !quizInfoList.isEmpty() && quizInfoList.stream()
+                        .allMatch(qi -> Boolean.TRUE.equals(qi.getIsOpen()));
+
+                // Legacy single quiz support
+                Quiz legacyQuiz = s.getQuiz();
+                Integer legacyQuizId = legacyQuiz != null ? legacyQuiz.getQuizId() : null;
+                List<QuizResult> legacyResults = legacyQuizId != null ? resultsByQuiz.getOrDefault(legacyQuizId, List.of()) : List.of();
+                boolean legacyHasAttempted = !legacyResults.isEmpty();
+                Integer legacyBestScore = legacyResults.stream()
                         .map(QuizResult::getScore)
                         .filter(Objects::nonNull)
                         .max(Integer::compareTo)
@@ -99,16 +132,20 @@ public class StudentClassService {
                         .endTime(s.getEndTime())
                         .topic(s.getTopic())
                         .notes(s.getNotes())
-                        .quizId(quizId)
-                        .quizTitle(quiz != null ? quiz.getTitle() : null)
-                        .quizDescription(quiz != null ? quiz.getDescription() : null)
-                        .timeLimitMinutes(quiz != null ? quiz.getTimeLimitMinutes() : null)
-                        .passScore(quiz != null ? quiz.getPassScore() : null)
-                        .maxAttempts(quiz != null ? quiz.getMaxAttempts() : null)
-                        .quizStatus(quiz != null ? quiz.getStatus() : null)
-                        .hasAttempted(hasAttempted)
-                        .attemptCount(attemptCount)
-                        .bestScore(bestScore != null ? java.math.BigDecimal.valueOf(bestScore) : null)
+                        .quizzes(quizInfoList)
+                        .isAllOpen(allOpen)
+                        // Legacy fields (for backward compat)
+                        .legacyQuizId(legacyQuizId)
+                        .quizId(legacyQuizId)
+                        .quizTitle(legacyQuiz != null ? legacyQuiz.getTitle() : null)
+                        .quizDescription(legacyQuiz != null ? legacyQuiz.getDescription() : null)
+                        .timeLimitMinutes(legacyQuiz != null ? legacyQuiz.getTimeLimitMinutes() : null)
+                        .passScore(legacyQuiz != null ? legacyQuiz.getPassScore() : null)
+                        .maxAttempts(legacyQuiz != null ? legacyQuiz.getMaxAttempts() : null)
+                        .quizStatus(legacyQuiz != null ? legacyQuiz.getStatus() : null)
+                        .hasAttempted(legacyHasAttempted)
+                        .attemptCount(legacyResults.size())
+                        .bestScore(legacyBestScore != null ? java.math.BigDecimal.valueOf(legacyBestScore) : null)
                         .build();
             }).toList();
 

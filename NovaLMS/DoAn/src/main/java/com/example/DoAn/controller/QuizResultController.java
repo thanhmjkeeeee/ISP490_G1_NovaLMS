@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 
@@ -26,13 +27,19 @@ public class QuizResultController {
     }
 
     @GetMapping("/student/quiz/result/{resultId}")
-    public String showQuizResult(@PathVariable Integer resultId, Model model, Principal principal) {
+    public String showQuizResult(
+            @PathVariable Integer resultId,
+            @RequestParam(required = false) Integer classId,
+            @RequestParam(required = false) Integer sessionId,
+            Model model, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return "redirect:/login.html";
 
         try {
             QuizResultDetailDTO result = quizResultService.getQuizResult(resultId, email);
             model.addAttribute("result", result);
+            model.addAttribute("classId", classId);
+            model.addAttribute("sessionId", sessionId);
             return "student/quiz-result";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());

@@ -28,4 +28,10 @@ public class ClassSessionDTO {
     private Boolean hasAttempted;
     private Integer attemptCount;
     private BigDecimal bestScore;
+
+    // Multi-quiz support (from session_quiz table)
+    private java.util.List<SessionQuizInfoDTO> quizzes;
+    private Boolean isAllOpen;
+    // Legacy single quiz (kept for backward compatibility with old data)
+    private Integer legacyQuizId;
 }

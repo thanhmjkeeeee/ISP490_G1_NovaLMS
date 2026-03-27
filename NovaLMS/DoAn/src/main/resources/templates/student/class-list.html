@@ -243,8 +243,6 @@
     // ======== SESSIONS GRID (3 columns) ========
     const renderSessions = (sessions) => {
         const container = document.getElementById('sessionsContainer');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
         if (sessions.length === 0) {
             container.innerHTML = `
@@ -260,14 +258,30 @@
 
         let html = '';
         sessions.forEach(s => {
-            const sessionDate = s.sessionDate ? new Date(s.sessionDate) : null;
-            const isPast = sessionDate && sessionDate < today;
-            const bgColor = isPast ? '#3B82F6' : '#EC4899'; // blue = past, pink = upcoming
-            const textColor = '#fff';
-            const borderColor = isPast ? '#2563EB' : '#DB2777';
+            // Multi-quiz: check if ALL quizzes in this session are completed (hasAttempted=true)
+            const quizzes = s.quizzes || [];
+            const hasAnyQuiz = quizzes.length > 0;
+            const allCompleted = hasAnyQuiz && quizzes.every(q => q.hasAttempted === true);
+            // Legacy: also check single quiz
+            const legacyCompleted = !hasAnyQuiz && s.hasAttempted === true;
+
+            const isCompleted = allCompleted || legacyCompleted;
+            const bgColor = isCompleted ? '#16A34A' : '#3B82F6'; // green = completed, blue = not done
+            const borderColor = isCompleted ? '#15803D' : '#2563EB';
 
             const dateStr = s.sessionDate ? formatDate(s.sessionDate) : '—';
             const timeStr = s.startTime ? `${s.startTime}${s.endTime ? ' - ' + s.endTime : ''}` : '—';
+
+            // Badge: quiz count or icon
+            let badge = '';
+            if (hasAnyQuiz) {
+                const completedCount = quizzes.filter(q => q.hasAttempted === true).length;
+                if (completedCount === quizzes.length && quizzes.length > 0) {
+                    badge = `<span class="badge bg-light text-success rounded-pill small ms-1"><i class="bi bi-check-circle-fill"></i> Hoàn thành</span>`;
+                } else {
+                    badge = `<span class="badge bg-light text-dark rounded-pill small ms-1"><i class="bi bi-patch-question"></i> ${quizzes.length} quiz</span>`;
+                }
+            }
 
             html += `
                 <div class="col-md-6 col-lg-4">
@@ -275,7 +289,7 @@
                          style="background:${bgColor}; border: 2px solid ${borderColor}; cursor:pointer;"
                          onclick="openSessionModal(${s.sessionId}, '${escapeHtml(s.topic || 'Buổi ' + s.sessionNumber)}')"
                          title="Click để xem bài tập">
-                        <div class="fs-5 mb-1">Buổi ${s.sessionNumber}</div>
+                        <div class="fs-5 mb-1">Buổi ${s.sessionNumber}${badge}</div>
                         <div class="small opacity-75">${dateStr}</div>
                         <div class="small opacity-75">${timeStr}</div>
                         ${s.topic ? `<div class="small mt-1 opacity-90">${s.topic}</div>` : ''}
@@ -286,17 +300,31 @@
     };
 
     // ======== SESSION QUIZ MODAL ========
-    const openSessionModal = (sessionId, sessionTopic) => {
-        // Find session data from current class detail
+    const openSessionModal = async (sessionId, sessionTopic) => {
+        // Refresh sessions data from server to get latest quiz status
+        if (currentClassId) {
+            try {
+                const res = await fetch(`/api/v1/student/classes/${currentClassId}`);
+                const json = await res.json();
+                if (json.status === 200 && json.data) {
+                    window._currentSessions = json.data.sessions || [];
+                    renderSessions(window._currentSessions);
+                }
+            } catch (e) { /* ignore, use cached sessions */ }
+        }
+
         const allSessions = window._currentSessions || [];
         const session = allSessions.find(s => s.sessionId === sessionId);
         if (!session) return;
 
         document.getElementById('modalSessionTitle').textContent = sessionTopic;
-
         const body = document.getElementById('modalSessionBody');
 
-        if (!session.quizId) {
+        // Multi-quiz: use session.quizzes array
+        const quizzes = session.quizzes || [];
+        const hasLegacyQuiz = session.quizId && quizzes.length === 0;
+
+        if (quizzes.length === 0 && !hasLegacyQuiz) {
             body.innerHTML = `
                 <div class="text-center py-4">
                     <i class="bi bi-inbox fs-1 text-muted"></i>
@@ -304,32 +332,77 @@
                     <p class="text-muted small">Giảng viên sẽ cập nhật bài tập sau</p>
                 </div>`;
         } else {
-            const canTake = session.quizStatus === 'PUBLISHED';
-            const scoreStr = session.bestScore !== null ? `<span class="text-success fw-bold">Điểm cao nhất: ${session.bestScore}%</span>` : '';
+            let html = '';
+            // Render multi-quiz list
+            if (quizzes.length > 0) {
+                quizzes.forEach((q, idx) => {
+                    const isPublished = q.status === 'PUBLISHED';
+                    const canTake = isPublished && q.isOpen === true;
+                    const scoreStr = q.bestScore !== null ? `<span class="text-success fw-bold">Điểm cao nhất: ${q.bestScore}%</span>` : '';
+                    const attemptBadge = q.hasAttempted ? `<span class="badge bg-success bg-opacity-10 text-success border border-success mb-2">Đã làm ${q.attemptCount} lần</span>` : '';
+                    const openBadge = !q.hasAttempted ? (isPublished ? (q.isOpen ? `<span class="badge bg-success bg-opacity-10 text-success border mb-2"><i class="bi bi-unlock me-1"></i>Đang mở</span>` : `<span class="badge bg-secondary mb-2"><i class="bi bi-lock me-1"></i>Đang đóng</span>`) : '') : '';
+                    const disabledReason = !isPublished
+                        ? 'Quiz chưa được publish'
+                        : (q.isOpen === false ? 'Quiz đang đóng' : 'Quiz chưa mở');
 
-            body.innerHTML = `
-                <div class="mb-3">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-patch-question me-1 text-primary"></i>${session.quizTitle || 'Bài kiểm tra'}</h6>
-                    ${session.quizDescription ? `<p class="text-muted small mb-2">${session.quizDescription}</p>` : ''}
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        ${session.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>${session.timeLimitMinutes} phút</span>` : ''}
-                        ${session.passScore ? `<span class="badge bg-light text-dark border"><i class="bi bi-trophy me-1"></i>Điểm đạt: ${session.passScore}%</span>` : ''}
-                        ${session.maxAttempts ? `<span class="badge bg-light text-dark border"><i class="bi bi-repeat me-1"></i>Tối đa ${session.maxAttempts} lần</span>` : ''}
-                    </div>
-                    ${session.hasAttempted ? `<div class="mb-3"><span class="badge bg-success bg-opacity-10 text-success border border-success">Đã làm ${session.attemptCount} lần</span> ${scoreStr}</div>` : ''}
-                </div>
-                ${canTake ? `
-                    <a href="/student/quiz/take/${session.quizId}" class="btn btn-primary rounded-pill w-100 shadow-sm">
-                        <i class="bi bi-play-fill me-1"></i>${session.hasAttempted ? 'Làm lại bài' : 'Làm bài kiểm tra'}
-                    </a>
-                ` : `
-                    <button class="btn btn-light rounded-pill w-100 text-muted" disabled>
-                        <i class="bi bi-lock me-1"></i>Bài kiểm tra chưa mở
-                    </button>
-                `}
+                    html += `
+                    <div class="mb-3 ${idx > 0 ? 'border-top pt-3 mt-3' : ''}">
+                        <h6 class="fw-bold mb-1"><i class="bi bi-patch-question me-1 text-primary"></i>${q.title || 'Bài kiểm tra'}</h6>
+                        ${q.description ? `<p class="text-muted small mb-2">${q.description}</p>` : ''}
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            ${q.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>${q.timeLimitMinutes} phút</span>` : ''}
+                            ${q.passScore ? `<span class="badge bg-light text-dark border"><i class="bi bi-trophy me-1"></i>Đạt: ${q.passScore}%</span>` : ''}
+                            ${q.maxAttempts ? `<span class="badge bg-light text-dark border"><i class="bi bi-repeat me-1"></i>Tối đa ${q.maxAttempts} lần</span>` : ''}
+                        </div>
+                        ${attemptBadge}
+                        ${q.hasAttempted ? scoreStr : ''}
+                        ${!q.hasAttempted ? openBadge : ''}
+                        ${canTake ? `
+                            <a href="/student/quiz/take/${q.quizId}?classId=${currentClassId}&sessionId=${sessionId}" class="btn btn-primary rounded-pill w-100 shadow-sm mt-2">
+                                <i class="bi bi-play-fill me-1"></i>${q.hasAttempted ? 'Làm lại bài' : 'Làm bài kiểm tra'}
+                            </a>
+                        ` : `
+                            <button class="btn btn-light rounded-pill w-100 text-muted mt-2" disabled title="${disabledReason}">
+                                <i class="bi bi-lock me-1"></i>${disabledReason}
+                            </button>
+                        `}
+                    </div>`;
+                });
+            }
+
+            // Legacy single quiz fallback (backward compat)
+            if (hasLegacyQuiz) {
+                const canTake = session.quizStatus === 'PUBLISHED';
+                const scoreStr = session.bestScore !== null ? `<span class="text-success fw-bold">Điểm cao nhất: ${session.bestScore}%</span>` : '';
+                html += `
+                    <div class="${quizzes.length > 0 ? 'border-top pt-3 mt-3' : ''}">
+                        <h6 class="fw-bold mb-1"><i class="bi bi-patch-question me-1 text-secondary"></i>${session.quizTitle || 'Bài kiểm tra'}</h6>
+                        ${session.quizDescription ? `<p class="text-muted small mb-2">${session.quizDescription}</p>` : ''}
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            ${session.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>${session.timeLimitMinutes} phút</span>` : ''}
+                            ${session.passScore ? `<span class="badge bg-light text-dark border"><i class="bi bi-trophy me-1"></i>Đạt: ${session.passScore}%</span>` : ''}
+                            ${session.maxAttempts ? `<span class="badge bg-light text-dark border"><i class="bi bi-repeat me-1"></i>Tối đa ${session.maxAttempts} lần</span>` : ''}
+                        </div>
+                        ${session.hasAttempted ? `<span class="badge bg-success bg-opacity-10 text-success border border-success mb-2">Đã làm ${session.attemptCount} lần</span>` : ''}
+                        ${session.hasAttempted ? scoreStr : ''}
+                        ${canTake ? `
+                            <a href="/student/quiz/take/${session.quizId}?classId=${currentClassId}&sessionId=${sessionId}" class="btn btn-primary rounded-pill w-100 shadow-sm mt-2">
+                                <i class="bi bi-play-fill me-1"></i>${session.hasAttempted ? 'Làm lại bài' : 'Làm bài kiểm tra'}
+                            </a>
+                        ` : `
+                            <button class="btn btn-light rounded-pill w-100 text-muted mt-2" disabled>
+                                <i class="bi bi-lock me-1"></i>Bài kiểm tra chưa mở
+                            </button>
+                        `}
+                    </div>`;
+            }
+
+            html += `
                 <div class="text-center mt-3">
                     <a href="/student/quiz" class="text-decoration-none small text-muted">Xem lịch sử bài kiểm tra</a>
                 </div>`;
+
+            body.innerHTML = html;
         }
 
         sessionModal.show();
@@ -395,7 +468,33 @@
         await _originalOpenClass(classId);
     };
 
-    document.addEventListener('DOMContentLoaded', fetchClasses);
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchClasses();
+
+        // Auto-open session modal if query params are present (e.g., after quiz submission)
+        const params = new URLSearchParams(window.location.search);
+        const openSessionId = params.get('openSession');
+        const autoClassId = params.get('classId');
+
+        if (openSessionId) {
+            const openSession = parseInt(openSessionId);
+            const targetClassId = autoClassId ? parseInt(autoClassId) : null;
+            if (targetClassId) {
+                openClass(targetClassId).then(() => {
+                    setTimeout(() => {
+                        const sessions = window._currentSessions || [];
+                        const session = sessions.find(s => s.sessionId === openSession);
+                        if (session) {
+                            const topic = session.topic || 'Buổi ' + session.sessionNumber;
+                            openSessionModal(openSession, topic);
+                        }
+                    }, 400);
+                });
+            }
+        } else if (autoClassId) {
+            openClass(parseInt(autoClassId));
+        }
+    });
 </script>
 
 </body>

@@ -35,6 +35,8 @@ public class StudentQuizTakingController {
         try {
             QuizTakingDTO dto = quizResultService.getQuizForTaking(quizId, email);
             model.addAttribute("quiz", dto);
+            model.addAttribute("classId", dto.getClassId());
+            model.addAttribute("sessionId", dto.getSessionId());
             return "student/quiz-take";
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
