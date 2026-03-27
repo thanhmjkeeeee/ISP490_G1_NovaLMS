@@ -224,6 +224,83 @@
   const isEditMode = path.includes('/edit/');
   const isCreateMode = path === '/manager/class/create';
   const isDetailMode = path.includes('/detail/');
+  const ALL_SLOT_TIMES = [
+      'Sáng (7:00 - 9:00)',
+      'Sáng (9:00 - 11:00)',
+      'Chiều (13:00 - 15:00)',
+      'Chiều (15:00 - 17:00)',
+      'Tối (18:00 - 20:00)'
+  ];
+
+  function renderSlotOptions(slots, selectedSlot = '') {
+      const slotSelect = document.getElementById('slotTime');
+      if (!slotSelect) return;
+
+      const safeSlots = (slots && slots.length > 0) ? slots : ALL_SLOT_TIMES;
+      slotSelect.innerHTML = '<option value="">-- Chọn ca học --</option>';
+      safeSlots.forEach(slot => {
+          const option = document.createElement('option');
+          option.value = slot;
+          option.textContent = slot;
+          if (selectedSlot && slot.toLowerCase() === selectedSlot.toLowerCase()) {
+              option.selected = true;
+          }
+          slotSelect.appendChild(option);
+      });
+  }
+
+  async function fetchAvailableSlots(selectedSlot = '') {
+      const teacherId = document.getElementById('teacherId').value;
+      const schedule = document.getElementById('schedule').value.trim();
+
+      if (!teacherId || !schedule) {
+          renderSlotOptions(ALL_SLOT_TIMES, selectedSlot);
+          return;
+      }
+
+      try {
+          const excludeClassId = classId ? `&excludeClassId=${classId}` : '';
+          const res = await fetch(`/api/v1/classes/available-slots?teacherId=${encodeURIComponent(teacherId)}&schedule=${encodeURIComponent(schedule)}${excludeClassId}`);
+          const result = await res.json();
+          if (result.status === 200) {
+              renderSlotOptions(result.data || [], selectedSlot);
+          } else {
+              renderSlotOptions(ALL_SLOT_TIMES, selectedSlot);
+          }
+      } catch (err) {
+          console.error('Error loading available slots:', err);
+          renderSlotOptions(ALL_SLOT_TIMES, selectedSlot);
+      }
+  }
+
+  function bindScheduleTeacherEvents() {
+      const teacherEl = document.getElementById('teacherId');
+      const scheduleEl = document.getElementById('schedule');
+      if (!teacherEl || !scheduleEl) return;
+
+      teacherEl.addEventListener('change', () => fetchAvailableSlots());
+      scheduleEl.addEventListener('blur', () => fetchAvailableSlots());
+      scheduleEl.addEventListener('change', () => fetchAvailableSlots());
+  }
+
+  function setupDateConstraints() {
+      const startDateEl = document.getElementById('startDate');
+      const endDateEl = document.getElementById('endDate');
+      if (!startDateEl || !endDateEl) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const minDate = today.toISOString().split('T')[0];
+
+      startDateEl.setAttribute('min', minDate);
+      endDateEl.setAttribute('min', minDate);
+
+      startDateEl.addEventListener('change', () => {
+          if (startDateEl.value) {
+              endDateEl.setAttribute('min', startDateEl.value < minDate ? minDate : startDateEl.value);
+          }
+      });
+  }
 
   console.log('Path:', path);
   console.log('classId:', classId, 'isEditMode:', isEditMode, 'isCreateMode:', isCreateMode, 'isDetailMode:', isDetailMode);
@@ -232,13 +309,21 @@
       if (isCreateMode) {
           // Create mode - show empty form
           showFormMode(false);
+          renderSlotOptions(ALL_SLOT_TIMES);
           loadCourses();
           loadTeachers();
+          bindScheduleTeacherEvents();
+          setupDateConstraints();
+          setupDateConstraints();
       } else if (isEditMode && classId) {
           // Edit mode - show form with data (isEdit = true), NO detail view
           showFormMode(true);
+          renderSlotOptions(ALL_SLOT_TIMES);
           loadCourses();
           loadTeachers();
+          bindScheduleTeacherEvents();
+          setupDateConstraints();
+          setupDateConstraints();
           loadClassDetailForEdit();
       } else if (isDetailMode && classId) {
           // Detail mode - show detail view
@@ -382,7 +467,7 @@
       document.getElementById('className').value = data.className;
       document.getElementById('classStatus').value = data.status;
       document.getElementById('schedule').value = data.schedule;
-      document.getElementById('slotTime').value = data.slotTime;
+      await fetchAvailableSlots(data.slotTime);
       if (data.numberOfSessions) {
           document.getElementById('numberOfSessions').value = data.numberOfSessions;
       }
@@ -399,14 +484,17 @@
       document.getElementById('pageTitle').innerText = 'Chỉnh sửa lớp học';
 
       // Set selected values for dropdowns after courses/teachers loaded
-      setTimeout(() => {
+      setTimeout(async () => {
           if (data.courseId) {
               const courseSelect = document.getElementById('courseId');
               if (courseSelect) courseSelect.value = data.courseId;
           }
           if (data.teacherId) {
               const teacherSelect = document.getElementById('teacherId');
-              if (teacherSelect) teacherSelect.value = data.teacherId;
+              if (teacherSelect) {
+                  teacherSelect.value = data.teacherId;
+                  await fetchAvailableSlots(data.slotTime);
+              }
           }
       }, 500);
   }
@@ -525,6 +613,21 @@
 
       if (!endDate) {
           setError('endDate', 'Vui lòng chọn ngày kết thúc.');
+          hasError = true;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDateObj = startDate ? new Date(startDate + 'T00:00:00') : null;
+      const endDateObj = endDate ? new Date(endDate + 'T00:00:00') : null;
+
+      if (startDateObj && startDateObj < today) {
+          setError('startDate', 'Ngày khai giảng không được ở quá khứ.');
+          hasError = true;
+      }
+
+      if (endDateObj && endDateObj < today) {
+          setError('endDate', 'Ngày kết thúc không được ở quá khứ.');
           hasError = true;
       }
 

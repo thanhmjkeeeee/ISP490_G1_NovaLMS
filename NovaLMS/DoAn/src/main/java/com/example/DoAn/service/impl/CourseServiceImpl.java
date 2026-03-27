@@ -7,6 +7,7 @@ import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Setting;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.ICourseService;
@@ -28,6 +29,7 @@ import java.util.List;
 public class CourseServiceImpl implements ICourseService {
 
     private final CourseRepository courseRepository;
+    private final RegistrationRepository registrationRepository;
     private final SettingRepository settingRepository;
     private final UserRepository userRepository;
 
@@ -113,6 +115,10 @@ public class CourseServiceImpl implements ICourseService {
 
     @Override
     public void deleteCourse(Integer id) {
+        long registrationCount = registrationRepository.countByCourse_CourseId(id);
+        if (registrationCount > 0) {
+            throw new RuntimeException("Không thể xóa khóa học đã có học viên đăng ký");
+        }
         courseRepository.deleteById(id);
         log.info("Course deleted successfully, id={}", id);
     }
@@ -162,6 +168,7 @@ public class CourseServiceImpl implements ICourseService {
                 .categoryName(course.getCategory() != null ? course.getCategory().getName() : null)
                 .expertId(course.getExpert() != null ? course.getExpert().getUserId() : null)
                 .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
+                .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
                 .build();
     }
 }

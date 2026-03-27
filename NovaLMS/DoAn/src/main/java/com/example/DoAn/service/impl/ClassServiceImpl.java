@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,14 +40,93 @@ import org.springframework.data.jpa.domain.Specification;
 @RequiredArgsConstructor
 public class ClassServiceImpl implements IClassService {
 
+    private static final List<String> ALL_SLOT_TIMES = List.of(
+            "Sáng (7:00 - 9:00)",
+            "Sáng (9:00 - 11:00)",
+            "Chiều (13:00 - 15:00)",
+            "Chiều (15:00 - 17:00)",
+            "Tối (18:00 - 20:00)"
+    );
+
     private final ClassRepository classRepository;
     private final ClassSessionRepository classSessionRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
 
     @Override
+    public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId) {
+        if (teacherId == null || schedule == null || schedule.isBlank()) {
+            return ALL_SLOT_TIMES;
+        }
+
+        List<Clazz> existingClasses = classRepository.findByTeacherAndSchedule(teacherId, schedule.trim(), excludeClassId);
+        List<String> occupied = existingClasses.stream()
+                .map(Clazz::getSlotTime)
+                .filter(s -> s != null && !s.isBlank())
+                .map(this::normalizeSlot)
+                .toList();
+
+        return ALL_SLOT_TIMES.stream()
+                .filter(slot -> !occupied.contains(normalizeSlot(slot)))
+                .toList();
+    }
+
+    private String normalizeSlot(String slot) {
+        return slot == null ? "" : slot.trim().toLowerCase();
+    }
+
+    private void validateClassRequest(ClassRequestDTO request, Integer excludeClassId) {
+        LocalDateTime startDate = parseDateTime(request.getStartDate(), "Ngày khai giảng không hợp lệ");
+        LocalDateTime endDate = parseDateTime(request.getEndDate(), "Ngày kết thúc không hợp lệ");
+
+        LocalDate today = LocalDate.now();
+        if (startDate.toLocalDate().isBefore(today)) {
+            throw new RuntimeException("Ngày khai giảng không được ở quá khứ");
+        }
+        if (endDate.toLocalDate().isBefore(today)) {
+            throw new RuntimeException("Ngày kết thúc không được ở quá khứ");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new RuntimeException("Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng");
+        }
+
+        if (request.getTeacherId() != null && request.getSchedule() != null && !request.getSchedule().isBlank()) {
+            List<String> availableSlots = getAvailableSlotTimes(request.getTeacherId(), request.getSchedule(), excludeClassId);
+            if (!availableSlots.stream().map(this::normalizeSlot).toList().contains(normalizeSlot(request.getSlotTime()))) {
+                throw new RuntimeException("Giáo viên đã có lớp trùng lịch học và ca học");
+            }
+        }
+    }
+
+    private LocalDateTime parseDateTime(String value, String errorMessage) {
+        if (value == null || value.isBlank()) {
+            throw new RuntimeException(errorMessage);
+        }
+        try {
+            return LocalDateTime.parse(value);
+        } catch (DateTimeParseException ex) {
+            throw new RuntimeException(errorMessage);
+        }
+    }
+
+    private String normalizeHourMinute(String time) {
+        if (time == null || time.isBlank()) return time;
+        String[] parts = time.split(":");
+        if (parts.length != 2) return time;
+        try {
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            return String.format("%02d:%02d", hour, minute);
+        } catch (NumberFormatException ex) {
+            return time;
+        }
+    }
+
+    @Override
     @Transactional
     public Integer saveClass(ClassRequestDTO request) {
+        validateClassRequest(request, null);
+
         Clazz clazz = Clazz.builder()
                 .className(request.getClassName())
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
@@ -137,15 +217,15 @@ public class ClassServiceImpl implements IClassService {
         Pattern p = Pattern.compile("(\\d{1,2}:\\d{2})\\s*-\\s*(\\d{1,2}:\\d{2})");
         Matcher m = p.matcher(slotTime);
         if (m.find()) {
-            return isStart ? m.group(1) : m.group(2);
+            return normalizeHourMinute(isStart ? m.group(1) : m.group(2));
         }
         // Thử format "18:00 - 20:00"
         p = Pattern.compile("(\\d{1,2}:\\d{2})");
         java.util.regex.Matcher m2 = p.matcher(slotTime);
         if (m2.find()) {
-            String start = m2.group(1);
+            String start = normalizeHourMinute(m2.group(1));
             if (m2.find()) {
-                return isStart ? start : m2.group(1);
+                return isStart ? start : normalizeHourMinute(m2.group(1));
             }
             return start;
         }
@@ -228,6 +308,8 @@ public class ClassServiceImpl implements IClassService {
     @Override
     @Transactional
     public void updateClass(Integer id, ClassRequestDTO request) {
+        validateClassRequest(request, id);
+
         Clazz clazz = classRepository.findById(id).orElseThrow(() -> new RuntimeException("Class not found"));
 
         clazz.setClassName(request.getClassName());

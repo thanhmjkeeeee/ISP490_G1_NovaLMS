@@ -72,6 +72,9 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("status") String status
     );
 
+    @Query("SELECT COUNT(r) FROM Registration r WHERE r.course.courseId = :courseId")
+    long countByCourse_CourseId(@Param("courseId") Integer courseId);
+
     // Tìm đăng ký đang chờ (PENDING/Submitted) — cho phép retry thanh toán khi user back trình duyệt
     @Query("SELECT r FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status IN :statuses")
     Optional<Registration> findByUser_UserIdAndClazz_ClassIdAndStatusIn(
