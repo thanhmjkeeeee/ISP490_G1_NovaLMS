@@ -24,4 +24,8 @@ public interface ClassRepository extends JpaRepository<Clazz, Integer>, JpaSpeci
             @Param("schedule") String schedule,
             @Param("excludeClassId") Integer excludeClassId
     );
+
+    boolean existsByClassNameIgnoreCaseAndClassIdNot(String className, Integer classId);
+
+    boolean existsByClassNameIgnoreCase(String className);
 }

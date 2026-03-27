@@ -11,7 +11,7 @@
     .info-value { font-weight: 700; color: #1e293b; font-size: 1rem; }
     .st-badge { padding: 5px 15px; border-radius: 50px; font-weight: 800; font-size: 11px; text-transform: uppercase; }
     .st-Open { background: #d1e7dd; color: #0f5132; }
-    .st-Pending { background: #fff3cd; color: #856404; }
+    .st-Draft { background: #fff3cd; color: #856404; }
     .st-Closed { background: #f8d7da; color: #842029; }
   </style>
 </head>
@@ -73,9 +73,8 @@
             <div class="col-md-6">
               <label class="form-label small fw-bold text-secondary text-uppercase">Trạng thái <span class="text-danger">*</span></label>
               <select id="classStatus" class="form-select" required>
-                <option value="Pending">Chờ duyệt</option>
-                <option value="Open">Mở</option>
-                <option value="Closed">Đóng</option>
+                <option value="Draft">Nháp</option>
+                <option value="Open">Mở (Open)</option>
               </select>
               <div id="classStatusError" class="text-danger small mt-1"></div>
             </div>
@@ -87,8 +86,8 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày kết thúc <span class="text-danger">*</span></label>
-              <input type="date" id="endDate" class="form-control" required>
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ngày kết thúc <span class="text-success">(tự động tính)</span></label>
+              <input type="date" id="endDate" class="form-control" readonly>
               <div id="endDateError" class="text-danger small mt-1"></div>
             </div>
 
@@ -283,6 +282,112 @@
       scheduleEl.addEventListener('change', () => fetchAvailableSlots());
   }
 
+  // Auto-calculate endDate based on schedule + numberOfSessions + startDate
+  function parseScheduleDays(schedule) {
+      if (!schedule) return [];
+      const days = [];
+      const normalized = schedule.toLowerCase()
+          .replace(/thứ\s*/g, '')
+          .replace(/cn|chủ nhật|chunhat|sunday/g, '7')
+          .replace(/t2|thứ 2|thứ2|monday/g, '1')
+          .replace(/t3|thứ 3|thứ3|tuesday/g, '2')
+          .replace(/t4|thứ 4|thứ4|wednesday/g, '3')
+          .replace(/t5|thứ 5|thứ5|thursday/g, '4')
+          .replace(/t6|thứ 6|thứ6|friday/g, '5')
+          .replace(/t7|thứ 7|thứ7|saturday/g, '6');
+
+      // Handle range syntax like "3-5" (meaning 3,4,5) or dash-separated like "3-5-7"
+      const rangeParts = normalized.split(/,\s*/);
+      for (const part of rangeParts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+          // Check if it's a range "3-5" or "3-5-7"
+          if (/^\d+-\d+$/.test(trimmed)) {
+              const [start, end] = trimmed.split('-').map(Number);
+              for (let d = start; d <= end; d++) {
+                  if (d >= 1 && d <= 7 && !days.includes(d)) days.push(d);
+              }
+          } else if (/^\d+-\d+-\d+$/.test(trimmed)) {
+              // "3-5-7" = [3, 5, 7] (concrete days separated by dashes)
+              const nums = trimmed.split('-').map(Number);
+              for (const n of nums) {
+                  if (n >= 1 && n <= 7 && !days.includes(n)) days.push(n);
+              }
+          } else {
+              const n = parseInt(trimmed);
+              if (n >= 1 && n <= 7 && !days.includes(n)) days.push(n);
+          }
+      }
+      return days.sort((a, b) => a - b);
+  }
+
+  function calculateEndDate() {
+      const scheduleEl = document.getElementById('schedule');
+      const startDateEl = document.getElementById('startDate');
+      const numSessionsEl = document.getElementById('numberOfSessions');
+      const endDateEl = document.getElementById('endDate');
+
+      if (!scheduleEl || !startDateEl || !numSessionsEl || !endDateEl) return;
+
+      const schedule = scheduleEl.value.trim();
+      const startDateStr = startDateEl.value;
+      const numSessions = parseInt(numSessionsEl.value);
+
+      if (!schedule || !startDateStr || !numSessions || numSessions <= 0) {
+          return;
+      }
+
+      const weekdays = parseScheduleDays(schedule);
+      if (weekdays.length === 0) return;
+
+      // JS getDay(): 0=Sun, 1=Mon ... 6=Sat
+      // Our weekdays: 1=Mon ... 7=Sun (so convert: 0→7, keep 1-6)
+      const toWeekday = (d) => d === 0 ? 7 : d;
+
+      const startDate = new Date(startDateStr + 'T00:00:00');
+      if (isNaN(startDate.getTime())) return;
+
+      let current = new Date(startDate);
+      let sessionsLeft = numSessions;
+      const maxDays = numSessions * 14;
+
+      for (let i = 0; i < maxDays && sessionsLeft > 0; i++) {
+          const currentDow = toWeekday(current.getDay());
+          if (weekdays.includes(currentDow)) {
+              sessionsLeft--;
+              if (sessionsLeft === 0) {
+                  const y = current.getFullYear();
+                  const m = String(current.getMonth() + 1).padStart(2, '0');
+                  const d = String(current.getDate()).padStart(2, '0');
+                  endDateEl.value = `${y}-${m}-${d}`;
+                  return;
+              }
+          }
+          current.setDate(current.getDate() + 1);
+      }
+  }
+
+  function bindAutoEndDate() {
+      const scheduleEl = document.getElementById('schedule');
+      const startDateEl = document.getElementById('startDate');
+      const numSessionsEl = document.getElementById('numberOfSessions');
+
+      if (scheduleEl) {
+          scheduleEl.addEventListener('input', calculateEndDate);
+          scheduleEl.addEventListener('change', calculateEndDate);
+      }
+      if (startDateEl) {
+          startDateEl.addEventListener('change', calculateEndDate);
+      }
+      if (numSessionsEl) {
+          numSessionsEl.addEventListener('input', calculateEndDate);
+          numSessionsEl.addEventListener('change', calculateEndDate);
+      }
+
+      // Trigger once in case fields were pre-filled
+      setTimeout(calculateEndDate, 100);
+  }
+
   function setupDateConstraints() {
       const startDateEl = document.getElementById('startDate');
       const endDateEl = document.getElementById('endDate');
@@ -313,7 +418,7 @@
           loadCourses();
           loadTeachers();
           bindScheduleTeacherEvents();
-          setupDateConstraints();
+          bindAutoEndDate();
           setupDateConstraints();
       } else if (isEditMode && classId) {
           // Edit mode - show form with data (isEdit = true), NO detail view
@@ -322,7 +427,7 @@
           loadCourses();
           loadTeachers();
           bindScheduleTeacherEvents();
-          setupDateConstraints();
+          bindAutoEndDate();
           setupDateConstraints();
           loadClassDetailForEdit();
       } else if (isDetailMode && classId) {
@@ -434,14 +539,16 @@
                   className: d.className || d.class_name || '',
                   courseId: d.courseId,
                   teacherId: d.teacherId,
-                  status: d.status || 'Pending',
+                  status: d.status || 'Draft',
                   schedule: d.schedule || '',
                   slotTime: d.slotTime || d.slot_time || '',
                   startDate: d.startDate || d.start_date,
                   endDate: d.endDate || d.end_date,
                   courseName: d.courseName || d.course_name || 'N/A',
                   teacherName: d.teacherName || d.teacher_name || 'Chưa phân công',
-                  registrations: d.registrations || []
+                  registrations: d.registrations || [],
+                  meetLink: d.meetLink || d.meet_link || '',
+                  numberOfSessions: d.numberOfSessions || d.number_of_sessions || null
               };
 
               return window.classData;
@@ -471,6 +578,9 @@
       if (data.numberOfSessions) {
           document.getElementById('numberOfSessions').value = data.numberOfSessions;
       }
+      if (data.meetLink) {
+          document.getElementById('meetLink').value = data.meetLink;
+      }
 
       // Format dates
       if (data.startDate) {
@@ -478,6 +588,11 @@
       }
       if (data.endDate) {
           document.getElementById('endDate').value = data.endDate.split('T')[0];
+      }
+
+      // If class is Open, lock form — only status change allowed
+      if (data.status === 'Open') {
+          lockClassFormFields();
       }
 
       // Set page title
@@ -557,6 +672,30 @@
       return isNaN(d.getTime()) ? str : d.toLocaleDateString('vi-VN');
   }
 
+  // Lock form fields when class is already Open:
+  // - readOnly: className, startDate, endDate, schedule, numberOfSessions, meetLink
+  // - disabled: courseId, teacherId, slotTime
+  // - status dropdown: KEEP EDITABLE
+  function lockClassFormFields() {
+      const readOnlyFields = ['className', 'startDate', 'endDate', 'schedule', 'numberOfSessions', 'meetLink'];
+      readOnlyFields.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.readOnly = true;
+      });
+      ['courseId', 'teacherId', 'slotTime'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = true;
+      });
+
+      // Show notice
+      const notice = document.createElement('div');
+      notice.id = 'formLockedNotice';
+      notice.className = 'alert alert-warning mt-3';
+      notice.innerHTML = '<i class="bi bi-lock me-1"></i> Lớp học đang <strong>Mở</strong> — chỉ có thể thay đổi trạng thái. Liên hệ admin để chỉnh sửa thông tin khác.';
+      const formSection = document.getElementById('classFormSection');
+      if (formSection) formSection.prepend(notice);
+  }
+
   function goToEdit() {
       if (classId) {
           window.location.href = `/manager/class/edit/${classId}`;
@@ -611,23 +750,12 @@
           hasError = true;
       }
 
-      if (!endDate) {
-          setError('endDate', 'Vui lòng chọn ngày kết thúc.');
-          hasError = true;
-      }
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const startDateObj = startDate ? new Date(startDate + 'T00:00:00') : null;
-      const endDateObj = endDate ? new Date(endDate + 'T00:00:00') : null;
 
       if (startDateObj && startDateObj < today) {
           setError('startDate', 'Ngày khai giảng không được ở quá khứ.');
-          hasError = true;
-      }
-
-      if (endDateObj && endDateObj < today) {
-          setError('endDate', 'Ngày kết thúc không được ở quá khứ.');
           hasError = true;
       }
 
@@ -645,6 +773,28 @@
       if (!numberOfSessionsVal || numberOfSessionsVal <= 0) {
           setError('numberOfSessions', 'Vui lòng nhập số buổi học (>= 1).');
           hasError = true;
+      } else {
+          // Auto-calculate endDate before validation
+          calculateEndDate();
+      }
+
+      // Validate endDate after auto-calculation
+      const endDateAfterCalc = document.getElementById('endDate').value;
+      if (!endDateAfterCalc) {
+          setError('endDate', 'Không thể tự động tính ngày kết thúc. Vui lòng kiểm tra lịch học và số buổi.');
+          hasError = true;
+      }
+
+      const endDateObj = endDateAfterCalc ? new Date(endDateAfterCalc + 'T00:00:00') : null;
+
+      if (endDateObj && endDateObj < today) {
+          setError('endDate', 'Ngày kết thúc không được ở quá khứ.');
+          hasError = true;
+      }
+
+      if (endDateObj && startDateObj && endDateObj < startDateObj) {
+          setError('endDate', 'Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng.');
+          hasError = true;
       }
 
       if (!meetLink) {
@@ -652,11 +802,6 @@
           hasError = true;
       } else if (!/^https:\/\/(meet\.google\.com|.+)$/i.test(meetLink)) {
           setError('meetLink', 'Link meet phải bắt đầu bằng https://');
-          hasError = true;
-      }
-
-      if (startDate && endDate && endDate < startDate) {
-          setError('endDate', 'Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng.');
           hasError = true;
       }
 
@@ -676,10 +821,11 @@
           teacherId: document.getElementById('teacherId').value ? parseInt(document.getElementById('teacherId').value) : null,
           status: document.getElementById('classStatus').value,
           startDate: formatDateTime(startDate),
-          endDate: formatDateTime(endDate),
+          endDate: formatDateTime(endDateAfterCalc),
           schedule: document.getElementById('schedule').value,
           slotTime: document.getElementById('slotTime').value,
-          numberOfSessions: numberOfSessionsVal
+          numberOfSessions: numberOfSessionsVal,
+          meetLink: meetLink
       };
 
       try {
