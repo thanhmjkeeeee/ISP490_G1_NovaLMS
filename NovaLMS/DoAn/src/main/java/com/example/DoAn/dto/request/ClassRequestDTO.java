@@ -25,4 +25,5 @@ public class ClassRequestDTO implements Serializable {
     private String schedule;
     private String slotTime;
     private Integer numberOfSessions;
+    private String meetLink;
 }

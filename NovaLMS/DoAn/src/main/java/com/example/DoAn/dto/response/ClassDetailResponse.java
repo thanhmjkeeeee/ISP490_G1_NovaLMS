@@ -20,5 +20,6 @@ public class ClassDetailResponse {
     private String schedule;
     private String slotTime;
     private Integer numberOfSessions;
+    private String meetLink;
     private List<RegistrationResponseDTO> registrations;
 }

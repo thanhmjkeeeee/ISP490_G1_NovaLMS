@@ -77,17 +77,35 @@ public class ClassServiceImpl implements IClassService {
 
     private void validateClassRequest(ClassRequestDTO request, Integer excludeClassId) {
         LocalDateTime startDate = parseDateTime(request.getStartDate(), "Ngày khai giảng không hợp lệ");
-        LocalDateTime endDate = parseDateTime(request.getEndDate(), "Ngày kết thúc không hợp lệ");
 
         LocalDate today = LocalDate.now();
         if (startDate.toLocalDate().isBefore(today)) {
             throw new RuntimeException("Ngày khai giảng không được ở quá khứ");
         }
-        if (endDate.toLocalDate().isBefore(today)) {
-            throw new RuntimeException("Ngày kết thúc không được ở quá khứ");
+
+        // endDate có thể null — sẽ tự tính từ số buổi + lịch học
+        if (request.getEndDate() != null && !request.getEndDate().isBlank()) {
+            LocalDateTime endDate = parseDateTime(request.getEndDate(), "Ngày kết thúc không hợp lệ");
+            if (endDate.toLocalDate().isBefore(today)) {
+                throw new RuntimeException("Ngày kết thúc không được ở quá khứ");
+            }
+            if (endDate.isBefore(startDate)) {
+                throw new RuntimeException("Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng");
+            }
         }
-        if (endDate.isBefore(startDate)) {
-            throw new RuntimeException("Ngày kết thúc phải lớn hơn hoặc bằng ngày khai giảng");
+
+        // Validate trùng tên lớp học
+        if (request.getClassName() != null && !request.getClassName().isBlank()) {
+            boolean exists;
+            if (excludeClassId != null) {
+                exists = classRepository.existsByClassNameIgnoreCaseAndClassIdNot(
+                        request.getClassName().trim(), excludeClassId);
+            } else {
+                exists = classRepository.existsByClassNameIgnoreCase(request.getClassName().trim());
+            }
+            if (exists) {
+                throw new RuntimeException("Tên lớp học đã tồn tại. Vui lòng chọn tên khác.");
+            }
         }
 
         if (request.getTeacherId() != null && request.getSchedule() != null && !request.getSchedule().isBlank()) {
@@ -127,16 +145,28 @@ public class ClassServiceImpl implements IClassService {
     public Integer saveClass(ClassRequestDTO request) {
         validateClassRequest(request, null);
 
+        LocalDateTime startDate = parseDateTime(request.getStartDate(), "Ngày khai giảng không hợp lệ");
+        LocalDateTime endDate = null;
+        // Tính endDate tự động từ số buổi + lịch học nếu chưa có
+        if (request.getEndDate() != null && !request.getEndDate().isBlank()) {
+            endDate = parseDateTime(request.getEndDate(), "Ngày kết thúc không hợp lệ");
+        } else if (request.getSchedule() != null && !request.getSchedule().isBlank()
+                && request.getSlotTime() != null && !request.getSlotTime().isBlank()
+                && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
+            endDate = calculateEndDate(request.getSchedule(), request.getStartDate(), request.getNumberOfSessions());
+        }
+
         Clazz clazz = Clazz.builder()
                 .className(request.getClassName())
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
                 .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null)
-                .startDate(request.getStartDate() != null && !request.getStartDate().isEmpty() ? LocalDateTime.parse(request.getStartDate()) : null)
-                .endDate(request.getEndDate() != null && !request.getEndDate().isEmpty() ? LocalDateTime.parse(request.getEndDate()) : null)
+                .startDate(startDate)
+                .endDate(endDate)
                 .status(request.getStatus() != null ? request.getStatus() : "Pending")
                 .schedule(request.getSchedule())
                 .slotTime(request.getSlotTime())
                 .numberOfSessions(request.getNumberOfSessions())
+                .meetLink(request.getMeetLink())
                 .build();
         classRepository.save(clazz);
 
@@ -150,7 +180,6 @@ public class ClassServiceImpl implements IClassService {
                     request.getStartDate(), request.getNumberOfSessions());
             if (!sessions.isEmpty()) {
                 classSessionRepository.saveAll(sessions);
-                log.info("Created {} sessions for class {}", sessions.size(), clazz.getClassName());
             }
         }
 
@@ -209,6 +238,37 @@ public class ClassServiceImpl implements IClassService {
         }
 
         return sessions;
+    }
+
+    /** Tính ngày kết thúc dựa trên số buổi và lịch học */
+    private LocalDateTime calculateEndDate(String schedule, String startDateStr, Integer numberOfSessions) {
+        if (schedule == null || schedule.isBlank() || startDateStr == null
+                || startDateStr.isBlank() || numberOfSessions == null || numberOfSessions <= 0) {
+            return null;
+        }
+
+        List<DayOfWeekInfo> weekdays = parseScheduleDays(schedule);
+        if (weekdays.isEmpty()) return null;
+
+        LocalDate startDate = LocalDate.parse(startDateStr.substring(0, 10));
+        LocalDate current = startDate;
+        int maxDays = numberOfSessions * 14;
+
+        for (int i = 0; i < maxDays && numberOfSessions > 0; i++) {
+            int currentDow = current.getDayOfWeek().getValue();
+            if (containsDow(weekdays, currentDow)) {
+                numberOfSessions--;
+                if (numberOfSessions == 0) {
+                    return current.atTime(23, 59);
+                }
+            }
+            current = current.plusDays(1);
+        }
+        return current.atTime(23, 59);
+    }
+
+    private boolean containsDow(List<DayOfWeekInfo> list, int dow) {
+        return list.stream().anyMatch(d -> d.targetDow == dow);
     }
 
     /** Trích xuất giờ bắt đầu hoặc kết thúc từ slotTime như "Tối (18:00 - 20:00)" */
@@ -295,10 +355,6 @@ public class ClassServiceImpl implements IClassService {
         return result;
     }
 
-    private boolean containsDow(List<DayOfWeekInfo> list, int dow) {
-        return list.stream().anyMatch(d -> d.targetDow == dow);
-    }
-
     private static class DayOfWeekInfo {
         int targetDow;
         String matched;
@@ -319,10 +375,15 @@ public class ClassServiceImpl implements IClassService {
         if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
             clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
         }
-        if (request.getEndDate() != null && !request.getEndDate().isEmpty()) {
+        if (request.getEndDate() != null && !request.getEndDate().isBlank()) {
             clazz.setEndDate(LocalDateTime.parse(request.getEndDate()));
+        } else if (request.getSchedule() != null && !request.getSchedule().isBlank()
+                && request.getSlotTime() != null && !request.getSlotTime().isBlank()
+                && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
+            clazz.setEndDate(calculateEndDate(request.getSchedule(), request.getStartDate(), request.getNumberOfSessions()));
         }
 
+        clazz.setMeetLink(request.getMeetLink());
         clazz.setStatus(request.getStatus());
         clazz.setSchedule(request.getSchedule());
         clazz.setSlotTime(request.getSlotTime());
@@ -430,6 +491,7 @@ public class ClassServiceImpl implements IClassService {
                 .schedule(clazz.getSchedule() != null ? clazz.getSchedule() : "N/A")
                 .slotTime(clazz.getSlotTime() != null ? clazz.getSlotTime() : "N/A")
                 .numberOfSessions(clazz.getNumberOfSessions())
+                .meetLink(clazz.getMeetLink())
                 .registrations(registrationDTOs)
                 .build();
     }
