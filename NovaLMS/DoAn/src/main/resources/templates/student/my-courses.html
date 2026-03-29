@@ -1,51 +1,75 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Khóa học của tôi')}"></head>
+<head th:replace="~{fragments/head :: common-head(pageTitle='Khóa học của tôi')}">
+</head>
 
-<body class="dashboard-body">
+<body class="dashboard-body bg-light">
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Khóa học của tôi', breadcrumb='Học tập')}"></header>
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<main class="dash-main d-flex flex-column" id="dashMain">
-  <div class="row g-4">
-    <div class="col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 p-4">
-        <h5 class="fw-bold mb-3">Danh mục</h5>
-        <div class="form-check mb-2">
-          <input class="form-check-input filter-input" type="radio" name="categoryId" value="" id="catAll" checked>
-          <label class="form-check-label" for="catAll">Tất cả danh mục</label>
-        </div>
-        <div class="form-check mb-2">
-          <input class="form-check-input filter-input" type="radio" name="categoryId" value="101" id="catIelts">
-          <label class="form-check-label" for="catIelts">IELTS</label>
-        </div>
-        <div class="form-check mb-2">
-          <input class="form-check-input filter-input" type="radio" name="categoryId" value="102" id="catToeic">
-          <label class="form-check-label" for="catToeic">TOEIC</label>
+<main class="dash-main d-flex flex-column py-4" id="dashMain">
+  <div class="container-fluid">
+    <div class="row g-4 align-items-start">
+
+      <div class="col-lg-3 align-self-start">
+        <div class="filter-card card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 80px;">
+          <h5 class="fw-bold mb-3 text-primary d-flex align-items-center gap-2 border-bottom pb-3">
+            <i class="bi bi-funnel-fill"></i> Danh mục khóa học
+          </h5>
+
+          <div class="filter-group d-flex flex-column gap-2 mt-3">
+            <div class="filter-option">
+              <input class="filter-radio d-none" type="radio" name="categoryId" value="" id="catAll" checked>
+              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catAll">
+
+                <span>Tất cả</span>
+              </label>
+            </div>
+
+            <div class="filter-option">
+              <input class="filter-radio d-none" type="radio" name="categoryId" value="101" id="catIelts">
+              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catIelts">
+
+                <span>IELTS</span>
+              </label>
+            </div>
+
+            <div class="filter-option">
+              <input class="filter-radio d-none" type="radio" name="categoryId" value="102" id="catToeic">
+              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catToeic">
+                <span>TOEIC</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="col-lg-9">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="input-group w-50 shadow-sm rounded-pill overflow-hidden">
-          <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-          <input type="text" id="keywordInput" class="form-control border-start-0 ps-0 filter-input" placeholder="Tìm tên khóa học...">
+      <div class="col-lg-9">
+
+        <div class="search-bar-wrapper mb-4">
+          <div class="input-group search-input-group shadow-sm rounded-pill overflow-hidden bg-white">
+            <span class="input-group-text bg-transparent border-0 ps-4 text-primary">
+              <i class="bi bi-search fs-5"></i>
+            </span>
+            <input type="text" id="keywordInput"
+                   class="form-control border-0 py-3 fs-6 shadow-none"
+                   placeholder="Tìm tên khóa học của bạn (VD: IELTS 6.5)...">
+            <button class="btn bg-transparent border-0 pe-4 text-muted d-none" id="searchClearBtn" title="Xóa tìm kiếm">
+              <i class="bi bi-x-circle-fill fs-5"></i>
+            </button>
+          </div>
         </div>
-        <select id="sortInput" class="form-select w-25 shadow-sm rounded-pill filter-input">
-          <option value="registrationTime_desc">Mới đăng ký</option>
-          <option value="registrationTime_asc">Cũ nhất</option>
-        </select>
+
+        <div id="courseContainer" class="row g-4"></div>
+
+        <nav class="mt-5" aria-label="Điều hướng trang">
+          <ul id="paginationContainer" class="pagination justify-content-center gap-2"></ul>
+        </nav>
       </div>
 
-      <div id="courseContainer" class="row g-4"></div>
-
-      <nav class="mt-4" aria-label="Pagination">
-        <ul id="paginationContainer" class="pagination justify-content-center"></ul>
-      </nav>
     </div>
   </div>
 </main>
@@ -54,54 +78,115 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script>
-  let currentPage = 0;
+  let currentPage    = 0;
+  let debounceTimer  = null;
+  let abortController = null;
 
   const fetchCourses = async () => {
-      const keyword = document.getElementById('keywordInput') ? document.getElementById('keywordInput').value : '';
-      const categoryRadio = document.querySelector('input[name="categoryId"]:checked');
-      const categoryId = categoryRadio ? categoryRadio.value : '';
-      const sortInput = document.getElementById('sortInput');
-      const sort = sortInput ? sortInput.value : 'registrationTime_desc';
+      const keyword    = document.getElementById('keywordInput').value.trim();
+      const categoryId = document.querySelector('input[name="categoryId"]:checked')?.value ?? '';
+
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+
+      showSkeletonLoading();
 
       try {
-          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=6&sort=${sort}`;
-          const response = await fetch(url);
-          const result = await response.json();
+          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=6&sort=registrationTime_desc`;
+          const res  = await fetch(url, { signal: abortController.signal });
+          const data = await res.json();
 
-          if (result.status === 200) {
-              // ĐÃ SỬA: result.data.content -> result.data.items
-              renderCourses(result.data.items);
-              renderPagination(result.data);
+          if (data.status === 200) {
+              renderCourses(data.data.items);
+              renderPagination(data.data);
+          } else {
+              showError();
           }
-      } catch (error) {
-          document.getElementById('courseContainer').innerHTML = `<div class="col-12 text-center text-danger">Lỗi tải dữ liệu</div>`;
+      } catch (err) {
+          if (err.name !== 'AbortError') showError();
       }
+  };
+
+  const showSkeletonLoading = () => {
+      document.getElementById('courseContainer').innerHTML = Array(4).fill(0).map(() => `
+          <div class="col-lg-6 col-md-6">
+              <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                  <div class="skeleton" style="height:200px;width:100%;border-radius:16px 16px 0 0;"></div>
+                  <div class="card-body p-4 d-flex flex-column">
+                      <div class="skeleton mb-3" style="height:22px;width:65%;"></div>
+                      <div class="skeleton mb-2" style="height:13px;width:100%;"></div>
+                      <div class="skeleton mb-4" style="height:13px;width:80%;"></div>
+                      <div class="skeleton mt-auto rounded-pill" style="height:42px;width:100%;"></div>
+                  </div>
+              </div>
+          </div>`).join('');
+  };
+
+  const showError = () => {
+      document.getElementById('courseContainer').innerHTML = `
+          <div class="col-12">
+              <div class="state-box shadow-sm">
+                  <i class="bi bi-cloud-slash-fill text-danger"></i>
+                  <h5 class="fw-bold mb-2">Mất kết nối dữ liệu</h5>
+                  <p class="small text-muted mb-3">Hệ thống đang gặp gián đoạn. Vui lòng thử lại sau.</p>
+                  <button class="btn btn-outline-primary rounded-pill px-4" onclick="fetchCourses()">
+                      <i class="bi bi-arrow-repeat me-1"></i> Thử lại
+                  </button>
+              </div>
+          </div>`;
   };
 
   const renderCourses = (courses) => {
       const container = document.getElementById('courseContainer');
+
       if (!courses || courses.length === 0) {
-          container.innerHTML = `<div class="col-12 text-center text-muted py-5"><i class="bi bi-journal-x fs-1"></i><p>Không tìm thấy khóa học nào.</p></div>`;
+          container.innerHTML = `
+              <div class="col-12">
+                  <div class="state-box shadow-sm">
+                      <i class="bi bi-inbox"></i>
+                      <h5 class="fw-bold mb-2">Không tìm thấy khóa học</h5>
+                      <p class="small text-muted">Thử thay đổi từ khóa hoặc bộ lọc danh mục xem sao nhé.</p>
+                  </div>
+              </div>`;
           return;
       }
 
-      container.innerHTML = courses.map(c => `
-          <div class="col-lg-6 col-md-6">
-              <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
-                  <div class="position-relative">
-                      <img src="${c.imageUrl || '/assets/img/course-1.jpg'}" class="w-100" style="height: 180px; object-fit: cover;" alt="">
-                      <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-2 rounded-pill small">${c.className}</span>
+      // inject HTML, tất cả col bắt đầu với opacity:0 (class course-col)
+      container.innerHTML = courses.map((c, i) => `
+          <div class="col-lg-6 col-md-6 course-col" style="transition-delay:${i * 80}ms">
+              <div class="card course-card border-0 h-100">
+                  <div class="course-img-wrapper position-relative">
+                      <img src="${c.imageUrl || '/assets/img/course-placeholder.jpg'}"
+                           onerror="this.onerror=null;this.src='/assets/img/course-placeholder.jpg';"
+                           class="w-100" style="height:200px;object-fit:cover;"
+                           alt="${c.title || 'Course Image'}">
+                      <span class="position-absolute top-0 start-0 bg-primary text-white
+                                   px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
+                          <i class="bi bi-tag-fill me-1"></i>${c.className || 'Chưa xếp lớp'}
+                      </span>
                   </div>
-                  <div class="card-body d-flex flex-column">
-                      <h5 class="fw-bold text-dark text-truncate">${c.title}</h5>
-                      <p class="text-muted small flex-grow-1">${c.description ? c.description.substring(0, 100) + '...' : 'Không có mô tả'}</p>
-                      <a href="/student/learn/${c.courseId}" class="btn btn-light rounded-pill w-100 text-primary fw-bold mt-2 shadow-sm border">
-                          <i class="bi bi-play-circle-fill me-1"></i> Vào học
-                      </a>
+                  <div class="card-body d-flex flex-column p-4">
+                      <h5 class="course-title fw-bold text-truncate mb-2"
+                          title="${c.title || ''}">${c.title || ''}</h5>
+                      <p class="text-muted small flex-grow-1 lh-base mb-3">
+                          ${c.description ? c.description.substring(0, 110) + '…' : 'Chưa có mô tả chi tiết.'}
+                      </p>
+                      <div class="pt-3 border-top mt-auto">
+                          <a href="/student/learn/${c.courseId}"
+                             class="btn btn-enroll rounded-pill w-100 fw-bold py-2">
+                              Vào Học Ngay <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+                          </a>
+                      </div>
                   </div>
               </div>
-          </div>
-      `).join('');
+          </div>`).join('');
+
+      requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+              document.querySelectorAll('#courseContainer .course-col')
+                  .forEach(col => col.classList.add('card-visible'));
+          });
+      });
   };
 
   const renderPagination = (pageData) => {
@@ -111,44 +196,73 @@
           return;
       }
 
-      // ĐÃ SỬA: Dùng pageData.pageNo thay cho first/pageNumber
-      let html = `<li class="page-item ${pageData.pageNo === 0 ? 'disabled' : ''}">
-          <button class="page-link shadow-sm border-0 rounded-circle me-1" onclick="changePage(${currentPage - 1})"><i class="bi bi-chevron-left"></i></button>
-      </li>`;
+      let html = `
+          <li class="page-item ${pageData.pageNo === 0 ? 'disabled' : ''}">
+              <button class="page-link rounded-circle border-0 text-dark" data-page="${currentPage - 1}">
+                  <i class="bi bi-chevron-left"></i>
+              </button>
+          </li>`;
 
       for (let i = 0; i < pageData.totalPages; i++) {
-          // ĐÃ SỬA: pageData.pageNumber -> pageData.pageNo
-          html += `<li class="page-item ${pageData.pageNo === i ? 'active' : ''}">
-              <button class="page-link shadow-sm border-0 rounded-circle mx-1" onclick="changePage(${i})">${i + 1}</button>
+          html += `
+          <li class="page-item ${pageData.pageNo === i ? 'active' : ''}">
+              <button class="page-link rounded-circle border-0 ${pageData.pageNo === i ? 'bg-primary text-white shadow-sm' : 'text-dark'}"
+                      data-page="${i}">${i + 1}</button>
           </li>`;
       }
 
-      html += `<li class="page-item ${pageData.last ? 'disabled' : ''}">
-          <button class="page-link shadow-sm border-0 rounded-circle ms-1" onclick="changePage(${currentPage + 1})"><i class="bi bi-chevron-right"></i></button>
-      </li>`;
+      html += `
+          <li class="page-item ${pageData.last ? 'disabled' : ''}">
+              <button class="page-link rounded-circle border-0 text-dark" data-page="${currentPage + 1}">
+                  <i class="bi bi-chevron-right"></i>
+              </button>
+          </li>`;
 
       pagination.innerHTML = html;
   };
 
-  window.changePage = (page) => {
-      currentPage = page;
+  // ── Event listeners ────────────────────────────────────────
+  document.getElementById('paginationContainer').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-page]');
+      if (!btn || btn.closest('.disabled')) return;
+      currentPage = parseInt(btn.dataset.page, 10);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       fetchCourses();
-  };
+  });
 
-  document.querySelectorAll('.filter-input').forEach(el => {
+  const keywordInput = document.getElementById('keywordInput');
+  const clearBtn     = document.getElementById('searchClearBtn');
+
+  keywordInput.addEventListener('input', () => {
+      if (keywordInput.value) {
+          clearBtn.classList.remove('d-none');
+      } else {
+          clearBtn.classList.add('d-none');
+      }
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+          currentPage = 0;
+          fetchCourses();
+      }, 400);
+  });
+
+  clearBtn.addEventListener('click', () => {
+      keywordInput.value = '';
+      clearBtn.classList.add('d-none');
+      clearTimeout(debounceTimer);
+      currentPage = 0;
+      fetchCourses();
+      keywordInput.focus();
+  });
+
+  document.querySelectorAll('.filter-radio').forEach(el => {
       el.addEventListener('change', () => {
           currentPage = 0;
           fetchCourses();
       });
-      if(el.id === 'keywordInput') {
-          el.addEventListener('keyup', () => {
-              currentPage = 0;
-              fetchCourses();
-          });
-      }
   });
 
-  document.addEventListener("DOMContentLoaded", fetchCourses);
+  document.addEventListener('DOMContentLoaded', fetchCourses);
 </script>
 
 </body>
