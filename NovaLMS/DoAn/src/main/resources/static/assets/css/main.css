@@ -120,6 +120,25 @@ Class list của student
       border-bottom: 1px solid #e2e8f0;
       padding-bottom: 14px; margin-bottom: 14px;
     }
+
+    .filter-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+
+      /* Cấu hình Sticky chuẩn */
+      position: sticky;
+      top: 90px;
+      z-index: 10; /* Thấp hơn Header */
+      max-height: calc(100vh - 110px); /* Dừng lại trước khi chạm Footer */
+      overflow-y: auto; /* Tự động có thanh cuộn nếu quá dài */
+    }
+
+    /* Làm đẹp thanh cuộn */
+    .filter-card::-webkit-scrollbar { width: 5px; }
+    .filter-card::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+    .filter-card::-webkit-scrollbar-track { background: transparent; }
     .filter-group { display: flex; flex-direction: column; gap: 4px; }
     .filter-radio { display: none; }
 
@@ -465,6 +484,19 @@ Class list của student
       opacity: 0; pointer-events: none;
       transition: opacity .22s;
     }
+    .pub-sidebar-sticky {
+      position: sticky;
+      top: 100px;
+      z-index: 10; /* Đảm bảo nằm DƯỚI Header */
+      max-height: calc(100vh - 120px); /* Giới hạn chiều cao, không đâm vào Footer */
+      overflow-y: auto; /* Thêm thanh cuộn dọc nếu danh mục quá dài */
+    }
+
+    /* Làm đẹp thanh cuộn cho Sidebar */
+    .pub-sidebar-sticky::-webkit-scrollbar { width: 5px; }
+    .pub-sidebar-sticky::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+    .pub-sidebar-sticky::-webkit-scrollbar-track { background: transparent; }
+
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .quiz-modal {
       background: #fff; border-radius: 20px;
