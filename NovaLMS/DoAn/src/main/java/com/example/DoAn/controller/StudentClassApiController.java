@@ -24,10 +24,17 @@ public class StudentClassApiController {
     }
 
     @GetMapping
-    public ResponseData<List<MyClassDTO>> getMyClasses(Principal principal) {
+    public ResponseData<PageResponse<MyClassDTO>> getMyClasses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            Principal principal) {
+
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
-        return studentClassService.getMyClasses(email);
+
+        return studentClassService.getMyClasses(email, keyword, status, page, size);
     }
 
     @GetMapping("/{classId}")

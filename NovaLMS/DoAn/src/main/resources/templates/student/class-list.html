@@ -20,7 +20,6 @@
     <div class="container-fluid">
         <div class="row g-4 align-items-start">
 
-            <!-- ══════════════ SIDEBAR FILTER ══════════════ -->
             <div class="col-lg-3 align-self-start">
                 <div class="filter-card">
 
@@ -40,34 +39,28 @@
                         </div>
                         <div class="filter-group">
                             <div class="filter-option">
-                                <input class="filter-radio" type="radio" name="classStatus" value="" id="stAll" checked>
+                                <input class="filter-radio" type="radio" name="classStatus" value="" id="stAll" checked style="display: none !important;">
                                 <label class="filter-label" for="stAll">
                                     <span class="filter-label__icon all"><i class="bi bi-grid-fill"></i></span>
                                     <span>Tất cả</span>
                                 </label>
                             </div>
                             <div class="filter-option">
-                                <input class="filter-radio" type="radio" name="classStatus" value="active" id="stActive">
+                                <input class="filter-radio" type="radio" name="classStatus" value="Open" id="stActive" style="display: none !important;">
                                 <label class="filter-label" for="stActive">
                                     <span class="filter-label__icon active-dot"><i class="bi bi-play-circle-fill"></i></span>
                                     <span>Đang học</span>
                                 </label>
                             </div>
                             <div class="filter-option">
-                                <input class="filter-radio" type="radio" name="classStatus" value="completed" id="stDone">
+                                <input class="filter-radio" type="radio" name="classStatus" value="Closed" id="stDone" style="display: none !important;">
                                 <label class="filter-label" for="stDone">
                                     <span class="filter-label__icon done"><i class="bi bi-check-circle-fill"></i></span>
                                     <span>Đã hoàn thành</span>
                                 </label>
                             </div>
-                            <div class="filter-option">
-                                <input class="filter-radio" type="radio" name="classStatus" value="upcoming" id="stUpcoming">
-                                <label class="filter-label" for="stUpcoming">
-                                    <span class="filter-label__icon upcoming"><i class="bi bi-clock-fill"></i></span>
-                                    <span>Sắp khai giảng</span>
-                                </label>
-                            </div>
                         </div>
+
                     </div>
 
                     <!-- Detail info panel (ẩn mặc định) -->
@@ -106,7 +99,7 @@
 
                     <!-- Pagination -->
                     <nav class="mt-5" aria-label="Phân trang">
-                        <ul id="paginationContainer" class="pagination-list"></ul>
+                        <ul id="paginationContainer" class="pagination justify-content-center mb-0"></ul>
                     </nav>
                 </div>
 
@@ -222,7 +215,7 @@
       container.innerHTML = [1,2,3,4].map(skeletonCourseCard).join('');
 
       try {
-        const url = `/api/v1/student/classes?keyword=${encodeURIComponent(keyword)}&status=${status}&page=${currentPage}&size=6`;
+        const url = `/api/v1/student/classes?keyword=${encodeURIComponent(keyword)}&status=${status}&page=${currentPage}&size=3`;
         const res  = await fetch(url, { signal: abortController.signal });
         const json = await res.json();
 
@@ -258,7 +251,7 @@
                    onerror="this.src='/assets/img/course-placeholder.jpg'"
                    alt="${esc(c.className)}" loading="lazy">
               <span class="course-badge">
-                <i class="bi bi-tag-fill"></i>${esc(c.status || 'Đang mở')}
+                <i class="bi bi-tag-fill"></i>${c.status === 'Closed' ? 'Đã hoàn thành' : 'Đang học'}
               </span>
             </div>
             <div class="course-card__body">
@@ -296,17 +289,34 @@
     /* ── Pagination ───────────────────────── */
     const renderPagination = (pageData) => {
       const ul = document.getElementById('paginationContainer');
-      if (!pageData || pageData.totalPages <= 1) { ul.innerHTML = ''; return; }
-
-      let html = `<li><button class="page-btn" data-page="${currentPage-1}" ${currentPage===0?'disabled':''}>
-        <i class="bi bi-chevron-left"></i></button></li>`;
-
-      for (let i = 0; i < pageData.totalPages; i++) {
-        html += `<li><button class="page-btn ${pageData.pageNo===i?'active':''}" data-page="${i}">${i+1}</button></li>`;
+      if (!pageData || pageData.totalPages <= 1) {
+          ul.innerHTML = '';
+          return;
       }
 
-      html += `<li><button class="page-btn" data-page="${currentPage+1}" ${pageData.last?'disabled':''}>
-        <i class="bi bi-chevron-right"></i></button></li>`;
+      // Nút "Trang trước"
+      let html = `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+        <button class="page-link shadow-sm border-0 rounded-circle mx-1 text-dark" data-page="${currentPage - 1}">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+      </li>`;
+
+      // Các nút số trang
+      for (let i = 0; i < pageData.totalPages; i++) {
+        let isActive = (pageData.pageNo === i);
+        html += `<li class="page-item ${isActive ? 'active' : ''}">
+          <button class="page-link shadow-sm border-0 rounded-circle mx-1 ${isActive ? 'bg-primary border-primary text-white fw-bold' : 'text-dark'}" data-page="${i}">
+            ${i + 1}
+          </button>
+        </li>`;
+      }
+
+      // Nút "Trang sau"
+      html += `<li class="page-item ${pageData.last ? 'disabled' : ''}">
+        <button class="page-link shadow-sm border-0 rounded-circle mx-1 text-dark" data-page="${currentPage + 1}">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </li>`;
 
       ul.innerHTML = html;
     };
