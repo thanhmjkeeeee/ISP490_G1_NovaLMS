@@ -90,7 +90,7 @@ public class Quiz {
         createdAt = updatedAt = LocalDateTime.now();
         if (status == null) status = "DRAFT";
         if (questionOrder == null) questionOrder = "FIXED";
-        if (showAnswerAfterSubmit == null) showAnswerAfterSubmit = false;
+        if (showAnswerAfterSubmit == null) showAnswerAfterSubmit = true;
         if (isOpen == null) isOpen = false;
     }
 
