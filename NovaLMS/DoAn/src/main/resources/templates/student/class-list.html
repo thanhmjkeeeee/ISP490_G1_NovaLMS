@@ -1,499 +1,532 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Lớp học của tôi')}"></head>
+<head th:replace="~{fragments/head :: common-head(pageTitle='Lớp học của tôi')}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lớp học của tôi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
 
-<body class="dashboard-body">
+<body class="dashboard-body bg-light">
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Lớp học của tôi', breadcrumb='Học tập')}"></header>
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<main class="dash-main d-flex flex-column" id="dashMain">
+<main class="dash-main d-flex flex-column py-4" id="dashMain">
+    <div class="container-fluid">
+        <div class="row g-4 align-items-start">
 
-    <!-- ======== CLASS LIST VIEW ======== -->
-    <div id="classListView">
-        <div class="dash-page-header">
-            <h2 class="dash-page-title">Lớp Học Của Tôi</h2>
-            <p class="dash-page-subtitle">Danh sách các lớp bạn đã đăng ký</p>
-        </div>
+            <!-- ══════════════ SIDEBAR FILTER ══════════════ -->
+            <div class="col-lg-3 align-self-start">
+                <div class="filter-card sticky-top">
 
-        <div id="classesContainer" class="row g-4">
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
+                    <!-- View toggle: list vs detail (ẩn khi đang ở list view) -->
+                    <div id="backBtnWrap" class="d-none mb-3">
+                        <button class="back-btn w-100" onclick="showListView()">
+                            <i class="bi bi-arrow-left"></i>
+                            <span>Quay lại danh sách</span>
+                        </button>
+                    </div>
+
+                    <!-- Category filter (ẩn khi đang xem detail) -->
+                    <div id="filterSection">
+                        <div class="filter-card__header">
+                            <i class="bi bi-funnel-fill"></i>
+                            Trạng thái lớp
+                        </div>
+                        <div class="filter-group">
+                            <div class="filter-option">
+                                <input class="filter-radio" type="radio" name="classStatus" value="" id="stAll" checked>
+                                <label class="filter-label" for="stAll">
+                                    <span class="filter-label__icon all"><i class="bi bi-grid-fill"></i></span>
+                                    <span>Tất cả</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input class="filter-radio" type="radio" name="classStatus" value="active" id="stActive">
+                                <label class="filter-label" for="stActive">
+                                    <span class="filter-label__icon active-dot"><i class="bi bi-play-circle-fill"></i></span>
+                                    <span>Đang học</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input class="filter-radio" type="radio" name="classStatus" value="completed" id="stDone">
+                                <label class="filter-label" for="stDone">
+                                    <span class="filter-label__icon done"><i class="bi bi-check-circle-fill"></i></span>
+                                    <span>Đã hoàn thành</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input class="filter-radio" type="radio" name="classStatus" value="upcoming" id="stUpcoming">
+                                <label class="filter-label" for="stUpcoming">
+                                    <span class="filter-label__icon upcoming"><i class="bi bi-clock-fill"></i></span>
+                                    <span>Sắp khai giảng</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detail info panel (ẩn mặc định) -->
+                    <div id="detailSideInfo" class="d-none">
+                        <div class="filter-card__header">
+                            <i class="bi bi-info-circle-fill"></i>
+                            Thông tin lớp
+                        </div>
+                        <div id="sideInfoContent" class="side-info-list"></div>
+                    </div>
+
+                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- ======== CLASS DETAIL VIEW ======== -->
-    <div id="classDetailView" class="d-none">
-        <!-- Breadcrumb + Back -->
-        <div class="dash-page-header mb-3">
-            <button class="btn btn-link text-decoration-none p-0 me-3" onclick="showListView()">
-                <i class="bi bi-arrow-left fs-4"></i>
-            </button>
-            <div>
-                <h2 class="dash-page-title mb-1" id="detailClassName"></h2>
-                <p class="dash-page-subtitle mb-0" id="detailCourseName"></p>
-            </div>
-        </div>
+            <!-- ══════════════ MAIN CONTENT ══════════════ -->
+            <div class="col-lg-9">
 
-        <!-- Class Info Card -->
-        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-            <div class="card-body p-4">
-                <div class="row g-3" id="detailInfoContent"></div>
-            </div>
-        </div>
+                <!-- ── LIST VIEW ── -->
+                <div id="classListView">
 
-        <!-- Tabs -->
-        <ul class="nav nav-pills mb-4" id="detailTabs">
-            <li class="nav-item">
-                <button class="nav-link active" id="tabLichHoc" onclick="switchTab('lichhoc')">
-                    <i class="bi bi-calendar-event me-1"></i>Lịch học
-                </button>
-            </li>
-            <li class="nav-item ms-2">
-                <button class="nav-link" id="tabKetQua" onclick="switchTab('ketqua')">
-                    <i class="bi bi-graph-up me-1"></i>Kết quả học tập
-                </button>
-            </li>
-            <li class="nav-item ms-2">
-                <button class="nav-link" id="tabBangXepHang" onclick="switchTab('bangxephang')">
-                    <i class="bi bi-trophy me-1"></i>Bảng xếp hạng coin
-                </button>
-            </li>
-        </ul>
+                    <!-- Search bar -->
+                    <div class="search-bar-wrapper mb-4">
+                        <div class="search-input-group">
+                            <span class="search-icon"><i class="bi bi-search"></i></span>
+                            <input type="text" id="keywordInput"
+                                   class="search-input"
+                                   placeholder="Tìm tên lớp học (VD: IELTS K01)...">
+                            <button class="search-clear d-none" id="searchClearBtn">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- LICH HOC PANEL -->
-        <div id="lichHocPanel">
-            <div id="sessionsContainer" class="row g-3">
-                <div class="col-12 text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
+                    <!-- Cards grid -->
+                    <div id="classesContainer" class="courses-grid"></div>
+
+                    <!-- Pagination -->
+                    <nav class="mt-5" aria-label="Phân trang">
+                        <ul id="paginationContainer" class="pagination-list"></ul>
+                    </nav>
+                </div>
+
+                <!-- ── DETAIL VIEW ── -->
+                <div id="classDetailView" class="d-none">
+
+                    <!-- Detail header -->
+                    <div class="detail-topbar mb-4">
+                        <div class="detail-topbar__text">
+                            <span class="detail-topbar__course" id="detailCourseName"></span>
+                            <h2 class="detail-topbar__title" id="detailClassName">Đang tải...</h2>
+                        </div>
+                    </div>
+
+                    <!-- Info strip -->
+                    <div class="info-strip mb-4" id="detailInfoContent"></div>
+
+                    <!-- Tabs -->
+                    <div class="tab-bar mb-4">
+                        <button class="tab-btn active" id="tabLichHoc" onclick="switchTab('lichhoc')">
+                            <i class="bi bi-map"></i> Lộ trình học
+                        </button>
+                        <button class="tab-btn" id="tabKetQua" onclick="switchTab('ketqua')">
+                            <i class="bi bi-graph-up-arrow"></i> Kết quả
+                        </button>
+                        <button class="tab-btn" id="tabBangXepHang" onclick="switchTab('bangxephang')">
+                            <i class="bi bi-trophy"></i> Bảng xếp hạng
+                        </button>
+                    </div>
+
+                    <!-- Tab panels -->
+                    <div id="lichHocPanel">
+                        <div id="sessionsContainer" class="sessions-grid"></div>
+                    </div>
+
+                    <div id="ketQuaPanel" class="d-none">
+                        <div class="state-box">
+                            <i class="bi bi-bar-chart-line-fill state-box__icon blue"></i>
+                            <h5>Kết quả học tập</h5>
+                            <p>Tính năng đang được phát triển.</p>
+                            <span class="coming-badge">Sắp ra mắt</span>
+                        </div>
+                    </div>
+
+                    <div id="bangXepHangPanel" class="d-none">
+                        <div class="state-box">
+                            <i class="bi bi-trophy-fill state-box__icon amber"></i>
+                            <h5>Bảng xếp hạng</h5>
+                            <p>Tính năng đang được phát triển.</p>
+                            <span class="coming-badge">Sắp ra mắt</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
-
-        <!-- KET QUA HOC TAP PANEL -->
-        <div id="ketQuaPanel" class="d-none">
-            <div class="card border-0 shadow-sm rounded-4 text-center py-5">
-                <i class="bi bi-bar-chart fs-1 text-muted"></i>
-                <h5 class="mt-3 text-muted">Kết quả học tập</h5>
-                <p class="text-muted small">Tính năng đang được phát triển</p>
-            </div>
-        </div>
-
-        <!-- BANG XEP HANG PANEL -->
-        <div id="bangXepHangPanel" class="d-none">
-            <div class="card border-0 shadow-sm rounded-4 text-center py-5">
-                <i class="bi bi-trophy fs-1 text-muted"></i>
-                <h5 class="mt-3 text-muted">Bảng xếp hạng coin</h5>
-                <p class="text-muted small">Tính năng đang được phát triển</p>
-            </div>
-        </div>
     </div>
-
 </main>
 
-<!-- ======== SESSION QUIZ MODAL ======== -->
-<div class="modal fade" id="sessionQuizModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="modalSessionTitle"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- ══════════════ QUIZ MODAL ══════════════ -->
+<div class="modal-overlay" id="quizModalOverlay" onclick="handleOverlayClick(event)">
+    <div class="quiz-modal">
+        <div class="quiz-modal__header">
+            <div class="quiz-modal__icon"><i class="bi bi-journal-text"></i></div>
+            <div class="quiz-modal__meta">
+                <span class="quiz-modal__label">Nội dung buổi học</span>
+                <h3 class="quiz-modal__title" id="modalSessionTitle">—</h3>
             </div>
-            <div class="modal-body" id="modalSessionBody"></div>
+            <button class="quiz-modal__close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
         </div>
+        <div class="quiz-modal__body" id="modalSessionBody"></div>
     </div>
 </div>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
-<script>
-    let currentClassId = null;
-    let sessionModal = null;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        sessionModal = new bootstrap.Modal(document.getElementById('sessionQuizModal'));
+<script>
+    /* ── State ────────────────────────────── */
+    let currentClassId   = null;
+    let currentPage      = 0;
+    let debounceTimer    = null;
+    let abortController  = null;
+
+    /* ── Skeletons ──────────────────────────── */
+    const skeletonCourseCard = () => `
+      <div class="course-col card-visible" style="opacity:1">
+        <div class="course-card" style="pointer-events:none">
+          <div class="skeleton" style="height:200px;border-radius:16px 16px 0 0;margin:0"></div>
+          <div class="course-card__body">
+            <div class="skeleton mb-2" style="height:18px;width:70%"></div>
+            <div class="skeleton mb-1" style="height:13px;width:100%"></div>
+            <div class="skeleton mb-3" style="height:13px;width:80%"></div>
+          </div>
+          <div class="course-card__footer"><div class="skeleton" style="height:42px;border-radius:12px"></div></div>
+        </div>
+      </div>`;
+
+    const skeletonSession = () => `<div class="skeleton" style="height:155px;border-radius:14px"></div>`;
+
+    /* ════════════════════════════════════════
+       CLASS LIST
+    ════════════════════════════════════════ */
+    const fetchClasses = async () => {
+      const keyword  = (document.getElementById('keywordInput')?.value || '').trim();
+      const status   = document.querySelector('input[name="classStatus"]:checked')?.value ?? '';
+
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+
+      const container = document.getElementById('classesContainer');
+      container.innerHTML = [1,2,3,4].map(skeletonCourseCard).join('');
+
+      try {
+        const url = `/api/v1/student/classes?keyword=${encodeURIComponent(keyword)}&status=${status}&page=${currentPage}&size=6`;
+        const res  = await fetch(url, { signal: abortController.signal });
+        const json = await res.json();
+
+        if (json.status === 200) {
+          renderClasses(json.data?.items ?? json.data ?? []);
+          if (json.data?.totalPages !== undefined) renderPagination(json.data);
+        } else {
+          showError();
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') showError();
+      }
+    };
+
+    const renderClasses = (list) => {
+      const container = document.getElementById('classesContainer');
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `
+          <div class="state-box" style="grid-column:1/-1">
+            <i class="bi bi-inbox state-box__icon blue"></i>
+            <h5>Không tìm thấy lớp học</h5>
+            <p>Thử thay đổi từ khóa hoặc bộ lọc trạng thái.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = list.map((c, i) => `
+        <div class="course-col" style="animation-delay:${i*70}ms">
+          <div class="course-card" onclick="openClass(${c.classId})">
+            <div class="course-img-wrapper">
+              <img src="${c.courseImage || '/assets/img/course-placeholder.jpg'}"
+                   onerror="this.src='/assets/img/course-placeholder.jpg'"
+                   alt="${esc(c.className)}" loading="lazy">
+              <span class="course-badge">
+                <i class="bi bi-tag-fill"></i>${esc(c.status || 'Đang mở')}
+              </span>
+            </div>
+            <div class="course-card__body">
+              <div class="course-title" title="${esc(c.className)}">${esc(c.className || 'Chưa xếp lớp')}</div>
+              <div class="course-desc">${esc(c.courseName || 'Chưa có mô tả chi tiết.')}</div>
+              <div class="course-meta">
+                <span class="meta-pill"><i class="bi bi-person-workspace"></i>${esc(c.teacherName || 'Chưa phân công')}</span>
+                <span class="meta-pill"><i class="bi bi-calendar-week"></i>${esc(c.schedule || 'Chưa có lịch')}</span>
+                <span class="meta-pill"><i class="bi bi-collection-play"></i>${c.sessionCount || 0} buổi</span>
+              </div>
+            </div>
+            <div class="course-card__footer">
+              <span class="btn-enroll">
+                Vào lớp học <i class="bi bi-arrow-right-circle-fill"></i>
+              </span>
+            </div>
+          </div>
+        </div>`).join('');
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.querySelectorAll('#classesContainer .course-col').forEach(el => el.classList.add('card-visible'));
+      }));
+    };
+
+    const showError = () => {
+      document.getElementById('classesContainer').innerHTML = `
+        <div class="state-box" style="grid-column:1/-1">
+          <i class="bi bi-cloud-slash-fill state-box__icon" style="color:#ef4444"></i>
+          <h5>Mất kết nối dữ liệu</h5>
+          <p>Hệ thống đang gặp gián đoạn. Vui lòng thử lại sau.</p>
+          <button class="btn-retry" onclick="fetchClasses()"><i class="bi bi-arrow-repeat"></i> Thử lại</button>
+        </div>`;
+    };
+
+    /* ── Pagination ───────────────────────── */
+    const renderPagination = (pageData) => {
+      const ul = document.getElementById('paginationContainer');
+      if (!pageData || pageData.totalPages <= 1) { ul.innerHTML = ''; return; }
+
+      let html = `<li><button class="page-btn" data-page="${currentPage-1}" ${currentPage===0?'disabled':''}>
+        <i class="bi bi-chevron-left"></i></button></li>`;
+
+      for (let i = 0; i < pageData.totalPages; i++) {
+        html += `<li><button class="page-btn ${pageData.pageNo===i?'active':''}" data-page="${i}">${i+1}</button></li>`;
+      }
+
+      html += `<li><button class="page-btn" data-page="${currentPage+1}" ${pageData.last?'disabled':''}>
+        <i class="bi bi-chevron-right"></i></button></li>`;
+
+      ul.innerHTML = html;
+    };
+
+    document.getElementById('paginationContainer').addEventListener('click', e => {
+      const btn = e.target.closest('[data-page]');
+      if (!btn || btn.disabled) return;
+      currentPage = parseInt(btn.dataset.page, 10);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      fetchClasses();
     });
 
-    // ======== CLASS LIST ========
-    const fetchClasses = async () => {
-        try {
-            const res = await fetch('/api/v1/student/classes');
-            const json = await res.json();
-            const container = document.getElementById('classesContainer');
-
-            if (json.status !== 200 || !json.data || json.data.length === 0) {
-                container.innerHTML = `
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm rounded-4 text-center py-5">
-                            <i class="bi bi-people fs-1 text-muted"></i>
-                            <h5 class="mt-3 text-muted">Bạn chưa đăng ký lớp học nào</h5>
-                            <p class="text-muted small">Hãy đăng ký lớp học để bắt đầu học tập</p>
-                            <a href="/courses.html" class="btn btn-primary rounded-pill px-4 mt-2">
-                                <i class="bi bi-search me-1"></i>Khám phá khóa học
-                            </a>
-                        </div>
-                    </div>`;
-                return;
-            }
-
-            container.innerHTML = json.data.map(c => `
-                <div class="col-lg-6 col-xl-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden class-card" style="cursor:pointer" onclick="openClass(${c.classId})">
-                        <div class="position-relative">
-                            <img src="${c.courseImage || '/assets/img/course-1.jpg'}" class="w-100" style="height: 160px; object-fit:cover;" alt="">
-                            <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-2 rounded-pill small fw-bold">
-                                ${c.status || 'Open'}
-                            </span>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="fw-bold text-dark mb-1">${c.className || ''}</h5>
-                            <p class="text-muted small mb-2">${c.courseName || ''}</p>
-                            <div class="small text-muted">
-                                <div class="mb-1"><i class="bi bi-person me-1"></i>${c.teacherName || 'Chưa phân công'}</div>
-                                <div class="mb-1"><i class="bi bi-calendar-week me-1"></i>${c.schedule || 'Chưa có lịch'} ${c.slotTime ? '- ' + c.slotTime : ''}</div>
-                                <div><i class="bi bi-collection me-1"></i>${c.sessionCount} buổi học</div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white border-0 pt-0">
-                            <button class="btn btn-primary rounded-pill w-100 shadow-sm">
-                                <i class="bi bi-box-arrow-in-right me-1"></i>Xem chi tiết
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        } catch (error) {
-            document.getElementById('classesContainer').innerHTML = `
-                <div class="col-12 text-center text-danger py-4">Lỗi tải dữ liệu lớp học!</div>`;
-        }
-    };
-
-    // ======== CLASS DETAIL ========
     const openClass = async (classId) => {
-        currentClassId = classId;
-        try {
-            const res = await fetch(`/api/v1/student/classes/${classId}`);
-            const json = await res.json();
+      currentClassId = classId;
 
-            if (json.status !== 200) {
-                alert(json.message || 'Không thể tải chi tiết lớp học');
-                return;
-            }
+      // Switch UI mode
+      document.getElementById('classListView').classList.add('d-none');
+      document.getElementById('classDetailView').classList.remove('d-none');
+      document.getElementById('filterSection').classList.add('d-none');
+      document.getElementById('backBtnWrap').classList.remove('d-none');
+      document.getElementById('detailSideInfo').classList.remove('d-none');
 
-            const d = json.data;
-            document.getElementById('detailClassName').textContent = d.className || '';
-            document.getElementById('detailCourseName').textContent = d.courseName || '';
+      // Skeleton
+      document.getElementById('detailInfoContent').innerHTML =
+        `<div class="info-strip-item"><div class="skeleton" style="height:50px;width:100%"></div></div>`.repeat(4);
+      document.getElementById('sessionsContainer').innerHTML = [1,2,3,4].map(skeletonSession).join('');
+      switchTab('lichhoc', false);
 
-            // Class info
-            document.getElementById('detailInfoContent').innerHTML = `
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3"><i class="bi bi-calendar-check fs-4 text-primary"></i></div>
-                        <div>
-                            <div class="small text-muted">Khai giảng</div>
-                            <div class="fw-semibold">${formatTime(d.startDate)} - ${formatDate(d.startDate)}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3"><i class="bi bi-calendar-x fs-4 text-danger"></i></div>
-                        <div>
-                            <div class="small text-muted">Kết thúc</div>
-                            <div class="fw-semibold">${formatTime(d.endDate)} - ${formatDate(d.endDate)}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3"><i class="bi bi-person-circle fs-4 text-success"></i></div>
-                        <div>
-                            <div class="small text-muted">Giáo viên</div>
-                            <div class="fw-semibold">${d.teacherName || 'Chưa phân công'}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3"><i class="bi bi-collection fs-4 text-warning"></i></div>
-                        <div>
-                            <div class="small text-muted">Số buổi học</div>
-                            <div class="fw-semibold">${d.numberOfSessions || 0} buổi</div>
-                        </div>
-                    </div>
-                </div>`;
+      try {
+        const res  = await fetch(`/api/v1/student/classes/${classId}`);
+        const json = await res.json();
+        if (json.status !== 200) { alert(json.message || 'Không thể tải chi tiết'); showListView(); return; }
 
-            // Sessions grid
-            window._currentSessions = d.sessions || [];
-            renderSessions(window._currentSessions);
+        const d = json.data;
+        document.getElementById('detailClassName').textContent  = d.className  || 'Thông tin lớp học';
+        document.getElementById('detailCourseName').textContent = d.courseName || '';
 
-            // Show detail view
-            document.getElementById('classListView').classList.add('d-none');
-            document.getElementById('classDetailView').classList.remove('d-none');
-            switchTab('lichhoc');
-        } catch (error) {
-            alert('Lỗi tải chi tiết lớp học!');
-        }
+        // Info strip
+        document.getElementById('detailInfoContent').innerHTML = `
+          <div class="info-strip-item"><div class="info-strip-icon ii-blue"><i class="bi bi-calendar-check"></i></div>
+            <div><div class="info-strip-lbl">Khai giảng</div><div class="info-strip-val">${fmtDate(d.startDate)}</div></div></div>
+          <div class="info-strip-item"><div class="info-strip-icon ii-red"><i class="bi bi-calendar-x"></i></div>
+            <div><div class="info-strip-lbl">Kết thúc</div><div class="info-strip-val">${fmtDate(d.endDate)}</div></div></div>
+          <div class="info-strip-item"><div class="info-strip-icon ii-green"><i class="bi bi-person-workspace"></i></div>
+            <div><div class="info-strip-lbl">Giảng viên</div><div class="info-strip-val" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.teacherName||'Chưa phân công')}</div></div></div>
+          <div class="info-strip-item"><div class="info-strip-icon ii-amber"><i class="bi bi-collection-play"></i></div>
+            <div><div class="info-strip-lbl">Tổng thời lượng</div><div class="info-strip-val">${d.numberOfSessions||0} buổi</div></div></div>`;
+
+        // Sidebar info (compact)
+        document.getElementById('sideInfoContent').innerHTML = `
+          <div class="side-info-item"><i class="bi bi-calendar-check"></i>
+            <div><div class="side-info-item__label">Khai giảng</div><div class="side-info-item__value">${fmtDate(d.startDate)}</div></div></div>
+          <div class="side-info-item"><i class="bi bi-calendar-x"></i>
+            <div><div class="side-info-item__label">Kết thúc</div><div class="side-info-item__value">${fmtDate(d.endDate)}</div></div></div>
+          <div class="side-info-item"><i class="bi bi-person-workspace"></i>
+            <div><div class="side-info-item__label">Giảng viên</div><div class="side-info-item__value">${esc(d.teacherName||'Chưa phân công')}</div></div></div>
+          <div class="side-info-item"><i class="bi bi-collection-play"></i>
+            <div><div class="side-info-item__label">Số buổi</div><div class="side-info-item__value">${d.numberOfSessions||0} buổi</div></div></div>`;
+
+        window._sessions = d.sessions || [];
+        renderSessions(window._sessions);
+
+      } catch { alert('Lỗi tải chi tiết!'); showListView(); }
     };
 
-    // ======== SESSIONS GRID (3 columns) ========
-    const renderSessions = (sessions) => {
-        const container = document.getElementById('sessionsContainer');
-
-        if (sessions.length === 0) {
-            container.innerHTML = `
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
-                        <i class="bi bi-calendar-x fs-1 text-muted"></i>
-                        <h5 class="mt-3 text-muted">Chưa có buổi học nào</h5>
-                        <p class="text-muted small">Giảng viên sẽ cập nhật lịch học sớm</p>
-                    </div>
-                </div>`;
-            return;
-        }
-
-        let html = '';
-        sessions.forEach(s => {
-            // Multi-quiz: check if ALL quizzes in this session are completed (hasAttempted=true)
-            const quizzes = s.quizzes || [];
-            const hasAnyQuiz = quizzes.length > 0;
-            const allCompleted = hasAnyQuiz && quizzes.every(q => q.hasAttempted === true);
-            // Legacy: also check single quiz
-            const legacyCompleted = !hasAnyQuiz && s.hasAttempted === true;
-
-            const isCompleted = allCompleted || legacyCompleted;
-            const bgColor = isCompleted ? '#16A34A' : '#3B82F6'; // green = completed, blue = not done
-            const borderColor = isCompleted ? '#15803D' : '#2563EB';
-
-            const dateStr = s.sessionDate ? formatDate(s.sessionDate) : '—';
-            const timeStr = s.startTime ? `${s.startTime}${s.endTime ? ' - ' + s.endTime : ''}` : '—';
-
-            // Badge: quiz count or icon
-            let badge = '';
-            if (hasAnyQuiz) {
-                const completedCount = quizzes.filter(q => q.hasAttempted === true).length;
-                if (completedCount === quizzes.length && quizzes.length > 0) {
-                    badge = `<span class="badge bg-light text-success rounded-pill small ms-1"><i class="bi bi-check-circle-fill"></i> Hoàn thành</span>`;
-                } else {
-                    badge = `<span class="badge bg-light text-dark rounded-pill small ms-1"><i class="bi bi-patch-question"></i> ${quizzes.length} quiz</span>`;
-                }
-            }
-
-            html += `
-                <div class="col-md-6 col-lg-4">
-                    <div class="session-card rounded-4 p-3 text-white fw-bold text-center shadow-sm"
-                         style="background:${bgColor}; border: 2px solid ${borderColor}; cursor:pointer;"
-                         onclick="openSessionModal(${s.sessionId}, '${escapeHtml(s.topic || 'Buổi ' + s.sessionNumber)}')"
-                         title="Click để xem bài tập">
-                        <div class="fs-5 mb-1">Buổi ${s.sessionNumber}${badge}</div>
-                        <div class="small opacity-75">${dateStr}</div>
-                        <div class="small opacity-75">${timeStr}</div>
-                        ${s.topic ? `<div class="small mt-1 opacity-90">${s.topic}</div>` : ''}
-                    </div>
-                </div>`;
-        });
-        container.innerHTML = html;
-    };
-
-    // ======== SESSION QUIZ MODAL ========
-    const openSessionModal = async (sessionId, sessionTopic) => {
-        // Refresh sessions data from server to get latest quiz status
-        if (currentClassId) {
-            try {
-                const res = await fetch(`/api/v1/student/classes/${currentClassId}`);
-                const json = await res.json();
-                if (json.status === 200 && json.data) {
-                    window._currentSessions = json.data.sessions || [];
-                    renderSessions(window._currentSessions);
-                }
-            } catch (e) { /* ignore, use cached sessions */ }
-        }
-
-        const allSessions = window._currentSessions || [];
-        const session = allSessions.find(s => s.sessionId === sessionId);
-        if (!session) return;
-
-        document.getElementById('modalSessionTitle').textContent = sessionTopic;
-        const body = document.getElementById('modalSessionBody');
-
-        // Multi-quiz: use session.quizzes array
-        const quizzes = session.quizzes || [];
-        const hasLegacyQuiz = session.quizId && quizzes.length === 0;
-
-        if (quizzes.length === 0 && !hasLegacyQuiz) {
-            body.innerHTML = `
-                <div class="text-center py-4">
-                    <i class="bi bi-inbox fs-1 text-muted"></i>
-                    <h6 class="mt-3 text-muted">Buổi học này chưa có bài tập</h6>
-                    <p class="text-muted small">Giảng viên sẽ cập nhật bài tập sau</p>
-                </div>`;
-        } else {
-            let html = '';
-            // Render multi-quiz list
-            if (quizzes.length > 0) {
-                quizzes.forEach((q, idx) => {
-                    const isPublished = q.status === 'PUBLISHED';
-                    const canTake = isPublished && q.isOpen === true;
-                    const scoreStr = q.bestScore !== null ? `<span class="text-success fw-bold">Điểm cao nhất: ${q.bestScore}%</span>` : '';
-                    const attemptBadge = q.hasAttempted ? `<span class="badge bg-success bg-opacity-10 text-success border border-success mb-2">Đã làm ${q.attemptCount} lần</span>` : '';
-                    const openBadge = !q.hasAttempted ? (isPublished ? (q.isOpen ? `<span class="badge bg-success bg-opacity-10 text-success border mb-2"><i class="bi bi-unlock me-1"></i>Đang mở</span>` : `<span class="badge bg-secondary mb-2"><i class="bi bi-lock me-1"></i>Đang đóng</span>`) : '') : '';
-                    const disabledReason = !isPublished
-                        ? 'Quiz chưa được publish'
-                        : (q.isOpen === false ? 'Quiz đang đóng' : 'Quiz chưa mở');
-
-                    html += `
-                    <div class="mb-3 ${idx > 0 ? 'border-top pt-3 mt-3' : ''}">
-                        <h6 class="fw-bold mb-1"><i class="bi bi-patch-question me-1 text-primary"></i>${q.title || 'Bài kiểm tra'}</h6>
-                        ${q.description ? `<p class="text-muted small mb-2">${q.description}</p>` : ''}
-                        <div class="d-flex flex-wrap gap-2 mb-2">
-                            ${q.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>${q.timeLimitMinutes} phút</span>` : ''}
-                            ${q.passScore ? `<span class="badge bg-light text-dark border"><i class="bi bi-trophy me-1"></i>Đạt: ${q.passScore}%</span>` : ''}
-                            ${q.maxAttempts ? `<span class="badge bg-light text-dark border"><i class="bi bi-repeat me-1"></i>Tối đa ${q.maxAttempts} lần</span>` : ''}
-                        </div>
-                        ${attemptBadge}
-                        ${q.hasAttempted ? scoreStr : ''}
-                        ${!q.hasAttempted ? openBadge : ''}
-                        ${canTake ? `
-                            <a href="/student/quiz/take/${q.quizId}?classId=${currentClassId}&sessionId=${sessionId}" class="btn btn-primary rounded-pill w-100 shadow-sm mt-2">
-                                <i class="bi bi-play-fill me-1"></i>${q.hasAttempted ? 'Làm lại bài' : 'Làm bài kiểm tra'}
-                            </a>
-                        ` : `
-                            <button class="btn btn-light rounded-pill w-100 text-muted mt-2" disabled title="${disabledReason}">
-                                <i class="bi bi-lock me-1"></i>${disabledReason}
-                            </button>
-                        `}
-                    </div>`;
-                });
-            }
-
-            // Legacy single quiz fallback (backward compat)
-            if (hasLegacyQuiz) {
-                const canTake = session.quizStatus === 'PUBLISHED';
-                const scoreStr = session.bestScore !== null ? `<span class="text-success fw-bold">Điểm cao nhất: ${session.bestScore}%</span>` : '';
-                html += `
-                    <div class="${quizzes.length > 0 ? 'border-top pt-3 mt-3' : ''}">
-                        <h6 class="fw-bold mb-1"><i class="bi bi-patch-question me-1 text-secondary"></i>${session.quizTitle || 'Bài kiểm tra'}</h6>
-                        ${session.quizDescription ? `<p class="text-muted small mb-2">${session.quizDescription}</p>` : ''}
-                        <div class="d-flex flex-wrap gap-2 mb-2">
-                            ${session.timeLimitMinutes ? `<span class="badge bg-light text-dark border"><i class="bi bi-hourglass-split me-1"></i>${session.timeLimitMinutes} phút</span>` : ''}
-                            ${session.passScore ? `<span class="badge bg-light text-dark border"><i class="bi bi-trophy me-1"></i>Đạt: ${session.passScore}%</span>` : ''}
-                            ${session.maxAttempts ? `<span class="badge bg-light text-dark border"><i class="bi bi-repeat me-1"></i>Tối đa ${session.maxAttempts} lần</span>` : ''}
-                        </div>
-                        ${session.hasAttempted ? `<span class="badge bg-success bg-opacity-10 text-success border border-success mb-2">Đã làm ${session.attemptCount} lần</span>` : ''}
-                        ${session.hasAttempted ? scoreStr : ''}
-                        ${canTake ? `
-                            <a href="/student/quiz/take/${session.quizId}?classId=${currentClassId}&sessionId=${sessionId}" class="btn btn-primary rounded-pill w-100 shadow-sm mt-2">
-                                <i class="bi bi-play-fill me-1"></i>${session.hasAttempted ? 'Làm lại bài' : 'Làm bài kiểm tra'}
-                            </a>
-                        ` : `
-                            <button class="btn btn-light rounded-pill w-100 text-muted mt-2" disabled>
-                                <i class="bi bi-lock me-1"></i>Bài kiểm tra chưa mở
-                            </button>
-                        `}
-                    </div>`;
-            }
-
-            html += `
-                <div class="text-center mt-3">
-                    <a href="/student/quiz" class="text-decoration-none small text-muted">Xem lịch sử bài kiểm tra</a>
-                </div>`;
-
-            body.innerHTML = html;
-        }
-
-        sessionModal.show();
-    };
-
-    // ======== TAB SWITCHING ========
-    const switchTab = (tab) => {
-        document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-        ['lichHocPanel', 'ketQuaPanel', 'bangXepHangPanel'].forEach(id => {
-            document.getElementById(id).classList.add('d-none');
-        });
-
-        if (tab === 'lichhoc') {
-            document.getElementById('tabLichHoc').classList.add('active');
-            document.getElementById('lichHocPanel').classList.remove('d-none');
-        } else if (tab === 'ketqua') {
-            document.getElementById('tabKetQua').classList.add('active');
-            document.getElementById('ketQuaPanel').classList.remove('d-none');
-        } else {
-            document.getElementById('tabBangXepHang').classList.add('active');
-            document.getElementById('bangXepHangPanel').classList.remove('d-none');
-        }
-    };
-
-    // ======== NAVIGATION ========
     const showListView = () => {
-        document.getElementById('classDetailView').classList.add('d-none');
-        document.getElementById('classListView').classList.remove('d-none');
-        currentClassId = null;
-        window._currentSessions = [];
+      document.getElementById('classDetailView').classList.add('d-none');
+      document.getElementById('classListView').classList.remove('d-none');
+      document.getElementById('filterSection').classList.remove('d-none');
+      document.getElementById('backBtnWrap').classList.add('d-none');
+      document.getElementById('detailSideInfo').classList.add('d-none');
+      currentClassId = null;
+      window._sessions = [];
     };
 
-    // ======== UTILITIES ========
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
-        try {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        } catch (e) {
-            return dateStr;
-        }
+    /* ── Sessions ─────────────────────────── */
+    const renderSessions = (sessions) => {
+      const c = document.getElementById('sessionsContainer');
+      if (!sessions.length) {
+        c.innerHTML = `<div class="state-box" style="grid-column:1/-1">
+          <i class="bi bi-calendar-x state-box__icon blue"></i>
+          <h5>Chưa có lộ trình học</h5><p>Hệ thống đang cập nhật.</p></div>`;
+        return;
+      }
+      c.innerHTML = sessions.map((s, i) => {
+        const quizzes   = s.quizzes || [];
+        const allDone   = quizzes.length && quizzes.every(q => q.hasAttempted);
+        const legDone   = !quizzes.length && s.hasAttempted;
+        const isDone    = allDone || legDone;
+        const hasQuiz   = quizzes.length > 0;
+        const doneCount = quizzes.filter(q => q.hasAttempted).length;
+        const cls  = isDone ? 'sc-done' : (hasQuiz ? 'sc-pending' : 'sc-default');
+        const icon = isDone ? 'bi-check-circle-fill' : 'bi-journal-bookmark';
+        const badge = hasQuiz
+          ? (isDone
+            ? `<span class="sc-badge done"><i class="bi bi-check2-all"></i>Hoàn thành</span>`
+            : `<span class="sc-badge todo"><i class="bi bi-pencil"></i>${doneCount}/${quizzes.length} bài</span>`)
+          : '';
+        const dateStr = s.sessionDate ? fmtDate(s.sessionDate) : 'Chưa cập nhật';
+        const timeStr = s.startTime ? `${s.startTime}${s.endTime?'–'+s.endTime:''}` : '';
+        return `
+          <div class="session-card ${cls}" style="animation-delay:${i*35}ms"
+               onclick="openSessionModal(${s.sessionId},'${escJs(s.topic||'Buổi '+s.sessionNumber)}')">
+            <div class="sc-num"><span>Buổi ${s.sessionNumber}</span><i class="bi ${icon}"></i></div>
+            <p class="sc-topic">${esc(s.topic || 'Nội dung đang cập nhật')}</p>
+            ${badge ? `<div class="sc-badges">${badge}</div>` : ''}
+            <div class="sc-footer">
+              <span><i class="bi bi-calendar3"></i> ${dateStr}</span>
+              ${timeStr ? `<span><i class="bi bi-clock"></i> ${timeStr}</span>` : ''}
+            </div>
+          </div>`;
+      }).join('');
     };
 
-    const formatTime = (dateStr) => {
-        if (!dateStr) return '—';
-        try {
-            const d = new Date(dateStr);
-            return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-            return '—';
-        }
+    /* ── Tabs ─────────────────────────────── */
+    const switchTab = (tab, animate = true) => {
+      const map = { lichhoc:'lichHocPanel', ketqua:'ketQuaPanel', bangxephang:'bangXepHangPanel' };
+      const ids = { lichhoc:'tabLichHoc', ketqua:'tabKetQua', bangxephang:'tabBangXepHang' };
+      Object.values(map).forEach(id => document.getElementById(id).classList.add('d-none'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(map[tab]).classList.remove('d-none');
+      document.getElementById(ids[tab]).classList.add('active');
     };
 
-    const escapeHtml = (str) => {
-        if (!str) return '';
-        return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    /* ── Modal ────────────────────────────── */
+    const openSessionModal = (sessionId, topic) => {
+      const s = (window._sessions||[]).find(x => x.sessionId === sessionId);
+      if (!s) return;
+      document.getElementById('modalSessionTitle').textContent = topic;
+      const body    = document.getElementById('modalSessionBody');
+      const quizzes = s.quizzes || [];
+      const hasLeg  = s.quizId && !quizzes.length;
+      if (!quizzes.length && !hasLeg) {
+        body.innerHTML = `<div class="quiz-empty"><i class="bi bi-clipboard-x"></i><h5>Chưa có bài tập</h5><p>Giảng viên chưa giao bài tập cho buổi học này.</p></div>`;
+      } else {
+        const items = [...quizzes];
+        if (hasLeg) items.push({ quizId:s.quizId, title:s.quizTitle, description:s.quizDescription,
+          status:s.quizStatus, isOpen:true, timeLimitMinutes:s.timeLimitMinutes,
+          passScore:s.passScore, maxAttempts:s.maxAttempts, hasAttempted:s.hasAttempted,
+          attemptCount:s.attemptCount, bestScore:s.bestScore });
+        body.innerHTML = items.map(q => quizCardHtml(q, s.sessionId)).join('');
+      }
+      document.getElementById('quizModalOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
     };
 
-    // Override openClass to store sessions globally
-    const _originalOpenClass = openClass;
-    // Re-assign so we can capture sessions
-    const openClassWithCapture = async (classId) => {
-        await _originalOpenClass(classId);
+    const closeModal = () => {
+      document.getElementById('quizModalOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    };
+    const handleOverlayClick = e => { if (e.target === document.getElementById('quizModalOverlay')) closeModal(); };
+
+    const quizCardHtml = (q, sessionId) => {
+      const canTake = q.status === 'PUBLISHED' && q.isOpen !== false;
+      const chips = [
+        q.timeLimitMinutes ? `<span class="quiz-chip"><i class="bi bi-stopwatch"></i>${q.timeLimitMinutes} phút</span>` : '',
+        q.passScore        ? `<span class="quiz-chip"><i class="bi bi-flag"></i>Đạt ${q.passScore}%</span>` : '',
+        q.maxAttempts      ? `<span class="quiz-chip"><i class="bi bi-arrow-repeat"></i>Tối đa ${q.maxAttempts} lần</span>` : '',
+      ].filter(Boolean).join('');
+      const statusHtml = q.hasAttempted
+        ? `<div class="quiz-status-done">
+            <div class="quiz-status-done__left"><i class="bi bi-check-circle-fill"></i>Đã nộp · ${q.attemptCount} lần</div>
+            ${q.bestScore!=null?`<span class="quiz-status-done__score">${q.bestScore}%</span>`:''}
+           </div>`
+        : (!canTake ? `<div class="quiz-status-locked"><i class="bi bi-lock-fill"></i>Bài tập đang đóng hoặc chưa công bố</div>` : '');
+      const btn = canTake
+        ? `<a href="/student/quiz/take/${q.quizId}?classId=${currentClassId}&sessionId=${sessionId}" class="quiz-cta primary">
+            <i class="bi ${q.hasAttempted?'bi-arrow-clockwise':'bi-play-circle-fill'}"></i>
+            ${q.hasAttempted?'Làm lại bài':'Bắt đầu làm bài'}</a>`
+        : `<button class="quiz-cta disabled" disabled><i class="bi bi-dash-circle"></i>Không thể truy cập</button>`;
+      return `
+        <div class="quiz-item">
+          <div class="quiz-item__header">
+            <div class="quiz-item__ico"><i class="bi bi-journal-check"></i></div>
+            <div>
+              <div class="quiz-item__name">${esc(q.title||'Bài tập trắc nghiệm')}</div>
+              <div class="quiz-item__desc">${esc(q.description||'Hoàn thành bài tập để củng cố kiến thức.')}</div>
+              ${chips?`<div class="quiz-chips">${chips}</div>`:''}
+            </div>
+          </div>
+          ${statusHtml}${btn}
+        </div>`;
     };
 
+    /* ── Utils ────────────────────────────── */
+    const fmtDate = s => { if(!s) return '—'; try { return new Date(s).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch{return s;} };
+    const esc   = (s='') => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const escJs = (s='') => String(s).replace(/'/g,"\\'").replace(/"/g,'\\"');
+
+    /* ── Search & filter events ───────────── */
+    const keywordInput = document.getElementById('keywordInput');
+    const clearBtn     = document.getElementById('searchClearBtn');
+
+    keywordInput.addEventListener('input', () => {
+      clearBtn.classList.toggle('d-none', !keywordInput.value);
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { currentPage = 0; fetchClasses(); }, 400);
+    });
+    clearBtn.addEventListener('click', () => {
+      keywordInput.value = ''; clearBtn.classList.add('d-none');
+      clearTimeout(debounceTimer); currentPage = 0; fetchClasses(); keywordInput.focus();
+    });
+    document.querySelectorAll('.filter-radio').forEach(el => {
+      el.addEventListener('change', () => { currentPage = 0; fetchClasses(); });
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    /* ── Init ─────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
-        fetchClasses();
-
-        // Auto-open session modal if query params are present (e.g., after quiz submission)
-        const params = new URLSearchParams(window.location.search);
-        const openSessionId = params.get('openSession');
-        const autoClassId = params.get('classId');
-
-        if (openSessionId) {
-            const openSession = parseInt(openSessionId);
-            const targetClassId = autoClassId ? parseInt(autoClassId) : null;
-            if (targetClassId) {
-                openClass(targetClassId).then(() => {
-                    setTimeout(() => {
-                        const sessions = window._currentSessions || [];
-                        const session = sessions.find(s => s.sessionId === openSession);
-                        if (session) {
-                            const topic = session.topic || 'Buổi ' + session.sessionNumber;
-                            openSessionModal(openSession, topic);
-                        }
-                    }, 400);
-                });
-            }
-        } else if (autoClassId) {
-            openClass(parseInt(autoClassId));
-        }
+      fetchClasses();
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('classId')) {
+        openClass(parseInt(p.get('classId'))).then?.(() => {
+          const sid = p.get('openSession');
+          if (sid) setTimeout(() => {
+            const s = (window._sessions||[]).find(x => x.sessionId===parseInt(sid));
+            if (s) openSessionModal(s.sessionId, s.topic||'Buổi '+s.sessionNumber);
+          }, 600);
+        });
+      }
     });
 </script>
 
