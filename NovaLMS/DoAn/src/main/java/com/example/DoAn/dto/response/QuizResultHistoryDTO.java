@@ -16,6 +16,7 @@ public class QuizResultHistoryDTO {
     private Integer quizId;
     private String quizTitle;
     private String courseName;
+    private String quizCategory; // ENTRY_TEST | COURSE_QUIZ
     private LocalDateTime submittedAt;
     private Integer score;
     private Integer maxScore;
