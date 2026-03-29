@@ -321,10 +321,42 @@ public class QuizResultServiceImpl implements QuizResultService {
             totalPoints += points;
 
             QuizAnswer userAns = answers.stream().filter(a -> a.getQuestion().getQuestionId().equals(q.getQuestionId())).findFirst().orElse(null);
-            
+
             String userAnswerDisplay = "";
             if (userAns != null && userAns.getAnsweredOptions() != null) {
-                userAnswerDisplay = userAns.getAnsweredOptions();
+                String rawJson = userAns.getAnsweredOptions();
+                try {
+                    String qType = q.getQuestionType();
+                    if ("MULTIPLE_CHOICE_SINGLE".equals(qType)) {
+                        Integer selectedId = objectMapper.readValue(rawJson, Integer.class);
+                        userAnswerDisplay = q.getAnswerOptions().stream()
+                                .filter(o -> o.getAnswerOptionId().equals(selectedId))
+                                .findFirst().map(AnswerOption::getTitle).orElse(rawJson);
+                    } else if ("MULTIPLE_CHOICE_MULTI".equals(qType)) {
+                        List<Integer> selectedIds = objectMapper.readValue(rawJson, new TypeReference<List<Integer>>(){});
+                        List<String> titles = q.getAnswerOptions().stream()
+                                .filter(o -> selectedIds.contains(o.getAnswerOptionId()))
+                                .map(AnswerOption::getTitle)
+                                .collect(Collectors.toList());
+                        userAnswerDisplay = String.join(", ", titles);
+                    } else if ("FILL_IN_BLANK".equals(qType)) {
+                        userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
+                    } else if ("MATCHING".equals(qType)) {
+                        Map<String, String> userMatch = objectMapper.readValue(rawJson, new TypeReference<Map<String, String>>(){});
+                        List<String> matchDisplays = new ArrayList<>();
+                        for (AnswerOption opt : q.getAnswerOptions()) {
+                            String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
+                            if (userTarget != null) {
+                                matchDisplays.add(opt.getTitle() + " -> " + userTarget);
+                            }
+                        }
+                        userAnswerDisplay = String.join(" | ", matchDisplays);
+                    } else {
+                        userAnswerDisplay = rawJson;
+                    }
+                } catch (Exception e) {
+                    userAnswerDisplay = rawJson;
+                }
             }
 
             String correctAnswerDisplay = null;
