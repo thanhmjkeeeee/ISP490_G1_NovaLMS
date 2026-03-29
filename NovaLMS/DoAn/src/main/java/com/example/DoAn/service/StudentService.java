@@ -15,4 +15,6 @@ public interface StudentService {
     // Admin methods
     ResponseData<PageResponse<RegistrationResponseDTO>> getAllRegistrations(String keyword, String status, Integer courseId, int page, int size);
     ResponseData<Integer> updateRegistrationStatus(Integer registrationId, String status, String note);
+    // Check enroll user
+    ResponseData<Boolean> checkFirstTime(String email);
 }

@@ -83,4 +83,11 @@ public class StudentApiController {
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return studentService.getDashboardData(email);
     }
+
+    @GetMapping("/check-first-time")
+    public ResponseData<Boolean> checkFirstTimeBuyer(Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseData.success("Guest", false);
+        return studentService.checkFirstTime(email);
+    }
 }
