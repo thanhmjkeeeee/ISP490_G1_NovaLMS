@@ -147,21 +147,28 @@ public class StudentServiceImpl implements StudentService {
             Sort.Direction direction = sortParams[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
 
-            Page<Registration> regPage = registrationRepository.findMyCoursesWithFilters(user.getUserId(), keyword, categoryId, pageable);
+            String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+
+            Page<Registration> regPage = registrationRepository.findMyCoursesWithFilters(
+                    user.getUserId(),
+                    searchKeyword,
+                    categoryId,
+                    pageable
+            );
 
             List<MyCourseDTO> dtoList = regPage.getContent().stream().map(reg -> MyCourseDTO.builder()
                     .courseId(reg.getCourse().getCourseId())
-                    .title(reg.getCourse().getCourseName())
+                    .title(reg.getCourse().getCourseName() != null ? reg.getCourse().getCourseName() : reg.getCourse().getTitle())
                     .description(reg.getCourse().getDescription())
                     .imageUrl(reg.getCourse().getImageUrl())
-                    .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "N/A")
+                    .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Chưa xếp lớp")
                     .build()).collect(Collectors.toList());
 
             PageResponse<MyCourseDTO> pageResponse = PageResponse.<MyCourseDTO>builder()
                     .items(dtoList)
                     .pageNo(regPage.getNumber())
                     .pageSize(regPage.getSize())
-                    .totalElements(regPage.getTotalElements())
+                    .totalElements((int) regPage.getTotalElements())
                     .totalPages(regPage.getTotalPages())
                     .last(regPage.isLast())
                     .build();
