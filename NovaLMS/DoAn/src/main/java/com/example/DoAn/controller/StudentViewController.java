@@ -2,6 +2,7 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.EnrollPageResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.service.SettingService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -22,6 +23,7 @@ public class StudentViewController {
 
     private final StudentService studentService;
     private final StudentDashboardService studentDashboardService;
+    private final SettingService settingService;
 
     private String getEmailFromPrincipal(Principal principal) {
         if (principal == null) return null;
@@ -50,7 +52,8 @@ public class StudentViewController {
     }
 
     @GetMapping("/my-courses")
-    public String viewMyCourses() {
+    public String viewMyCourses(Model model) {
+        model.addAttribute("categories", settingService.getCourseCategories());
         return "student/my-courses";
     }
 

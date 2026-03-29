@@ -21,8 +21,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r FROM Registration r WHERE r.user.email = :email ORDER BY r.registrationTime DESC")
     List<Registration> findByUserEmail(@Param("email") String email);
 
-    Optional<Registration> findByClazz_ClassIdAndStatus(Integer classId, String status);
-
+    Optional<Registration> findByUser_EmailAndClazz_ClassIdAndStatus(String email, Integer classId, String status);
     // Kiểm tra xem User đã đăng ký lớp học này với trạng thái khác status truyền vào chưa
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status <> :status")
     boolean existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
@@ -39,7 +38,31 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("status") String status
     );
 
-    // Tìm kiếm khóa học của tôi với bộ lọc (Phân trang)
+    @Query(value = """
+    SELECT r FROM Registration r 
+    JOIN FETCH r.course c
+    JOIN FETCH r.clazz cl
+    LEFT JOIN FETCH cl.teacher t
+    WHERE r.user.userId = :userId 
+      AND r.status = 'Approved'
+      AND (:keyword IS NULL OR LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+      AND (:status IS NULL OR cl.status = :status)
+""", countQuery = """
+    SELECT COUNT(r) FROM Registration r 
+    JOIN r.course c
+    JOIN r.clazz cl
+    WHERE r.user.userId = :userId 
+      AND r.status = 'Approved'
+      AND (:keyword IS NULL OR LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+      AND (:status IS NULL OR cl.status = :status)
+""")
+    Page<Registration> findMyClassesWithFilters(
+            @Param("userId") Integer userId,
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
     @Query(value = """
         SELECT r FROM Registration r 
         JOIN FETCH r.course c
@@ -116,5 +139,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
 
     @Query("SELECT r FROM Registration r JOIN FETCH r.user u WHERE r.clazz.classId = :classId AND r.status = 'Approved' ORDER BY u.fullName ASC")
     List<Registration> findApprovedByClassId(@Param("classId") Integer classId);
+
+
 
 }

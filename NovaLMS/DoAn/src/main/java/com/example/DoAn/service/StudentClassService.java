@@ -4,6 +4,8 @@ import com.example.DoAn.dto.response.*;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,41 +24,68 @@ public class StudentClassService {
     private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
 
     @Transactional(readOnly = true)
-    public ResponseData<List<MyClassDTO>> getMyClasses(String email) {
+    public ResponseData<PageResponse<MyClassDTO>> getMyClasses(String email, String keyword, String status, int page, int size) {
         try {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            List<Registration> approvedRegs = registrationRepository
-                    .findByUser_UserIdOrderByRegistrationTimeDesc(user.getUserId())
-                    .stream()
-                    .filter(r -> "Approved".equals(r.getStatus()))
-                    .toList();
+            String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+            String classStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
 
-            List<MyClassDTO> classes = approvedRegs.stream().map(reg -> {
+            Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("registrationTime").descending());
+
+            Page<Registration> registrationPage = registrationRepository.findMyClassesWithFilters(user.getUserId(), searchKeyword, classStatus, pageable);
+
+            List<Integer> classIds = registrationPage.getContent().stream()
+                    .map(r -> r.getClazz().getClassId())
+                    .collect(Collectors.toList());
+
+            // Tránh lỗi khi list class rỗng
+            Map<Integer, Long> sessionCountMap = new HashMap<>();
+            if (!classIds.isEmpty()) {
+                for(Integer cid : classIds) {
+                    sessionCountMap.put(cid, (long) classSessionRepository.countByClassId(cid));
+                }
+            }
+
+            // 3. MAP SANG DTO
+            List<MyClassDTO> classes = registrationPage.getContent().stream().map(reg -> {
                 Clazz clazz = reg.getClazz();
-                int sessionCount = classSessionRepository.countByClassId(clazz.getClassId());
+                Course course = reg.getCourse();
+
+                int studentCount = (clazz.getRegistrations() != null) ? clazz.getRegistrations().size() : 0;
 
                 return MyClassDTO.builder()
                         .classId(clazz.getClassId())
                         .className(clazz.getClassName())
-                        .courseId(reg.getCourse().getCourseId())
-                        .courseName(reg.getCourse().getTitle())
-                        .courseImage(reg.getCourse().getImageUrl())
+                        .courseId(course.getCourseId())
+                        .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
+                        .courseImage(course.getImageUrl())
                         .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : null)
                         .schedule(clazz.getSchedule())
                         .slotTime(clazz.getSlotTime())
                         .status(clazz.getStatus())
-                        .studentCount(clazz.getRegistrations() != null ? clazz.getRegistrations().size() : 0)
-                        .sessionCount(sessionCount)
+                        .studentCount(studentCount)
+                        .sessionCount(sessionCountMap.getOrDefault(clazz.getClassId(), 0L).intValue())
                         .build();
-            }).toList();
+            }).collect(Collectors.toList());
 
-            return ResponseData.success("Danh sách lớp học", classes);
+            PageResponse<MyClassDTO> pageResponse = PageResponse.<MyClassDTO>builder()
+                    .items(classes)
+                    .pageNo(registrationPage.getNumber())
+                    .pageSize(registrationPage.getSize())
+                    .totalElements((int) registrationPage.getTotalElements())
+                    .totalPages(registrationPage.getTotalPages())
+                    .last(registrationPage.isLast())
+                    .build();
+
+            return ResponseData.success("Danh sách lớp học", pageResponse);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
     }
+
+
 
     @Transactional(readOnly = true)
     public ResponseData<ClassDetailDTO> getClassDetail(String email, Integer classId) {
@@ -65,15 +94,13 @@ public class StudentClassService {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             // Verify enrollment
-            Optional<Registration> regOpt = registrationRepository.findByClazz_ClassIdAndStatus(classId, "Approved");
-            if (regOpt.isEmpty()) {
+            Optional<Registration> regOpt = registrationRepository.findByUser_EmailAndClazz_ClassIdAndStatus(email, classId, "Approved");            if (regOpt.isEmpty()) {
                 return ResponseData.error(403, "Bạn chưa đăng ký lớp học này");
             }
             Registration reg = regOpt.get();
 
             Clazz clazz = reg.getClazz();
 
-            // Quiz attempt info
             List<QuizResult> userResults = quizResultRepository.findByUser_Email(email);
             Map<Integer, List<QuizResult>> resultsByQuiz = userResults.stream()
                     .collect(Collectors.groupingBy(r -> r.getQuiz().getQuizId()));
@@ -81,10 +108,8 @@ public class StudentClassService {
             // Sessions — gắn quiz info vào mỗi session
             List<ClassSession> sessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
             List<ClassSessionDTO> sessionDTOs = sessions.stream().map(s -> {
-                // Lấy quizzes từ session_quiz table (N:1)
                 List<com.example.DoAn.model.SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionIdOrderByOrderIndexAsc(s.getSessionId());
 
-                // Build quiz info per session
                 List<SessionQuizInfoDTO> quizInfoList = sqList.stream().map(sq -> {
                     Quiz q = sq.getQuiz();
                     List<QuizResult> qResults = resultsByQuiz.getOrDefault(q.getQuizId(), List.of());
