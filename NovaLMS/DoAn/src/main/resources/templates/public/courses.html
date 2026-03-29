@@ -4,50 +4,49 @@
 <head th:replace="~{fragments/head :: common-head('Courses')}">
 </head>
 
-<body class="courses-page">
+<body class="courses-page bg-light">
 
 <header th:replace="~{fragments/header :: header-fragment('courses')}"></header>
 
-<main class="main">
-  <div class="page-title light-background">
-    <div class="container d-lg-flex justify-content-between align-items-center">
-      <h1 class="mb-2 mb-lg-0">Courses</h1>
+<main class="main" id="publicCoursesWrapper">
+  <div class="page-title light-background shadow-sm pb-4 mb-5 border-bottom">
+    <div class="container d-lg-flex justify-content-between align-items-center pt-4">
+      <h1 class="mb-2 mb-lg-0 fw-bold">Khóa học</h1>
       <nav class="breadcrumbs">
-        <ol>
-          <li><a th:href="@{/}">Home</a></li>
-          <li class="current">Courses</li>
+        <ol class="mb-0">
+          <li><a th:href="@{/}" class="text-decoration-none">Trang chủ</a></li>
+          <li class="current text-primary fw-medium">Khóa học</li>
         </ol>
       </nav>
     </div>
   </div>
 
-  <section id="courses-2" class="courses-2 section">
+  <section id="courses-2" class="courses-2 section pt-0">
     <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row">
+      <div class="row g-4">
 
         <div class="col-lg-3">
-          <div class="course-filters" data-aos="fade-right" data-aos-delay="100">
-            <h4 class="filter-title">Lọc khóa học</h4>
+          <div class="bg-white p-4 rounded-4 shadow-sm sticky-top" style="top: 100px;" data-aos="fade-right" data-aos-delay="100">
+            <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">
+              <i class="bi bi-funnel-fill me-2"></i>Lọc khóa học
+            </h5>
 
             <div class="filter-group">
-              <h5>Thể loại</h5>
-              <div class="filter-options">
+              <h6 class="fw-bold text-dark mb-3">Thể loại</h6>
+              <div class="d-flex flex-column gap-2">
 
-                <label class="filter-checkbox">
-                  <input type="radio" name="categoryId" value=""
-                         th:checked="${selectedCat == null}"
-                         onchange="loadCourses()">
-                  <span class="checkmark"></span>
-                  Tất cả
+                <label class="pub-filter-label">
+                  <input type="radio" name="categoryId" value="" class="pub-filter-radio d-none" th:checked="${selectedCat == null}">
+                  <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
+                    <i class="bi bi-grid-fill me-2"></i> Tất cả
+                  </span>
                 </label>
 
-                <label class="filter-checkbox" th:each="cat : ${categories}">
-                  <input type="radio" name="categoryId"
-                         th:value="${cat.settingId}"
-                         th:checked="${selectedCat == cat.settingId}"
-                         onchange="loadCourses()">
-                  <span class="checkmark"></span>
-                  <span th:text="${cat.name}">Category Name</span>
+                <label class="pub-filter-label" th:each="cat : ${categories}">
+                  <input type="radio" name="categoryId" th:value="${cat.settingId}" class="pub-filter-radio d-none" th:checked="${selectedCat == cat.settingId}">
+                  <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
+                    <i class="bi bi-tag me-2"></i> <span th:text="${cat.name}">Category</span>
+                  </span>
                 </label>
 
               </div>
@@ -57,257 +56,219 @@
 
         <div class="col-lg-9">
 
-          <div class="courses-header" data-aos="fade-left" data-aos-delay="100">
-            <div class="search-box">
-              <i class="bi bi-search"></i>
-              <input type="text" id="searchInput" placeholder="Search courses..." oninput="loadCourses()">
+          <div class="bg-white p-3 rounded-4 shadow-sm mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3" data-aos="fade-left" data-aos-delay="100">
+            <div class="position-relative flex-grow-1" style="max-width: 400px;">
+              <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+              <input type="text" id="searchInput" class="form-control rounded-pill ps-5 py-2 border-0 bg-light" placeholder="Tìm kiếm khóa học...">
             </div>
 
-            <div class="sort-dropdown">
-              <select id="sortSelect" onchange="loadCourses()">
-                <option value="newest">Sort by: Mới nhất</option>
-                <option value="price_asc">Price: Thấp đến cao</option>
-                <option value="price_desc">Price: Cao đến thấp</option>
+            <div class="d-flex align-items-center gap-2">
+              <label for="sortSelect" class="text-muted small fw-bold mb-0 text-nowrap">Sắp xếp:</label>
+              <select id="sortSelect" class="form-select border-0 bg-light rounded-pill py-2 cursor-pointer shadow-none">
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá: Thấp đến cao</option>
+                <option value="price_desc">Giá: Cao đến thấp</option>
               </select>
             </div>
           </div>
 
-          <div class="courses-grid">
-            <div class="row" id="courseContainer">
-              <!-- Courses will be loaded here via AJAX -->
-
-              <div class="col-12 text-center py-5" id="loadingState">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">Đang tải...</p>
-              </div>
-
-              <div class="col-lg-6 col-md-6" th:each="course : ${courseList}">
-                <div class="course-card">
-
-                  <div class="course-image">
-                    <img th:src="${course.imageUrl != null ? course.imageUrl : '/assets/img/default-course.jpg'}"
-                         alt="Course Image" class="img-fluid">
-                  </div>
-
-                  <div class="course-content">
-                    <div class="course-meta">
-                      <span class="category" th:text="${course.categoryName}">Category</span>
-                    </div>
-
-                    <h3 th:text="${course.courseName}">Course Title</h3>
-                    <p th:text="${#strings.abbreviate(course.description, 100)}">Short description...</p>
-
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div th:if="${course.price != null && course.price > 0}" th:with="saleAmount=${course.sale != null ? course.sale : 0}">
-                            <span th:if="${saleAmount > 0}" class="text-decoration-line-through text-muted small me-2"
-                                  th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                            </span>
-                            <span class="h5 fw-bold text-primary mb-0"
-                                  th:text="${#numbers.formatDecimal(course.price - saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                            </span>
-                            <span th:if="${saleAmount > 0}" class="badge bg-danger ms-1"
-                                  th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                            </span>
-                        </div>
-                        <span class="h5 fw-bold text-success mb-0"
-                              th:if="${course.price == null || course.price == 0}">
-                            Free
-                        </span>
-                    </div>
-
-                    <div class="instructor-info" th:if="${course.expert != null}">
-                      <img th:src="${course.expert.avatarUrl != null ? course.expert.avatarUrl : '/assets/img/default-avatar.png'}"
-                           alt="Instructor" class="instructor-avatar">
-                      <span class="instructor-name" th:text="${course.expert.fullName}">Expert Name</span>
-                    </div>
-
-                    <a th:href="@{/course/details/{id}(id=${course.courseId})}" class="btn-course">Xem chi tiết</a>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12 text-center mt-5" th:if="${#lists.isEmpty(courseList)}">
-                <h3>Không tìm thấy khóa học nào.</h3>
-                <p>Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
-              </div>
-
-            </div>
+          <div class="row g-4" id="courseContainer">
           </div>
 
-          <!-- Pagination -->
-          <div class="mt-4" id="pagination-container"></div>
+          <nav class="mt-5" aria-label="Pagination">
+            <ul id="pagination-container" class="pagination justify-content-center gap-2"></ul>
+          </nav>
+
         </div>
       </div>
     </div>
   </section>
-
 </main>
 
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 <script th:inline="javascript">
-  // Biến toàn cục cho phân trang
   let currentPage = 0;
   let currentTotalPages = 0;
+  let debounceTimer = null;
+  let abortController = null;
 
-  // Kiểm tra xem user đã đăng nhập chưa
-  var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+  const isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
 
-  function loadCourses(page = 0) {
+  const showSkeleton = () => {
+    const container = document.getElementById('courseContainer');
+    document.getElementById('pagination-container').innerHTML = ''; // Ẩn phân trang
+
+    container.innerHTML = Array(4).fill(0).map(() => `
+      <div class="col-lg-6 col-md-6">
+        <div class="pub-course-card border-0 shadow-sm">
+          <div class="pub-skeleton" style="height: 200px; width: 100%; border-radius: 16px 16px 0 0;"></div>
+          <div class="pub-course-content">
+            <div class="pub-skeleton mb-3" style="height: 24px; width: 40%;"></div>
+            <div class="pub-skeleton mb-2" style="height: 20px; width: 90%;"></div>
+            <div class="pub-skeleton mb-4" style="height: 14px; width: 100%;"></div>
+            <div class="pub-skeleton mt-auto rounded-pill" style="height: 42px; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  };
+
+  const loadCourses = async (page = 0) => {
     currentPage = page;
 
-    // 1. Lấy giá trị từ các bộ lọc
-    const keyword = document.getElementById('searchInput')?.value || '';
+    const keyword = document.getElementById('searchInput')?.value.trim() || '';
     const sortValue = document.getElementById('sortSelect')?.value || 'newest';
-    const selectedCategory = document.querySelector('input[name="categoryId"]:checked');
-    const categoryId = (selectedCategory && selectedCategory.value !== "") ? selectedCategory.value : '';
+    const selectedCategory = document.querySelector('input[name="categoryId"]:checked')?.value || '';
 
-    // 2. URL gọi đến @RestController
     let url = `/api/v1/public/courses/filter?page=${page}&size=6&sortBy=${sortValue}`;
     if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-    if (categoryId) url += `&categoryId=${categoryId}`;
+    if (selectedCategory) url += `&categoryId=${selectedCategory}`;
 
-    // 3. Gọi Fetch API
-    fetch(url)
-            .then(response => {
-              if (!response.ok) {
-                throw new Error('Network response was not ok');
-              }
-              return response.json();
-            })
-            .then(jsonResponse => {
-              // Lấy dữ liệu từ ResponseData (field 'data' chứa PageResponse)
-              const pageData = jsonResponse.data;
-              const courses = pageData.items;
-              currentTotalPages = pageData.totalPages;
+    // Hủy request cũ nếu spam
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
 
-              const container = document.getElementById('courseContainer');
+    showSkeleton();
 
-              // Xóa sạch nội dung cũ (trừ loading state)
-              const loadingState = document.getElementById('loadingState');
-              container.innerHTML = '';
-              if (loadingState) container.appendChild(loadingState);
+    try {
+      const response = await fetch(url, { signal: abortController.signal });
+      if (!response.ok) throw new Error('Lỗi mạng');
 
-              // Nếu mảng rỗng
-              if (!courses || courses.length === 0) {
-                container.innerHTML = `
-            <div class="col-12 text-center mt-5">
-              <h3>Không tìm thấy khóa học nào.</h3>
-              <p>Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
-            </div>`;
-                renderPagination(0);
-                return;
-              }
+      const jsonResponse = await response.json();
+      const pageData = jsonResponse.data;
+      const courses = pageData.items;
+      currentTotalPages = pageData.totalPages;
 
-              // 4. Duyệt qua mảng JSON và tạo chuỗi HTML
-              let htmlContent = '';
-              courses.forEach(course => {
+      const container = document.getElementById('courseContainer');
 
-                // Xử lý giá tiền và sale
-                let priceHtml = '';
-                if (course.price != null && course.price > 0) {
-                  const formattedPrice = course.price.toLocaleString('vi-VN');
-                  if (course.sale != null && course.sale > 0) {
-                    const salePrice = (course.price - course.sale).toLocaleString('vi-VN');
-                    const saleAmount = course.sale.toLocaleString('vi-VN');
-                    priceHtml = `<span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
-                                 <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>
-                                 <span class="badge bg-danger ms-1">-${saleAmount} đ</span>`;
-                  } else {
-                    priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
-                  }
-                } else {
-                  priceHtml = `<span class="h5 fw-bold text-success mb-0">Free</span>`;
-                }
+      if (!courses || courses.length === 0) {
+        container.innerHTML = `
+          <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm pub-fade-in">
+            <i class="bi bi-journal-x text-muted" style="font-size: 4rem;"></i>
+            <h4 class="fw-bold mt-3 text-dark">Không tìm thấy khóa học nào</h4>
+            <p class="text-muted mb-0">Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
+          </div>`;
+        renderPagination(0);
+        return;
+      }
 
-                // Xử lý mô tả ngắn
-                let shortDesc = course.description ? course.description : '';
-                if (shortDesc.length > 100) {
-                  shortDesc = shortDesc.substring(0, 100) + '...';
-                }
+      container.innerHTML = courses.map((course, index) => {
+        // Render Giá
+        let priceHtml = '';
+        if (course.price != null && course.price > 0) {
+          const formattedPrice = course.price.toLocaleString('vi-VN');
+          if (course.sale != null && course.sale > 0) {
+            const salePrice = (course.price - course.sale).toLocaleString('vi-VN');
+            const saleAmount = course.sale.toLocaleString('vi-VN');
+            priceHtml = `
+              <span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
+              <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>
+              <span class="badge bg-danger ms-2">-${saleAmount} đ</span>`;
+          } else {
+            priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
+          }
+        } else {
+          priceHtml = `<span class="h5 fw-bold text-success mb-0">Miễn phí</span>`;
+        }
 
-                // Xử lý thông tin giảng viên
-                let expertHtml = '';
-                if (course.expert != null) {
-                  const avatar = course.expert.avatarUrl ? course.expert.avatarUrl : '/assets/img/default-avatar.png';
-                  expertHtml = `<div class="instructor-info">
-                    <img src="${avatar}" alt="Instructor" class="instructor-avatar">
-                    <span class="instructor-name">${course.expert.fullName}</span>
-                  </div>`;
-                }
+        let shortDesc = course.description || 'Chưa có mô tả chi tiết.';
+        if (shortDesc.length > 90) shortDesc = shortDesc.substring(0, 90) + '...';
 
-                const imageUrl = course.imageUrl ? course.imageUrl : '/assets/img/default-course.jpg';
+        const avatar = (course.expert && course.expert.avatarUrl) ? course.expert.avatarUrl : '/assets/img/default-avatar.png';
+        const expertName = course.expert ? course.expert.fullName : 'Hệ thống';
+        const imageUrl = course.imageUrl || '/assets/img/default-course.jpg';
 
-                htmlContent += `
-            <div class="col-lg-6 col-md-6">
-              <div class="course-card">
-                <div class="course-image">
-                  <img src="${imageUrl}" alt="Course Image" class="img-fluid">
-                </div>
-                <div class="course-content">
-                  <div class="course-meta">
-                    <span class="category">${course.categoryName}</span>
-                  </div>
-                  <h3>${course.courseName}</h3>
-                  <p>${shortDesc}</p>
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                      ${priceHtml}
-                  </div>
-                  ${expertHtml}
-                  <a href="/course/details/${course.courseId}" class="btn-course">Xem chi tiết</a>
-                </div>
+        // Render Card HTML (Dùng pub-course-card)
+        return `
+          <div class="col-lg-6 col-md-6 pub-fade-in" style="animation-delay: ${index * 50}ms">
+            <div class="pub-course-card shadow-sm">
+              <div class="pub-course-img-wrap">
+                <img src="${imageUrl}" onerror="this.src='/assets/img/default-course.jpg'" alt="Course">
+                <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
+                  ${course.categoryName || 'Khác'}
+                </span>
               </div>
-            </div>`;
-              });
+              <div class="pub-course-content">
+                <h5 class="fw-bold mb-2 text-dark text-truncate" title="${course.courseName}">${course.courseName}</h5>
+                <p class="text-muted small mb-4 flex-grow-1">${shortDesc}</p>
 
-              // 5. Đẩy toàn bộ HTML mới vào container
-              container.innerHTML = htmlContent;
+                <div class="d-flex justify-content-between align-items-center mb-4 pt-3 border-top">
+                  <div>${priceHtml}</div>
+                </div>
 
-              // 6. Vẽ phân trang
-              renderPagination(currentTotalPages);
+                <div class="d-flex align-items-center mb-4">
+                  <img src="${avatar}" class="rounded-circle me-2 border" width="32" height="32" alt="Avatar">
+                  <span class="small fw-bold text-secondary">${expertName}</span>
+                </div>
 
-              // 7. Ẩn loading
-              if (loadingState) loadingState.style.display = 'none';
-            })
-            .catch(error => {
-              console.error('Error loading courses:', error);
-              const loadingState = document.getElementById('loadingState');
-              if (loadingState) loadingState.style.display = 'none';
-            });
-  }
+                <a href="/course/details/${course.courseId}" class="pub-btn-course mt-auto">Xem chi tiết <i class="bi bi-arrow-right ms-1"></i></a>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
 
-  function renderPagination(totalPages) {
-    let paginationHtml = '';
+      renderPagination(currentTotalPages);
 
-    if (totalPages <= 1) return;
-
-    // Previous button
-    paginationHtml += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
-      <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${currentPage - 1})">Trước</a>
-    </li>`;
-
-    // Page numbers
-    for (let i = 0; i < totalPages; i++) {
-      paginationHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-        <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${i})">${i + 1}</a>
-      </li>`;
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        document.getElementById('courseContainer').innerHTML = `
+          <div class="col-12 text-center text-danger py-5 bg-white rounded-4 shadow-sm">
+            <i class="bi bi-exclamation-triangle fs-1"></i>
+            <h5 class="mt-2">Lỗi kết nối</h5>
+            <p>Vui lòng tải lại trang.</p>
+          </div>`;
+      }
     }
+  };
 
-    // Next button
-    paginationHtml += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
-      <a class="page-link" href="javascript:void(0)" onclick="loadCourses(${currentPage + 1})">Sau</a>
-    </li>`;
-
+  const renderPagination = (totalPages) => {
     const paginationContainer = document.getElementById('pagination-container');
-    if (paginationContainer) {
-      paginationContainer.innerHTML = `<ul class="pagination justify-content-center">${paginationHtml}</ul>`;
+    if (totalPages <= 1) {
+      paginationContainer.innerHTML = '';
+      return;
     }
-  }
 
-  // Initial load
-  document.addEventListener('DOMContentLoaded', function() {
+    let html = `
+      <li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage - 1})"><i class="bi bi-chevron-left"></i></button>
+      </li>`;
+
+    for (let i = 0; i < totalPages; i++) {
+      html += `
+        <li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link rounded-circle border-0 shadow-sm ${i === currentPage ? 'bg-primary text-white' : 'text-dark'}" onclick="loadCourses(${i})">${i + 1}</button>
+        </li>`;
+    }
+
+    html += `
+      <li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
+        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage + 1})"><i class="bi bi-chevron-right"></i></button>
+      </li>`;
+
+    paginationContainer.innerHTML = html;
+  };
+
+  // --- Lắng nghe sự kiện (Event Listeners) ---
+  document.addEventListener('DOMContentLoaded', () => {
     loadCourses(0);
+
+    // Filter Radio
+    document.querySelectorAll('.pub-filter-radio').forEach(radio => {
+      radio.addEventListener('change', () => loadCourses(0));
+    });
+
+    // Sort Dropdown
+    document.getElementById('sortSelect').addEventListener('change', () => loadCourses(0));
+
+    // Debounce Search Input
+    document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadCourses(0);
+      }, 400);
+    });
   });
 </script>
 
