@@ -12,6 +12,163 @@
 # Font & Color Variables
 # Help: https://bootstrapmade.com/color-system/
 --------------------------------------------------------------*/
+
+
+ /* Base Utilities */
+  .transition-all { transition: all 0.3s ease; }
+  .cursor-not-allowed { cursor: not-allowed; }
+  .tracking-wider { letter-spacing: 0.05em; }
+  .backdrop-blur { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+  /* Hover Effects */
+  .hover-bg-light:hover { background-color: #f1f5f9 !important; }
+  .hover-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important; }
+  .hover-primary:hover { background-color: #0d6efd !important; color: white !important; }
+
+  /* Custom Nav Tabs (Pills style) */
+  .nav-pills .nav-link { color: #6c757d; border: 1px solid transparent; transition: all 0.2s; padding: 0.75rem 1.5rem; }
+  .nav-pills .nav-link:hover { background-color: #f8f9fa; color: #0d6efd; }
+  .nav-pills .nav-link.active { background-color: #0d6efd; color: white; box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3); }
+
+  /* Custom Accordion */
+  .custom-accordion-item { border: 1px solid rgba(0,0,0,0.05) !important; }
+  .custom-accordion .accordion-button:not(.collapsed) {
+      background-color: #f8f9fa !important;
+      color: #0d6efd;
+      box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+  }
+  .custom-accordion .accordion-button:focus { box-shadow: none; border-color: rgba(0,0,0,.125); }
+
+  /* Skeleton Loading */
+  .skeleton {
+    background-color: #e2e5e7;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+    background-size: 40px 100%;
+    background-repeat: no-repeat;
+    background-position: left -40px top 0;
+    animation: shine 1.2s ease infinite;
+  }
+  @keyframes shine { to { background-position: right -40px top 0; } }
+
+  /* Fade in */
+  @keyframes fadeInReady {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-ready { animation: fadeInReady 0.5s ease both; }
+
+
+
+
+ :root {
+    --nova-primary: #0d6efd;
+    --nova-text-main: #2b3445;
+  }
+
+  /* ── Filter ────────────────────────────────────────────── */
+  .filter-label {
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #6c757d;
+    transition: all 0.2s ease-in-out;
+    user-select: none;
+  }
+  .filter-label:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    color: var(--nova-primary);
+  }
+  .filter-radio:checked + .filter-label {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--nova-primary);
+    font-weight: 600;
+  }
+
+  /* ── Search ────────────────────────────────────────────── */
+  .search-input-group {
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+  }
+  .search-input-group:focus-within {
+    border-color: rgba(13, 110, 253, 0.5);
+    box-shadow: 0 4px 20px rgba(13, 110, 253, 0.15) !important;
+  }
+
+  /* ── Course card ───────────────────────────────────────── */
+  .course-card {
+    background-color: #ffffff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 16px;
+  }
+  .course-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(13, 110, 253, 0.12) !important;
+  }
+
+  .course-img-wrapper { overflow: hidden; border-radius: 16px 16px 0 0; }
+  .course-img-wrapper img { transition: transform 0.5s ease; }
+  .course-card:hover .course-img-wrapper img { transform: scale(1.05); }
+
+  .course-title {
+    color: var(--nova-text-main);
+    transition: color 0.2s ease;
+  }
+  .course-card:hover .course-title { color: var(--nova-primary) !important; }
+
+  .btn-enroll {
+    background-color: #f8f9fa;
+    color: var(--nova-primary);
+    transition: all 0.3s ease;
+  }
+  .course-card:hover .btn-enroll {
+    background-color: var(--nova-primary) !important;
+    color: #ffffff !important;
+  }
+
+  /* ── Card entrance animation ───────────────────────────── */
+  /*
+   * Trạng thái ban đầu: ẩn + dịch xuống 28px.
+   * Khi JS thêm .card-visible → transition chạy về opacity:1 + translateY(0).
+   * transition-delay được set inline theo index → stagger effect.
+   */
+  .course-col {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.42s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    /* will-change giúp browser chuẩn bị layer trước */
+    will-change: opacity, transform;
+  }
+  .course-col.card-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Skeleton ──────────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, #e8eaed 25%, #f4f5f7 50%, #e8eaed 75%);
+    background-size: 200% 100%;
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+    border-radius: 4px;
+  }
+  @keyframes skeleton-sweep {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── State boxes ───────────────────────────────────────── */
+  .state-box {
+    padding: 4rem 1rem;
+    text-align: center;
+    color: #6c757d;
+    background: #fff;
+    border-radius: 16px;
+  }
+  .state-box i {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #ced4da;
+  }
+
 /* Fonts */
 :root {
   --default-font: "Roboto",  system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";

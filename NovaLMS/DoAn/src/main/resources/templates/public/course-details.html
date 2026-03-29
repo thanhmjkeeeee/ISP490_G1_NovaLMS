@@ -1,3 +1,4 @@
+<!-- ===== course-details.html ===== -->
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
@@ -192,95 +193,172 @@
           </div>
         </div>
 
-      </div> </div>
+      </div>
+    </div>
   </section>
 </main>
+
+<div class="modal fade" id="placementSuggestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-entrance">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem;">
+      <div class="modal-header border-0 pb-0 text-center justify-content-center position-relative">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mt-4" style="width: 90px; height: 90px;">
+          <i class="bi bi-clipboard-data fs-1"></i>
+        </div>
+      </div>
+      <div class="modal-body text-center pt-4 pb-5 px-4">
+        <h4 class="fw-bold mb-3 text-dark">Bạn chưa biết trình độ của mình?</h4>
+        <p class="text-muted mb-4 px-2" style="font-size: 0.95rem;">
+          Chào mừng bạn đến với Nova LMS! Hệ thống nhận thấy đây là lần đầu bạn tìm hiểu khóa học. Hãy làm một bài kiểm tra ngắn để chúng tôi gợi ý lộ trình học phù hợp nhất cho bạn nhé!
+        </p>
+        <div class="d-grid gap-3 px-3">
+          <a href="/placement-test" class="btn btn-primary rounded-pill fw-bold py-2 shadow-sm">
+            <i class="bi bi-pencil-square me-1"></i> Làm bài Test miễn phí ngay
+          </a>
+          <button type="button" class="btn btn-light rounded-pill fw-bold py-2 text-muted border" data-bs-dismiss="modal">
+            Bỏ qua, tôi muốn tự chọn khóa học
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
+<style>
+  #placementSuggestModal .modal-dialog.modal-entrance {
+    transform: translateY(24px) scale(0.97);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.26, 0.64, 1),
+                opacity 0.3s ease;
+  }
+  #placementSuggestModal.show .modal-dialog.modal-entrance {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+</style>
+
 <script th:inline="javascript">
-// Show/hide loading overlay
-function showLoading(msg) {
-    document.getElementById('loadingOverlay') &&
-        (document.getElementById('loadingOverlay').style.display = 'flex');
-}
-function hideLoading() {
-    document.getElementById('loadingOverlay') &&
-        (document.getElementById('loadingOverlay').style.display = 'none');
-}
+  var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
 
-// Enroll first class function - for "ĐĂNG KÝ NGAY" button
-function enrollFirstClass() {
-    const firstEnrollBtn = document.querySelector('.btn-enroll-class');
-    if (firstEnrollBtn) {
-        const classId = firstEnrollBtn.getAttribute('data-class-id');
-        const courseId = firstEnrollBtn.getAttribute('data-course-id');
-        enrollWithPayment(classId, courseId);
-    } else {
-        document.getElementById('classes-tab').click();
-    }
-}
+  async function initPlacementSuggest() {
+      if (!isAuthenticated) return;
+      if (sessionStorage.getItem('hasSeenPlacementSuggest')) return;
 
-// Main enroll + PayOS payment function
-function enrollWithPayment(classId, courseId) {
-    if (!classId) {
-        alert('Không tìm thấy lớp học!');
-        return;
-    }
+      try {
+          const response = await fetch('/api/v1/student/check-first-time');
+          const result = await response.json();
 
-    fetch('/api/v1/enroll-with-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-            classId: parseInt(classId),
-            courseId: courseId ? parseInt(courseId) : null
-        })
-    })
-    .then(response => {
-        if (response.status === 401) {
-            alert('Vui lòng đăng nhập để đăng ký khóa học!');
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-            return Promise.reject({ message: 'not_authenticated' });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 200 && data.data) {
-            const result = data.data;
-            if (result.status === 'APPROVED' || result.status === 'FREE') {
-                // Free course — go straight to my courses
-                alert(result.message || 'Đăng ký thành công!');
-                window.location.href = '/student/my-courses';
-            } else if (result.checkoutUrl) {
-                // Paid course — redirect to PayOS checkout
-                alert('Đang chuyển sang trang thanh toán PayOS...');
-                window.location.href = result.checkoutUrl;
-            } else {
-                alert(result.message || 'Đăng ký thất bại. Vui lòng thử lại!');
-            }
-        } else {
-            alert(data.message || 'Đăng ký thất bại. Vui lòng thử lại!');
-        }
-    })
-    .catch(error => {
-        if (error.message !== 'not_authenticated') {
-            console.error('Enrollment error:', error);
-        }
-    });
-}
+          if (result.status === 200 && result.data === true) {
+              setTimeout(() => {
+                  const modalEl = document.getElementById('placementSuggestModal');
+                  if (!modalEl) return;
+                  try {
+                      const dialog = modalEl.querySelector('.modal-dialog');
+                      if (dialog) {
+                          dialog.style.transform = 'translateY(24px) scale(0.97)';
+                          dialog.style.opacity = '0';
+                      }
 
-// Attach click handlers to all enroll buttons
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.btn-enroll-class').forEach(button => {
-        button.addEventListener('click', function() {
-            const classId = this.getAttribute('data-class-id');
-            const courseId = this.getAttribute('data-course-id');
-            enrollWithPayment(classId, courseId);
-        });
-    });
-});
+                      const modal = new bootstrap.Modal(modalEl, {
+                          backdrop: true,
+                          keyboard: true
+                      });
+
+                      modalEl.addEventListener('show.bs.modal', () => {
+                          requestAnimationFrame(() => {
+                              requestAnimationFrame(() => {
+                                  if (dialog) {
+                                      dialog.style.transform = '';
+                                      dialog.style.opacity = '';
+                                  }
+                              });
+                          });
+                      }, { once: true });
+
+                      modal.show();
+                      sessionStorage.setItem('hasSeenPlacementSuggest', 'true');
+                  } catch (err) {
+                      console.error('Không thể mở modal placement suggest:', err);
+                  }
+              }, 1000);
+          }
+      } catch (err) {
+          console.error('Lỗi khi gọi API check-first-time:', err);
+      }
+  }
+
+  async function enrollWithPayment(classId, courseId) {
+      if (!classId) {
+          alert('Không tìm thấy lớp học!');
+          return;
+      }
+
+      try {
+          const response = await fetch('/api/v1/enroll-with-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({
+                  classId: parseInt(classId),
+                  courseId: courseId ? parseInt(courseId) : null
+              })
+          });
+
+          if (response.status === 401) {
+              alert('Vui lòng đăng nhập để đăng ký khóa học!');
+              window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+              return;
+          }
+
+          const data = await response.json();
+
+          if (data.status === 200 && data.data) {
+              const result = data.data;
+              if (result.status === 'APPROVED' || result.status === 'FREE') {
+                  alert(result.message || 'Đăng ký thành công!');
+                  window.location.href = '/student/my-courses';
+              } else if (result.checkoutUrl) {
+                  alert('Đang chuyển sang trang thanh toán PayOS...');
+                  window.location.href = result.checkoutUrl;
+              } else {
+                  alert(result.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+              }
+          } else {
+              alert(data.message || 'Đăng ký thất bại. Vui lòng thử lại!');
+          }
+      } catch (err) {
+          console.error('Enrollment error:', err);
+      }
+  }
+
+  function enrollFirstClass() {
+      const firstEnrollBtn = document.querySelector('.btn-enroll-class');
+      if (firstEnrollBtn) {
+          enrollWithPayment(
+              firstEnrollBtn.getAttribute('data-class-id'),
+              firstEnrollBtn.getAttribute('data-course-id')
+          );
+      } else {
+          document.getElementById('classes-tab').click();
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+      initPlacementSuggest();
+
+      document.querySelectorAll('.btn-enroll-class').forEach(btn => {
+          btn.addEventListener('click', function () {
+              enrollWithPayment(
+                  this.getAttribute('data-class-id'),
+                  this.getAttribute('data-course-id')
+              );
+          });
+      });
+  });
 </script>
 
 </body>
