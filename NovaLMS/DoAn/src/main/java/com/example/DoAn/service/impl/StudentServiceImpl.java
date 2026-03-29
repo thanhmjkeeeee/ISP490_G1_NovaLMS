@@ -305,4 +305,21 @@ public class StudentServiceImpl implements StudentService {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseData<Boolean> checkFirstTime(String email) {
+        try {
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) return ResponseData.error(401, "Unauthorized");
+            List<Registration> registrations = registrationRepository.findByUserEmail(email);
+
+            // get list null
+            boolean isFirstTime = registrations.isEmpty();
+
+            return ResponseData.success("Kiểm tra thành công", isFirstTime);
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi: " + e.getMessage());
+        }
+    }
 }
