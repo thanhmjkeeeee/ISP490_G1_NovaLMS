@@ -15,34 +15,32 @@
     <div class="row g-4 align-items-start">
 
       <div class="col-lg-3 align-self-start">
-        <div class="filter-card card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 80px;">
-          <h5 class="fw-bold mb-3 text-primary d-flex align-items-center gap-2 border-bottom pb-3">
-            <i class="bi bi-funnel-fill"></i> Danh mục khóa học
+        <div class="card border-0 shadow-sm rounded-4 p-4 pub-sidebar-sticky" style="top: 80px;">
+          <h5 class="fw-bold mb-3 text-primary border-bottom pb-3">
+            <i class="bi bi-funnel-fill me-2"></i> Danh mục khóa học
           </h5>
 
-          <div class="filter-group d-flex flex-column gap-2 mt-3">
-            <div class="filter-option">
-              <input class="filter-radio d-none" type="radio" name="categoryId" value="" id="catAll" checked>
-              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catAll">
+          <div class="filter-group d-flex flex-column gap-2 mt-2">
+            <h6 class="fw-bold text-dark mb-2">Thể loại</h6>
 
-                <span>Tất cả</span>
+            <div class="d-flex flex-column gap-2">
+
+              <label class="pub-filter-label">
+                <input type="radio" name="categoryId" value="" class="pub-filter-radio d-none" th:checked="${selectedCat == null}">
+                <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
+                  <i class="bi bi-grid-fill me-2"></i> Tất cả
+                </span>
               </label>
+
+              <label class="pub-filter-label" th:each="cat : ${categories}">
+                <input type="radio" name="categoryId" th:value="${cat.settingId}" class="pub-filter-radio d-none" th:checked="${selectedCat == cat.settingId}">
+                <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
+                  <i class="bi bi-tag me-2"></i> <span th:text="${cat.name}">Category</span>
+                </span>
+              </label>
+
             </div>
 
-            <div class="filter-option">
-              <input class="filter-radio d-none" type="radio" name="categoryId" value="101" id="catIelts">
-              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catIelts">
-
-                <span>IELTS</span>
-              </label>
-            </div>
-
-            <div class="filter-option">
-              <input class="filter-radio d-none" type="radio" name="categoryId" value="102" id="catToeic">
-              <label class="filter-label d-flex align-items-center gap-3 rounded-3 px-3 py-2 w-100" for="catToeic">
-                <span>TOEIC</span>
-              </label>
-            </div>
           </div>
         </div>
       </div>
@@ -77,6 +75,30 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
+
+<style>
+  .pub-filter-label {
+        cursor: pointer;
+    }
+    .pub-filter-box {
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .pub-filter-box:hover {
+        background-color: #f8f9fa;
+    }
+    /* Khi thẻ input(radio) được check -> Thẻ span ngay sau nó sẽ đổi màu */
+    .pub-filter-radio:checked + .pub-filter-box {
+        background-color: #e6f2ff;
+        color: #0d6efd !important;
+        font-weight: bold;
+        border-color: #b6d4fe;
+    }
+    .pub-filter-radio:checked + .pub-filter-box i {
+        color: #0d6efd !important;
+    }
+</style>
+
 <script>
   let currentPage    = 0;
   let debounceTimer  = null;
@@ -86,14 +108,15 @@
       const keyword    = document.getElementById('keywordInput').value.trim();
       const categoryId = document.querySelector('input[name="categoryId"]:checked')?.value ?? '';
 
+      const sortOrder  = document.querySelector('input[name="sortOrder"]:checked')?.value ?? 'registrationTime_desc';
+
       if (abortController) abortController.abort();
       abortController = new AbortController();
 
       showSkeletonLoading();
 
       try {
-          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=6&sort=registrationTime_desc`;
-          const res  = await fetch(url, { signal: abortController.signal });
+          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=3&sort=${sortOrder}`;          const res  = await fetch(url, { signal: abortController.signal });
           const data = await res.json();
 
           if (data.status === 200) {
@@ -198,7 +221,7 @@
 
       let html = `
           <li class="page-item ${pageData.pageNo === 0 ? 'disabled' : ''}">
-              <button class="page-link rounded-circle border-0 text-dark" data-page="${currentPage - 1}">
+              <button class="page-link rounded-circle shadow-sm border-0 text-dark mx-1" data-page="${currentPage - 1}">
                   <i class="bi bi-chevron-left"></i>
               </button>
           </li>`;
@@ -206,14 +229,14 @@
       for (let i = 0; i < pageData.totalPages; i++) {
           html += `
           <li class="page-item ${pageData.pageNo === i ? 'active' : ''}">
-              <button class="page-link rounded-circle border-0 ${pageData.pageNo === i ? 'bg-primary text-white shadow-sm' : 'text-dark'}"
+              <button class="page-link rounded-circle shadow-sm border-0 mx-1 ${pageData.pageNo === i ? 'bg-primary border-primary text-white fw-bold' : 'text-dark'}"
                       data-page="${i}">${i + 1}</button>
           </li>`;
       }
 
       html += `
           <li class="page-item ${pageData.last ? 'disabled' : ''}">
-              <button class="page-link rounded-circle border-0 text-dark" data-page="${currentPage + 1}">
+              <button class="page-link rounded-circle shadow-sm border-0 text-dark mx-1" data-page="${currentPage + 1}">
                   <i class="bi bi-chevron-right"></i>
               </button>
           </li>`;
@@ -255,7 +278,7 @@
       keywordInput.focus();
   });
 
-  document.querySelectorAll('.filter-radio').forEach(el => {
+  document.querySelectorAll('.pub-filter-radio').forEach(el => {
       el.addEventListener('change', () => {
           currentPage = 0;
           fetchCourses();
