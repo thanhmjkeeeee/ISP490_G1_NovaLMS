@@ -45,4 +45,19 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     Page<QuizResult> findByUserEmailOrderBySubmittedAtDesc(String email, Pageable pageable);
 
     List<QuizResult> findByUser_Email(String email);
+
+    @Query("SELECT qr FROM QuizResult qr " +
+           "JOIN FETCH qr.quiz q " +
+           "LEFT JOIN FETCH q.course c " +
+           "LEFT JOIN FETCH q.clazz cl " +
+           "WHERE qr.user.email = :email " +
+           "AND (:category IS NULL OR :category = 'ALL' OR q.quizCategory = :category) " +
+           "AND (:keyword IS NULL OR LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "ORDER BY qr.submittedAt DESC")
+    Page<QuizResult> findByUserEmailAndCategory(
+            @org.springframework.data.repository.query.Param("email") String email,
+            @org.springframework.data.repository.query.Param("category") String category,
+            @org.springframework.data.repository.query.Param("keyword") String keyword,
+            Pageable pageable
+    );
 }

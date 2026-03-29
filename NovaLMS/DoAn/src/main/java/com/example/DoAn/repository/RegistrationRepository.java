@@ -114,4 +114,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("classId") Integer classId
     );
 
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u WHERE r.clazz.classId = :classId AND r.status = 'Approved' ORDER BY u.fullName ASC")
+    List<Registration> findApprovedByClassId(@Param("classId") Integer classId);
+
 }

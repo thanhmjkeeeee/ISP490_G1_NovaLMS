@@ -2,47 +2,339 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 <head th:replace="~{fragments/head :: common-head(pageTitle='Lịch dạy')}"></head>
 <body class="dashboard-body">
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Lịch dạy')}"></header>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Lịch dạy', breadcrumb='Lịch dạy')}"></header>
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='schedule')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-white border-bottom-0 pt-4 px-4"><h5 class="fw-bold mb-2">Lịch dạy của tôi</h5></div>
-        <div class="card-body px-4 pb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light"><tr><th>Lớp</th><th>Khóa học</th><th>Bắt đầu</th><th>Kết thúc</th><th>Lịch</th><th>Trạng thái</th></tr></thead>
-                    <tbody id="scheduleBody"><tr><td colspan="6" class="text-center py-4">Đang tải...</td></tr></tbody>
+    <div class="container-fluid px-4">
+
+        <!-- Page Header -->
+        <div class="d-flex align-items-center mb-4 gap-3 flex-wrap">
+            <h4 class="fw-bold mb-0"><i class="bi bi-calendar3-week fs-4 me-2"></i>Lịch dạy của tôi</h4>
+            <div class="ms-auto d-flex align-items-center gap-3 flex-wrap">
+                <!-- Year selector -->
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small fw-bold text-danger text-decoration-underline">YEAR</span>
+                    <select id="yearSelect" class="form-select form-select-sm rounded-pill" style="width:90px" onchange="loadTimetable()"></select>
+                </div>
+                <!-- Week selector -->
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small fw-bold">WEEK</span>
+                    <select id="weekSelect" class="form-select form-select-sm rounded-pill" style="width:180px" onchange="loadTimetable()"></select>
+                </div>
+                <!-- Week range label -->
+                <span class="small text-muted" id="weekRangeLabel"></span>
+            </div>
+        </div>
+
+        <!-- Timetable Grid -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="table-responsive p-0">
+                <table class="table table-bordered mb-0 text-center align-middle" id="timetableTable" style="table-layout:fixed">
+                    <thead class="table-primary">
+                        <tr>
+                            <th style="width:70px;background:#3b7ddd;color:white;">Slot</th>
+                            <th style="background:#3b7ddd;color:white;">MON<br><small id="mon-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">TUE<br><small id="tue-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">WED<br><small id="wed-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">THU<br><small id="thu-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">FRI<br><small id="fri-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">SAT<br><small id="sat-date"></small></th>
+                            <th style="background:#3b7ddd;color:white;">SUN<br><small id="sun-date"></small></th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetableBody"></tbody>
                 </table>
             </div>
         </div>
+
+        <!-- Legend -->
+        <div class="mt-3 small text-muted">
+            <i class="bi bi-info-circle me-1"></i>More note / Chú thích thêm:
+        </div>
+
     </div>
 </main>
 
+<!-- Session Detail Modal -->
+<div class="modal fade" id="sessionDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="fw-bold mb-1" id="modalClassName">—</h5>
+                    <p class="mb-0 text-muted small" id="modalCourseName">—</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <!-- Session info -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <div class="small text-muted mb-1">Buổi</div>
+                            <div class="fw-bold" id="modalSessionNumber">—</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <div class="small text-muted mb-1">Ngày</div>
+                            <div class="fw-bold" id="modalDate">—</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <div class="small text-muted mb-1">Giờ</div>
+                            <div class="fw-bold" id="modalTime">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic -->
+                <div class="mb-4" id="modalTopicSection">
+                    <div class="small text-muted mb-1">Chủ đề</div>
+                    <div id="modalTopic">—</div>
+                </div>
+
+                <!-- Notes -->
+                <div class="mb-4" id="modalNotesSection">
+                    <div class="small text-muted mb-1">Ghi chú</div>
+                    <div id="modalNotes" class="small">—</div>
+                </div>
+
+                <!-- Students -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="small text-muted mb-0">Danh sách học sinh (<span id="modalStudentCount">0</span>)</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 small">
+                            <thead class="table-light">
+                                <tr><th class="border-0">#</th><th class="border-0">Họ tên</th><th class="border-0">Email</th></tr>
+                            </thead>
+                            <tbody id="modalStudentsBody">
+                                <tr><td colspan="3" class="text-center text-muted py-3">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
 <script>
-async function loadSchedule() {
-    const res = await fetch('/teacher/api/schedule');
-    const json = await res.json();
-    const tbody = document.getElementById('scheduleBody');
-    if (json.status !== 200 || !json.data || json.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Không có lịch dạy.</td></tr>';
-        return;
+const DAYS = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_NAMES_VI = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','CN'];
+const SLOT_LABELS = [
+    'Slot 0', 'Slot 1', 'Slot 2', 'Slot 3', 'Slot 4',
+    'Slot 5', 'Slot 6', 'Slot 7', 'Slot 8', 'Slot 9',
+    'Slot 10', 'Slot 11', 'Slot 12'
+];
+let currentModal = null;
+
+function initSelectors() {
+    const yearSelect = document.getElementById('yearSelect');
+    const weekSelect = document.getElementById('weekSelect');
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentWeek = getWeekNumber(now);
+
+    // Years: current year - 1 to + 1
+    for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if (y === currentYear) opt.selected = true;
+        yearSelect.appendChild(opt);
     }
-    tbody.innerHTML = json.data.map(i => `
-      <tr>
-        <td>${i.className || ''}</td>
-        <td>${i.courseName || ''}</td>
-        <td>${i.startDate || ''}</td>
-        <td>${i.endDate || ''}</td>
-        <td>${i.schedule || ''} ${i.slotTime ? '- ' + i.slotTime : ''}</td>
-        <td>${i.status || ''}</td>
-      </tr>
-    `).join('');
+
+    // Weeks 1-52
+    for (let w = 1; w <= 52; w++) {
+        const opt = document.createElement('option');
+        opt.value = w;
+        opt.textContent = 'Week ' + w;
+        if (w === currentWeek) opt.selected = true;
+        weekSelect.appendChild(opt);
+    }
+
+    loadTimetable();
 }
-document.addEventListener('DOMContentLoaded', loadSchedule);
+
+function getWeekNumber(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function getDateOfWeek(year, week) {
+    const d = new Date(year, 0, 1);
+    const dayOfWeek = d.getDay();
+    const diff = (dayOfWeek <= 4 ? 1 - dayOfWeek : 8 - dayOfWeek);
+    d.setDate(d.getDate() + diff + (week - 1) * 7);
+    return d;
+}
+
+function formatDate(date) {
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return d + '/' + m;
+}
+
+async function loadTimetable() {
+    const year = parseInt(document.getElementById('yearSelect').value);
+    const week = parseInt(document.getElementById('weekSelect').value);
+
+    // Update week range label and day headers
+    const weekStart = getDateOfWeek(year, week);
+    document.getElementById('weekRangeLabel').textContent =
+        weekStart.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+        + ' To '
+        + new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+
+    // Update day headers
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart.getTime() + i * 86400000);
+        const el = document.getElementById(DAYS[i] + '-date');
+        if (el) el.textContent = formatDate(d);
+    }
+
+    // Build empty grid
+    const tbody = document.getElementById('timetableBody');
+    tbody.innerHTML = '';
+    for (let slot = 0; slot < 13; slot++) {
+        const tr = document.createElement('tr');
+        // Slot label
+        const tdLabel = document.createElement('td');
+        tdLabel.className = 'fw-bold small align-middle';
+        tdLabel.style.background = '#f8f9fa';
+        tdLabel.textContent = SLOT_LABELS[slot];
+        tr.appendChild(tdLabel);
+        // Day cells
+        for (let day = 1; day <= 7; day++) {
+            const td = document.createElement('td');
+            td.style.minHeight = '70px';
+            td.style.verticalAlign = 'middle';
+            td.dataset.day = day;
+            td.dataset.slot = slot;
+            td.innerHTML = '<span class="text-muted">—</span>';
+            tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+    }
+
+    // Fetch timetable data
+    try {
+        const res = await fetch('/teacher/api/timetable?year=' + year + '&week=' + week);
+        const json = await res.json();
+        if (json.status !== 200 || !json.data || !json.data.grid) return;
+
+        const grid = json.data.grid;
+        // Populate cells
+        for (let day = 1; day <= 7; day++) {
+            const dayGrid = grid[day];
+            if (!dayGrid) continue;
+            for (let slot = 0; slot < 13; slot++) {
+                const sessions = dayGrid[slot] || [];
+                const cell = tbody.querySelector('td[data-day="' + day + '"][data-slot="' + slot + '"]');
+                if (!cell) continue;
+                if (sessions.length === 0) continue;
+
+                cell.innerHTML = '';
+                cell.style.cursor = 'pointer';
+                sessions.forEach(s => {
+                    const badge = document.createElement('div');
+                    badge.className = 'mb-1';
+                    badge.innerHTML = `
+                        <div class="fw-bold small text-primary" style="cursor:pointer">${s.courseName || ''}</div>
+                        <div class="small">${s.className || ''}</div>
+                        <span class="badge bg-success rounded-pill mt-1" style="font-size:0.7rem;padding:2px 6px">${s.time || ''}</span>
+                    `;
+                    badge.style.background = '#f0f8ff';
+                    badge.style.borderRadius = '8px';
+                    badge.style.padding = '6px 8px';
+                    badge.style.border = '1px solid #d0e8ff';
+                    badge.onclick = (e) => {
+                        e.stopPropagation();
+                        openSessionDetail(s.sessionId);
+                    };
+                    cell.appendChild(badge);
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load timetable', e);
+    }
+}
+
+async function openSessionDetail(sessionId) {
+    const modalEl = document.getElementById('sessionDetailModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    // Reset modal content
+    document.getElementById('modalClassName').textContent = '—';
+    document.getElementById('modalCourseName').textContent = '—';
+    document.getElementById('modalSessionNumber').textContent = '—';
+    document.getElementById('modalDate').textContent = '—';
+    document.getElementById('modalTime').textContent = '—';
+    document.getElementById('modalTopic').textContent = '—';
+    document.getElementById('modalNotes').textContent = '—';
+    document.getElementById('modalStudentCount').textContent = '0';
+    document.getElementById('modalStudentsBody').innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Đang tải...</td></tr>';
+    document.getElementById('modalTopicSection').style.display = 'none';
+    document.getElementById('modalNotesSection').style.display = 'none';
+
+    modal.show();
+
+    try {
+        const res = await fetch('/teacher/api/session/' + sessionId + '/detail');
+        const json = await res.json();
+        if (json.status !== 200 || !json.data) {
+            document.getElementById('modalStudentsBody').innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Không tải được dữ liệu</td></tr>';
+            return;
+        }
+        const d = json.data;
+
+        document.getElementById('modalClassName').textContent = d.className || '—';
+        document.getElementById('modalCourseName').textContent = d.courseName || '—';
+        document.getElementById('modalSessionNumber').textContent = 'Buổi ' + (d.sessionNumber || '—');
+        document.getElementById('modalDate').textContent = d.date || '—';
+        document.getElementById('modalTime').textContent = (d.startTime || '') + (d.endTime ? ' - ' + d.endTime : '');
+        document.getElementById('modalStudentCount').textContent = d.studentCount || 0;
+
+        if (d.topic) {
+            document.getElementById('modalTopic').textContent = d.topic;
+            document.getElementById('modalTopicSection').style.display = 'block';
+        }
+        if (d.notes) {
+            document.getElementById('modalNotes').textContent = d.notes;
+            document.getElementById('modalNotesSection').style.display = 'block';
+        }
+
+        // Students table
+        const students = d.students || [];
+        if (students.length === 0) {
+            document.getElementById('modalStudentsBody').innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Chưa có học sinh đăng ký</td></tr>';
+        } else {
+            document.getElementById('modalStudentsBody').innerHTML = students.map((s, i) =>
+                '<tr><td class="border-0">' + (i + 1) + '</td><td class="border-0">' + (s.fullName || '—') + '</td><td class="border-0">' + (s.email || '—') + '</td></tr>'
+            ).join('');
+        }
+    } catch (e) {
+        document.getElementById('modalStudentsBody').innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Lỗi kết nối</td></tr>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initSelectors);
 </script>
 </body>
 </html>

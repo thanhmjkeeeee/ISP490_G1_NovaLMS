@@ -15,4 +15,14 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
 
     @Query("SELECT COUNT(s) FROM ClassSession s WHERE s.clazz.classId = :classId")
     int countByClassId(@Param("classId") Integer classId);
+
+    @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz c " +
+           "WHERE c.teacher.userId = :teacherId " +
+           "AND s.sessionDate >= :start AND s.sessionDate < :end " +
+           "ORDER BY s.sessionDate")
+    java.util.List<com.example.DoAn.model.ClassSession> findByTeacherAndDateRange(
+            @Param("teacherId") Integer teacherId,
+            @Param("start") java.time.LocalDateTime start,
+            @Param("end") java.time.LocalDateTime end
+    );
 }

@@ -446,9 +446,9 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size) {
+    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailOrderBySubmittedAtDesc(email, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailAndCategory(email, category, null, pageable);
 
         List<QuizResultHistoryDTO> list = resultPage.getContent().stream().map(qr -> {
             int maxScore = 0;
@@ -462,6 +462,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
                     .quizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "Unknown")
                     .courseName(qr.getQuiz() != null && qr.getQuiz().getCourse() != null ? qr.getQuiz().getCourse().getTitle() : null)
+                    .quizCategory(qr.getQuiz() != null ? qr.getQuiz().getQuizCategory() : null)
                     .submittedAt(qr.getSubmittedAt())
                     .score(qr.getScore())
                     .maxScore(maxScore)

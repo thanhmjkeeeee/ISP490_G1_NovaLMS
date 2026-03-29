@@ -12,16 +12,34 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+import java.util.*;
+
+import com.example.DoAn.model.ClassSession;
+import com.example.DoAn.model.Registration;
+import com.example.DoAn.repository.ClassSessionRepository;
+import com.example.DoAn.repository.RegistrationRepository;
 
 @Controller
 @RequestMapping("/teacher")
 public class TeacherViewController {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
+    private final ClassSessionRepository classSessionRepository;
+    private final RegistrationRepository registrationRepository;
+
+    public TeacherViewController(EntityManager entityManager,
+                                  ClassSessionRepository classSessionRepository,
+                                  RegistrationRepository registrationRepository) {
+        this.entityManager = entityManager;
+        this.classSessionRepository = classSessionRepository;
+        this.registrationRepository = registrationRepository;
+    }
 
     @GetMapping("/dashboard")
     public String dashboard() {
@@ -196,6 +214,123 @@ public class TeacherViewController {
                 .getResultList();
 
         return ResponseData.success("Success", items);
+    }
+
+    @GetMapping("/api/timetable")
+    @ResponseBody
+    public ResponseData<Map<String, Object>> timetable(
+            @RequestParam(defaultValue = "2026") int year,
+            @RequestParam(defaultValue = "1") int week,
+            Principal principal) {
+        Integer teacherId = getTeacherId(principal);
+        if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+
+        // Calculate week start (Monday) and end (Sunday)
+        LocalDate weekStart = LocalDate.of(year, 1, 1)
+                .with(WeekFields.ISO.dayOfWeek(), 1)
+                .plusWeeks(week - 1);
+        LocalDate weekEnd = weekStart.plusDays(7);
+        LocalDateTime start = weekStart.atStartOfDay();
+        LocalDateTime end = weekEnd.atStartOfDay();
+
+        List<ClassSession> sessions = classSessionRepository.findByTeacherAndDateRange(teacherId, start, end);
+
+        // Build grid: day (1-7) -> slotIndex (0-12) -> list of session summaries
+        Map<Integer, Map<Integer, List<Map<String, Object>>>> grid = new LinkedHashMap<>();
+        for (int d = 1; d <= 7; d++) {
+            grid.put(d, new LinkedHashMap<>());
+            for (int s = 0; s < 13; s++) {
+                grid.get(d).put(s, new ArrayList<>());
+            }
+        }
+
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+
+        for (ClassSession s : sessions) {
+            int dayIndex = s.getSessionDate().getDayOfWeek().getValue(); // 1=Mon
+            int slotIndex = getSlotIndex(s.getStartTime());
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("sessionId", s.getSessionId());
+            summary.put("sessionNumber", s.getSessionNumber());
+            summary.put("date", s.getSessionDate().format(dateFmt));
+            summary.put("time", (s.getStartTime() != null ? s.getStartTime() : "") + (s.getEndTime() != null ? " - " + s.getEndTime() : ""));
+            summary.put("classId", s.getClazz().getClassId());
+            summary.put("className", s.getClazz().getClassName());
+            summary.put("courseName", s.getClazz().getCourse() != null ? s.getClazz().getCourse().getCourseName() : null);
+            summary.put("topic", s.getTopic());
+            grid.get(dayIndex).get(slotIndex).add(summary);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("year", year);
+        result.put("week", week);
+        result.put("weekStart", weekStart.format(dateFmt));
+        result.put("weekEnd", weekEnd.minusDays(1).format(dateFmt));
+        result.put("grid", grid);
+
+        return ResponseData.success("Timetable", result);
+    }
+
+    @GetMapping("/api/session/{sessionId}/detail")
+    @ResponseBody
+    public ResponseData<Map<String, Object>> sessionDetail(
+            @PathVariable Integer sessionId,
+            Principal principal) {
+        Integer teacherId = getTeacherId(principal);
+        if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+
+        ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
+        if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
+        if (session.getClazz().getTeacher() == null ||
+                !session.getClazz().getTeacher().getUserId().equals(teacherId)) {
+            return ResponseData.error(403, "Không có quyền");
+        }
+
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("sessionId", session.getSessionId());
+        info.put("sessionNumber", session.getSessionNumber());
+        info.put("date", session.getSessionDate() != null
+                ? session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null);
+        info.put("startTime", session.getStartTime());
+        info.put("endTime", session.getEndTime());
+        info.put("topic", session.getTopic());
+        info.put("notes", session.getNotes());
+        info.put("classId", session.getClazz().getClassId());
+        info.put("className", session.getClazz().getClassName());
+        info.put("courseName", session.getClazz().getCourse() != null
+                ? session.getClazz().getCourse().getCourseName() : null);
+
+        // Students list
+        List<Registration> regs = registrationRepository.findApprovedByClassId(session.getClazz().getClassId());
+        List<Map<String, Object>> students = regs.stream().map(r -> {
+            Map<String, Object> s = new LinkedHashMap<>();
+            s.put("userId", r.getUser().getUserId());
+            s.put("fullName", r.getUser().getFullName());
+            s.put("email", r.getUser().getEmail());
+            return s;
+        }).toList();
+        info.put("students", students);
+        info.put("studentCount", students.size());
+
+        return ResponseData.success("Chi tiết buổi học", info);
+    }
+
+    private int getSlotIndex(String startTime) {
+        if (startTime == null || startTime.length() < 5) return 6;
+        int hour;
+        try {
+            hour = Integer.parseInt(startTime.substring(0, 2));
+        } catch (NumberFormatException e) {
+            return 6;
+        }
+        if (hour >= 7 && hour < 9) return 1;
+        if (hour >= 9 && hour < 11) return 2;
+        if (hour >= 13 && hour < 15) return 3;
+        if (hour >= 15 && hour < 17) return 4;
+        if (hour >= 18 && hour < 20) return 5;
+        if (hour < 7) return 0;
+        return Math.min(12, hour - 7 + 1);
     }
 
     private Integer getTeacherId(Principal principal) {

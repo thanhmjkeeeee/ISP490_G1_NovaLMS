@@ -14,7 +14,7 @@ public interface QuizResultService {
     Integer submitQuiz(Integer quizId, String email, Map<Integer, Object> answers);
     QuizResultDetailDTO getQuizResult(Integer resultId, String email);
 
-    PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size);
+    PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category);
 
     PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, int page, int size);
     void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email);
