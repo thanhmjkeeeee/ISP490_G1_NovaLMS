@@ -24,6 +24,8 @@ public class QuizResponseDTO {
     private Integer numberOfQuestions;
     private String questionOrder;
     private Boolean showAnswerAfterSubmit;
+    private Boolean isHybridEnabled;
+    private String targetSkill;   // kỹ năng đích cho quiz hybrid
     private String createdByName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

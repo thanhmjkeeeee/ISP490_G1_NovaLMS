@@ -26,5 +26,8 @@ public class QuizRequestDTO {
     private Integer numberOfQuestions;
     private String questionOrder;    // FIXED | RANDOM
     private Boolean showAnswerAfterSubmit;
+    private Boolean isHybridEnabled; // true = cho phép dùng trong Hybrid Placement Test
+    private String targetSkill;  // nullable — Grammar|Vocabulary|Listening|Reading|Writing|Speaking
+
     private String status;           // DRAFT | PUBLISHED | ARCHIVED
 }

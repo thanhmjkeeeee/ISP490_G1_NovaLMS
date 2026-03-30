@@ -37,4 +37,16 @@ public class FileUploadService {
             throw new RuntimeException("Lỗi khi tải ảnh lên Cloudinary", e);
         }
     }
+
+    public String upload(MultipartFile file) {
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap("resource_type", "video")
+            );
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tải file lên Cloudinary", e);
+        }
+    }
 }

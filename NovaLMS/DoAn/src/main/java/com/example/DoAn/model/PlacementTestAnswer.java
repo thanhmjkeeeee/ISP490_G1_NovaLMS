@@ -29,4 +29,18 @@ public class PlacementTestAnswer {
 
     @Column(name = "is_correct")
     private Boolean isCorrect;
+
+    // AI Grading
+    @Column(name = "pending_ai_review")
+    @Builder.Default
+    private Boolean pendingAiReview = false;
+
+    @Column(name = "ai_score")
+    private Integer aiScore;
+
+    @Column(name = "ai_feedback", columnDefinition = "TEXT")
+    private String aiFeedback;
+
+    @Column(name = "ai_rubric_json", columnDefinition = "TEXT")
+    private String aiRubricJson;
 }

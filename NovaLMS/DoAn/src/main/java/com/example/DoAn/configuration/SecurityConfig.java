@@ -46,6 +46,9 @@ public class SecurityConfig {
             "/", "/index", "/index.html",
             "/placement-test", "/placement-test/**",
             "/placement-test/results/**",
+            // Hybrid / Guest placement test
+            "/hybrid-entry", "/hybrid-entry/**",
+            "/hybrid/**",
             "/courses", "/courses.html",
             "/course-details", "/course-details.html",
             "/course/details", "/course/details/**",
