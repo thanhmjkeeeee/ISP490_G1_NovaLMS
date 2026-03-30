@@ -33,6 +33,7 @@ public class QuizTestDataSeeder {
     private final QuestionRepository questionRepository;
     private final AnswerOptionRepository answerOptionRepository;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizAssignmentRepository quizAssignmentRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Bean
@@ -240,9 +241,9 @@ public class QuizTestDataSeeder {
                 .module(module)
                 .build());
 
-        Lesson quizLesson = lessonRepository.save(Lesson.builder()
+        Lesson docLesson = lessonRepository.save(Lesson.builder()
                 .lessonName("IELTS Reading Mini-Test 1")
-                .type("QUIZ")
+                .type("DOC")
                 .duration("20:00")
                 .orderIndex(2)
                 .module(module)
@@ -264,8 +265,12 @@ public class QuizTestDataSeeder {
                 .showAnswerAfterSubmit(true)
                 .build());
 
-        quizLesson.setQuiz_id(quiz.getQuizId());
-        lessonRepository.save(quizLesson);
+        // Assign the quiz to the lesson via QuizAssignment
+        quizAssignmentRepository.save(com.example.DoAn.model.QuizAssignment.builder()
+                .quiz(quiz)
+                .lesson(docLesson)
+                .orderIndex(1)
+                .build());
 
         String[] questionTypes = {"MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK", "MATCHING", "WRITING", "SPEAKING"};
         Random random = new Random();

@@ -36,6 +36,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
     private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
+    private final com.example.DoAn.service.LessonQuizService lessonQuizService;
 
     @Override
     @Transactional(readOnly = true)
@@ -278,6 +279,18 @@ public class QuizResultServiceImpl implements QuizResultService {
             lessonRepository.findByQuizId(quizId).ifPresent(l -> {
                 learningService.markLessonCompleted(l.getLessonId(), email);
             });
+        }
+
+        // Update lesson quiz progress + unlock next quiz
+        if (quiz.getLesson() != null) {
+            try {
+                double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
+                lessonQuizService.updateProgressAfterSubmit(
+                        quiz.getLesson().getLessonId(), quizId, user.getUserId(),
+                        scorePercent, Boolean.TRUE.equals(passed));
+            } catch (Exception e) {
+                // Non-critical: log but don't fail the submission
+            }
         }
 
         return quizResult.getResultId();
@@ -552,6 +565,18 @@ public class QuizResultServiceImpl implements QuizResultService {
             lessonRepository.findByQuizId(quiz.getQuizId()).ifPresent(l -> {
                 learningService.markLessonCompleted(l.getLessonId(), qr.getUser().getEmail());
             });
+        }
+
+        // After grading, update lesson quiz progress + unlock next
+        if (quiz.getLesson() != null) {
+            try {
+                double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
+                lessonQuizService.updateProgressAfterSubmit(
+                        quiz.getLesson().getLessonId(), quiz.getQuizId(), qr.getUser().getUserId(),
+                        scorePercent, Boolean.TRUE.equals(passed));
+            } catch (Exception e) {
+                // Non-critical
+            }
         }
     }
 }

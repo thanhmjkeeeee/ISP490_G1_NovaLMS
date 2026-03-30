@@ -164,7 +164,6 @@ public class LearningServiceImpl implements LearningService {
                     .videoUrl(currentLesson.getVideoUrl())
                     .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(currentLesson.getVideoUrl()))
                     .contentText(currentLesson.getContent_text())
-                    .quizId(currentLesson.getQuiz_id())
                     .isCompleted(false)
                     .isLocked(false)
                     .build();
