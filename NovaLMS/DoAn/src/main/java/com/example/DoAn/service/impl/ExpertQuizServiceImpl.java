@@ -56,6 +56,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .numberOfQuestions(request.getNumberOfQuestions())
                 .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
                 .showAnswerAfterSubmit(request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
+                .isHybridEnabled(request.getIsHybridEnabled() != null ? request.getIsHybridEnabled() : false)
+                .targetSkill(request.getTargetSkill())
                 .user(expert)
                 .build();
 
@@ -120,6 +122,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (request.getShowAnswerAfterSubmit() != null) {
             quiz.setShowAnswerAfterSubmit(request.getShowAnswerAfterSubmit());
         }
+        if (request.getIsHybridEnabled() != null) {
+            quiz.setIsHybridEnabled(request.getIsHybridEnabled());
+        }
+        quiz.setTargetSkill(request.getTargetSkill());
         if (request.getStatus() != null) {
             quiz.setStatus(request.getStatus());
         }
@@ -243,12 +249,25 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             throw new InvalidDataException("Chỉ có thể thêm câu hỏi đã Published vào quiz.");
         }
 
-        if ("ENTRY_TEST".equals(quiz.getQuizCategory())) {
+        if ("ENTRY_TEST".equals(quiz.getQuizCategory()) && !Boolean.TRUE.equals(quiz.getIsHybridEnabled())) {
             String qType = question.getQuestionType();
-            if (!("MULTIPLE_CHOICE_SINGLE".equals(qType) || 
-                  "MULTIPLE_CHOICE_MULTI".equals(qType) || 
+            if (!("MULTIPLE_CHOICE_SINGLE".equals(qType) ||
+                  "MULTIPLE_CHOICE_MULTI".equals(qType) ||
                   "MATCHING".equals(qType))) {
                 throw new InvalidDataException("ENTRY_TEST chỉ cấu hình được những câu hỏi là multiple choices, matching.");
+            }
+        }
+
+        // Validate targetSkill cho quiz hybrid
+        if (Boolean.TRUE.equals(quiz.getIsHybridEnabled())
+                && quiz.getTargetSkill() != null) {
+            if (!quiz.getTargetSkill().equals(question.getSkill())) {
+                throw new InvalidDataException(
+                    "Quiz hybrid này chỉ chấp nhận câu hỏi kỹ năng ["
+                    + quiz.getTargetSkill()
+                    + "]. Câu hỏi bạn thêm có kỹ năng ["
+                    + question.getSkill() + "]."
+                );
             }
         }
 
@@ -382,6 +401,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .numberOfQuestions(quiz.getNumberOfQuestions())
                 .questionOrder(quiz.getQuestionOrder())
                 .showAnswerAfterSubmit(quiz.getShowAnswerAfterSubmit())
+                .isHybridEnabled(quiz.getIsHybridEnabled() != null ? quiz.getIsHybridEnabled() : false)
+                .targetSkill(quiz.getTargetSkill())
                 .createdByName(quiz.getUser() != null ? quiz.getUser().getFullName() : null)
                 .createdAt(quiz.getCreatedAt())
                 .updatedAt(quiz.getUpdatedAt())

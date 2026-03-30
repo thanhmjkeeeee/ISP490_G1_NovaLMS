@@ -131,8 +131,7 @@ public class EnrollmentController {
         Registration registration = optReg.get();
 
         // Free course — no payment needed, auto-approve
-        if (registration.getRegistrationPrice() == null ||
-                registration.getRegistrationPrice().doubleValue() <= 0) {
+        if (isPositivePrice(registration.getRegistrationPrice())) {
             registration.setStatus("Approved");
             registrationRepository.save(registration);
             PaymentLinkResponseDTO freeResult = PaymentLinkResponseDTO.builder()
@@ -157,5 +156,13 @@ public class EnrollmentController {
         }
 
         return ResponseData.success("Tạo liên kết thanh toán thành công!", paymentResult);
+    }
+
+    private boolean isPositivePrice(Object price) {
+        if (price == null) return false;
+        if (price instanceof java.math.BigDecimal) return ((java.math.BigDecimal) price).compareTo(java.math.BigDecimal.ZERO) > 0;
+        if (price instanceof Double) return (Double) price > 0;
+        if (price instanceof Number) return ((Number) price).doubleValue() > 0;
+        return false;
     }
 }
