@@ -54,7 +54,6 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
                 .type(request.getType())
                 .videoUrl(request.getVideoUrl())
                 .content_text(request.getContentText())
-                .quiz_id(request.getQuizId())
                 .duration(request.getDuration())
                 .orderIndex(request.getOrderIndex() != null ? request.getOrderIndex() : nextOrder)
                 .build();
@@ -78,7 +77,6 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
         if (request.getType() != null) lesson.setType(request.getType());
         if (request.getVideoUrl() != null) lesson.setVideoUrl(request.getVideoUrl());
         if (request.getContentText() != null) lesson.setContent_text(request.getContentText());
-        if (request.getQuizId() != null) lesson.setQuiz_id(request.getQuizId());
         if (request.getDuration() != null) lesson.setDuration(request.getDuration());
         if (request.getOrderIndex() != null) lesson.setOrderIndex(request.getOrderIndex());
 
@@ -109,7 +107,6 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
                 .videoUrl(lesson.getVideoUrl())
                 .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()))
                 .contentText(lesson.getContent_text())
-                .quizId(lesson.getQuiz_id())
                 .duration(lesson.getDuration())
                 .orderIndex(lesson.getOrderIndex())
                 .build();
@@ -124,13 +121,6 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
         } else if ("DOC".equals(type)) {
             if (request.getContentText() == null || request.getContentText().isBlank()) {
                 throw new InvalidDataException("contentText là bắt buộc khi type=DOC.");
-            }
-        } else if ("QUIZ".equals(type)) {
-            if (request.getQuizId() == null) {
-                throw new InvalidDataException("quizId là bắt buộc khi type=QUIZ.");
-            }
-            if (!quizRepository.existsById(request.getQuizId())) {
-                throw new ResourceNotFoundException("Không tìm thấy bài kiểm tra với id: " + request.getQuizId());
             }
         } else {
             throw new InvalidDataException("type phải là VIDEO, DOC, hoặc QUIZ.");
