@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Làm bài kiểm tra')}"></head>
+
+<body class="bg-light placement-test-page d-flex flex-column min-vh-100">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='hybrid-entry')}"></header>
+
+<main class="main my-4 flex-grow-1">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <th:block th:if="${quiz != null}">
+
+          <!-- Sticky header -->
+          <div class="sticky-top bg-white p-3 shadow-sm rounded-4 mb-4 z-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill me-2">
+                  <i class="bi bi-layers me-1"></i>
+                  <span th:text="${quizIndex}">1</span>/<span th:text="${sessionId}">?</span> quiz
+                </span>
+                <span class="fw-bold fs-5 text-dark" th:text="${quiz.title}">Quiz Title</span>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <div class="fw-bold fs-4 text-danger" th:if="${quiz.timeLimitMinutes != null}">
+                  <i class="bi bi-clock-history"></i> <span id="timerText">--:--</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill"
+                        onclick="confirmExit()">
+                  <i class="bi bi-x-lg"></i> Thoát
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quiz Form -->
+          <form id="quizForm" class="mb-5">
+            <input type="hidden" id="quizId" th:value="${quiz.quizId}">
+            <input type="hidden" id="sessionId" th:value="${sessionId}">
+            <input type="hidden" id="quizIndex" th:value="${quizIndex}">
+            <input type="hidden" id="timeLimitMinutes" th:value="${quiz.timeLimitMinutes}">
+
+            <div th:each="question, stat : ${quiz.questions}"
+                 class="card shadow-sm border-0 mb-4 rounded-4 question-card">
+              <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between mb-4 border-bottom pb-3">
+                  <h5 class="fw-bold mb-0 text-secondary">
+                    Câu <span th:text="${stat.count}" class="text-primary fs-4"></span>
+                    <span class="text-muted fw-normal fs-6">/ <span th:text="${quiz.totalQuestions}"></span></span>
+                  </h5>
+                  <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                    <i class="bi bi-tag me-1"></i> [[${question.skill}]]
+                  </span>
+                </div>
+
+                <div class="mb-4">
+                  <div class="fs-5 lh-base text-dark" th:utext="${question.content}"></div>
+                </div>
+
+                <!-- Single Choice -->
+                <div th:if="${question.questionType == 'MULTIPLE_CHOICE_SINGLE'}">
+                  <div th:each="opt : ${question.options}" class="form-check custom-radio mb-3">
+                    <input class="form-check-input" type="radio"
+                           th:name="'q_' + ${question.questionId}"
+                           th:id="'opt_' + ${opt.answerOptionId}"
+                           th:value="${opt.answerOptionId}">
+                    <label class="form-check-label w-100 p-3 rounded-3 border bg-white transition-all cursor-pointer"
+                           th:for="'opt_' + ${opt.answerOptionId}"
+                           th:text="${opt.title}"></label>
+                  </div>
+                </div>
+
+                <!-- Multiple Choice -->
+                <div th:if="${question.questionType == 'MULTIPLE_CHOICE_MULTI'}">
+                  <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Có thể chọn nhiều đáp án</p>
+                  <div th:each="opt : ${question.options}" class="form-check custom-checkbox mb-3">
+                    <input class="form-check-input" type="checkbox"
+                           th:name="'q_' + ${question.questionId}"
+                           th:id="'opt_' + ${opt.answerOptionId}"
+                           th:value="${opt.answerOptionId}">
+                    <label class="form-check-label w-100 p-3 rounded-3 border bg-white transition-all cursor-pointer"
+                           th:for="'opt_' + ${opt.answerOptionId}"
+                           th:text="${opt.title}"></label>
+                  </div>
+                </div>
+
+                <!-- Fill in Blank -->
+                <div th:if="${question.questionType == 'FILL_IN_BLANK'}">
+                  <input type="text"
+                         class="form-control form-control-lg p-3 border-2 rounded-3"
+                         th:name="'q_' + ${question.questionId}"
+                         placeholder="Nhập câu trả lời...">
+                </div>
+
+                <!-- Matching -->
+                <div th:if="${question.questionType == 'MATCHING'}" class="matching-container bg-light p-4 rounded-4">
+                  <div th:each="opt : ${question.options}" class="row mb-3 align-items-center">
+                    <div class="col-md-5">
+                      <div class="p-3 border rounded-3 bg-white shadow-sm" th:text="${opt.title}"></div>
+                    </div>
+                    <div class="col-md-2 text-center text-muted py-2 py-md-0">
+                      <i class="bi bi-arrow-right d-none d-md-inline fs-4"></i>
+                      <i class="bi bi-arrow-down d-md-none fs-4"></i>
+                    </div>
+                    <div class="col-md-5">
+                      <select class="form-select form-select-lg p-3 border-2 rounded-3 shadow-none"
+                              th:name="'q_' + ${question.questionId} + '_' + ${opt.answerOptionId}">
+                        <option value="">-- Chọn đáp án ghép nối --</option>
+                        <option th:each="matchOpt : ${question.options}"
+                                th:value="${matchOpt.matchTarget}"
+                                th:text="${matchOpt.matchTarget}"></option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Writing: text answer -->
+                <div th:if="${question.questionType == 'WRITING'}">
+                  <textarea class="form-control p-3 border-2 rounded-3"
+                            th:name="'q_' + ${question.questionId}"
+                            th:id="'answer_' + ${question.questionId}"
+                            rows="6"
+                            placeholder="Viết câu trả lời của bạn ở đây..."></textarea>
+                </div>
+
+                <!-- Speaking: record or upload audio -->
+                <div th:if="${question.questionType == 'SPEAKING'}" class="mb-3">
+                  <label class="form-label fw-bold">Ghi âm câu trả lời của bạn</label>
+                  <div class="d-flex gap-2 align-items-center mb-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="recordBtn" onclick="toggleRecording()">
+                      <i class="bi bi-mic"></i> Ghi âm
+                    </button>
+                    <label class="btn btn-outline-secondary btn-sm mb-0">
+                      <i class="bi bi-upload"></i> Tải lên file
+                      <input type="file" accept="audio/*" class="d-none" id="audioUpload" onchange="handleAudioUpload(this)">
+                    </label>
+                  </div>
+                  <div id="audioStatus" class="small text-muted"></div>
+                  <audio id="audioPlayback" controls class="d-none w-100 mt-2"></audio>
+                  <input type="hidden"
+                         th:id="'answer_' + ${question.questionId}"
+                         th:attr="data-speaking-question=${question.questionId}"
+                         th:name="'q_' + ${question.questionId}"
+                         value="">
+                </div>
+
+              </div>
+            </div>
+
+            <div class="text-center mt-5 mb-3">
+              <button type="button" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow"
+                      onclick="submitQuiz()">
+                Hoàn Thành Phần Này <i class="bi bi-check-circle ms-2"></i>
+              </button>
+            </div>
+          </form>
+
+        </th:block>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script>
+  let mediaRecorder;
+  let audioChunks = [];
+
+  // Start timer
+  const timeLimit = parseInt(document.getElementById('timeLimitMinutes').value || '0');
+  if (timeLimit > 0) {
+    startTimer(timeLimit * 60);
+  }
+
+  function startTimer(durationSeconds) {
+    let timer = durationSeconds;
+    const timerDisplay = document.getElementById('timerText');
+    timerInterval = setInterval(() => {
+      let minutes = parseInt(timer / 60, 10);
+      let seconds = parseInt(timer % 60, 10);
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+      if (timerDisplay) timerDisplay.textContent = minutes + ":" + seconds;
+      if (--timer < 0) {
+        clearInterval(timerInterval);
+        alert("Hết giờ! Bài làm sẽ tự động được nộp.");
+        submitQuiz(true);
+      }
+    }, 1000);
+  }
+
+  function confirmExit() {
+    if (confirm("Thoát giữa chừng? Tiến trình sẽ không được lưu cho phần này.")) {
+      window.location.href = '/hybrid-entry';
+    }
+  }
+
+  async function toggleRecording() {
+    const btn = document.getElementById('recordBtn');
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = uploadRecordedAudio;
+      mediaRecorder.start();
+      btn.innerHTML = '<i class="bi bi-stop-fill"></i> Dừng';
+      btn.classList.replace('btn-outline-danger', 'btn-danger');
+    } else {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+      btn.innerHTML = '<i class="bi bi-mic"></i> Ghi âm';
+      btn.classList.replace('btn-danger', 'btn-outline-danger');
+    }
+  }
+
+  function uploadRecordedAudio() {
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
+    uploadAudioFile(file);
+  }
+
+  async function handleAudioUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    await uploadAudioFile(file);
+  }
+
+  async function uploadAudioFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/v1/public/placement-test/audio', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await res.json();
+      if (result.status === 200 && result.audioUrl) {
+        document.getElementById('audioStatus').textContent = '✅ Đã tải lên thành công!';
+        const playback = document.getElementById('audioPlayback');
+        playback.src = result.audioUrl;
+        playback.classList.remove('d-none');
+        // Set the SPEAKING answer in the hidden input
+        const speakingInput = document.querySelector('[data-speaking-question]');
+        if (speakingInput) speakingInput.value = result.audioUrl;
+      } else {
+        alert('Upload thất bại: ' + (result.message || ''));
+      }
+    } catch (e) {
+      alert('Upload thất bại!');
+    }
+  }
+
+  async function submitQuiz(autoSubmit = false) {
+    if (!autoSubmit) {
+      if (!confirm("Bạn có chắc chắn muốn nộp bài phần này?")) return;
+    }
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    const submitBtn = document.querySelector('button[onclick="submitQuiz()"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+    }
+
+    const quizId = parseInt(document.getElementById('quizId').value);
+    const sessionId = parseInt(document.getElementById('sessionId').value);
+    const quizIndex = parseInt(document.getElementById('quizIndex').value);
+    const form = document.getElementById('quizForm');
+    const formData = new FormData(form);
+
+    let answers = {};
+    formData.forEach((value, key) => {
+      if (key.startsWith('q_')) {
+        const parts = key.split('_');
+        const questionId = parts[1];
+        if (parts.length === 3) {
+          const optId = parts[2];
+          if (!answers[questionId]) answers[questionId] = {};
+          answers[questionId][optId] = value;
+        } else {
+          const allVals = formData.getAll(key);
+          if (allVals.length > 1) {
+            answers[questionId] = allVals.map(v => parseInt(v));
+          } else {
+            const intVal = parseInt(value);
+            answers[questionId] = isNaN(intVal) ? value : intVal;
+          }
+        }
+      }
+    });
+
+    const payload = {
+      quizId: quizId,
+      guestName: '',
+      guestEmail: '',
+      answers: answers,
+      hybridSessionId: sessionId,
+      quizIndex: quizIndex
+    };
+
+    try {
+      const response = await fetch('/api/v1/public/placement-test/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (response.ok) {
+        window.location.href = '/hybrid/' + sessionId + '/transition';
+      } else {
+        alert("Lỗi nộp bài: " + (result.message || 'Unknown error'));
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Hoàn Thành Phần Này <i class="bi bi-check-circle ms-2"></i>';
+        }
+      }
+    } catch (e) {
+      alert("Lỗi kết nối!");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Hoàn Thành Phần Này <i class="bi bi-check-circle ms-2"></i>';
+      }
+    }
+  }
+</script>
+
+<style>
+  .custom-radio input[type="radio"]:checked + label,
+  .custom-checkbox input[type="checkbox"]:checked + label {
+    border-color: var(--accent-color) !important;
+    background-color: rgba(var(--accent-color-rgb), 0.05);
+    font-weight: 500;
+    color: var(--accent-color);
+  }
+  .transition-all { transition: all 0.2s ease; }
+  .cursor-pointer { cursor: pointer; }
+</style>
+
+</body>
+</html>

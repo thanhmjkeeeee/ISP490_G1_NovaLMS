@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Kết quả kiểm tra đầu vào')}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='hybrid-entry')}"></header>
+
+<main class="main my-5 flex-grow-1">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+
+        <th:block th:if="${result != null}">
+
+          <!-- Header -->
+          <div class="text-center mb-5">
+            <h2 class="fw-bold text-primary mb-2">
+              <i class="bi bi-bar-chart-fill me-2"></i>Kết Quả Kiểm Tra Đầu Vào
+            </h2>
+            <p class="text-muted" th:if="${result.guestName != null}">
+              <span th:text="${result.guestName}">Nguyễn Văn A</span>
+              <span th:if="${result.guestEmail != null}"> · </span>
+              <span th:if="${result.guestEmail != null}" th:text="${result.guestEmail}">email@example.com</span>
+            </p>
+          </div>
+
+          <!-- Overall Score Banner -->
+          <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-primary text-white text-center py-4">
+              <h4 class="fw-bold mb-1">Điểm Tổng Hợp</h4>
+            </div>
+            <div class="card-body p-5 text-center">
+              <div class="mb-3">
+                <!-- AI-aware correct rate -->
+                <th:block th:if="${result.overallCorrectRateIncludingAI != null}">
+                  <div class="display-1 fw-bold text-primary" th:text="${#numbers.formatDecimal(result.overallCorrectRateIncludingAI, 1, 0)} + '%'">72%</div>
+                  <div class="text-muted fs-5">
+                    <span th:text="${result.overallScoreIncludingAI}">25</span> /
+                    <span th:text="${result.overallTotalPointsIncludingAI}">35</span> điểm (bao gồm AI)
+                  </div>
+                  <th:block th:if="${result.overallCorrectRateIncludingAI.compareTo(result.overallCorrectRate) != 0}">
+                    <small class="text-muted">(gốc: <span th:text="${result.overallScore}">20</span>/<span th:text="${result.overallTotalPoints}">35</span> — <span th:text="${#numbers.formatDecimal(result.overallCorrectRate, 1, 0)}">57</span>%)</small>
+                  </th:block>
+                </th:block>
+                <th:block th:if="${result.overallCorrectRateIncludingAI == null}">
+                  <div class="display-1 fw-bold text-primary" th:text="${#numbers.formatDecimal(result.overallCorrectRate, 1, 0)} + '%'">72%</div>
+                  <div class="text-muted fs-5">
+                    <span th:text="${result.overallScore}">25</span> /
+                    <span th:text="${result.overallTotalPoints}">35</span> câu đúng
+                  </div>
+                </th:block>
+              </div>
+
+              <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
+                <span class="badge bg-warning text-dark px-4 py-2 rounded-pill fs-4 fw-bold">
+                  <i class="bi bi-award-fill me-1"></i>
+                  CEFR: <span th:text="${result.overallCEFRIncludingAI != null ? result.overallCEFRIncludingAI : result.overallCEFR}">B1</span>
+                </span>
+              </div>
+              <p class="text-muted mb-0" th:text="${result.levelDescription}">
+                Mô tả CEFR level...
+              </p>
+            </div>
+          </div>
+
+          <!-- Section Results Table -->
+          <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-0 py-3 px-4">
+              <h5 class="fw-bold mb-0 text-dark">
+                <i class="bi bi-table me-2 text-primary"></i>Kết Quả Theo Phần
+              </h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="px-4 py-3">Kỹ năng</th>
+                      <th class="px-4 py-3">Bài test</th>
+                      <th class="text-center px-4 py-3">Điểm</th>
+                      <th class="text-center px-4 py-3">Tỉ lệ</th>
+                      <th class="text-center px-4 py-3">CEFR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="section : ${result?.sections}">
+                      <td class="px-4 py-3">
+                        <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold"
+                              th:text="${section.skill}">Grammar</span>
+                      </td>
+                      <td class="px-4 py-3 fw-medium text-dark" th:text="${section.quizTitle}">
+                        Grammar A1-A2
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <!-- AI-aware score: show AI score if available, else original -->
+                        <th:block th:if="${section.aiScore != null}">
+                          <span class="fw-bold text-primary" th:text="${section.aiScore}">8</span>
+                          <span class="text-muted">/</span>
+                          <span class="text-muted" th:text="${section.aiTotalPoints != null ? section.aiTotalPoints : section.totalPoints}">10</span>
+                          <br><small class="text-muted">(gốc: <span th:text="${section.score}">5</span>/<span th:text="${section.totalPoints}">10</span>)</small>
+                        </th:block>
+                        <th:block th:if="${section.aiScore == null}">
+                          <span th:text="${section.score}">15</span>/<span th:text="${section.totalPoints}">20</span>
+                        </th:block>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <!-- AI-aware correct rate -->
+                        <th:block th:if="${section.aiCorrectRate != null}">
+                          <span th:classappend="${section.aiCorrectRate?.doubleValue() >= 60} ? 'text-success' : 'text-danger'"
+                                class="fw-bold"
+                                th:text="${#numbers.formatDecimal(section.aiCorrectRate, 1, 0)} + '%'">80%</span>
+                          <br><small class="text-muted">(gốc: <span th:text="${#numbers.formatDecimal(section.correctRate, 1, 0)}">75</span>%)</small>
+                        </th:block>
+                        <th:block th:if="${section.aiCorrectRate == null}">
+                          <span th:classappend="${section?.correctRate?.doubleValue() >= 60} ? 'text-success' : 'text-danger'"
+                                class="fw-bold"
+                                th:text="${#numbers.formatDecimal(section.correctRate, 1, 0)} + '%'">75%</span>
+                        </th:block>
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                        <span class="badge bg-warning bg-opacity-20 text-warning fw-bold"
+                              th:text="${section.suggestedLevel}">B1</span>
+                      </td>
+                    </tr>
+                    <!-- AI details row (inside tbody, after main row) -->
+                    <th:block th:with="qList=${section?.aiQuestions}">
+                    <th:block th:if="${qList != null and not #lists.isEmpty(qList)}">
+                    <tr class="table-light">
+                      <td colspan="5" class="px-4 py-3">
+                        <p class="fw-semibold small text-muted mb-2">
+                          <i class="bi bi-robot me-1"></i> Chi tiết chấm bằng AI
+                        </p>
+                        <div th:each="aq : ${qList}" class="mb-3">
+                          <!-- Pending -->
+                          <th:block th:if="${aq.pendingAiReview}">
+                            <div class="alert alert-warning py-1 px-3 mb-1 small">
+                              <i class="bi bi-hourglass-split me-1"></i>
+                              <strong th:text="${aq.questionType == 'WRITING' ? 'Viết' : 'Nói'}"></strong> —
+                              Đang chấm bằng AI...
+                            </div>
+                          </th:block>
+                          <!-- Graded -->
+                          <th:block th:if="${!aq.pendingAiReview}">
+                            <div class="card border-0 bg-white mb-1">
+                              <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                  <span class="badge bg-info bg-opacity-10 text-info small"
+                                        th:text="${aq.questionType == 'WRITING' ? 'Viết' : 'Nói'}">Viết</span>
+                                  <span class="fw-bold small">
+                                    <span th:text="${aq.aiScore}">8</span>
+                                    <span class="text-muted">/</span>
+                                    <span th:text="${aq.maxPoints}">10</span>
+                                    <th:block th:if="${aq.isCorrect}">
+                                      <span class="badge bg-success ms-1 small">Đạt</span>
+                                    </th:block>
+                                    <th:block th:if="${!aq.isCorrect and aq.aiScore != null}">
+                                      <span class="badge bg-danger ms-1 small">Chưa đạt</span>
+                                    </th:block>
+                                  </span>
+                                </div>
+                                <p class="mb-1 small text-muted" th:text="${aq.aiFeedback}">Feedback...</p>
+                                <!-- Rubric breakdown toggle -->
+                                <th:block th:if="${aq.aiRubricJson != null}">
+                                  <button class="btn btn-link btn-sm p-0 small" type="button"
+                                          data-bs-toggle="collapse"
+                                          th:attr="data-bs-target='#rubric-' + ${section?.resultId} + '-' + ${aq.questionId}">
+                                    <i class="bi bi-chevron-down"></i> Chi tiết rubric
+                                  </button>
+                                  <div class="collapse mt-1" th:id="'rubric-' + ${section?.resultId} + '-' + ${aq.questionId}">
+                                    <ul class="list-unstyled mb-0 small text-muted rubric-list"
+                                        th:data-rubric="${aq.aiRubricJson}"
+                                        th:data-type="${aq.questionType}"></ul>
+                                  </div>
+                                </th:block>
+                              </div>
+                            </div>
+                          </th:block>
+                        </div>
+                      </td>
+                    </tr>
+                    </th:block>
+                    </th:block>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggested Courses -->
+          <th:block th:if="${result.suggestedCourses != null and !result.suggestedCourses.isEmpty()}">
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+              <div class="card-header bg-white border-0 py-3 px-4">
+                <h5 class="fw-bold mb-0 text-dark">
+                  <i class="bi bi-mortarboard-fill me-2 text-primary"></i>Khóa Học Gợi Ý
+                </h5>
+              </div>
+              <div class="card-body p-4">
+                <div class="row g-4">
+                  <div class="col-md-4" th:each="course : ${result.suggestedCourses}">
+                    <div class="card h-100 shadow-sm border-0 rounded-3 hover-card">
+                      <div class="card-body p-3">
+                        <h6 class="fw-bold text-dark mb-2" th:text="${course.courseName}">English B1 Intermediate</h6>
+                        <p class="text-muted small mb-3" th:if="${course.description != null}"
+                           th:text="${course.description}">Mô tả khóa học</p>
+                        <a th:href="@{'/courses/' + ${course.courseId}}"
+                           class="btn btn-sm btn-outline-primary rounded-pill w-100">
+                          Xem chi tiết <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </th:block>
+
+          <!-- Actions -->
+          <div class="text-center mt-4">
+            <a th:href="@{/hybrid-entry}"
+               class="btn btn-primary rounded-pill px-4 fw-bold me-2">
+              <i class="bi bi-arrow-repeat me-1"></i>Làm Lại Từ Đầu
+            </a>
+            <a th:href="@{/}"
+               class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+              <i class="bi bi-house me-1"></i>Về Trang Chủ
+            </a>
+          </div>
+
+        </th:block>
+
+        <!-- Error -->
+        <th:block th:if="${error != null}">
+          <div class="alert alert-danger text-center py-4">
+            <i class="bi bi-exclamation-triangle display-6 d-block mb-3"></i>
+            <p th:text="${error}">Lỗi</p>
+            <a th:href="@{/hybrid-entry}" class="btn btn-outline-danger mt-2">Quay lại</a>
+          </div>
+        </th:block>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script>
+  // Render rubric breakdown from JSON for each WRITING/SPEAKING question
+  document.querySelectorAll('.rubric-list[data-rubric]').forEach(function(el) {
+    try {
+      var rubric = JSON.parse(el.getAttribute('data-rubric'));
+      var qType = el.getAttribute('data-type');
+      var labels = {
+        'task_achievement': 'Hoàn thành đề bài',
+        'lexical_resource': 'Từ vựng',
+        'grammar': 'Ngữ pháp',
+        'coherence_cohesion': 'Liên kết câu',
+        'pronunciation': 'Phát âm',
+        'fluency': 'Lưu loát'
+      };
+      var html = '';
+      for (var key in rubric) {
+        if (rubric.hasOwnProperty(key)) {
+          var label = labels[key] || key;
+          html += '<li><strong>' + label + ':</strong> ' + rubric[key] + ' điểm</li>';
+        }
+      }
+      el.innerHTML = html;
+    } catch (e) {
+      el.innerHTML = '<li class="text-danger">Không thể hiển thị rubric</li>';
+    }
+  });
+</script>
+
+<style>
+  .hover-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .hover-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important; }
+</style>
+
+</body>
+</html>

@@ -17,8 +17,16 @@
             <ul>
                 <li><a th:href="@{/}"
                        th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
-                <li><a th:href="@{/placement-test}"
-                       th:classappend="${currentPage == 'placement-test'} ? 'active'">Kiểm tra đầu vào</a></li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"
+                       th:classappend="${currentPage == 'placement-test' or currentPage == 'hybrid-entry'} ? 'active'">
+                        Kiểm tra đầu vào
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" th:href="@{/placement-test}">Chế độ đơn lẻ</a></li>
+                        <li><a class="dropdown-item" th:href="@{/hybrid-entry}"><i class="bi bi-layers me-1"></i>Chế độ Hybrid</a></li>
+                    </ul>
+                </li>
                 <li><a th:href="@{/classes}"
                        th:classappend="${currentPage == 'class'} ? 'active'">Lịch khai giảng</a></li>
                 <li><a th:href="@{/courses}"
