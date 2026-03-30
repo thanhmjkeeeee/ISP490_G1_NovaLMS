@@ -294,6 +294,19 @@ function renderModules(modules) {
                     '</tbody>' +
                 '</table>' +
 
+                // QUIZZES SECTION
+                '<div class="mt-3 px-1">' +
+                    '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                        '<h6 class="mb-0 text-secondary"><i class="bi bi-list-check me-1"></i>Quizzes</h6>' +
+                        '<button class="btn btn-sm text-white fw-bold" ' +
+                            'style="background-color:#059669; border:none;" ' +
+                            'onclick="event.stopPropagation(); openModuleQuizModal(' + m.moduleId + ')">' +
+                            '<i class="bi bi-plus-lg me-1"></i>Thêm Quiz' +
+                        '</button>' +
+                    '</div>' +
+                    '<div id="module-quizzes-list-' + m.moduleId + '" class="small"></div>' +
+                '</div>' +
+
             '</div>' +
         '</div>';
     }).join('');
@@ -321,6 +334,7 @@ function toggleModule(moduleId) {
         chevron.style.transform = 'rotate(180deg)';
         _openModuleId = moduleId;
         if (!_allLessons[moduleId]) loadLessons(moduleId);
+        loadModuleQuizzes(moduleId);
     }
 }
 
@@ -600,6 +614,57 @@ async function deleteLesson(moduleId, lessonId) {
         if (result.status === 200) loadLessons(moduleId);
         else alert('Lỗi: ' + (result.message || 'Xóa thất bại.'));
     } catch(e) { alert('Lỗi: ' + e.message); }
+}
+
+// ── MODULE QUIZZES ────────────────────────────────────────────────────────
+async function loadModuleQuizzes(moduleId) {
+    var container = document.getElementById('module-quizzes-list-' + moduleId);
+    if (!container) return;
+    try {
+        var res = await fetch('/api/v1/expert/modules/' + moduleId + '/quizzes');
+        var result = await res.json();
+        if (result.status === 200 && result.data) {
+            renderModuleQuizzes(moduleId, result.data);
+        }
+    } catch(e) { container.innerHTML = '<span class="text-danger small">Lỗi tải quiz.</span>'; }
+}
+
+function renderModuleQuizzes(moduleId, quizzes) {
+    var container = document.getElementById('module-quizzes-list-' + moduleId);
+    if (!quizzes || quizzes.length === 0) {
+        container.innerHTML = '<span class="text-muted small">Chưa có quiz nào cho chương này.</span>';
+        return;
+    }
+    container.innerHTML = quizzes.map(function(q) {
+        var statusBadge = q.status === 'PUBLISHED'
+            ? '<span class="badge bg-success ms-2">Đã xuất bản</span>'
+            : '<span class="badge bg-secondary ms-2">Nháp</span>';
+        return '<div class="d-flex justify-content-between align-items-center border rounded px-3 py-2 mb-1" style="background:#fafafa;">' +
+            '<div><strong>' + escape(q.title || '—') + '</strong>' + statusBadge +
+            '<span class="text-muted small ms-2">(' + (q.numberOfQuestions || 0) + ' câu)</span></div>' +
+            '<div>' +
+                '<a href="/expert/quizzes/' + q.quizId + '" class="btn btn-sm btn-light border shadow-sm me-1" title="Sửa">' +
+                    '<i class="bi bi-pencil-square text-primary"></i></a> ' +
+                '<button class="btn btn-sm btn-light border shadow-sm" title="Gỡ khỏi chương" ' +
+                    'onclick="detachModuleQuiz(' + moduleId + ',' + q.quizId + ')">' +
+                    '<i class="bi bi-x-circle text-danger"></i></button>' +
+            '</div></div>';
+    }).join('');
+}
+
+async function detachModuleQuiz(moduleId, quizId) {
+    if (!confirm('Gỡ quiz này khỏi chương? Quiz sẽ không bị xóa.')) return;
+    try {
+        var res = await fetch('/api/v1/expert/modules/' + moduleId + '/quizzes/' + quizId, { method: 'DELETE' });
+        var result = await res.json();
+        if (result.status === 200) loadModuleQuizzes(moduleId);
+        else alert('Lỗi: ' + (result.message || 'Gỡ thất bại.'));
+    } catch(e) { alert('Lỗi: ' + e.message); }
+}
+
+function openModuleQuizModal(moduleId) {
+    // Redirect to quiz creation page with moduleId pre-filled
+    window.location.href = '/expert/quizzes/create?moduleId=' + moduleId;
 }
 
 // ── Utility ──────────────────────────────────────────────────────────────

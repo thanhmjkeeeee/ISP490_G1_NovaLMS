@@ -16,9 +16,21 @@
             <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý ngân hàng đề</h3>
             <p class="text-muted small m-0">Quản lý toàn bộ câu hỏi trong hệ thống.</p>
         </div>
-        <a th:href="@{/expert/question-bank/create}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
-            <i class="bi bi-plus-lg me-1"></i> Tạo câu hỏi
-        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 btn-outline-primary"
+                    onclick="openAIPanel()">
+                <i class="bi bi-robot me-1"></i> Sinh bằng AI
+            </button>
+            <button class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 btn-outline-success"
+                    onclick="openImportPanel()">
+                <i class="bi bi-file-earmark-arrow-up me-1"></i> Import Excel
+            </button>
+            <a th:href="@{/expert/question-bank/create}"
+               class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white"
+               style="background-color: #136ad5;">
+                <i class="bi bi-plus-lg me-1"></i> Tạo câu hỏi
+            </a>
+        </div>
     </div>
 
     <!-- Filters -->
@@ -115,6 +127,164 @@
     </nav>
 
 </main>
+
+<!-- ═══════════════════════════ AI GENERATE MODAL ═══════════════════════════ -->
+<div class="modal fade" id="aiModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Sinh câu hỏi bằng AI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabQuick">Sinh nhanh</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModule">Theo Module</button></li>
+                </ul>
+
+                <!-- Quick tab -->
+                <div class="tab-pane fade show active" id="tabQuick">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Chủ đề <span class="text-danger">*</span></label>
+                            <input type="text" id="aiTopic" class="form-control" placeholder="VD: Travel and Tourism">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Số lượng <span class="text-danger">*</span></label>
+                            <input type="number" id="aiQty" class="form-control" min="1" max="50" value="5">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Module tab -->
+                <div class="tab-pane fade" id="tabModule">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Chọn Module <span class="text-danger">*</span></label>
+                            <select id="aiModuleId" class="form-select" onchange="loadModuleInfo()">
+                                <option value="">-- Chọn module --</option>
+                            </select>
+                            <small class="text-muted" id="moduleInfo"></small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Số lượng <span class="text-danger">*</span></label>
+                            <input type="number" id="aiQtyModule" class="form-control" min="1" max="50" value="5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-3">
+                    <button class="btn btn-primary" onclick="generateAI()">
+                        <i class="bi bi-lightning-charge me-1"></i> Sinh câu hỏi
+                    </button>
+                </div>
+
+                <!-- Loading spinner -->
+                <div id="aiLoading" class="text-center py-4" style="display:none;">
+                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <p class="text-muted">AI đang sinh câu hỏi, vui lòng chờ...</p>
+                </div>
+
+                <!-- Warning -->
+                <div id="aiWarning" class="alert alert-warning mt-3" style="display:none;"></div>
+
+                <!-- Preview results -->
+                <div id="aiPreview" class="mt-3" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="m-0">Kết quả (<span id="aiSelectedCount">0</span>/<span id="aiTotalCount">0</span> đã chọn)</h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-2" onclick="toggleAllAI()">Chọn tất cả</button>
+                        </div>
+                    </div>
+                    <div id="aiQuestionList" class="list-group"></div>
+                    <div class="text-end mt-3">
+                        <button class="btn text-white" style="background-color: #136ad5;" onclick="importSelectedAI()">
+                            <i class="bi bi-check-lg me-1"></i> Lưu các câu đã chọn
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════ EXCEL IMPORT MODAL ═══════════════════════════ -->
+<div class="modal fade" id="importModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-arrow-up me-2"></i>Import câu hỏi từ Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Step 1: Download template -->
+                <div id="importStep1">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Loại câu hỏi <span class="text-danger">*</span></label>
+                            <select id="importType" class="form-select">
+                                <option value="">-- Chọn loại --</option>
+                                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Single)</option>
+                                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Multi)</option>
+                                <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                                <option value="MATCHING">Matching</option>
+                                <option value="WRITING">Writing</option>
+                                <option value="SPEAKING">Speaking</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button class="btn btn-outline-primary" onclick="downloadTemplate()">
+                                <i class="bi bi-download me-1"></i> Tải template Excel
+                            </button>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Upload file đã fill</label>
+                        <input type="file" id="importFile" class="form-control" accept=".xlsx">
+                    </div>
+                    <div class="text-end">
+                        <button class="btn text-white" style="background-color: #136ad5;" onclick="uploadExcel()">
+                            <i class="bi bi-upload me-1"></i> Upload &amp; Kiểm tra
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Preview + errors -->
+                <div id="importStep2" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="m-0">Kết quả import</h6>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="resetImport()">
+                            <i class="bi bi-arrow-left me-1"></i> Upload lại
+                        </button>
+                    </div>
+
+                    <div id="importSummary" class="alert"></div>
+
+                    <!-- Valid rows -->
+                    <div id="importValidRows" class="mb-3"></div>
+
+                    <!-- Error rows -->
+                    <div id="importErrorRows" class="mb-3"></div>
+
+                    <div class="text-end">
+                        <button class="btn text-white" style="background-color: #136ad5;" onclick="confirmImport()">
+                            <i class="bi bi-check-lg me-1"></i> Lưu tất cả câu hỏi
+                        </button>
+                    </div>
+                </div>
+
+                <div id="importLoading" class="text-center py-4" style="display:none;">
+                    <div class="spinner-border text-success mb-2"></div>
+                    <p class="text-muted">Đang xử lý file Excel...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
@@ -220,6 +390,315 @@ async function deleteQuestion(id) {
 }
 
 loadQuestions();
+
+// ═══════════════════════════ AI PANEL ═══════════════════════════
+
+let aiModal, importModal;
+let aiQuestions = [];
+let aiSelectedSet = new Set();
+let allAiSelected = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+    aiModal = new bootstrap.Modal(document.getElementById('aiModal'));
+    importModal = new bootstrap.Modal(document.getElementById('importModal'));
+    loadModules();
+});
+
+async function loadModules() {
+    try {
+        const res = await fetch('/api/v1/expert/modules');
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            const sel = document.getElementById('aiModuleId');
+            result.data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.moduleId;
+                opt.textContent = m.moduleName;
+                sel.appendChild(opt);
+            });
+        }
+    } catch (e) { console.error(e); }
+}
+
+function openAIPanel() {
+    aiQuestions = [];
+    aiSelectedSet = new Set();
+    document.getElementById('aiPreview').style.display = 'none';
+    document.getElementById('aiWarning').style.display = 'none';
+    document.getElementById('aiQuestionList').innerHTML = '';
+    aiModal.show();
+}
+
+async function generateAI() {
+    const isQuick = document.querySelector('#tabQuick').classList.contains('show');
+    let topic, moduleId, qty;
+
+    if (isQuick) {
+        topic = document.getElementById('aiTopic').value.trim();
+        qty = parseInt(document.getElementById('aiQty').value);
+        if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
+    } else {
+        moduleId = parseInt(document.getElementById('aiModuleId').value);
+        qty = parseInt(document.getElementById('aiQtyModule').value);
+        if (!moduleId) { alert('Vui lòng chọn module.'); return; }
+    }
+
+    if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+
+    const body = { topic: topic || null, moduleId: moduleId || null, quantity: qty };
+    document.getElementById('aiLoading').style.display = 'block';
+    document.getElementById('aiPreview').style.display = 'none';
+    document.getElementById('aiWarning').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/v1/expert/questions/ai/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi sinh câu hỏi.'); return; }
+
+        aiQuestions = result.data.questions || [];
+        aiSelectedSet = new Set(aiQuestions.map((_, i) => i));
+        renderAIQuestions();
+
+        if (result.data.warning) {
+            const w = document.getElementById('aiWarning');
+            w.textContent = result.data.warning;
+            w.style.display = 'block';
+        }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+    finally { document.getElementById('aiLoading').style.display = 'none'; }
+}
+
+function renderAIQuestions() {
+    const container = document.getElementById('aiQuestionList');
+    document.getElementById('aiTotalCount').textContent = aiQuestions.length;
+    document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+    document.getElementById('aiPreview').style.display = 'block';
+
+    container.innerHTML = aiQuestions.map((q, i) => `
+        <div class="list-group-item ${aiSelectedSet.has(i) ? 'border-primary' : ''}" style="border-left: 3px solid ${aiSelectedSet.has(i) ? '#136ad5' : '#dee2e6'};">
+            <div class="d-flex align-items-start gap-3">
+                <input type="checkbox" class="form-check-input mt-1" id="aiChk${i}"
+                    ${aiSelectedSet.has(i) ? 'checked' : ''}
+                    onchange="toggleAI(${i})">
+                <div class="flex-grow-1">
+                    <div class="d-flex gap-2 flex-wrap mb-1">
+                        <span class="badge bg-secondary">${q.questionType}</span>
+                        <span class="badge bg-info text-dark">${q.skill}</span>
+                        <span class="badge bg-primary">${q.cefrLevel}</span>
+                        ${q.topic ? `<span class="badge bg-light text-dark">${q.topic}</span>` : ''}
+                    </div>
+                    <p class="mb-1 small">${escapeHtml(q.content || '')}</p>
+                    ${q.options && q.options.length > 0 ? `
+                        <ul class="mb-1 small">${q.options.map(o => `
+                            <li class="${o.correct ? 'text-success fw-bold' : ''}">${escapeHtml(o.title)} ${o.correct ? '✓' : ''}</li>
+                        `).join('')}</ul>` : ''}
+                    ${q.correctAnswer ? `<p class="mb-0 small text-muted">Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleAI(idx) {
+    if (aiSelectedSet.has(idx)) aiSelectedSet.delete(idx);
+    else aiSelectedSet.add(idx);
+    document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+    renderAIQuestions();
+}
+
+function toggleAllAI() {
+    allAiSelected = !allAiSelected;
+    if (allAiSelected) {
+        aiSelectedSet = new Set(aiQuestions.map((_, i) => i));
+    } else {
+        aiSelectedSet = new Set();
+    }
+    renderAIQuestions();
+}
+
+async function importSelectedAI() {
+    if (aiSelectedSet.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
+    const selected = aiQuestions.filter((_, i) => aiSelectedSet.has(i));
+    try {
+        const res = await fetch('/api/v1/expert/questions/ai/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questions: selected })
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
+        alert(result.message || 'Đã lưu ' + aiSelectedSet.size + ' câu hỏi.');
+        aiModal.hide();
+        loadQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+// ═══════════════════════════ EXCEL PANEL ═══════════════════════════
+
+let importParseResult = null;
+
+function openImportPanel() {
+    importParseResult = null;
+    document.getElementById('importStep1').style.display = 'block';
+    document.getElementById('importStep2').style.display = 'none';
+    document.getElementById('importFile').value = '';
+    document.getElementById('importType').value = '';
+    importModal.show();
+}
+
+function resetImport() {
+    document.getElementById('importStep1').style.display = 'block';
+    document.getElementById('importStep2').style.display = 'none';
+    importParseResult = null;
+}
+
+async function downloadTemplate() {
+    const type = document.getElementById('importType').value;
+    if (!type) { alert('Vui lòng chọn loại câu hỏi trước.'); return; }
+    window.location.href = `/api/v1/expert/questions/excel/template?type=${encodeURIComponent(type)}`;
+}
+
+async function uploadExcel() {
+    const type = document.getElementById('importType').value;
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    if (!type) { alert('Vui lòng chọn loại câu hỏi.'); return; }
+    if (!file) { alert('Vui lòng chọn file Excel.'); return; }
+
+    document.getElementById('importLoading').style.display = 'block';
+    try {
+        const formData = new FormData();
+        formData.append('type', type);
+        formData.append('file', file);
+        const res = await fetch('/api/v1/expert/questions/excel/parse', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
+        importParseResult = result.data;
+        renderImportPreview();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+    finally { document.getElementById('importLoading').style.display = 'none'; }
+}
+
+function renderImportPreview() {
+    document.getElementById('importStep1').style.display = 'none';
+    document.getElementById('importStep2').style.display = 'block';
+    const r = importParseResult;
+    const validCount = r.valid ? r.valid.length : 0;
+    const errorCount = r.errors ? r.errors.length : 0;
+
+    // Summary
+    const summary = document.getElementById('importSummary');
+    summary.className = `alert ${errorCount > 0 ? 'alert-warning' : 'alert-success'}`;
+    summary.innerHTML = `<strong>${validCount} dòng hợp lệ</strong>${errorCount > 0 ? ` | <strong class="text-danger">${errorCount} dòng bị lỗi</strong>` : ''}`;
+
+    // Valid rows
+    const validEl = document.getElementById('importValidRows');
+    if (validCount > 0) {
+        validEl.innerHTML = `<h6 class="text-success"><i class="bi bi-check-circle me-1"></i>Câu hỏi hợp lệ</h6>` +
+            r.valid.map((row, i) => `
+                <div class="card mb-2 border-success-subtle bg-success-subtle">
+                    <div class="card-body py-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="checkbox" class="form-check-input valid-chk" data-idx="${i}" checked>
+                            <span class="badge bg-secondary me-1">Dòng ${row.rowIndex}</span>
+                            <span class="badge bg-info text-dark">${row.questionType}</span>
+                            <span class="badge bg-primary">${row.cefrLevel}</span>
+                            <span class="small">${escapeHtml(row.content || '')}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+    } else {
+        validEl.innerHTML = '';
+    }
+
+    // Error rows
+    const errorEl = document.getElementById('importErrorRows');
+    if (errorCount > 0) {
+        errorEl.innerHTML = `<h6 class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Cần sửa lỗi</h6>` +
+            r.errors.map((err, i) => `
+                <div class="card mb-2 border-danger bg-danger-subtle" id="errRow${i}">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-danger">Dòng ${err.rowIndex}</span>
+                            <span class="small text-danger">${escapeHtml(err.message)}</span>
+                        </div>
+                        ${renderErrorEdit(err, i)}
+                    </div>
+                </div>
+            `).join('');
+    } else {
+        errorEl.innerHTML = '';
+    }
+}
+
+function renderErrorEdit(err, errIdx) {
+    const raw = err.rawData || {};
+    return `
+        <div class="row g-2">
+            <div class="col-md-8">
+                <input type="text" class="form-control form-control-sm"
+                    id="fixContent${errIdx}" value="${escapeHtml(raw.col0 || '')}"
+                    placeholder="Nội dung câu hỏi">
+            </div>
+            <div class="col-md-4">
+                <input type="text" class="form-control form-control-sm"
+                    id="fixCefr${errIdx}" value="${escapeHtml(raw.col7 || raw.col3 || '')}"
+                    placeholder="CEFR (A1-C2)">
+            </div>
+        </div>`;
+}
+
+async function confirmImport() {
+    const validRows = Array.from(document.querySelectorAll('.valid-chk:checked'))
+        .map(el => {
+            const idx = parseInt(el.dataset.idx);
+            return importParseResult.valid[idx];
+        });
+
+    // Collect fixed error rows
+    const fixedErrors = Array.from({ length: importParseResult.errors.length }, (_, i) => {
+        const content = document.getElementById('fixContent' + i);
+        const cefr = document.getElementById('fixCefr' + i);
+        return {
+            content: content ? content.value : '',
+            cefrLevel: cefr ? cefr.value : 'B1',
+            questionType: importParseResult.errors[i].rawData?.colType || 'MULTIPLE_CHOICE_SINGLE'
+        };
+    }).filter(f => f.content && f.content.trim());
+
+    const allQuestions = [...validRows, ...fixedErrors];
+    if (allQuestions.length === 0) { alert('Không có câu hỏi nào để lưu.'); return; }
+
+    try {
+        const res = await fetch('/api/v1/expert/questions/excel/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questions: allQuestions })
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
+        alert(result.message || 'Đã import thành công.');
+        importModal.hide();
+        loadQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 </script>
 </body>
 </html>
