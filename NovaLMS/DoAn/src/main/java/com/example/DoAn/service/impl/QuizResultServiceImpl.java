@@ -144,6 +144,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .skill(q.getSkill())
                     .cefrLevel(q.getCefrLevel())
                     .points(qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                    .imageUrl(q.getImageUrl())
+                    .audioUrl(q.getAudioUrl())
                     .options(noOptionsType ? new ArrayList<AnswerOptionPayloadDTO>() : optionsDTO)
                     .build();
         }).collect(Collectors.toList());
@@ -399,6 +401,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .userAnswerDisplay(userAnswerDisplay)
                     .correctAnswerDisplay(correctAnswerDisplay)
                     .explanation(showAnswer ? q.getExplanation() : null)
+                    .imageUrl(q.getImageUrl())
+                    .audioUrl(q.getAudioUrl())
                     .options(optDTOs)
                     .build());
         }

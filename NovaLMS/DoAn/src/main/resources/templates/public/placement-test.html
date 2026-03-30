@@ -192,7 +192,21 @@
                   </div>
 
                   <div class="mb-4">
-                      <div class="fs-5 lh-base text-dark" th:utext="${question.content}"></div>
+                      <!-- Hiển thị nội dung câu hỏi -->
+                      <div class="fs-5 lh-base text-dark mb-3" th:utext="${question.content}"></div>
+                      
+                      <!-- Hiển thị Ảnh nếu có -->
+                      <div th:if="${question.imageUrl != null and !question.imageUrl.isEmpty()}" class="mb-3">
+                          <img th:src="${question.imageUrl}" class="img-fluid rounded shadow-sm border" style="max-height: 400px;" alt="Question Image">
+                      </div>
+
+                      <!-- Hiển thị Audio nếu có -->
+                      <div th:if="${question.audioUrl != null and !question.audioUrl.isEmpty()}" class="mb-3">
+                          <audio controls class="w-100 shadow-sm rounded" style="height: 40px;">
+                              <source th:src="${question.audioUrl}" type="audio/mpeg">
+                              Trình duyệt của bạn không hỗ trợ phát âm thanh.
+                          </audio>
+                      </div>
                   </div>
 
                   <!-- Multiple Choice Single -->

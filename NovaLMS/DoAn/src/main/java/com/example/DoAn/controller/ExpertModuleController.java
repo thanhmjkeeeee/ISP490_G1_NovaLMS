@@ -34,6 +34,13 @@ public class ExpertModuleController {
                 moduleService.getCoursesOwnedByExpert(getEmail(principal)));
     }
 
+    @Operation(summary = "Get dashboard statistics for expert")
+    @GetMapping("/stats")
+    public ResponseData<IExpertModuleService.ExpertDashboardStatsDTO> getStats(Principal principal) {
+        return ResponseData.success("Thống kê dashboard",
+                moduleService.getDashboardStats(getEmail(principal)));
+    }
+
     @Operation(summary = "Get all modules for a course")
     @GetMapping
     public ResponseData<List<ModuleResponseDTO>> getModules(

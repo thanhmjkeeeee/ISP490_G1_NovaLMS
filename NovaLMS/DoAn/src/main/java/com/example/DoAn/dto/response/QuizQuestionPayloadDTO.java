@@ -13,5 +13,7 @@ public class QuizQuestionPayloadDTO {
     private String skill;
     private String cefrLevel;
     private Integer points;
+    private String imageUrl;
+    private String audioUrl;
     private List<AnswerOptionPayloadDTO> options;
 }
