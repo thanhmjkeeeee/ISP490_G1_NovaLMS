@@ -37,4 +37,8 @@ public class Module {
     @OrderBy("orderIndex ASC")
     @Fetch(FetchMode.SUBSELECT)
     private List<Lesson> lessons;
+
+    @OneToMany(mappedBy = "module", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private List<QuizAssignment> quizAssignments;
 }

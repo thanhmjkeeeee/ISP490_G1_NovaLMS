@@ -77,10 +77,15 @@ public class Question {
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AnswerOption> answerOptions;
 
+    // MANUAL | AI_GENERATED | EXCEL_IMPORTED
+    @Column(name = "created_method", length = 20)
+    private String createdMethod;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
         if (status == null) status = "DRAFT";
+        if (createdMethod == null) createdMethod = "MANUAL";
     }
 
     @PreUpdate
