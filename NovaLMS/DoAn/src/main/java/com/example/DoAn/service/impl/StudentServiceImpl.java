@@ -279,8 +279,7 @@ public class StudentServiceImpl implements StudentService {
             }
 
             // Khóa học có phí → chỉ duyệt được khi Payment.status = PAID
-            boolean isPaidCourse = registration.getRegistrationPrice() != null
-                    && registration.getRegistrationPrice().doubleValue() > 0;
+            boolean isPaidCourse = isPositivePrice(registration.getRegistrationPrice());
 
             if (isPaidCourse && "Approved".equals(status)) {
                 Payment payment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(null);
@@ -328,5 +327,12 @@ public class StudentServiceImpl implements StudentService {
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi: " + e.getMessage());
         }
+    }
+    private boolean isPositivePrice(Object price) {
+        if (price == null) return false;
+        if (price instanceof BigDecimal) return ((BigDecimal) price).compareTo(BigDecimal.ZERO) > 0;
+        if (price instanceof Double) return (Double) price > 0;
+        if (price instanceof Number) return ((Number) price).doubleValue() > 0;
+        return false;
     }
 }
