@@ -224,6 +224,30 @@ async function saveOrder() {
 function openAddModal() {
     currentBankPage = 0;
     new bootstrap.Modal(document.getElementById('addQuestionModal')).show();
+
+    const quiz = window.currentQuiz;
+    const skillSelect = document.getElementById('modalSkill');
+
+    if (quiz && quiz.isHybridEnabled && quiz.targetSkill) {
+        // Auto-lock: chỉ hiện questions đúng skill
+        skillSelect.value = quiz.targetSkill;
+        skillSelect.disabled = true;
+
+        // Hiện note thông báo
+        const existingNote = document.getElementById('modalSkillLockedNote');
+        if (!existingNote) {
+            const note = document.createElement('div');
+            note.id = 'modalSkillLockedNote';
+            note.className = 'alert alert-info py-1 px-2 small mb-3';
+            note.innerHTML = '<i class="bi bi-lock me-1"></i>Quiz hybrid kỹ năng <strong>' + quiz.targetSkill + '</strong> — chỉ hiển thị câu hỏi phù hợp.';
+            skillSelect.closest('.col-md-2').after(note);
+        }
+    } else {
+        skillSelect.disabled = false;
+        const note = document.getElementById('modalSkillLockedNote');
+        if (note) note.remove();
+    }
+
     loadBankQuestions(0);
 }
 
@@ -255,9 +279,11 @@ async function loadBankQuestions(page) {
             result.data.items.forEach(q => {
                 let canAdd = true;
                 if (window.currentQuiz && window.currentQuiz.quizCategory === 'ENTRY_TEST') {
-                    if (q.questionType !== 'MULTIPLE_CHOICE_SINGLE' && 
-                        q.questionType !== 'MULTIPLE_CHOICE_MULTI' && 
-                        q.questionType !== 'MATCHING') {
+                    if (q.questionType !== 'MULTIPLE_CHOICE_SINGLE' &&
+                        q.questionType !== 'MULTIPLE_CHOICE_MULTI' &&
+                        q.questionType !== 'MATCHING' &&
+                        q.questionType !== 'WRITING' &&
+                        q.questionType !== 'SPEAKING') {
                         canAdd = false;
                     }
                 }
