@@ -20,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -483,6 +484,14 @@ public class ClassServiceImpl implements IClassService {
                 .className(clazz.getClassName() != null ? clazz.getClassName() : "N/A")
                 .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
                 .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
+                .courseImageUrl(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : null)
+                .courseDescription(clazz.getCourse() != null ? clazz.getCourse().getDescription() : null)
+                .coursePrice(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getPrice() : null))
+                .courseSale(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getSale() : null))
+                .expertAvatar(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
+                        ? clazz.getCourse().getExpert().getAvatarUrl() : null)
+                .expertName(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
+                        ? clazz.getCourse().getExpert().getFullName() : null)
                 .teacherId(clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null)
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Not assigned")
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
@@ -494,5 +503,10 @@ public class ClassServiceImpl implements IClassService {
                 .meetLink(clazz.getMeetLink())
                 .registrations(registrationDTOs)
                 .build();
+    }
+
+    private BigDecimal safeToDecimal(Double value) {
+        if (value == null) return null;
+        return BigDecimal.valueOf(value);
     }
 }
