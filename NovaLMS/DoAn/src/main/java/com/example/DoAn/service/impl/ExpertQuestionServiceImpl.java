@@ -1,5 +1,6 @@
 package com.example.DoAn.service.impl;
 
+import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
 import com.example.DoAn.exception.InvalidDataException;
@@ -173,6 +174,70 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         if (correctCount == 0) {
             throw new InvalidDataException("Phải có ít nhất 1 đáp án đúng (correct=true).");
         }
+    }
+
+    @Override
+    @Transactional
+    public int saveAIQuestions(AIImportRequestDTO request, String email) {
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        int saved = 0;
+        for (AIImportRequestDTO.AIQuestionDTO qdto : request.getQuestions()) {
+            Question question = Question.builder()
+                    .content(qdto.getContent())
+                    .questionType(qdto.getQuestionType() != null ? qdto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
+                    .skill(qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : "READING")
+                    .cefrLevel(qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : "B1")
+                    .topic(qdto.getTopic())
+                    .explanation(qdto.getExplanation())
+                    .audioUrl(qdto.getAudioUrl())
+                    .imageUrl(qdto.getImageUrl())
+                    .status("DRAFT")
+                    .source("EXPERT_BANK")
+                    .createdMethod("AI_GENERATED")
+                    .user(expert)
+                    .build();
+            questionRepository.save(question);
+
+            if (qdto.getOptions() != null && !qdto.getOptions().isEmpty()) {
+                int idx = 0;
+                for (AIImportRequestDTO.AIOptionDTO opt : qdto.getOptions()) {
+                    AnswerOption ao = AnswerOption.builder()
+                            .question(question)
+                            .title(opt.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(opt.getCorrect()))
+                            .orderIndex(idx++)
+                            .build();
+                    answerOptionRepository.save(ao);
+                }
+            } else if (qdto.getMatchLeft() != null && qdto.getMatchRight() != null
+                    && qdto.getCorrectPairs() != null) {
+                List<String> left = qdto.getMatchLeft();
+                List<String> right = qdto.getMatchRight();
+                List<Integer> pairs = qdto.getCorrectPairs();
+                for (int i = 0; i < left.size(); i++) {
+                    int rightIdx = pairs.get(i) - 1;
+                    AnswerOption aoLeft = AnswerOption.builder()
+                            .question(question)
+                            .title(left.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .build();
+                    answerOptionRepository.save(aoLeft);
+                    AnswerOption aoRight = AnswerOption.builder()
+                            .question(question)
+                            .title(right.get(rightIdx))
+                            .correctAnswer(false)
+                            .orderIndex(left.size() + rightIdx)
+                            .matchTarget(left.get(i))
+                            .build();
+                    answerOptionRepository.save(aoRight);
+                }
+            }
+            saved++;
+        }
+        return saved;
     }
 
     private void validateExpertOwnsModule(String email, Integer moduleId) {
