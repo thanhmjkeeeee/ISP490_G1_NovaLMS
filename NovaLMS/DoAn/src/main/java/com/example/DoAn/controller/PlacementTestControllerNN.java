@@ -3,6 +3,7 @@ package com.example.DoAn.controller;
 import com.example.DoAn.dto.request.PlacementTestSubmissionDTO;
 import com.example.DoAn.dto.response.PlacementTestSummaryDTO;
 import com.example.DoAn.dto.response.QuizTakingDTO;
+import com.example.DoAn.service.FileUploadService;
 import com.example.DoAn.service.PlacementTestService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class PlacementTestControllerNN {
 
     private final PlacementTestService placementTestService;
+    private final FileUploadService fileUploadService;
 
     @GetMapping("/placement-test")
     public String showPlacementTestList(
@@ -73,6 +76,31 @@ public class PlacementTestControllerNN {
             return ResponseEntity.ok(Map.of("resultId", resultId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/api/v1/public/placement-test/audio")
+    @ResponseBody
+    public ResponseEntity<?> uploadAudio(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("status", 400, "message", "File is empty"));
+            }
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("audio/")) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("status", 400, "message", "Only audio files allowed"));
+            }
+            if (file.getSize() > 10 * 1024 * 1024) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("status", 400, "message", "File too large (max 10MB)"));
+            }
+            String audioUrl = fileUploadService.upload(file);
+            return ResponseEntity.ok(Map.of("status", 200, "audioUrl", audioUrl));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("status", 500, "message", "Upload failed: " + e.getMessage()));
         }
     }
 }
