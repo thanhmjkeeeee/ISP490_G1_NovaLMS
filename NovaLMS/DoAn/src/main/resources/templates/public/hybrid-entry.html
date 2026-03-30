@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Bắt đầu kiểm tra')}"></head>
+
+<body class="bg-light d-flex flex-column min-vh-100">
+
+<header th:replace="~{fragments/header :: header-fragment(currentPage='hybrid-entry')}"></header>
+
+<main class="main my-5 flex-grow-1">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <div class="text-center mb-5">
+          <h2 class="fw-bold text-primary mb-3">
+            <i class="bi bi-play-circle me-2"></i>Bắt Đầu Kiểm Tra Đầu Vào
+          </h2>
+          <p class="text-muted fs-5">
+            Chọn <strong>1 đến 4 kỹ năng</strong> bạn muốn đánh giá.<br>
+            Hệ thống sẽ gom các bài quiz phù hợp, cho làm liên tiếp và tổng hợp kết quả cuối cùng.
+          </p>
+        </div>
+
+        <!-- Skill Selection Card -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+          <div class="card-body p-4 p-md-5">
+            <h5 class="fw-bold mb-4 text-dark">
+              <i class="bi bi-check2-square me-2 text-primary"></i>Chọn kỹ năng (tối đa 4)
+            </h5>
+
+            <div id="skillsContainer" class="row g-3">
+              <th:block th:if="${skills != null}">
+                <div class="col-6 col-md-4" th:each="skill : ${skills}">
+                  <div class="form-check skill-card p-3 border rounded-3 bg-white transition-all"
+                       onclick="toggleSkill(this)"
+                       th:data-skill="${skill.skill}"
+                       th:data-count="${skill.availableQuizzes}">
+                    <input class="form-check-input d-none" type="checkbox" th:value="${skill.skill}" id="skill_">
+                    <label class="form-check-label w-100" th:for="${'skill_' + skill.skill}">
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-check-circle-fill text-success d-none check-icon"></i>
+                        <span class="fw-semibold" th:text="${#strings.capitalize(skill.skill.toLowerCase())}">Skill</span>
+                      </div>
+                      <th:block th:if="${skill.availableQuizzes > 0}">
+                        <small class="badge bg-primary bg-opacity-10 text-primary mt-1">
+                          <i class="bi bi-check-circle me-1"></i><span th:text="${skill.availableQuizzes}">0</span> quiz khả dụng
+                        </small>
+                      </th:block>
+                      <th:block th:if="${skill.availableQuizzes == 0}">
+                        <small class="badge bg-secondary bg-opacity-10 text-secondary mt-1">
+                          <i class="bi bi-x-circle me-1"></i>Chưa có quiz
+                        </small>
+                      </th:block>
+                    </label>
+                  </div>
+                </div>
+              </th:block>
+            </div>
+
+            <div class="mt-4 text-center">
+              <span class="badge bg-primary bg-opacity-10 text-primary px-4 py-2 rounded-pill">
+                <i class="bi bi-info-circle me-1"></i>
+                Đã chọn: <span id="selectedCount">0</span>/4 kỹ năng
+              </span>
+            </div>
+
+            <div class="mt-4 text-center">
+              <button type="button" id="continueBtn" class="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm"
+                      onclick="goToSelectQuizzes()" disabled>
+                Tiếp Tục <i class="bi bi-arrow-right ms-2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Back link -->
+        <div class="text-center">
+          <a th:href="@{/placement-test}" class="text-muted small">
+            <i class="bi bi-arrow-left me-1"></i>Chế độ kiểm tra đơn lẻ (chọn 1 bài)
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script>
+  const MAX_SKILLS = 4;
+  let selectedSkills = [];
+
+  function toggleSkill(el) {
+    const skill = el.dataset.skill;
+    const count = parseInt(el.dataset.count);
+
+    // Block if no quiz available
+    if (count === 0) {
+      alert('Kỹ năng "' + skill + '" không có quiz nào khả dụng cho chế độ Hybrid.');
+      return;
+    }
+
+    const checkbox = el.querySelector('input[type="checkbox"]');
+    const checkIcon = el.querySelector('.check-icon');
+
+    if (checkbox.checked) {
+      // Deselect
+      checkbox.checked = false;
+      el.classList.remove('border-primary', 'bg-primary-subtle');
+      if (checkIcon) checkIcon.classList.add('d-none');
+      selectedSkills = selectedSkills.filter(s => s !== skill);
+    } else {
+      // Select (check limit)
+      if (selectedSkills.length >= MAX_SKILLS) {
+        alert('Tối đa chỉ chọn ' + MAX_SKILLS + ' kỹ năng.');
+        return;
+      }
+      checkbox.checked = true;
+      el.classList.add('border-primary', 'bg-primary-subtle');
+      if (checkIcon) checkIcon.classList.remove('d-none');
+      selectedSkills.push(skill);
+    }
+
+    updateUI();
+  }
+
+  function updateUI() {
+    document.getElementById('selectedCount').textContent = selectedSkills.length;
+    const btn = document.getElementById('continueBtn');
+    btn.disabled = selectedSkills.length === 0;
+  }
+
+  function goToSelectQuizzes() {
+    if (selectedSkills.length === 0) return;
+    const params = selectedSkills.map(s => 's=' + encodeURIComponent(s.toUpperCase())).join('&');
+    window.location.href = '/hybrid-entry/select-quizzes?' + params;
+  }
+
+  // Init: disable cards with 0 quizzes
+  document.querySelectorAll('.skill-card').forEach(el => {
+    const count = parseInt(el.dataset.count);
+    if (count === 0) {
+      el.classList.add('opacity-50', 'pointer-events-none');
+      el.style.cursor = 'not-allowed';
+      el.title = 'Không có quiz khả dụng cho kỹ năng này';
+    }
+  });
+</script>
+
+<style>
+  .skill-card { cursor: pointer; transition: all 0.2s ease; }
+  .skill-card.pointer-events-none { cursor: not-allowed; }
+  .skill-card.pointer-events-none:hover { border-color: inherit; box-shadow: none; }
+  .skill-card:hover { border-color: var(--accent-color); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .skill-card.border-primary { border-color: var(--accent-color) !important; background-color: rgba(var(--accent-color-rgb), 0.05); }
+  .transition-all { transition: all 0.2s ease; }
+</style>
+
+</body>
+</html>
