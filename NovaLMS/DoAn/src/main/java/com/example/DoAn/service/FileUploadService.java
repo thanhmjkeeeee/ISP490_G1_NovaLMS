@@ -28,13 +28,16 @@ public class FileUploadService {
         ));
     }
 
-    public String uploadImage(MultipartFile file) {
+    public String uploadFile(MultipartFile file, String type) {
         try {
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            // Resource type "auto" sẽ tự nhận diện audio/video/image
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "resource_type", "auto"
+            ));
             return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {
-            throw new RuntimeException("Lỗi khi tải ảnh lên Cloudinary", e);
+            throw new RuntimeException("Lỗi khi tải " + type + " lên Cloudinary", e);
         }
     }
 

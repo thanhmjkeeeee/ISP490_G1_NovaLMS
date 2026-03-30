@@ -19,4 +19,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
 
     @Query("SELECT l FROM Lesson l WHERE l.quiz_id = :quizId")
     Optional<Lesson> findByQuizId(@Param("quizId") Integer quizId);
+
+    long countByModule_Course_Expert_UserId(Integer userId);
 }

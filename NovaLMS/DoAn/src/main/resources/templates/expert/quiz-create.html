@@ -80,25 +80,6 @@
                     </div>
                 </div>
 
-                <!-- Hybrid mode — chỉ hiện khi ENTRY_TEST -->
-                <div class="mb-3" id="hybridSection" style="display:none;">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="isHybridEnabled">
-                        <label class="form-check-label fw-bold" for="isHybridEnabled">Cho phép sử dụng trong chế độ Hybrid Placement Test</label>
-                    </div>
-                </div>
-
-                <!-- Target Skill — chỉ hiện khi isHybridEnabled = true -->
-                <div class="mb-3" id="hybridSkillSection" style="display:none;">
-                    <label class="form-label fw-bold">Kỹ năng đích</label>
-                    <select id="targetSkill" class="form-select">
-                        <option value="">-- Chọn kỹ năng --</option>
-                        <option value="LISTENING">Listening</option>
-                        <option value="READING">Reading</option>
-                        <option value="WRITING">Writing</option>
-                        <option value="SPEAKING">Speaking</option>
-                    </select>
-                </div>
 
                 <!-- Cảnh báo cho Entry Test -->
                 <div id="entryTestWarning" class="alert alert-warning py-2 px-3 small mb-3" style="display:none;" role="alert">
@@ -140,8 +121,6 @@ function onCategoryChange() {
         document.getElementById('showAnswerAfterSubmit').checked = true;
         document.getElementById('entryTestWarning').style.display = 'block';
         document.getElementById('publishLabel').textContent = 'Tạo Entry Test';
-        document.getElementById('hybridSection').style.display = 'block';
-        document.getElementById('hybridSkillSection').style.display = 'block';
     } else {
         // Reset về rỗng / mặc định
         document.getElementById('timeLimitMinutes').value = '';
@@ -151,23 +130,11 @@ function onCategoryChange() {
         document.getElementById('showAnswerAfterSubmit').checked = false;
         document.getElementById('entryTestWarning').style.display = 'none';
         document.getElementById('publishLabel').textContent = 'Tạo Quiz';
-        document.getElementById('hybridSection').style.display = 'none';
-        document.getElementById('hybridSkillSection').style.display = 'none';
-        document.getElementById('targetSkill').value = '';
     }
 
     if (cat === 'COURSE_QUIZ') loadCourses();
 }
 
-document.getElementById('isHybridEnabled').addEventListener('change', function() {
-    const skillSection = document.getElementById('hybridSkillSection');
-    if (this.checked) {
-        skillSection.style.display = 'block';
-    } else {
-        skillSection.style.display = 'none';
-        document.getElementById('targetSkill').value = '';
-    }
-});
 
 async function loadCourses() {
     try {
@@ -202,10 +169,6 @@ async function submitQuiz(status) {
         maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
         questionOrder: document.getElementById('questionOrder').value,
         showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-        isHybridEnabled: document.getElementById('isHybridEnabled').checked,
-        targetSkill: document.getElementById('isHybridEnabled').checked
-            ? (document.getElementById('targetSkill').value || null)
-            : null,
         status: status
     };
 

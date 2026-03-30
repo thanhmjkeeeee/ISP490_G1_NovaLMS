@@ -106,21 +106,30 @@
 <script>
 (async function() {
     try {
+        // 1. Lấy thống kê tổng quan (Thẻ Card)
+        const statsRes = await fetch('/api/v1/expert/modules/stats');
+        const statsResult = await statsRes.json();
+        if (statsResult.status === 200 && statsResult.data) {
+            const d = statsResult.data;
+            document.getElementById('courseCount').textContent = d.totalCourses || 0;
+            document.getElementById('moduleCount').textContent = d.totalModules || 0;
+            document.getElementById('lessonCount').textContent = d.totalLessons || 0;
+            document.getElementById('questionCount').textContent = d.totalQuestions || 0;
+        }
+
+        // 2. Lấy danh sách khóa học (Bảng)
         const res = await fetch('/api/v1/expert/modules/courses');
         const result = await res.json();
         if (result.status === 200 && result.data) {
-            document.getElementById('courseCount').textContent = result.data.length;
-
-            // Build table rows
             const tbody = document.getElementById('recentCoursesTable');
             tbody.innerHTML = '';
             result.data.slice(0, 5).forEach(course => {
                 tbody.innerHTML += `
                     <tr>
                         <td class="px-4 py-3 fw-medium">${course.courseName || '—'}</td>
-                        <td><span class="badge bg-secondary">—</span></td>
-                        <td><span class="badge bg-secondary">—</span></td>
-                        <td><span class="badge bg-secondary">—</span></td>
+                        <td><span class="badge bg-secondary">${course.moduleCount || 0}</span></td>
+                        <td><span class="badge bg-secondary">${course.lessonCount || 0}</span></td>
+                        <td><span class="badge bg-secondary">${course.questionCount || 0}</span></td>
                         <td><span class="badge ${course.status === 'Active' ? 'bg-success' : 'bg-warning'}">${course.status || '—'}</span></td>
                         <td class="text-end px-4 py-3">
                             <a href="/expert/content/course/${course.courseId}" class="btn btn-sm btn-outline-primary">
@@ -135,6 +144,9 @@
         }
     } catch(e) {
         console.error(e);
+        // Fallback ui in case of error
+        const tbody = document.getElementById('recentCoursesTable');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Lỗi tải dữ liệu.</td></tr>';
     }
 })();
 </script>
