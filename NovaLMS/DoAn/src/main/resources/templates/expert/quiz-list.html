@@ -69,6 +69,7 @@
                         <th>Câu hỏi</th>
                         <th>Thời gian</th>
                         <th>Trạng thái</th>
+                        <th>Hybrid</th>
                         <th class="text-end px-4">Hành động</th>
                     </tr>
                     </thead>
@@ -128,6 +129,7 @@ async function loadQuizzes(page = 0) {
                     <td><span class="badge bg-light text-dark">${q.totalQuestions} câu</span></td>
                     <td>${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</td>
                     <td>${statusBadge(q.status)}</td>
+                    <td>${q.quizCategory === 'ENTRY_TEST' ? (q.isHybridEnabled ? '<span class="badge bg-success"><i class="bi bi-check"></i></span>' : '<span class="badge bg-secondary">—</span>') : '<span class="badge bg-secondary">—</span>'}</td>
                     <td class="text-end px-4">
                         <a href="/expert/quiz-management/${q.quizId}/questions" class="btn btn-sm btn-outline-info me-1" title="Quản lý câu hỏi"><i class="bi bi-list-check"></i></a>
                         <a href="/expert/quiz-management/${q.quizId}/edit" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
@@ -137,7 +139,7 @@ async function loadQuizzes(page = 0) {
             `).join('');
             renderPagination(result.data);
         } else {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không tìm thấy quiz nào.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Không tìm thấy quiz nào.</td></tr>';
             document.getElementById('pagination').innerHTML = '';
         }
     } catch (e) { console.error(e); }

@@ -12,6 +12,12 @@ public class ClassDetailResponse {
     private String className;
     private Integer courseId;
     private String courseName;
+    private String courseImageUrl;
+    private String courseDescription;
+    private java.math.BigDecimal coursePrice;
+    private java.math.BigDecimal courseSale;
+    private String expertAvatar;
+    private String expertName;
     private Integer teacherId;
     private String teacherName;
     private String startDate;

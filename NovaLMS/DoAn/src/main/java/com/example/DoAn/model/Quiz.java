@@ -71,6 +71,19 @@ public class Quiz {
     @Column(name = "show_answer_after_submit")
     private Boolean showAnswerAfterSubmit;
 
+    // true = quiz có thể dùng trong Hybrid Placement Test
+    @Column(name = "is_hybrid_enabled")
+    @Builder.Default
+    private Boolean isHybridEnabled = false;
+
+    /**
+     * Kỹ năng đích cho quiz ENTRY_TEST hybrid.
+     * Nullable — chỉ dùng khi isHybridEnabled = true.
+     * Giá trị: Grammar | Vocabulary | Listening | Reading | Writing | Speaking
+     */
+    @Column(name = "target_skill", length = 20)
+    private String targetSkill;
+
     // Teacher/Giáo viên mở/đóng quiz cho học sinh làm — độc lập với status DRAFT/PUBLISHED/ARCHIVED
     @Column(name = "is_open")
     private Boolean isOpen = false;
@@ -92,6 +105,7 @@ public class Quiz {
         if (questionOrder == null) questionOrder = "FIXED";
         if (showAnswerAfterSubmit == null) showAnswerAfterSubmit = true;
         if (isOpen == null) isOpen = false;
+        if (isHybridEnabled == null) isHybridEnabled = false;
     }
 
     @PreUpdate

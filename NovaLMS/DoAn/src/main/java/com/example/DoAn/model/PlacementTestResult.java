@@ -47,6 +47,17 @@ public class PlacementTestResult {
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    // FK về HybridSession — null nếu làm quiz đơn lẻ (legacy)
+    @Column(name = "hybrid_session_id")
+    private Integer hybridSessionId;
+
+    // AI-aware scoring (WRITING/SPEAKING included after AI grading)
+    @Column(name = "total_score_including_ai")
+    private Integer totalScoreIncludingAi;
+
+    @Column(name = "correct_rate_including_ai", precision = 5, scale = 2)
+    private BigDecimal correctRateIncludingAi;
+
     @OneToMany(mappedBy = "placementTestResult", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<PlacementTestAnswer> answers;
 
