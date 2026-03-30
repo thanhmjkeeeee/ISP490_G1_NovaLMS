@@ -18,6 +18,7 @@ public interface PlacementTestService {
     QuizTakingDTO getPlacementTest(Integer quizId);
 
     // Guest submit bài test, trả về resultId
+    // Khi submission.hybridSessionId != null → gắn kết quả vào hybrid session
     Integer submitPlacementTest(PlacementTestSubmissionDTO submission, String sessionId);
 
     // Lấy kết quả chi tiết

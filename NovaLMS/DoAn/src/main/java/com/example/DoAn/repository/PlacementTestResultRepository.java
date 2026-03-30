@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface PlacementTestResultRepository extends JpaRepository<PlacementTestResult, Integer> {
     Optional<PlacementTestResult> findByGuestSessionId(String guestSessionId);
     List<PlacementTestResult> findByGuestEmailOrderBySubmittedAtDesc(String guestEmail);
+    List<PlacementTestResult> findByHybridSessionIdOrderBySubmittedAtAsc(Integer hybridSessionId);
 }

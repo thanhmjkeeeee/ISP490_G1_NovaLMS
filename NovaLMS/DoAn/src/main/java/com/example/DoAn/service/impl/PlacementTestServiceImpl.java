@@ -5,7 +5,10 @@ import com.example.DoAn.dto.response.*;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.PlacementTestResultRepository;
 import com.example.DoAn.repository.QuizRepository;
+import com.example.DoAn.repository.HybridSessionRepository;
+import com.example.DoAn.repository.HybridSessionQuizRepository;
 import com.example.DoAn.service.CourseService;
+import com.example.DoAn.service.GroqGradingService;
 import com.example.DoAn.service.HomeService;
 import com.example.DoAn.service.PlacementTestService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,6 +38,9 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final CourseService courseService;
     private final HomeService homeService;
     private final ObjectMapper objectMapper;
+    private final HybridSessionRepository hybridSessionRepository;
+    private final HybridSessionQuizRepository hybridSessionQuizRepository;
+    private final GroqGradingService groqGradingService;
 
     @Override
     @Transactional(readOnly = true)
@@ -155,9 +163,12 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .guestName(submission.getGuestName())
                 .guestEmail(submission.getGuestEmail())
                 .answers(new ArrayList<>())
+                .hybridSessionId(submission.getHybridSessionId())
                 .build();
 
         Map<Integer, Object> answers = submission.getAnswers();
+        // Collect WRITING/SPEAKING questions for async AI grading after save
+        List<Map.Entry<Question, Object>> pendingAiQuestions = new ArrayList<>();
 
         for (QuizQuestion qq : quiz.getQuizQuestions()) {
             Question q = qq.getQuestion();
@@ -176,9 +187,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             Boolean isCorrect = false;
             String qType = q.getQuestionType();
 
-            // Placement test auto-grades everything, WRITING/SPEAKING might just be marked incorrect automatically if unsupported
+            // Placement test auto-grades everything, WRITING/SPEAKING: mark pending for AI
             if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                isCorrect = false; 
+                // Queue for async AI grading after result is saved
+                pendingAiQuestions.add(Map.entry(q, userAnswerObj));
             } else {
                 totalGradedQuestions++;
                 if (userAnswerObj != null && !userAnswerObj.toString().trim().isEmpty()) {
@@ -235,11 +247,13 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 maxScoreAvailable += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
             }
 
+            boolean isAiQuestion = "WRITING".equals(qType) || "SPEAKING".equals(qType);
             PlacementTestAnswer qa = PlacementTestAnswer.builder()
                     .placementTestResult(result)
                     .question(q)
                     .answeredOptions(answeredOptionsJson)
-                    .isCorrect(isCorrect)
+                    .isCorrect(isAiQuestion ? null : isCorrect)
+                    .pendingAiReview(isAiQuestion)
                     .build();
             result.getAnswers().add(qa);
         }
@@ -256,6 +270,46 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         result.setPassed(passed);
 
         PlacementTestResult savedResult = resultRepository.save(result);
+
+        // ── Hybrid mode: link result back to session ──
+        if (submission.getHybridSessionId() != null && submission.getQuizIndex() != null) {
+            try {
+                var hybridSession = hybridSessionRepository.findById(submission.getHybridSessionId()).orElse(null);
+                if (hybridSession != null) {
+                    // Update HybridSession.completedQuizzes++
+                    hybridSession.setCompletedQuizzes(hybridSession.getCompletedQuizzes() + 1);
+                    hybridSessionRepository.save(hybridSession);
+
+                    // Find the sessionQuiz for this index and mark COMPLETED
+                    List<HybridSessionQuiz> sqList = hybridSession.getSessionQuizzes();
+                    if (sqList != null && submission.getQuizIndex() >= 1 && submission.getQuizIndex() <= sqList.size()) {
+                        HybridSessionQuiz sq = sqList.get(submission.getQuizIndex() - 1);
+                        sq.setStatus("COMPLETED");
+                        sq.setPlacementTestResultId(savedResult.getId());
+                        hybridSessionQuizRepository.save(sq);
+                    }
+                }
+            } catch (Exception e) {
+                // Non-critical: log but don't fail the submission
+            }
+        }
+
+        // ── Fire async AI grading for WRITING/SPEAKING questions AFTER transaction commits ──
+        final Integer resultId = savedResult.getId();
+        for (PlacementTestAnswer answer : savedResult.getAnswers()) {
+            String qType = answer.getQuestion().getQuestionType();
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
+                final Integer questionId = answer.getQuestion().getQuestionId();
+                final String type = qType;
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        groqGradingService.fireAndForget(resultId, questionId, type);
+                    }
+                });
+            }
+        }
+
         return savedResult.getId();
     }
 
