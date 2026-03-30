@@ -144,6 +144,16 @@
                 <div class="accordion-body">
                   <p class="fw-medium mb-3" th:utext="${q.content}">Nội dung câu hỏi</p>
 
+                  <!-- Question Media -->
+                  <div th:if="${q.imageUrl != null and !q.imageUrl.isEmpty()}" class="mb-3">
+                      <img th:src="${q.imageUrl}" class="img-fluid rounded border shadow-sm" style="max-height: 250px;">
+                  </div>
+                  <div th:if="${q.audioUrl != null and !q.audioUrl.isEmpty()}" class="mb-3">
+                      <audio controls class="w-100" style="height: 35px;">
+                          <source th:src="${q.audioUrl}" type="audio/mpeg">
+                      </audio>
+                  </div>
+
                   <!-- Options (nếu có) -->
                   <div th:if="${q.options != null and !q.options.isEmpty()}">
                     <div class="mb-2 small text-muted">Các đáp án:</div>

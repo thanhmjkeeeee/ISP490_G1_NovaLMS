@@ -17,6 +17,11 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
     @Query("SELECT COUNT(qq) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
     long countQuizUsage(@Param("questionId") Integer questionId);
 
+    @Query("SELECT COUNT(q) FROM Question q WHERE q.module.course.courseId = :courseId")
+    long countByModule_Course_CourseId(@Param("courseId") Integer courseId);
+
+    long countByUser_UserId(Integer userId);
+
     @Query("SELECT q FROM Question q WHERE " +
            "(:skill IS NULL OR q.skill = :skill) AND " +
            "(:cefrLevel IS NULL OR q.cefrLevel = :cefrLevel) AND " +

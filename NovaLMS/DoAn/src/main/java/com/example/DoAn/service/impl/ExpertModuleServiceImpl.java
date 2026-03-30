@@ -100,8 +100,29 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
             dto.setCourseName(c.getCourseName());
             dto.setStatus(c.getStatus());
             dto.setCategoryName(c.getCategory() != null ? c.getCategory().getName() : null);
+            
+            // Thêm thống kê số lượng
+            dto.setModuleCount(moduleRepository.countByCourse_CourseId(c.getCourseId()));
+            dto.setLessonCount(lessonRepository.countByModuleCourse_CourseId(c.getCourseId()));
+            dto.setQuestionCount(questionRepository.countByModule_Course_CourseId(c.getCourseId()));
+            
             return dto;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ExpertDashboardStatsDTO getDashboardStats(String email) {
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+        Integer userId = expert.getUserId();
+
+        return ExpertDashboardStatsDTO.builder()
+                .totalCourses((long) courseRepository.findByExpertUserId(userId).size())
+                .totalModules(moduleRepository.countByCourse_Expert_UserId(userId))
+                .totalLessons(lessonRepository.countByModule_Course_Expert_UserId(userId))
+                .totalQuestions(questionRepository.countByUser_UserId(userId))
+                .build();
     }
 
     private ModuleResponseDTO toResponseDTO(Module module) {

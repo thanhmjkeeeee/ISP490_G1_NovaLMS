@@ -8,7 +8,7 @@ import com.example.DoAn.repository.QuizRepository;
 import com.example.DoAn.repository.HybridSessionRepository;
 import com.example.DoAn.repository.HybridSessionQuizRepository;
 import com.example.DoAn.service.CourseService;
-import com.example.DoAn.service.GroqGradingService;
+//import com.example.DoAn.service.GroqGradingService;
 import com.example.DoAn.service.HomeService;
 import com.example.DoAn.service.PlacementTestService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,7 +40,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final ObjectMapper objectMapper;
     private final HybridSessionRepository hybridSessionRepository;
     private final HybridSessionQuizRepository hybridSessionQuizRepository;
-    private final GroqGradingService groqGradingService;
+//    private final GroqGradingService groqGradingService;
 
     @Override
     @Transactional(readOnly = true)
@@ -132,6 +132,8 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     .skill(q.getSkill())
                     .cefrLevel(q.getCefrLevel())
                     .points(qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                    .imageUrl(q.getImageUrl())
+                    .audioUrl(q.getAudioUrl())
                     .options(noOptionsType ? new ArrayList<>() : optionsDTO)
                     .build();
         }).collect(Collectors.toList());
@@ -304,7 +306,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        groqGradingService.fireAndForget(resultId, questionId, type);
+//                        groqGradingService.fireAndForget(resultId, questionId, type);
                     }
                 });
             }
@@ -381,6 +383,8 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     .userAnswerDisplay(userAnswerDisplay)
                     .correctAnswerDisplay(correctAnswerDisplay)
                     .explanation(q.getExplanation())
+                    .imageUrl(q.getImageUrl())
+                    .audioUrl(q.getAudioUrl())
                     .options(optDTOs)
                     .build());
         }

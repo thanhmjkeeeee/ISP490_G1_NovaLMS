@@ -10,4 +10,8 @@ import java.util.List;
 public interface ModuleRepository extends JpaRepository<Module, Integer> {
     @EntityGraph(attributePaths = {"lessons"})
     List<Module> findByCourse_CourseIdOrderByOrderIndexAsc(Integer courseId);
+
+    long countByCourse_CourseId(Integer courseId);
+
+    long countByCourse_Expert_UserId(Integer userId);
 }

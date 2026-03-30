@@ -66,19 +66,52 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Tags, URLs -->
+                <!-- Row 2: Tags, Audio, Image -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Tags</label>
                         <input type="text" id="tags" class="form-control" placeholder="tag1, tag2, tag3">
                     </div>
+
+                    <!-- Audio Upload -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Audio URL</label>
-                        <input type="text" id="audioUrl" class="form-control" placeholder="Link file audio (nếu có)">
+                        <label class="form-label fw-bold">Audio <span class="text-muted small fw-normal">(mp3, wav, ogg – tối đa 20MB)</span></label>
+                        <div class="input-group mb-1">
+                            <input type="text" id="audioUrl" class="form-control form-control-sm"
+                                   placeholder="Dán link hoặc chọn file..." 
+                                   oninput="updatePreview('audio', this.value, 'audioPreviewWrap', 'audioPreview')">
+                            <label class="btn btn-outline-secondary btn-sm mb-0" for="audioFileInput"
+                                   title="Chọn file audio từ máy">
+                                <i class="bi bi-upload"></i>
+                            </label>
+                        </div>
+                        <input type="file" id="audioFileInput" accept="audio/*" class="d-none"
+                               onchange="handleFileUpload(this,'audio','audioUrl','audioPreviewWrap')">
+                        <div id="audioPreviewWrap" class="mt-1 d-none">
+                            <audio id="audioPreview" controls class="w-100" style="height:36px;"></audio>
+                        </div>
+                        <small id="audioUploadStatus" class="text-muted"></small>
                     </div>
+
+                    <!-- Image Upload -->
                     <div class="col-md-4">
-                        <label class="form-label fw-bold">Image URL</label>
-                        <input type="text" id="imageUrl" class="form-control" placeholder="Link hình ảnh (nếu có)">
+                        <label class="form-label fw-bold">Hình ảnh <span class="text-muted small fw-normal">(jpg, png, webp – tối đa 5MB)</span></label>
+                        <div class="input-group mb-1">
+                            <input type="text" id="imageUrl" class="form-control form-control-sm"
+                                   placeholder="Dán link hoặc chọn file..."
+                                   oninput="updatePreview('image', this.value, 'imagePreviewWrap', 'imagePreview')">
+                            <label class="btn btn-outline-secondary btn-sm mb-0" for="imageFileInput"
+                                   title="Chọn file ảnh từ máy">
+                                <i class="bi bi-image"></i>
+                            </label>
+                        </div>
+                        <input type="file" id="imageFileInput" accept="image/*" class="d-none"
+                               onchange="handleFileUpload(this,'image','imageUrl','imagePreviewWrap')">
+                        <div id="imagePreviewWrap" class="mt-1 d-none">
+                            <img id="imagePreview" src="" alt="preview"
+                                 class="img-fluid rounded border" style="max-height:120px;object-fit:cover;">
+                        </div>
+                        <small id="imageUploadStatus" class="text-muted"></small>
                     </div>
                 </div>
 
@@ -122,6 +155,53 @@
 <script>
 let optionIndex = 0;
 const noOptionsTypes = ['WRITING', 'SPEAKING'];
+
+// ─── FILE UPLOAD ────────────────────────────────────────────────────────────
+function updatePreview(type, url, wrapId, previewId) {
+    const wrap = document.getElementById(wrapId);
+    const preview = document.getElementById(previewId);
+    if (url && url.trim().length > 0) {
+        wrap.classList.remove('d-none');
+        preview.src = url;
+    } else {
+        wrap.classList.add('d-none');
+        preview.src = "";
+    }
+}
+
+async function handleFileUpload(input, type, urlFieldId, previewWrapperId) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById(type === 'audio' ? 'audioUploadStatus' : 'imageUploadStatus');
+    statusEl.textContent = 'Đang tải lên...';
+    statusEl.className = 'text-warning small';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch(`/api/v1/upload/${type}`, { method: 'POST', body: formData });
+        const result = await res.json();
+
+        if (res.ok && result.data) {
+            document.getElementById(urlFieldId).value = result.data;
+            statusEl.textContent = '✓ Upload thành công';
+            statusEl.className = 'text-success small';
+
+            updatePreview(type, result.data, previewWrapperId, type === 'image' ? 'imagePreview' : 'audioPreview');
+        } else {
+            statusEl.textContent = '✗ ' + (result.message || 'Upload thất bại');
+            statusEl.className = 'text-danger small';
+        }
+    } catch (e) {
+        statusEl.textContent = '✗ Lỗi kết nối: ' + e.message;
+        statusEl.className = 'text-danger small';
+    }
+
+    // Reset input để cho phép chọn lại cùng file
+    input.value = '';
+}
 
 function onTypeChange() {
     const type = document.getElementById('questionType').value;

@@ -17,5 +17,7 @@ public class QuestionResultDTO {
     private String userAnswerDisplay;
     private String correctAnswerDisplay;
     private String explanation;
+    private String imageUrl;
+    private String audioUrl;
     private List<AnswerOptionDTO> options;
 }

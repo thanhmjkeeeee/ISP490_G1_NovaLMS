@@ -2,7 +2,7 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.request.ModuleRequestDTO;
 import com.example.DoAn.dto.response.ModuleResponseDTO;
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
 
@@ -20,11 +20,27 @@ public interface IExpertModuleService {
 
     List<ModuleResponseDTO> getAllModulesByExpert(String email);
 
+    ExpertDashboardStatsDTO getDashboardStats(String email);
+
     @Data
     class CourseOwnedByExpertDTO {
         private Integer courseId;
         private String courseName;
         private String categoryName;
         private String status;
+        private Long moduleCount;
+        private Long lessonCount;
+        private Long questionCount;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class ExpertDashboardStatsDTO {
+        private Long totalCourses;
+        private Long totalModules;
+        private Long totalLessons;
+        private Long totalQuestions;
     }
 }

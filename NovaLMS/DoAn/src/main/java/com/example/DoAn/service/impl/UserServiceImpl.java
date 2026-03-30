@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
                 return ResponseData.error(404, "Không tìm thấy người dùng!");
             }
 
-            String uploadedAvatarUrl = fileUploadService.uploadImage(file);
+            String uploadedAvatarUrl = fileUploadService.uploadFile(file, "avatar");
             user.setAvatarUrl(uploadedAvatarUrl);
 
             return ResponseData.success("Cập nhật ảnh đại diện thành công!", uploadedAvatarUrl);
