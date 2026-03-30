@@ -56,6 +56,28 @@
             <p class="text-muted small">Buổi học được tạo tự động khi tạo lớp. Nhấn <b>+ Tạo Quiz mới</b> để bắt đầu.</p>
         </div>
     </div>
+
+    <!-- ======== LESSON QUIZZES SECTION ======== -->
+    <!-- Manage LESSON_QUIZ quizzes attached to lessons in this class's course -->
+    <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-list-check me-2"></i>Quiz bài học</h5>
+        </div>
+
+        <!-- Course → Module → Lesson accordion with lesson quizzes -->
+        <div class="card border-0 shadow-sm rounded-4" id="lesson-quizzes-card">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
+                <span class="fw-semibold">Danh sách bài học và Quiz</span>
+                <span class="badge bg-secondary" id="lessonQuizzesCourseLabel">—</span>
+            </div>
+            <div class="card-body p-0" id="lesson-quizzes-container">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2 mb-0 small">Đang tải bài học và quiz...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- ======== ADD / EDIT SESSION MODAL ======== -->
@@ -1037,6 +1059,9 @@
         const json = await res.json();
         sessions = json.status === 200 ? (json.data || []) : [];
         renderSessions();
+
+        // Load lesson quizzes section
+        loadLessonQuizzesSection();
     };
 
     const renderSessions = () => {
@@ -1615,6 +1640,139 @@
             return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
         } catch (e) { return dateStr; }
     };
+
+    function escape(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  LESSON QUIZZES — course modules/lessons with lesson quizzes
+    // ═══════════════════════════════════════════════════════════════════════════
+    let _lessonQuizCache = {}; // lessonId -> quizzes[]
+
+    async function loadLessonQuizzesSection() {
+        // Load course info + modules/lessons for this class's course
+        try {
+            const detailRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/detail`);
+            const detailData = await detailRes.json();
+            if (detailData.status !== 200 || !detailData.data) return;
+            const courseId = detailData.data.courseId;
+            const courseName = detailData.data.courseName || '';
+
+            document.getElementById('lessonQuizzesCourseLabel').textContent = courseName;
+
+            // Load modules + lessons for this course
+            const modulesRes = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
+            const modulesData = await modulesRes.json();
+            if (modulesData.status !== 200 || !modulesData.data) return;
+
+            renderLessonQuizzesSection(modulesData.data, courseId);
+        } catch (e) {
+            document.getElementById('lesson-quizzes-container').innerHTML =
+                '<div class="text-center py-4 text-muted"><i class="bi bi-exclamation-circle me-1"></i>Không tải được danh sách bài học.</div>';
+        }
+    }
+
+    function renderLessonQuizzesSection(modules, courseId) {
+        const container = document.getElementById('lesson-quizzes-container');
+        if (!modules || modules.length === 0) {
+            container.innerHTML = '<div class="text-center py-4 text-muted">Không có chương nào trong khóa học này.</div>';
+            return;
+        }
+
+        let html = '<div class="accordion" id="lessonQuizAccordion">';
+        modules.forEach(function(mod, modIdx) {
+            const modOpen = modIdx === 0 ? 'show' : '';
+            html += `<div class="accordion-item border-0">
+                <h2 class="accordion-header">
+                    <button class="accordion-button ${modIdx === 0 ? '' : 'collapsed'} fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#lqMod${mod.moduleId}">
+                        <i class="bi bi-layers me-2 text-primary"></i>${escape(mod.moduleName || '—')}
+                        <span class="badge bg-secondary ms-2">${mod.lessonCount || 0} bài</span>
+                    </button>
+                </h2>
+                <div id="lqMod${mod.moduleId}" class="accordion-collapse collapse ${modOpen}" data-bs-parent="#lessonQuizAccordion">
+                    <div class="accordion-body p-0">
+                        <div id="lq-lessons-${mod.moduleId}" class="small">
+                            <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Lazy-load lessons for each module
+        modules.forEach(function(mod) {
+            loadLessonQuizzesForModule(mod);
+        });
+    }
+
+    async function loadLessonQuizzesForModule(mod) {
+        const container = document.getElementById('lq-lessons-' + mod.moduleId);
+        if (!container) return;
+        try {
+            const res = await fetch(`/api/v1/expert/lessons?moduleId=${mod.moduleId}`);
+            const data = await res.json();
+            if (data.status !== 200 || !data.data) return;
+            renderLessonsForModuleQuizzes(mod.moduleId, data.data);
+        } catch (e) {
+            container.innerHTML = '<div class="text-center py-2 text-danger small">Lỗi tải bài học.</div>';
+        }
+    }
+
+    function renderLessonsForModuleQuizzes(moduleId, lessons) {
+        const container = document.getElementById('lq-lessons-' + moduleId);
+        if (!lessons || lessons.length === 0) {
+            container.innerHTML = '<div class="text-center py-2 text-muted">Chưa có bài học nào.</div>';
+            return;
+        }
+        container.innerHTML = lessons.map(function(l) {
+            const lessonQuizzes = _lessonQuizCache[l.lessonId] || [];
+            const quizBadges = lessonQuizzes.length > 0
+                ? lessonQuizzes.map(function(q) {
+                    return `<span class="badge bg-${q.status === 'PUBLISHED' ? 'success' : 'secondary'} me-1"
+                        title="${q.title}">${escape(q.title || 'Quiz')}</span>`;
+                }).join('')
+                : '<span class="text-muted small">—</span>';
+            return `<div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                <div class="flex-grow-1">
+                    <div class="fw-medium small">${escape(l.lessonName || '—')}</div>
+                    <div class="mt-1">Quiz: ${quizBadges}</div>
+                </div>
+                <button class="btn btn-sm btn-primary rounded-pill ms-2"
+                    onclick="openAddLessonQuizModal(${l.lessonId}, '${escape(l.lessonName || '')}')">
+                    <i class="bi bi-plus-lg me-1"></i>Quiz
+                </button>
+            </div>`;
+        }).join('');
+
+        // Load quizzes for each lesson
+        lessons.forEach(function(l) {
+            loadLessonQuizzesForLesson(l.lessonId);
+        });
+    }
+
+    async function loadLessonQuizzesForLesson(lessonId) {
+        try {
+            const res = await fetch(`/api/v1/teacher/lessons/${lessonId}/quizzes`);
+            const data = await res.json();
+            if (data.status === 200 && data.data) {
+                _lessonQuizCache[lessonId] = data.data;
+                // Re-render just that lesson row
+                // Find the lesson row in the accordion and update its quiz badges
+                // Simple approach: reload the whole section
+                loadLessonQuizzesSection();
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    async function openAddLessonQuizModal(lessonId, lessonName) {
+        if (!confirm(`Tạo Quiz mới cho bài học "${lessonName}"?\n\nBạn sẽ được chuyển đến trang tạo Quiz với bài học đã chọn.`)) return;
+        window.location.href = `/teacher/quizzes/create?lessonId=${lessonId}`;
+    }
 </script>
 </body>
 </html>
