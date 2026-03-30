@@ -18,12 +18,11 @@ public class LessonRequestDTO {
     @Size(max = 255, message = "Tên bài học không được vượt quá 255 ký tự")
     private String lessonName;
 
-    @NotBlank(message = "type is required (VIDEO, DOC, or QUIZ)")
+    @NotBlank(message = "type is required (VIDEO or DOC)")
     private String type;
 
     private String videoUrl;
     private String contentText;
-    private Integer quizId;
     private String duration;
     private Integer orderIndex;
 }
