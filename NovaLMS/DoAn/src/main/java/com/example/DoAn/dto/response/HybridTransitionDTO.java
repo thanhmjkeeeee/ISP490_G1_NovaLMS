@@ -22,7 +22,10 @@ public class HybridTransitionDTO {
     public static class SectionResult {
         private Integer resultId;
         private String quizTitle;
-        private int score;
+        private String skill;           // e.g. "WRITING", "SPEAKING", "READING"
+        private boolean aiGraded;        // true if quiz has WRITING/SPEAKING questions
+        private boolean allAiGraded;    // true if ALL questions are AI-graded (no MC score available)
+        private int score;              // MC score only (0 if allAiGraded)
         private int totalPoints;
         private BigDecimal correctRate;
         private String suggestedLevel;
