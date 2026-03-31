@@ -35,8 +35,9 @@
               <div class="mb-3">
                 <!-- AI-aware correct rate -->
                 <th:block th:if="${result.overallCorrectRateIncludingAI != null}">
-                  <div class="display-1 fw-bold text-primary" th:text="${#numbers.formatDecimal(result.overallCorrectRateIncludingAI, 1, 0)} + '%'">72%</div>
-                  <div class="text-muted fs-5">
+                  <div class="display-1 fw-bold text-primary" id="overallRateDisplay"
+                       th:text="${#numbers.formatDecimal(result.overallCorrectRateIncludingAI, 1, 0)} + '%'">72%</div>
+                  <div class="text-muted fs-5" id="overallScoreDisplay">
                     <span th:text="${result.overallScoreIncludingAI}">25</span> /
                     <span th:text="${result.overallTotalPointsIncludingAI}">35</span> điểm (bao gồm AI)
                   </div>
@@ -65,7 +66,18 @@
             </div>
           </div>
 
-          <!-- Section Results Table -->
+          <!-- AI Pending Banner — shown if any WRITING/SPEAKING is still being graded -->
+          <th:block th:if="${result.hasPendingAI}">
+          <div id="ai-pending-banner" class="alert alert-warning d-flex align-items-center gap-3 mb-4"
+               th:attr="data-session-id=${result.sessionId}" role="alert">
+            <i class="bi bi-hourglass-split fs-4"></i>
+            <div>
+              <strong>Đang chấm bằng AI...</strong>
+              Một số câu hỏi Viết/Nói đang được hệ thống chấm tự động.
+              Trang sẽ tự cập nhật khi có kết quả.
+            </div>
+          </div>
+          </th:block>
           <div class="card shadow-sm border-0 rounded-4 mb-4">
             <div class="card-header bg-white border-0 py-3 px-4">
               <h5 class="fw-bold mb-0 text-dark">
@@ -85,7 +97,9 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr th:each="section : ${result?.sections}">
+                    <th:block th:each="section : ${result?.sections}">
+                    <!-- Main section row -->
+                    <tr>
                       <td class="px-4 py-3">
                         <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold"
                               th:text="${section.skill}">Grammar</span>
@@ -93,12 +107,18 @@
                       <td class="px-4 py-3 fw-medium text-dark" th:text="${section.quizTitle}">
                         Grammar A1-A2
                       </td>
-                      <td class="px-4 py-3 text-center">
+                      <td class="px-4 py-3 text-center section-ai-score">
                         <!-- AI-aware score: show AI score if available, else original -->
                         <th:block th:if="${section.aiScore != null}">
-                          <span class="fw-bold text-primary" th:text="${section.aiScore}">8</span>
-                          <span class="text-muted">/</span>
-                          <span class="text-muted" th:text="${section.aiTotalPoints != null ? section.aiTotalPoints : section.totalPoints}">10</span>
+                          <span class="section-score-display">
+                            <span class="ai-score-val fw-bold text-primary"
+                                  th:text="${section.aiScore}"
+                                  th:attr="data-ai-score=${section.aiScore}">8</span>
+                            <span class="text-muted">/</span>
+                            <span class="ai-max-val text-muted"
+                                  th:text="${section.aiTotalPoints != null ? section.aiTotalPoints : section.totalPoints}"
+                                  th:attr="data-ai-max=${section.aiTotalPoints != null ? section.aiTotalPoints : section.totalPoints}">10</span>
+                          </span>
                           <br><small class="text-muted">(gốc: <span th:text="${section.score}">5</span>/<span th:text="${section.totalPoints}">10</span>)</small>
                         </th:block>
                         <th:block th:if="${section.aiScore == null}">
@@ -106,14 +126,15 @@
                         </th:block>
                       </td>
                       <td class="px-4 py-3 text-center">
-                        <!-- AI-aware correct rate -->
-                        <th:block th:if="${section.aiCorrectRate != null}">
+                        <!-- AI-aware tỉ lệ: show fraction (score/points) instead of % -->
+                        <th:block th:if="${section.aiScore != null}">
                           <span th:classappend="${section.aiCorrectRate?.doubleValue() >= 60} ? 'text-success' : 'text-danger'"
-                                class="fw-bold"
-                                th:text="${#numbers.formatDecimal(section.aiCorrectRate, 1, 0)} + '%'">80%</span>
-                          <br><small class="text-muted">(gốc: <span th:text="${#numbers.formatDecimal(section.correctRate, 1, 0)}">75</span>%)</small>
+                                class="fw-bold">
+                            <span class="ai-score-val" th:text="${section.aiScore}">9</span>/<span class="ai-max-val" th:text="${section.aiTotalPoints != null ? section.aiTotalPoints : section.totalPoints}">10</span>
+                          </span>
+                          <br><small class="text-muted">(gốc: <span th:text="${section.score}">7</span>/<span th:text="${section.totalPoints}">10</span>)</small>
                         </th:block>
-                        <th:block th:if="${section.aiCorrectRate == null}">
+                        <th:block th:if="${section.aiScore == null}">
                           <span th:classappend="${section?.correctRate?.doubleValue() >= 60} ? 'text-success' : 'text-danger'"
                                 class="fw-bold"
                                 th:text="${#numbers.formatDecimal(section.correctRate, 1, 0)} + '%'">75%</span>
@@ -124,60 +145,75 @@
                               th:text="${section.suggestedLevel}">B1</span>
                       </td>
                     </tr>
-                    <!-- AI details row (inside tbody, after main row) -->
-                    <th:block th:with="qList=${section?.aiQuestions}">
-                    <th:block th:if="${qList != null and not #lists.isEmpty(qList)}">
+
+                    <!-- AI details — must be inside the each loop -->
+                    <th:block th:if="${section.aiQuestions != null and not #lists.isEmpty(section.aiQuestions)}">
                     <tr class="table-light">
                       <td colspan="5" class="px-4 py-3">
                         <p class="fw-semibold small text-muted mb-2">
                           <i class="bi bi-robot me-1"></i> Chi tiết chấm bằng AI
                         </p>
-                        <div th:each="aq : ${qList}" class="mb-3">
-                          <!-- Pending -->
+                        <th:block th:each="aq : ${section.aiQuestions}">
+                          <!-- Pending AI grading -->
                           <th:block th:if="${aq.pendingAiReview}">
-                            <div class="alert alert-warning py-1 px-3 mb-1 small">
-                              <i class="bi bi-hourglass-split me-1"></i>
-                              <strong th:text="${aq.questionType == 'WRITING' ? 'Viết' : 'Nói'}"></strong> —
-                              Đang chấm bằng AI...
+                            <div class="d-flex align-items-center gap-2 py-1">
+                              <span class="badge bg-warning text-dark small">
+                                <th:block th:text="${aq.questionType == 'WRITING'} ? 'Viết' : 'Nói'">Nói</th:block>
+                              </span>
+                              <span class="small text-muted">
+                                <i class="bi bi-hourglass-split me-1"></i>Đang chấm bằng AI...
+                              </span>
                             </div>
                           </th:block>
-                          <!-- Graded -->
-                          <th:block th:if="${!aq.pendingAiReview}">
-                            <div class="card border-0 bg-white mb-1">
-                              <div class="card-body py-2 px-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                  <span class="badge bg-info bg-opacity-10 text-info small"
-                                        th:text="${aq.questionType == 'WRITING' ? 'Viết' : 'Nói'}">Viết</span>
-                                  <span class="fw-bold small">
-                                    <span th:text="${aq.aiScore}">8</span>
-                                    <span class="text-muted">/</span>
-                                    <span th:text="${aq.maxPoints}">10</span>
-                                    <th:block th:if="${aq.isCorrect}">
-                                      <span class="badge bg-success ms-1 small">Đạt</span>
-                                    </th:block>
-                                    <th:block th:if="${!aq.isCorrect and aq.aiScore != null}">
-                                      <span class="badge bg-danger ms-1 small">Chưa đạt</span>
-                                    </th:block>
-                                  </span>
-                                </div>
-                                <p class="mb-1 small text-muted" th:text="${aq.aiFeedback}">Feedback...</p>
-                                <!-- Rubric breakdown toggle -->
-                                <th:block th:if="${aq.aiRubricJson != null}">
-                                  <button class="btn btn-link btn-sm p-0 small" type="button"
-                                          data-bs-toggle="collapse"
-                                          th:attr="data-bs-target='#rubric-' + ${section?.resultId} + '-' + ${aq.questionId}">
-                                    <i class="bi bi-chevron-down"></i> Chi tiết rubric
-                                  </button>
-                                  <div class="collapse mt-1" th:id="'rubric-' + ${section?.resultId} + '-' + ${aq.questionId}">
-                                    <ul class="list-unstyled mb-0 small text-muted rubric-list"
-                                        th:data-rubric="${aq.aiRubricJson}"
-                                        th:data-type="${aq.questionType}"></ul>
-                                  </div>
-                                </th:block>
+                          <!-- AI graded -->
+                          <th:block th:if="${!aq.pendingAiReview and aq.aiScore != null}">
+                            <div class="d-flex align-items-start justify-content-between gap-3 py-1 ai-question-detail"
+                                 th:attr="data-ai-score=${aq.aiScore}, data-ai-max=${aq.maxPoints}">
+                              <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-info bg-opacity-10 text-info small">
+                                  <th:block th:text="${aq.questionType == 'WRITING'} ? 'Viết' : 'Nói'">Viết</th:block>
+                                </span>
+                                <span class="small fw-bold">
+                                  <span class="ai-score-val" th:text="${aq.aiScore}">8</span>/<span class="ai-max-val" th:text="${aq.maxPoints}">10</span>
+                                  <th:block th:if="${aq.isCorrect}">
+                                    <span class="badge bg-success ms-1 small">Đạt</span>
+                                  </th:block>
+                                  <th:block th:if="${!aq.isCorrect}">
+                                    <span class="badge bg-danger ms-1 small">Chưa đạt</span>
+                                  </th:block>
+                                </span>
                               </div>
+                              <th:block th:if="${aq.aiFeedback != null}">
+                                <button class="btn btn-link btn-sm p-0 text-primary" type="button"
+                                        data-bs-toggle="collapse"
+                                        th:attr="data-bs-target='#rubric-' + ${section.resultId} + '-' + ${aq.questionId}">
+                                  <i class="bi bi-chevron-down"></i> Chi tiết
+                                </button>
+                              </th:block>
+                            </div>
+                            <th:block th:if="${aq.aiFeedback != null}">
+                              <p class="small text-muted mb-1 ms-5" th:text="${aq.aiFeedback}">Feedback...</p>
+                            </th:block>
+                            <th:block th:if="${aq.aiRubricJson != null}">
+                              <div class="collapse ms-5 mb-2" th:id="'rubric-' + ${section.resultId} + '-' + ${aq.questionId}">
+                                <ul class="list-unstyled mb-0 small text-muted rubric-list"
+                                    th:data-rubric="${aq.aiRubricJson}"
+                                    th:data-type="${aq.questionType}"></ul>
+                              </div>
+                            </th:block>
+                          </th:block>
+                          <!-- AI graded but score not yet available -->
+                          <th:block th:if="${!aq.pendingAiReview and aq.aiScore == null}">
+                            <div class="d-flex align-items-center gap-2 py-1">
+                              <span class="badge bg-secondary small">
+                                <th:block th:text="${aq.questionType == 'WRITING'} ? 'Viết' : 'Nói'">Viết</th:block>
+                              </span>
+                              <span class="small text-muted">
+                                <i class="bi bi-exclamation-circle me-1"></i>Chưa có kết quả AI
+                              </span>
                             </div>
                           </th:block>
-                        </div>
+                        </th:block>
                       </td>
                     </tr>
                     </th:block>
@@ -248,31 +284,161 @@
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
 <script>
-  // Render rubric breakdown from JSON for each WRITING/SPEAKING question
-  document.querySelectorAll('.rubric-list[data-rubric]').forEach(function(el) {
-    try {
-      var rubric = JSON.parse(el.getAttribute('data-rubric'));
-      var qType = el.getAttribute('data-type');
-      var labels = {
-        'task_achievement': 'Hoàn thành đề bài',
-        'lexical_resource': 'Từ vựng',
-        'grammar': 'Ngữ pháp',
-        'coherence_cohesion': 'Liên kết câu',
-        'pronunciation': 'Phát âm',
-        'fluency': 'Lưu loát'
-      };
-      var html = '';
-      for (var key in rubric) {
-        if (rubric.hasOwnProperty(key)) {
-          var label = labels[key] || key;
-          html += '<li><strong>' + label + ':</strong> ' + rubric[key] + ' điểm</li>';
-        }
-      }
-      el.innerHTML = html;
-    } catch (e) {
-      el.innerHTML = '<li class="text-danger">Không thể hiển thị rubric</li>';
+  // Greatest common divisor — used to simplify fractions e.g. 36/40 → 9/10
+  function gcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { var t = b; b = a % b; a = t; }
+    return a;
+  }
+
+  // ── Poll for AI grading completion ──────────────────────────────────────────
+  (function pollAIResults() {
+    var pendingBadge = document.getElementById('ai-pending-banner');
+    if (!pendingBadge) return; // No pending AI — no polling needed
+
+    var sessionId = pendingBadge.getAttribute('data-session-id');
+    var pollInterval = 15000; // poll every 15s
+
+    function checkPending() {
+      fetch('/api/v1/public/hybrid/sessions/' + sessionId + '/results')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === 200) {
+            var sections = data.data.sections || [];
+            var allDone = sections.every(function(sec) {
+              var qs = sec.aiQuestions || [];
+              return qs.every(function(q) { return !q.pendingAiReview; });
+            });
+            if (allDone) {
+              // AI done — reload to show fresh results
+              location.reload();
+            }
+          }
+        })
+        .catch(function() { /* silent fail, keep polling */ });
     }
-  });
+
+    // Start polling
+    setInterval(checkPending, pollInterval);
+  })();
+
+  // ── Fix AI score display: use rubric max instead of DB max ─────────────────
+  // rubric = {task_achievement: 9, lexical_resource: 8, grammar: 9, coherence_cohesion: 10}
+  // aiScore = 36 (sum of rubric values)
+  // aiMax = 36 (sum of max values = also rubric sum since max=pts for each criterion)
+  // → correct display: 36/36 = 90% = 9/10
+
+  (function fixAIScoreDisplay() {
+    var totalAiScore = 0;
+    var totalAiMax   = 0;
+
+    document.querySelectorAll('.rubric-list[data-rubric]').forEach(function(rubricEl) {
+      try {
+        var rubric = JSON.parse(rubricEl.getAttribute('data-rubric'));
+        var labels = {
+          'task_achievement': 'Hoàn thành đề bài',
+          'lexical_resource': 'Từ vựng',
+          'grammar': 'Ngữ pháp',
+          'coherence_cohesion': 'Liên kết câu',
+          'pronunciation': 'Phát âm',
+          'fluency': 'Lưu loát'
+        };
+
+        var aiScore = 0;
+        var aiMax   = 0;
+        var html = '';
+
+        for (var key in rubric) {
+          if (!rubric.hasOwnProperty(key)) continue;
+          var label = labels[key] || key;
+          var val = rubric[key];
+          var score = 0, max = 0;
+
+          if (typeof val === 'object' && val !== null) {
+            // Format: {score: 9, max: 10} — extract both
+            score = parseFloat(val.score) || 0;
+            max   = parseFloat(val.max)   || score; // fallback to score if max missing
+          } else {
+            // Plain integer: treat as score=score, max=score (full marks)
+            score = parseFloat(val) || 0;
+            max   = score;
+          }
+
+          aiScore += score;
+          aiMax   += max;
+          html += '<li><strong>' + label + ':</strong> ' + score + ' điểm</li>';
+        }
+
+        // Render rubric breakdown
+        rubricEl.innerHTML = html || '<li class="text-muted">Không có chi tiết rubric</li>';
+
+        if (aiMax === 0) return;
+
+        // Simplify fraction e.g. 36/40 → 9/10, 36/36 → 9/9=1 (but keep denominator)
+        var g = gcd(aiScore, aiMax);
+        var ratioDisplay = (aiScore / g) + '/' + (aiMax / g);
+        var pctDisplay = Math.round(100 * aiScore / aiMax) + '%';
+
+        // --- AI detail line: update .ai-question-detail display ---
+        var detail = rubricEl.closest('.ai-question-detail');
+        if (detail) {
+          var s = detail.querySelector('.ai-score-val');
+          var m = detail.querySelector('.ai-max-val');
+          if (s) s.textContent = aiScore;
+          if (m) m.textContent = aiMax;
+        }
+
+        // --- Section row: find previous <tr> from the detail row ---
+        var detailRow = rubricEl.closest('tr');
+        var sectionRow = detailRow ? detailRow.previousElementSibling : null;
+
+        if (sectionRow && sectionRow.tagName === 'TR') {
+          // Update Điểm column: show simplified ratio
+          var scoreTd = sectionRow.querySelector('td.section-ai-score');
+          if (scoreTd) {
+            var sEl = scoreTd.querySelector('.ai-score-val');
+            var mEl = scoreTd.querySelector('.ai-max-val');
+            if (sEl) sEl.textContent = (aiScore / g);
+            if (mEl) mEl.textContent = (aiMax / g);
+          }
+          // Update Tỉ lệ column: show simplified ratio + color
+          if (scoreTd) {
+            var ratioTd = scoreTd.nextElementSibling;
+            if (ratioTd) {
+              var ratioLine = ratioTd.querySelector('span.fw-bold');
+              if (ratioLine) {
+                var pct = 100 * aiScore / aiMax;
+                ratioLine.textContent = ratioDisplay;
+                ratioLine.className = 'fw-bold ' + (pct >= 60 ? 'text-success' : 'text-danger');
+              }
+            }
+          }
+        }
+
+        totalAiScore += aiScore;
+        totalAiMax   += aiMax;
+
+      } catch (e) {
+        rubricEl.innerHTML = '<li class="text-danger">Lỗi parse rubric</li>';
+      }
+    });
+
+    // --- Overall banner: compute correct % and score/max ---
+    if (totalAiMax > 0) {
+      var overallPct = Math.round(100 * totalAiScore / totalAiMax);
+      var overallG = gcd(totalAiScore, totalAiMax);
+      var overallRatio = (totalAiScore / overallG) + '/' + (totalAiMax / overallG);
+
+      var rateEl = document.getElementById('overallRateDisplay');
+      if (rateEl) rateEl.textContent = overallPct + '%';
+
+      var scoreEl = document.getElementById('overallScoreDisplay');
+      if (scoreEl) {
+        scoreEl.innerHTML =
+          '<span>' + (totalAiScore / overallG) + '</span> / <span>' + (totalAiMax / overallG) + '</span> điểm (bao gồm AI)';
+      }
+    }
+  })();
 </script>
 
 <style>
