@@ -209,7 +209,7 @@ public class HybridPlacementServiceImpl implements HybridPlacementService {
         }
 
         // Delegate to existing placement test logic
-        return placementTestService.getPlacementTest(sq.getQuiz().getQuizId());
+        return placementTestService.getQuizForTaking(sq.getQuiz().getQuizId());
     }
 
     @Override
@@ -233,10 +233,26 @@ public class HybridPlacementServiceImpl implements HybridPlacementService {
 
         HybridTransitionDTO.SectionResult sectionResult = null;
         if (lastResult != null) {
-            int totalPoints = sumTotalPoints(lastResult.getQuiz());
+            Quiz quiz = lastResult.getQuiz();
+            List<QuizQuestion> questions = quiz.getQuizQuestions();
+            boolean hasAiQuestion = questions != null && questions.stream()
+                    .anyMatch(qq -> {
+                        String qt = qq.getQuestion().getQuestionType();
+                        return "WRITING".equals(qt) || "SPEAKING".equals(qt);
+                    });
+            boolean allAiGraded = questions != null && questions.stream()
+                    .allMatch(qq -> {
+                        String qt = qq.getQuestion().getQuestionType();
+                        return "WRITING".equals(qt) || "SPEAKING".equals(qt);
+                    });
+
+            int totalPoints = sumTotalPoints(quiz);
             sectionResult = HybridTransitionDTO.SectionResult.builder()
                     .resultId(lastResult.getId())
-                    .quizTitle(lastResult.getQuiz().getTitle())
+                    .quizTitle(quiz.getTitle())
+                    .skill(completed.getSkill())
+                    .aiGraded(hasAiQuestion)
+                    .allAiGraded(allAiGraded)
                     .score(lastResult.getScore() != null ? lastResult.getScore() : 0)
                     .totalPoints(totalPoints)
                     .correctRate(lastResult.getCorrectRate())
@@ -286,11 +302,14 @@ public class HybridPlacementServiceImpl implements HybridPlacementService {
             // Per-question AI details for WRITING/SPEAKING
             List<QuestionAIResultDTO> aiQuestions = buildQuestionAIResults(r, sq.getSkill());
 
+            // Re-fetch answers to safely access all fields
+            List<PlacementTestAnswer> freshAnswers = answerRepository.findByResultId(r.getId());
+
             // AI-aware score: prefer totalScoreIncludingAi if available, else sum from answers
             int aiTotal = 0;
             int aiMax = 0;
             boolean hasAnyAIResult = false;
-            for (PlacementTestAnswer a : r.getAnswers()) {
+            for (PlacementTestAnswer a : freshAnswers) {
                 String qt = a.getQuestion().getQuestionType();
                 int qpts = getQuestionPoints(r.getQuiz(), a.getQuestion().getQuestionId());
                 if ("WRITING".equals(qt) || "SPEAKING".equals(qt)) {
@@ -309,6 +328,10 @@ public class HybridPlacementServiceImpl implements HybridPlacementService {
             Integer aiScoreVal = hasAnyAIResult ? aiTotal : null;
             Integer aiTotalPts = aiMax > 0 ? aiMax : null;
             BigDecimal aiRate = aiMax > 0 ? BigDecimal.valueOf(100.0 * aiTotal / aiMax).setScale(2, RoundingMode.HALF_UP) : null;
+
+            // Check if any AI question is still pending
+            boolean anyPending = aiQuestions.stream()
+                    .anyMatch(q -> Boolean.TRUE.equals(q.getPendingAiReview()));
 
             sections.add(HybridResultSectionDTO.builder()
                     .resultId(r.getId())
@@ -354,11 +377,19 @@ public class HybridPlacementServiceImpl implements HybridPlacementService {
 
         String overallCEFRIncludingAI = calculateCEFRLevel(overallRate.doubleValue());
 
+        // Detect if any AI question is still pending
+        boolean hasPendingAI = sections.stream()
+                .flatMap(s -> s.getAiQuestions() == null
+                        ? java.util.stream.Stream.empty()
+                        : s.getAiQuestions().stream())
+                .anyMatch(q -> Boolean.TRUE.equals(q.getPendingAiReview()));
+
         return HybridResultDTO.builder()
                 .sessionId(sessionId)
                 .guestName(session.getGuestName())
                 .guestEmail(session.getGuestEmail())
                 .completedAt(session.getUpdatedAt())
+                .hasPendingAI(hasPendingAI)
                 .sections(sections)
                 .overallScore(finalOverallScore)
                 .overallTotalPoints(finalOverallPoints)

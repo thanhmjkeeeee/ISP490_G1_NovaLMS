@@ -14,49 +14,111 @@
 
         <th:block th:if="${transition != null}">
 
-          <!-- Completed quiz result -->
-          <div class="card shadow-lg border-0 rounded-4 mb-4 overflow-hidden" th:if="${transition.currentResult != null}">
-            <div class="card-header bg-primary text-white text-center py-4">
-              <h3 class="fw-bold mb-1">
-                <i class="bi bi-check-circle-fill me-2"></i>
-                Hoàn Thành "<span th:text="${transition.currentResult.quizTitle}">Quiz</span>"!
-              </h3>
-            </div>
-            <div class="card-body p-5 text-center">
-              <div class="mb-4">
-                <div class="display-1 fw-bold text-primary mb-2"
-                     th:text="${#numbers.formatDecimal(transition.currentResult.correctRate, 1, 0)} + '%'">
-                  85%
-                </div>
-                <div class="text-muted fs-5">
-                  <span th:text="${transition.currentResult.score}">17</span> /
-                  <span th:text="${transition.currentResult.totalPoints}">20</span> câu đúng
-                </div>
+          <!-- ── WRITING / SPEAKING: completion only, no detailed scoring ── -->
+          <th:block th:if="${transition.currentResult != null and transition.currentResult.aiGraded}">
+            <div class="card shadow-lg border-0 rounded-4 mb-4 overflow-hidden">
+              <div class="card-header bg-success text-white text-center py-4">
+                <h3 class="fw-bold mb-1">
+                  <i class="bi bi-check-circle-fill me-2"></i>
+                  Hoàn Thành Phần Thi!
+                </h3>
               </div>
+              <div class="card-body p-5 text-center">
 
-              <div class="d-flex justify-content-center gap-3 mb-4">
-                <span class="badge bg-success bg-opacity-10 text-success px-4 py-2 rounded-pill fs-6">
-                  <i class="bi bi-award me-1"></i>
-                  CEFR: <strong th:text="${transition.currentResult.suggestedLevel}">B1</strong>
-                </span>
-              </div>
+                <!-- Skill badge -->
+                <div class="mb-4">
+                  <span class="badge bg-success bg-opacity-20 text-success px-4 py-2 rounded-pill fs-5 fw-bold"
+                        th:text="${transition.currentResult.skill != null ? transition.currentResult.skill : 'WRITING/SPEAKING'}">
+                    WRITING
+                  </span>
+                </div>
 
-              <!-- Progress dots -->
-              <div class="d-flex justify-content-center gap-2 mt-3">
-                <th:block th:each="i : ${#numbers.sequence(1, transition.totalQuizzes)}">
-                  <div class="rounded-circle d-flex align-items-center justify-content-center"
-                       style="width:32px; height:32px;"
-                       th:classappend="${i <= transition.completedQuizzes} ? 'bg-success text-white' : (${i == transition.completedQuizzes + 1} ? 'bg-primary text-white' : 'bg-light text-muted border')">
-                    <i class="bi" th:classappend="${i <= transition.completedQuizzes} ? 'bi-check' : (${i == transition.completedQuizzes + 1} ? 'bi-play-fill' : 'bi-dash')"></i>
+                <div class="mb-4">
+                  <div class="display-1 fw-bold text-success mb-2">
+                    <i class="bi bi-check-lg"></i>
                   </div>
-                </th:block>
+                  <p class="fs-5 text-dark mb-1">
+                    <strong th:text="${transition.currentResult.quizTitle}">Writing A1-A2</strong>
+                  </p>
+                  <p class="text-muted">
+                    Bài thi của bạn đang được chấm bằng AI.<br>
+                    Kết quả sẽ có sau ít phút.
+                  </p>
+                </div>
+
+                <!-- Progress dots -->
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                  <th:block th:each="i : ${#numbers.sequence(1, transition.totalQuizzes)}">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:32px; height:32px;"
+                         th:classappend="${i <= transition.completedQuizzes} ? 'bg-success text-white' : (${i == transition.completedQuizzes + 1} ? 'bg-primary text-white' : 'bg-light text-muted border')">
+                      <i class="bi" th:classappend="${i <= transition.completedQuizzes} ? 'bi-check' : (${i == transition.completedQuizzes + 1} ? 'bi-play-fill' : 'bi-dash')"></i>
+                    </div>
+                  </th:block>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                  Đã hoàn thành <span th:text="${transition.completedQuizzes}">1</span> /
+                  <span th:text="${transition.totalQuizzes}">3</span> phần
+                </p>
               </div>
-              <p class="text-muted small mt-2 mb-0">
-                Đã hoàn thành <span th:text="${transition.completedQuizzes}">1</span> /
-                <span th:text="${transition.totalQuizzes}">3</span> phần
-              </p>
             </div>
-          </div>
+          </th:block>
+
+          <!-- ── MC / FILL / MATCH: show score ── -->
+          <th:block th:if="${transition.currentResult != null and !transition.currentResult.aiGraded}">
+            <div class="card shadow-lg border-0 rounded-4 mb-4 overflow-hidden">
+              <div class="card-header bg-primary text-white text-center py-4">
+                <h3 class="fw-bold mb-1">
+                  <i class="bi bi-check-circle-fill me-2"></i>
+                  Hoàn Thành "<span th:text="${transition.currentResult.quizTitle}">Quiz</span>"!
+                </h3>
+              </div>
+              <div class="card-body p-5 text-center">
+                <div class="mb-4">
+                  <div class="display-1 fw-bold text-primary mb-2"
+                       th:text="${#numbers.formatDecimal(transition.currentResult.correctRate, 1, 0)} + '%'">
+                    85%
+                  </div>
+                  <div class="text-muted fs-5">
+                    <span th:text="${transition.currentResult.score}">17</span> /
+                    <span th:text="${transition.currentResult.totalPoints}">20</span> câu đúng
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                  <span class="badge bg-success bg-opacity-10 text-success px-4 py-2 rounded-pill fs-6">
+                    <i class="bi bi-award me-1"></i>
+                    CEFR: <strong th:text="${transition.currentResult.suggestedLevel}">B1</strong>
+                  </span>
+                </div>
+
+                <!-- Progress dots -->
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                  <th:block th:each="i : ${#numbers.sequence(1, transition.totalQuizzes)}">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:32px; height:32px;"
+                         th:classappend="${i <= transition.completedQuizzes} ? 'bg-success text-white' : (${i == transition.completedQuizzes + 1} ? 'bg-primary text-white' : 'bg-light text-muted border')">
+                      <i class="bi" th:classappend="${i <= transition.completedQuizzes} ? 'bi-check' : (${i == transition.completedQuizzes + 1} ? 'bi-play-fill' : 'bi-dash')"></i>
+                    </div>
+                  </th:block>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                  Đã hoàn thành <span th:text="${transition.completedQuizzes}">1</span> /
+                  <span th:text="${transition.totalQuizzes}">3</span> phần
+                </p>
+              </div>
+            </div>
+          </th:block>
+
+          <!-- ── No result yet (shouldn't happen in practice) ── -->
+          <th:block th:if="${transition.currentResult == null}">
+            <div class="card shadow-lg border-0 rounded-4 mb-4">
+              <div class="card-body p-5 text-center">
+                <i class="bi bi-check-circle-fill text-success display-1 mb-3"></i>
+                <h4 class="fw-bold">Hoàn Thành Phần Thi!</h4>
+              </div>
+            </div>
+          </th:block>
 
           <!-- CTA Buttons -->
           <div class="text-center">

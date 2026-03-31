@@ -258,6 +258,36 @@
   }
 
   async function submitQuiz(autoSubmit = false) {
+    // ── Validate WRITING and SPEAKING questions before submitting ──
+    const emptyErrors = [];
+
+    // Check WRITING textareas
+    document.querySelectorAll('textarea[name^="q_"]').forEach(function(ta) {
+      if (ta.value.trim() === '') {
+        // Find question number for error message
+        const qId = ta.name.replace('q_', '');
+        const card = ta.closest('.question-card');
+        const qNum = card ? card.querySelector('.fs-4') : null;
+        const label = qNum ? qNum.textContent.trim() : 'Câu hỏi Viết';
+        emptyErrors.push(label + ': chưa có nội dung.');
+      }
+    });
+
+    // Check SPEAKING hidden inputs
+    document.querySelectorAll('input[name^="q_"][data-speaking-question]').forEach(function(input) {
+      if (!input.value || input.value.trim() === '') {
+        const card = input.closest('.question-card');
+        const qNum = card ? card.querySelector('.fs-4') : null;
+        const label = qNum ? qNum.textContent.trim() : 'Câu hỏi Nói';
+        emptyErrors.push(label + ': chưa có file ghi âm.');
+      }
+    });
+
+    if (emptyErrors.length > 0) {
+      alert('Vui lòng hoàn thành các câu sau trước khi nộp bài:\n\n' + emptyErrors.join('\n'));
+      return;
+    }
+
     if (!autoSubmit) {
       if (!confirm("Bạn có chắc chắn muốn nộp bài phần này?")) return;
     }

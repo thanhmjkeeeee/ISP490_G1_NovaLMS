@@ -15,6 +15,9 @@ public class HybridResultDTO {
     private String guestEmail;
     private LocalDateTime completedAt;
 
+    /** True if any WRITING/SPEAKING question is still pending AI grading — triggers polling. */
+    private boolean hasPendingAI;
+
     private List<HybridResultSectionDTO> sections;
 
     private int overallScore;
