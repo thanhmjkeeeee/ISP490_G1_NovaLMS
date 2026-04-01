@@ -16,4 +16,8 @@ public class LessonResponseDTO {
     private String contentText;
     private boolean isCompleted;
     private boolean isLocked;
+
+    private String title;
+    private Double score;
+    private String status;
 }

@@ -67,6 +67,12 @@ public class StudentViewController {
         return "student/class-list";
     }
 
+    @GetMapping("/my-classes/detail/{classId}")
+    public String viewClassDetail(@PathVariable Integer classId, Model model) {
+        model.addAttribute("classId", classId);
+        return "student/class-detail";
+    }
+
     @GetMapping("/dashboard")
     public String viewDashboard() {
         return "student/dashboard";

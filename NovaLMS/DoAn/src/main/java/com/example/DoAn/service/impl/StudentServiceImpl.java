@@ -2,16 +2,8 @@ package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.response.*;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
-import com.example.DoAn.model.Clazz;
-import com.example.DoAn.model.Course;
-import com.example.DoAn.model.Payment;
-import com.example.DoAn.model.Registration;
-import com.example.DoAn.model.User;
-import com.example.DoAn.repository.ClassRepository;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.PaymentRepository;
-import com.example.DoAn.repository.RegistrationRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.model.*;
+import com.example.DoAn.repository.*;
 import com.example.DoAn.service.PayosService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +30,8 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final PayosService payosService;
+    private final UserLessonRepository userLessonRepository;
+    private final SessionLessonRepository sessionLessonRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -334,5 +330,124 @@ public class StudentServiceImpl implements StudentService {
         if (price instanceof Double) return (Double) price > 0;
         if (price instanceof Number) return ((Number) price).doubleValue() > 0;
         return false;
+    }
+
+    public StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId) {
+        // 1. Check phân quyền thật
+            boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");
+        if (!isEnrolled) {
+            throw new RuntimeException("Bạn không có quyền truy cập hoặc chưa thanh toán khóa học này!");
+        }
+
+        Clazz clazz = classRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        // 2. Gom danh sách Members thật
+        List<MemberDTO> members = new ArrayList<>();
+        if (clazz.getTeacher() != null) {
+            members.add(MemberDTO.builder()
+                    .name(clazz.getTeacher().getFullName())
+                    .email(clazz.getTeacher().getEmail())
+                    .avatar(clazz.getTeacher().getAvatarUrl())
+                    .role("TEACHER")
+                    .build());
+        }
+
+        List<Registration> activeStudents = registrationRepository.findByClazz_ClassIdAndStatus(classId, "Approved");
+        for (Registration reg : activeStudents) {
+            members.add(MemberDTO.builder()
+                    .name(reg.getUser().getFullName())
+                    .email(reg.getUser().getEmail())
+                    .avatar(reg.getUser().getAvatarUrl())
+                    .role("STUDENT")
+                    .build());
+        }
+
+        // 3. Gom Session và Map Lesson thật từ Database
+        List<SessionDetailDTO> sessionDTOs = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        int totalLessonsInClass = 0;
+        int completedLessonsByUser = 0;
+
+        if (clazz.getSessions() != null) {
+            for (ClassSession session : clazz.getSessions()) {
+
+                // Xác định trạng thái của Buổi học (Dựa vào thời gian thực)
+                String sessionStatus = "UPCOMING";
+                LocalDate sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate() : null;
+
+                if (sessionDate != null) {
+                    if (sessionDate.isBefore(today)) sessionStatus = "COMPLETED";
+                    else if (sessionDate.isEqual(today)) sessionStatus = "LEARNING";
+                }
+
+                // Kéo mapping SessionLesson từ Database thật
+                List<SessionLesson> sessionLessons = sessionLessonRepository
+                        .findByClassSession_SessionIdOrderByOrderIndexAsc(session.getSessionId());
+
+                List<LessonResponseDTO> lessonDTOs = new ArrayList<>();
+
+                for (SessionLesson sl : sessionLessons) {
+                    Lesson lesson = sl.getLesson();
+                    if (lesson == null) continue;
+
+                    totalLessonsInClass++; // Tăng tổng số bài học của lớp
+
+                    // Check xem User đã hoàn thành bài này chưa (Từ bảng user_lesson)
+                    boolean isLessonCompleted = userLessonRepository
+                            .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
+
+                    if (isLessonCompleted) completedLessonsByUser++;
+
+                    // Áp dụng Business Rule: Khóa bài học nếu Session chưa tới ngày (UPCOMING)
+                    boolean isLocked = sessionStatus.equals("UPCOMING");
+
+                    lessonDTOs.add(LessonResponseDTO.builder()
+                            .lessonId(lesson.getLessonId())
+                            .type(lesson.getLessonType() != null ? lesson.getLessonType() : "DOC")
+                            .lessonTitle(lesson.getTitle())
+                            .lessonName(lesson.getLessonName())
+                            .duration(lesson.getDuration())
+                            .videoUrl(lesson.getVideoUrl())
+                            .isCompleted(isLessonCompleted)
+                            .isLocked(isLocked)
+                            .build());
+                }
+
+                sessionDTOs.add(SessionDetailDTO.builder()
+                        .sessionId(session.getSessionId())
+                        .sessionNo(session.getSessionNumber())
+                        .topic(session.getTopic())
+                        .date(session.getSessionDate() != null ? session.getSessionDate().toString() : "")
+                        .status(sessionStatus)
+                        .lessons(lessonDTOs) // Gắn danh sách Lesson thật vào đây
+                        .build());
+            }
+        }
+
+        // 4. CÔNG THỨC TÍNH PROGRESS CHUẨN KẾ HOẠCH V2
+        // Progress = (Completed Lessons in UserLesson / Total Lessons mapped to Class) * 100
+        int progress = 0;
+        if (totalLessonsInClass > 0) {
+            progress = (completedLessonsByUser * 100) / totalLessonsInClass;
+        }
+
+        // 5. Đóng gói DTO Tổng
+        return StudentClassDetailResponse.builder()
+                .classId(clazz.getClassId())
+                .className(clazz.getClassName())
+                .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "")
+                .courseImage(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : "")
+                .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
+                .endDate(clazz.getEndDate() != null ? clazz.getEndDate().toString() : "")
+                .status(clazz.getStatus())
+                .meetLink(clazz.getMeetLink())
+                .progressPercent(progress)
+                .completedSessions((int) sessionDTOs.stream().filter(s -> s.getStatus().equals("COMPLETED")).count())
+                .totalSessions(sessionDTOs.size())
+                .sessions(sessionDTOs)
+                .members(members)
+                .build();
     }
 }

@@ -52,6 +52,10 @@ public class ClassSession {
     @Column(name = "materials", columnDefinition = "TEXT")
     private String materials;
 
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private java.util.List<SessionLesson> sessionLessons = new java.util.ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (sessionNumber == null) sessionNumber = 1;

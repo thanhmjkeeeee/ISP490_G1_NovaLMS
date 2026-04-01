@@ -140,6 +140,8 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r FROM Registration r JOIN FETCH r.user u WHERE r.clazz.classId = :classId AND r.status = 'Approved' ORDER BY u.fullName ASC")
     List<Registration> findApprovedByClassId(@Param("classId") Integer classId);
 
-
-
+    // Bổ sung các phương thức thiếu cho StudentServiceImpl
+    List<Registration> findByClazz_ClassIdAndStatus(Integer classId, String status);
+    
+    boolean existsByClazz_ClassIdAndUser_UserIdAndStatus(Integer classId, Integer userId, String status);
 }
