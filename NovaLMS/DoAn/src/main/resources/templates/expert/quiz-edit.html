@@ -150,8 +150,14 @@ async function updateQuiz() {
             body: JSON.stringify(body)
         });
         const result = await res.json();
-        if (res.ok) { alert('Cập nhật thành công!'); }
-        else { alert(result.message || 'Có lỗi xảy ra.'); }
+        if (res.ok) { 
+            alert('Cập nhật thành công!'); 
+            window.location.href = '/expert/quiz-management';
+        }
+        else { 
+            const result = await res.json();
+            alert(result.message || 'Có lỗi xảy ra.'); 
+        }
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 

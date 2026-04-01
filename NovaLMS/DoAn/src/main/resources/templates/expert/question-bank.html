@@ -32,14 +32,30 @@
             </a>
         </div>
     </div>
+    <style>
+        .expand-btn { cursor: pointer; transition: transform 0.3s ease; }
+        .expand-btn.active { transform: rotate(90deg); }
+        .group-row { background-color: #f8fbff !important; font-weight: 600; border-left: 4px solid #136ad5; }
+        .sub-question-row { background-color: #ffffff; display: none; }
+        .sub-question-row.show { display: table-row; }
+        .nested-indicator { 
+            display: inline-block; width: 40px; height: 1px; 
+            background: #dee2e6; vertical-align: middle; margin-right: 10px;
+            position: relative;
+        }
+        .nested-indicator::after {
+            content: ''; position: absolute; left: 0; top: -10px; width: 1px; height: 10px; background: #dee2e6;
+        }
+        .badge-passage { background: #6f42c1; color: #fff; }
+    </style>
 
     <!-- Filters -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
-            <div class="row g-2">
-                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Kỹ năng</label>
-                    <select id="filterSkill" class="form-select form-select-sm">
+                    <select id="filterSkill" class="form-select form-select-sm" onchange="loadQuestions()">
                         <option value="">Tất cả</option>
                         <option value="LISTENING">Listening</option>
                         <option value="READING">Reading</option>
@@ -47,48 +63,46 @@
                         <option value="SPEAKING">Speaking</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
+                <div class="col-6 col-md-1">
                     <label class="form-label small fw-bold">CEFR</label>
-                    <select id="filterCefr" class="form-select form-select-sm">
+                    <select id="filterCefr" class="form-select form-select-sm" onchange="loadQuestions()">
                         <option value="">Tất cả</option>
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1">B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
+                        <option value="A1">A1</option><option value="A2">A2</option>
+                        <option value="B1">B1</option><option value="B2">B2</option>
+                        <option value="C1">C1</option><option value="C2">C2</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
-                    <label class="form-label small fw-bold">Loại</label>
-                    <select id="filterType" class="form-select form-select-sm">
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-bold">Loại câu hỏi</label>
+                    <select id="filterType" class="form-select form-select-sm" onchange="loadQuestions()">
                         <option value="">Tất cả</option>
                         <option value="MULTIPLE_CHOICE_SINGLE">MC (Single)</option>
                         <option value="MULTIPLE_CHOICE_MULTI">MC (Multi)</option>
-                        <option value="FILL_IN_BLANK">Fill in Blank</option>
+                        <option value="FILL_IN_BLANK">Fill Blank</option>
                         <option value="MATCHING">Matching</option>
                         <option value="WRITING">Writing</option>
                         <option value="SPEAKING">Speaking</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-2 d-flex flex-column justify-content-end">
+                <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Trạng thái</label>
-                    <select id="filterStatus" class="form-select form-select-sm">
+                    <select id="filterStatus" class="form-select form-select-sm" onchange="loadQuestions()">
                         <option value="">Tất cả</option>
                         <option value="DRAFT">Draft</option>
                         <option value="PUBLISHED">Published</option>
                         <option value="ARCHIVED">Archived</option>
                     </select>
                 </div>
-                <div class="col-8 col-md-3 d-flex flex-column justify-content-end">
-                    <label class="form-label small fw-bold">Tìm kiếm</label>
-                    <div class="d-flex gap-2">
-                        <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Nội dung câu hỏi...">
-                        <button class="btn btn-sm btn-primary" onclick="loadQuestions()" style="padding:0 12px;display:flex;align-items:center;">
-                            <i class="bi bi-search"></i>
-                        </button>
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Tìm kiếm nhanh</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="filterKeyword" class="form-control" placeholder="Tìm tên câu hỏi hoặc chủ đề...">
+                        <button class="btn btn-primary px-3" onclick="loadQuestions()"><i class="bi bi-search"></i></button>
                     </div>
                 </div>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted" id="totalItemsText"></small>
             </div>
         </div>
     </div>
@@ -97,23 +111,34 @@
     <div class="card border-0 shadow-sm mb-auto">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0 align-middle" id="questionsTable" style="table-layout: fixed; min-width: 900px;">
+                    <colgroup>
+                        <col style="width: 60px;">   <!-- STT -->
+                        <col style="width: auto;">   <!-- Nội dung -->
+                        <col style="width: 110px;">  <!-- Kỹ năng -->
+                        <col style="width: 70px;">   <!-- CEFR -->
+                        <col style="width: 140px;">  <!-- Loại -->
+                        <col style="width: 120px;">  <!-- Trạng thái -->
+                        <col style="width: 80px;">   <!-- Đã dùng -->
+                        <col style="width: 90px;">   <!-- Thao tác -->
+                    </colgroup>
                     <thead class="table-light">
                     <tr>
-                        <th class="px-4 py-3">#</th>
-                        <th>Nội dung</th>
-                        <th>Loại</th>
-                        <th>Kỹ năng</th>
-                        <th>CEFR</th>
-                        <th>Chủ đề</th>
-                        <th>Trạng thái</th>
-                        <th>Quiz sử dụng</th>
-                        <th class="text-end px-4">Hành động</th>
+                        <th class="px-3 py-3 text-center">#</th>
+                        <th class="py-3 ps-2">Nội dung / Bài đọc</th>
+                        <th class="py-3 text-center">Kỹ năng</th>
+                        <th class="py-3 text-center">CEFR</th>
+                        <th class="py-3 text-center">Loại</th>
+                        <th class="py-3 text-center">Trạng thái</th>
+                        <th class="py-3 text-center">Đã dùng</th>
+                        <th class="py-3 text-end px-3" style="white-space: nowrap;">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody id="questionsTableBody">
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">Đang tải...</td>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tải dữ liệu...
+                        </td>
                     </tr>
                     </tbody>
                 </table>
@@ -301,7 +326,8 @@ const statusBadge = (s) => {
 const typeName = (t) => {
     const map = {
         MULTIPLE_CHOICE_SINGLE: 'MC (Single)', MULTIPLE_CHOICE_MULTI: 'MC (Multi)',
-        FILL_IN_BLANK: 'Fill Blank', MATCHING: 'Matching', WRITING: 'Writing', SPEAKING: 'Speaking'
+        FILL_IN_BLANK: 'Fill Blank', MATCHING: 'Matching', WRITING: 'Writing', SPEAKING: 'Speaking',
+        PASSAGE: 'Bộ bài đọc/nghe'
     };
     return map[t] || t;
 };
@@ -309,54 +335,128 @@ const typeName = (t) => {
 async function loadQuestions(page = 0) {
     currentPage = page;
     const params = new URLSearchParams();
-    const skill = document.getElementById('filterSkill').value;
-    const cefr = document.getElementById('filterCefr').value;
-    const type = document.getElementById('filterType').value;
-    const status = document.getElementById('filterStatus').value;
-    const keyword = document.getElementById('filterKeyword').value;
 
-    if (skill) params.append('skill', skill);
-    if (cefr) params.append('cefrLevel', cefr);
-    if (type) params.append('questionType', type);
-    if (status) params.append('status', status);
+    // Đọc an toàn — element có thể không tồn tại
+    const skill    = document.getElementById('filterSkill')?.value   || '';
+    const cefr     = document.getElementById('filterCefr')?.value    || '';
+    const type     = document.getElementById('filterType')?.value    || '';
+    const status   = document.getElementById('filterStatus')?.value  || '';
+    const keyword  = document.getElementById('filterKeyword')?.value || '';
+
+    if (skill)   params.append('skill', skill);
+    if (cefr)    params.append('cefrLevel', cefr);
+    if (type)    params.append('questionType', type);
+    if (status)  params.append('status', status);
     if (keyword) params.append('keyword', keyword);
     params.append('page', page);
     params.append('size', pageSize);
 
-    try {
-        const res = await fetch(`/api/v1/expert/question-bank?${params}`);
-        const result = await res.json();
-        const tbody = document.getElementById('questionsTableBody');
+    // Hiện loading
+    document.getElementById('questionsTableBody').innerHTML =
+        '<tr><td colspan="8" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tải dữ liệu...</td></tr>';
 
-        if (result.status === 200 && result.data && result.data.items.length > 0) {
-            tbody.innerHTML = result.data.items.map((q, i) => `
-                <tr>
-                    <td class="px-4 py-3">${page * pageSize + i + 1}</td>
-                    <td style="max-width:250px" class="text-truncate">${q.content || '—'}</td>
-                    <td><span class="badge bg-info text-dark">${typeName(q.questionType)}</span></td>
-                    <td>${q.skill}</td>
-                    <td><span class="badge bg-primary">${q.cefrLevel}</span></td>
-                    <td>${q.topic || '—'}</td>
-                    <td>${statusBadge(q.status)}</td>
-                    <td><span class="badge bg-light text-dark">${q.usedInQuizCount}</span></td>
-                    <td class="text-end px-4">
-                        <a href="/expert/question-bank/${q.questionId}/edit" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
-                        ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success me-1" onclick="changeStatus(${q.questionId},'PUBLISHED')"><i class="bi bi-check-lg"></i></button>` : ''}
-                        ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.questionId})"><i class="bi bi-trash"></i></button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
-            renderPagination(result.data);
+    try {
+        const res    = await fetch(`/api/v1/expert/question-bank?${params}`);
+        const result = await res.json();
+
+        if (result.status === 200 && result.data) {
+            renderTable(result.data);
         } else {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Không tìm thấy câu hỏi nào.</td></tr>';
-            document.getElementById('pagination').innerHTML = '';
+            document.getElementById('questionsTableBody').innerHTML =
+                `<tr><td colspan="8" class="text-center text-danger py-4">${result.message || 'Lỗi tải dữ liệu.'}</td></tr>`;
         }
     } catch (e) {
-        console.error(e);
+        console.error('loadQuestions error:', e);
+        document.getElementById('questionsTableBody').innerHTML =
+            '<tr><td colspan="8" class="text-center text-danger py-4">Lỗi kết nối máy chủ.</td></tr>';
     }
 }
 
+function renderTable(data) {
+    const tbody = document.getElementById('questionsTableBody');
+    const totalText = document.getElementById('totalItemsText');
+
+    if (!data || !data.items || data.items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không tìm thấy câu hỏi nào.</td></tr>';
+        if (totalText) totalText.textContent = 'Tổng số: 0';
+        return;
+    }
+
+    if (totalText) totalText.textContent = `Tổng số: ${data.totalElements} mục`;
+
+    // totalText đã được set ở trên
+    tbody.innerHTML = data.items.map((q, i) => {
+        const isGroup = q.type === 'GROUP';
+        return `
+            <tr class="${isGroup ? 'table-light' : ''}">
+                <td class="px-3 py-3 text-center">${data.pageNo * pageSize + i + 1}</td>
+                <td style="max-width:350px">
+                    <div class="d-flex align-items-center">
+                        ${isGroup ? `<button class="btn btn-xs btn-outline-primary me-2 py-0 px-1" onclick="toggleGroup(${q.id}, this)"><i class="bi bi-plus"></i></button>` : ''}
+                        <div class="text-truncate">${escapeHtml(q.content || '—')}</div>
+                    </div>
+                </td>
+                <td class="text-center">${q.skill || '—'}</td>
+                <td class="text-center"><span class="badge bg-primary">${q.cefrLevel || '—'}</span></td>
+                <td class="text-center"><span class="badge bg-info text-dark">${typeName(q.questionType)}</span></td>
+                <td class="text-center">${statusBadge(q.status)}</td>
+                <td class="text-center"><span class="badge bg-light text-dark">${q.usedInQuizCount}</span></td>
+                <td class="text-end px-4">
+                    <a href="/expert/question-bank/${q.id}/edit?type=${q.type}" class="btn btn-sm btn-outline-primary me-1" title="Sửa"><i class="bi bi-pencil"></i></a>
+                    ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success me-1" onclick="changeStatus(${q.id},'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
+                    ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id}, '${q.type}')" title="Xóa"><i class="bi bi-trash"></i></button>` : ''}
+                </td>
+            </tr>
+            ${isGroup ? `<tr id="groupDetail${q.id}" class="d-none bg-white"><td colspan="8" class="p-0 border-0"><div class="px-5 py-3 bg-light-subtle shadow-inner" id="groupContent${q.id}"></div></td></tr>` : ''}
+        `;
+    }).join('');
+    renderPagination(data);
+}
+
+function toggleGroup(groupId, btn) {
+    const detailRow = document.getElementById(`groupDetail${groupId}`);
+    const contentBox = document.getElementById(`groupContent${groupId}`);
+    const icon = btn.querySelector('i');
+    
+    if (detailRow.classList.contains('d-none')) {
+        detailRow.classList.remove('d-none');
+        icon.className = 'bi bi-dash';
+        
+        // Fetch or render subquestions
+        const group = findLocalItem(groupId, 'GROUP');
+        if (group && group.questions) {
+            contentBox.innerHTML = `
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white py-2 small fw-bold text-primary">Danh sách câu hỏi trong bộ</div>
+                    <div class="list-group list-group-flush">
+                        ${group.questions.map((sq, idx) => `
+                            <div class="list-group-item bg-transparent py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small"><span class="text-muted me-2">${idx+1}.</span> ${escapeHtml(sq.content)}</div>
+                                    <div class="small fw-bold text-info">${typeName(sq.questionType)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        detailRow.classList.add('d-none');
+        icon.className = 'bi bi-plus';
+    }
+}
+
+// Global variable to store loaded questions for quick access
+let lastLoadedData = null;
+function findLocalItem(id, type) {
+    if (!lastLoadedData || !lastLoadedData.items) return null;
+    return lastLoadedData.items.find(it => it.id === id && it.type === type);
+}
+
+// Map the result into lastLoadedData
 function renderPagination(data) {
+    lastLoadedData = data;
     const ul = document.getElementById('pagination');
     let html = '';
     for (let i = 0; i < data.totalPages; i++) {
@@ -370,19 +470,28 @@ function renderPagination(data) {
 async function changeStatus(id, newStatus) {
     if (!confirm(`Chuyển trạng thái sang ${newStatus}?`)) return;
     try {
-        await fetch(`/api/v1/expert/question-bank/${id}/status`, {
+        const res = await fetch(`/api/v1/expert/question-bank/${id}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: newStatus })
         });
-        loadQuestions(currentPage);
+        if (res.ok) loadQuestions(currentPage);
+        else {
+            const err = await res.json();
+            alert(err.message || 'Lỗi khi cập nhật trạng thái.');
+        }
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
-async function deleteQuestion(id) {
-    if (!confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+async function deleteQuestion(id, type) {
+    const msg = type === 'GROUP' ? 'Xóa toàn bộ bộ câu hỏi này và các câu hỏi con bên trong?' : 'Bạn có chắc muốn xóa câu hỏi này?';
+    if (!confirm(msg)) return;
+    
+    // For now we use the same endpoint as it handles both SINGLE items and will be expanded for GROUP
+    const url = type === 'GROUP' ? `/api/v1/expert/questions/groups/${id}` : `/api/v1/expert/question-bank/${id}`;
+    
     try {
-        const res = await fetch(`/api/v1/expert/question-bank/${id}`, { method: 'DELETE' });
+        const res = await fetch(url, { method: 'DELETE' });
         const result = await res.json();
         if (res.ok) { loadQuestions(currentPage); }
         else { alert(result.message || 'Không thể xóa.'); }

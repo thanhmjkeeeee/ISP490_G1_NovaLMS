@@ -35,8 +35,8 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <h6 class="m-0 fw-bold" style="color: #223a58;">Danh sách câu hỏi trong Quiz (<span id="questionCount">0</span> câu)</h6>
-            <button class="btn btn-sm btn-outline-primary" onclick="saveOrder()">
-                <i class="bi bi-arrow-down-up me-1"></i> Lưu thứ tự
+            <button class="btn btn-sm btn-primary" onclick="saveChanges()">
+                <i class="bi bi-floppy me-1"></i> Lưu thay đổi
             </button>
         </div>
         <div class="card-body p-0">
@@ -168,27 +168,130 @@ async function loadQuizQuestions() {
     } catch (e) { console.error(e); }
 }
 
+let _expandedGroups = new Set();
+
+function toggleGroup(groupId) {
+    if (_expandedGroups.has(groupId)) _expandedGroups.delete(groupId);
+    else _expandedGroups.add(groupId);
+    renderQuizQuestions();
+}
+
 function renderQuizQuestions() {
     const tbody = document.getElementById('quizQuestionsBody');
     if (quizQuestions.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Chưa có câu hỏi nào. Nhấn "Thêm câu hỏi" để bắt đầu.</td></tr>';
+        document.getElementById('questionCount').textContent = '0';
         return;
     }
-    tbody.innerHTML = quizQuestions.map((q, i) => `
-        <tr data-qid="${q.questionId}">
-            <td class="px-4 py-3">
-                <input type="number" class="form-control form-control-sm" style="width:60px" value="${q.orderIndex ?? i+1}" data-order="${q.questionId}" min="1">
+
+    // Nhóm câu hỏi
+    const groups = new Map();
+    const lones = [];
+    quizQuestions.forEach(q => {
+        if (q.groupId) {
+            if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
+            groups.get(q.groupId).items.push(q);
+        } else {
+            lones.push(q);
+        }
+    });
+
+    document.getElementById('questionCount').textContent = groups.size + lones.length;
+
+    let html = '';
+    let stt = 0;
+
+    // Render Groups
+    groups.forEach(g => {
+        stt++;
+        const isExpanded = _expandedGroups.has(g.id);
+        const first = g.items[0];
+        html += `
+        <tr class="table-primary border-top" style="background-color: #f8f9ff !important;" data-group-id="${g.id}">
+            <td class="px-4 py-2 fw-bold text-dark">
+                ${stt}
             </td>
-            <td style="max-width:300px" class="text-truncate">${q.questionContent || '—'}</td>
+            <td colspan="4" class="py-2">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-light me-2 rounded-circle p-0" style="width:24px; height:24px;" onclick="toggleGroup(${g.id})">
+                        <i class="bi ${isExpanded ? 'bi-dash' : 'bi-plus'}"></i>
+                    </button>
+                    <div class="fw-bold text-primary"><i class="bi bi-journal-text me-1"></i> BỘ CÂU HỎI (PASSAGE) - ${g.items.length} câu con</div>
+                </div>
+                <div class="px-5 small text-muted text-truncate-2" style="font-style: italic;">${g.content || '—'}</div>
+                <div class="px-5 mt-1">
+                    <span class="small text-muted me-2">Thứ tự trong đề:</span>
+                    <input type="number" class="form-control d-inline-block form-control-sm" style="width:60px" value="${first.orderIndex ?? ''}" data-group-order="${g.id}" min="1">
+                </div>
+            </td>
+            <td class="py-2">
+                <input type="number" class="form-control form-control-sm" style="width:70px" value="${first.points ?? 1}" data-group-points="${g.id}" step="0.1">
+            </td>
+            <td class="text-end px-4">
+                <button class="btn btn-sm btn-link text-danger" onclick="removeGroup(${g.id})" title="Gỡ bộ"><i class="bi bi-trash"></i> Gỡ bộ</button>
+            </td>
+        </tr>
+        `;
+        
+        if (isExpanded) {
+            g.items.forEach((sq, idx) => {
+                html += `
+                <tr data-qid="${sq.questionId}" class="bg-light bg-opacity-10">
+                    <td class="ps-5 py-2">
+                        <!-- Trống STT cho câu con -->
+                    </td>
+                    <td style="max-width:300px" class="text-truncate small text-muted">${sq.questionContent || '—'}</td>
+                    <td><span class="badge bg-light text-dark extra-small">${typeName(sq.questionType)}</span></td>
+                    <td class="extra-small">${sq.skill}</td>
+                    <td><span class="badge bg-light text-primary extra-small">${sq.cefrLevel}</span></td>
+                    <td class="extra-small text-muted">${sq.points ?? 1}</td>
+                    <td class="text-end px-4">
+                         <!-- Không cho xóa lẻ -->
+                    </td>
+                </tr>
+                `;
+            });
+        }
+    });
+
+    // Render Lones
+    lones.forEach((q, i) => {
+        stt++;
+        html += `
+        <tr data-qid="${q.questionId}">
+            <td class="px-4 py-3 fw-bold text-dark">
+                ${stt}
+            </td>
+            <td style="max-width:300px" class="text-truncate fw-medium">
+                <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
+                <div class="mt-1">
+                    <span class="extra-small text-muted">Thứ tự:</span>
+                    <input type="number" class="form-control d-inline-block form-control-sm" style="width:55px;height:24px;padding:0 5px;" value="${q.orderIndex ?? ''}" data-order="${q.questionId}" min="1">
+                </div>
+            </td>
             <td><span class="badge bg-info text-dark">${typeName(q.questionType)}</span></td>
             <td>${q.skill}</td>
             <td><span class="badge bg-primary">${q.cefrLevel}</span></td>
-            <td>${q.points ?? 1}</td>
+            <td>
+                <input type="number" class="form-control form-control-sm" style="width:70px" value="${q.points ?? 1}" data-points="${q.questionId}" step="0.1">
+            </td>
             <td class="text-end px-4">
                 <button class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${q.questionId})"><i class="bi bi-x-lg"></i></button>
             </td>
         </tr>
-    `).join('');
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+async function removeGroup(groupId) {
+    if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}/groups/${groupId}`, { method: 'DELETE' });
+        if (res.ok) loadQuizQuestions();
+        else { const r = await res.json(); alert(r.message || 'Lỗi'); }
+    } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
 // ── Remove question from quiz ──
@@ -202,12 +305,41 @@ async function removeQuestion(questionId) {
 }
 
 // ── Save reordered questions ──
-async function saveOrder() {
-    const orderInputs = document.querySelectorAll('[data-order]');
-    const orderedList = Array.from(orderInputs).map(input => ({
-        questionId: parseInt(input.getAttribute('data-order')),
-        orderIndex: parseInt(input.value)
-    }));
+async function saveChanges() {
+    const orderedList = [];
+
+    // Lấy câu lẻ
+    document.querySelectorAll('[data-order]').forEach(input => {
+        const qid = parseInt(input.getAttribute('data-order'));
+        const pointsInput = document.querySelector(`[data-points="${qid}"]`);
+        orderedList.push({
+            questionId: qid,
+            orderIndex: parseInt(input.value) || 1,
+            points: pointsInput ? parseFloat(pointsInput.value) : 1.0
+        });
+    });
+
+    // Lấy bộ Passage — dùng orderIndex riêng biệt để không ghi đè lên câu lẻ
+    document.querySelectorAll('[data-group-order]').forEach(input => {
+        const gid = parseInt(input.getAttribute('data-group-order'));
+        const gOrder = parseInt(input.value) || 1;
+        const gPointsInput = document.querySelector(`[data-group-points="${gid}"]`);
+        const gPoints = gPointsInput ? parseFloat(gPointsInput.value) : 1.0;
+
+        // Áp dụng orderIndex và points cho tất cả câu hỏi con trong group
+        quizQuestions.filter(q => q.groupId === gid).forEach(sq => {
+            orderedList.push({
+                questionId: sq.questionId,
+                orderIndex: gOrder,
+                points: gPoints
+            });
+        });
+    });
+
+    if (orderedList.length === 0) {
+        window.location.href = '/expert/quiz-management';
+        return;
+    }
 
     try {
         const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions/reorder`, {
@@ -215,8 +347,12 @@ async function saveOrder() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(orderedList)
         });
-        if (res.ok) { alert('Đã lưu thứ tự!'); loadQuizQuestions(); }
-        else { const r = await res.json(); alert(r.message || 'Lỗi'); }
+        if (res.ok) {
+            window.location.href = '/expert/quiz-management';
+        } else {
+            const r = await res.json();
+            alert(r.message || 'Lỗi khi lưu!');
+        }
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
@@ -271,24 +407,31 @@ async function loadBankQuestions(page) {
                     }
                 }
                 
+                let isAdded = false;
+                if (q.type === 'SINGLE') {
+                    isAdded = existingIds.has(q.id);
+                } else if (q.type === 'GROUP' && q.questions) {
+                    isAdded = q.questions.some(subQ => existingIds.has(subQ.questionId));
+                }
+
                 let actionBtn = '';
-                if (existingIds.has(q.questionId)) {
-                    actionBtn = '<span class="badge bg-light text-dark">Đã thêm</span>';
+                if (isAdded) {
+                    actionBtn = '<span class="badge bg-success text-white px-2 py-1"><i class="bi bi-check-lg me-1"></i>Đã thêm</span>';
                 } else if (!canAdd) {
                     actionBtn = '<span class="badge bg-warning text-dark" title="Không hỗ trợ cho Entry Test">Không hợp lệ</span>';
                 } else {
-                    actionBtn = `<button class="btn btn-sm btn-success" onclick="addToQuiz(${q.questionId})"><i class="bi bi-plus"></i></button>`;
+                    actionBtn = `<button class="btn btn-sm btn-success rounded-pill px-3" onclick="addToQuiz(${q.id}, '${q.type}')"><i class="bi bi-plus"></i> Thêm</button>`;
                 }
 
                 html += `
                 <tr>
-                    <td style="max-width:250px" class="text-truncate">${q.content || '—'}</td>
-                    <td>${typeName(q.questionType)}</td>
+                    <td style="max-width:250px" class="text-truncate" title="${q.content}">${q.content || '—'}</td>
+                    <td><span class="badge bg-light text-dark border-0">${typeName(q.questionType)}</span></td>
                     <td>${q.skill}</td>
-                    <td>${q.cefrLevel}</td>
+                    <td><span class="badge bg-info text-dark">${q.cefrLevel}</span></td>
                     <td>${q.topic || '—'}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewQuestion(${q.questionId})"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-info border-0 me-1" onclick="previewQuestion(${q.id})"><i class="bi bi-eye"></i></button>
                         ${actionBtn}
                     </td>
                 </tr>
@@ -351,12 +494,16 @@ async function previewQuestion(questionId) {
     } catch (e) { console.error(e); }
 }
 
-async function addToQuiz(questionId) {
+async function addToQuiz(id, type) {
     try {
         const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ questionId: questionId, points: 1.0 })
+            body: JSON.stringify({ 
+                questionId: id, 
+                itemType: type,
+                points: 1.0 
+            })
         });
         const result = await res.json();
         if (res.ok) {
