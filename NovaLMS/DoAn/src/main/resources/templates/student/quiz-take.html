@@ -95,8 +95,7 @@
                   <div class="col-md-5">
                     <select class="form-select p-3 border-2" th:name="'q_' + ${question.questionId} + '_' + ${opt.answerOptionId}">
                       <option value="">-- Chọn đáp án tương ứng --</option>
-                      <!-- Random matches frontend logic can populate, for simplicity just list them all -->
-                      <option th:each="matchOpt : ${question.options}" th:value="${matchOpt.matchTarget}" th:text="${matchOpt.matchTarget}"></option>
+                      <option th:each="rightOpt : ${question.matchRightOptions}" th:value="${rightOpt.title}" th:text="${rightOpt.title}"></option>
                     </select>
                   </div>
                 </div>
