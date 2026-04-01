@@ -120,7 +120,7 @@
                         <col style="width: 140px;">  <!-- Loại -->
                         <col style="width: 120px;">  <!-- Trạng thái -->
                         <col style="width: 80px;">   <!-- Đã dùng -->
-                        <col style="width: 90px;">   <!-- Thao tác -->
+                        <col style="width: 120px;">  <!-- Thao tác -->
                     </colgroup>
                     <thead class="table-light">
                     <tr>
@@ -131,7 +131,7 @@
                         <th class="py-3 text-center">Loại</th>
                         <th class="py-3 text-center">Trạng thái</th>
                         <th class="py-3 text-center">Đã dùng</th>
-                        <th class="py-3 text-end px-3" style="white-space: nowrap;">Thao tác</th>
+                        <th class="py-3 text-center px-3" style="white-space: nowrap;">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody id="questionsTableBody">
@@ -384,7 +384,6 @@ function renderTable(data) {
 
     if (totalText) totalText.textContent = `Tổng số: ${data.totalElements} mục`;
 
-    // totalText đã được set ở trên
     tbody.innerHTML = data.items.map((q, i) => {
         const isGroup = q.type === 'GROUP';
         return `
@@ -401,10 +400,12 @@ function renderTable(data) {
                 <td class="text-center"><span class="badge bg-info text-dark">${typeName(q.questionType)}</span></td>
                 <td class="text-center">${statusBadge(q.status)}</td>
                 <td class="text-center"><span class="badge bg-light text-dark">${q.usedInQuizCount}</span></td>
-                <td class="text-end px-4">
-                    <a href="/expert/question-bank/${q.id}/edit?type=${q.type}" class="btn btn-sm btn-outline-primary me-1" title="Sửa"><i class="bi bi-pencil"></i></a>
-                    ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success me-1" onclick="changeStatus(${q.id},'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
-                    ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id}, '${q.type}')" title="Xóa"><i class="bi bi-trash"></i></button>` : ''}
+                <td class="px-3">
+                    <div class="d-flex justify-content-center gap-1">
+                        <a href="/expert/question-bank/${q.id}/edit?type=${q.type}" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
+                        ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success" onclick="changeStatus(${q.id},'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
+                        ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id}, '${q.type}')" title="Xóa"><i class="bi bi-trash"></i></button>` : ''}
+                    </div>
                 </td>
             </tr>
             ${isGroup ? `<tr id="groupDetail${q.id}" class="d-none bg-white"><td colspan="8" class="p-0 border-0"><div class="px-5 py-3 bg-light-subtle shadow-inner" id="groupContent${q.id}"></div></td></tr>` : ''}
