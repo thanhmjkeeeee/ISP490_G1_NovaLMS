@@ -22,8 +22,16 @@ public class FileUploadApiController {
             return ResponseData.error(400, "Vui lòng chọn file để tải lên.");
         }
 
-        // Kiểm tra dung lượng (Audio 20MB, Image 5MB)
-        long maxSize = type.equals("audio") ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+        // Kiểm tra dung lượng (Audio 20MB, Image 5MB, Document 10MB)
+        long maxSize;
+        if (type.equals("audio")) {
+            maxSize = 20 * 1024 * 1024;
+        } else if (type.equals("document")) {
+            maxSize = 10 * 1024 * 1024;
+        } else {
+            maxSize = 5 * 1024 * 1024;
+        }
+
         if (file.getSize() > maxSize) {
             return ResponseData.error(400, "Dung lượng file vượt quá giới hạn cho phép (" + (maxSize / 1024 / 1024) + "MB).");
         }

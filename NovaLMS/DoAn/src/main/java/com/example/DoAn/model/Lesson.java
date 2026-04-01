@@ -29,7 +29,7 @@ public class Lesson {
     @Column(name = "type")
     private String type;
 
-    @Column(name = "content_text")
+    @Column(name = "content_text", columnDefinition = "TEXT")
     private String content_text;
 
     @Column(name = "order_index")
