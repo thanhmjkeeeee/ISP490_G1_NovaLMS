@@ -117,12 +117,6 @@
 			<version>5.2.5</version>
 		</dependency>
 
-		<!-- WebFlux HTTP client for OpenAI -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
-		</dependency>
-
 		<!-- OkHttp for reliable HTTP (fixes DNS on restricted environments) -->
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>

@@ -3,6 +3,7 @@ package com.example.DoAn.service.impl;
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.QuestionBankResponseDTO;
+import com.example.DoAn.dto.response.QuestionBankItemDTO;
 import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.AnswerOption;
@@ -10,12 +11,11 @@ import com.example.DoAn.model.Question;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.AnswerOptionRepository;
 import com.example.DoAn.repository.QuestionRepository;
+import com.example.DoAn.repository.QuestionGroupRepository;
+import com.example.DoAn.repository.QuizQuestionRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.IQuestionBankService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +31,8 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     private final QuestionRepository questionRepository;
     private final AnswerOptionRepository answerOptionRepository;
     private final UserRepository userRepository;
+    private final QuestionGroupRepository questionGroupRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     private static final Set<String> VALID_QUESTION_TYPES = Set.of(
         "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK",
@@ -190,27 +191,90 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuestionBankResponseDTO> getQuestions(
+    public PageResponse<QuestionBankItemDTO> getQuestions(
             String skill, String cefrLevel, String questionType,
             String topic, String status, String keyword,
             int page, int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Question> pageResult = questionRepository.findByFilters(
-            skill, cefrLevel, questionType, topic, status, keyword, pageable
+        // Chuẩn hóa tham số: "" -> null để @Query IS NULL hoạt động đúng
+        skill = (skill != null && !skill.trim().isEmpty()) ? skill : null;
+        cefrLevel = (cefrLevel != null && !cefrLevel.trim().isEmpty()) ? cefrLevel : null;
+        questionType = (questionType != null && !questionType.trim().isEmpty()) ? questionType : null;
+        topic = (topic != null && !topic.trim().isEmpty()) ? topic : null;
+        status = (status != null && !status.trim().isEmpty()) ? status : null;
+        keyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
+
+        // 1. Lấy danh sách câu hỏi lẻ
+        List<Question> loneQuestions = questionRepository.findAllLoneQuestions(
+            skill, cefrLevel, questionType, topic, status, keyword
         );
 
-        List<QuestionBankResponseDTO> items = pageResult.getContent().stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+        // 2. Lấy danh sách bộ câu hỏi (Passages)
+        List<com.example.DoAn.model.QuestionGroup> groups = questionGroupRepository.findByFilters(
+            skill, cefrLevel, topic, status, keyword
+        );
 
-        return PageResponse.<QuestionBankResponseDTO>builder()
-                .items(items)
-                .pageNo(pageResult.getNumber())
-                .pageSize(pageResult.getSize())
-                .totalPages(pageResult.getTotalPages())
-                .totalElements(pageResult.getTotalElements())
-                .last(pageResult.isLast())
+        // 3. Chuyển đổi và Gộp
+        List<QuestionBankItemDTO> allItems = new ArrayList<>();
+        loneQuestions.forEach(q -> allItems.add(toUnifiedItemDTO(q)));
+        groups.forEach(g -> allItems.add(toUnifiedItemDTO(g)));
+
+        // 4. Sắp xếp theo thời gian mới nhất (Nếu có trường createdAt), null đẩy xuống cuối
+        allItems.sort((a, b) -> {
+            if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
+            if (a.getCreatedAt() == null) return 1;
+            if (b.getCreatedAt() == null) return -1;
+            return b.getCreatedAt().compareTo(a.getCreatedAt());
+        });
+
+        // 5. Phân trang thủ công
+        int total = allItems.size();
+        int start = Math.min(page * size, total);
+        int end = Math.min(start + size, total);
+        List<QuestionBankItemDTO> pagedItems = allItems.subList(start, end);
+
+        return PageResponse.<QuestionBankItemDTO>builder()
+                .items(pagedItems)
+                .pageNo(page)
+                .pageSize(size)
+                .totalPages((int) Math.ceil((double) total / size))
+                .totalElements((long) total)
+                .last(end >= total)
+                .build();
+    }
+
+    private QuestionBankItemDTO toUnifiedItemDTO(Question q) {
+        return QuestionBankItemDTO.builder()
+                .id(q.getQuestionId())
+                .type("SINGLE")
+                .content(q.getContent())
+                .skill(q.getSkill())
+                .cefrLevel(q.getCefrLevel())
+                .topic(q.getTopic())
+                .status(q.getStatus())
+                .createdAt(q.getCreatedAt())
+                .questionType(q.getQuestionType() != null ? q.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
+                .subQuestionCount(1)
+                .usedInQuizCount(questionRepository.countQuizUsage(q.getQuestionId()))
+                .build();
+    }
+
+    private QuestionBankItemDTO toUnifiedItemDTO(com.example.DoAn.model.QuestionGroup g) {
+        return QuestionBankItemDTO.builder()
+                .id(g.getGroupId())
+                .type("GROUP")
+                .content(g.getGroupContent())
+                .skill(g.getSkill())
+                .cefrLevel(g.getCefrLevel())
+                .topic(g.getTopic())
+                .status(g.getStatus() != null ? g.getStatus() : "PUBLISHED")
+                .createdAt(g.getCreatedAt())
+                .questionType("PASSAGE")
+                .subQuestionCount(g.getQuestions() != null ? g.getQuestions().size() : 0)
+                .usedInQuizCount(quizQuestionRepository.countByQuestionGroup_GroupId(g.getGroupId()))
+                .questions(g.getQuestions() != null ? g.getQuestions().stream()
+                        .map(this::toResponseDTO)
+                        .collect(java.util.stream.Collectors.toList()) : null)
                 .build();
     }
 
@@ -324,19 +388,6 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(question.getQuestionId());
         long quizUsage = questionRepository.countQuizUsage(question.getQuestionId());
 
-        List<AnswerOption> lefts = opts.stream()
-                .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
-                .sorted((a, b) -> Integer.compare(
-                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
-                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
-                .toList();
-        List<AnswerOption> rights = opts.stream()
-                .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
-                .sorted((a, b) -> Integer.compare(
-                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
-                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
-                .toList();
-
         Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o ->
                 QuestionBankResponseDTO.AnswerOptionResponseDTO.builder()
                         .answerOptionId(o.getAnswerOptionId())
@@ -346,8 +397,32 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                         .matchTarget(o.getMatchTarget())
                         .build();
 
-        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> leftDTOs = lefts.stream().map(toDto).toList();
-        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> rightDTOs = rights.stream().map(toDto).toList();
+        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> optionDTOs;
+        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> rightDTOs = null;
+
+        if ("MATCHING".equals(question.getQuestionType())) {
+            List<AnswerOption> lefts = opts.stream()
+                    .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                    .sorted((a, b) -> Integer.compare(
+                            a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                            b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                    .toList();
+            List<AnswerOption> rights = opts.stream()
+                    .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                    .sorted((a, b) -> Integer.compare(
+                            a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                            b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                    .toList();
+            optionDTOs = lefts.stream().map(toDto).toList();
+            rightDTOs = rights.stream().map(toDto).toList();
+        } else {
+            optionDTOs = opts.stream()
+                    .sorted((a, b) -> Integer.compare(
+                            a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                            b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                    .map(toDto)
+                    .toList();
+        }
 
         return QuestionBankResponseDTO.builder()
                 .questionId(question.getQuestionId())
@@ -366,7 +441,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .usedInQuizCount((int) quizUsage)
-                .options(leftDTOs)
+                .options(optionDTOs)
                 .matchRightOptions(rightDTOs)
                 .build();
     }

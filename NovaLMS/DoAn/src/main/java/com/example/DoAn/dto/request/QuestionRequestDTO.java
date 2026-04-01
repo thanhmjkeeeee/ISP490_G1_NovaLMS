@@ -2,7 +2,6 @@ package com.example.DoAn.dto.request;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.util.List;
@@ -14,6 +13,7 @@ import java.util.List;
 public class QuestionRequestDTO {
 
     private Integer moduleId;
+    private Integer questionId;  // Dùng khi update câu hỏi con trong Group
 
     @NotBlank(message = "Content is required")
     private String content;
@@ -34,7 +34,6 @@ public class QuestionRequestDTO {
     private String imageUrl;
     private String status;
 
-    @NotEmpty(message = "At least one answer option is required")
     @Valid
     private List<AnswerOptionDTO> options;
 

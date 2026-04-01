@@ -4,7 +4,6 @@ import com.example.DoAn.model.QuizQuestion;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Integer> {
@@ -17,5 +16,13 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
 
     int countByQuizQuizId(Integer quizId);
 
-    Optional<QuizQuestion> findByQuizQuizIdAndQuestionQuestionId(Integer quizId, Integer questionId);
+    java.util.Optional<QuizQuestion> findByQuizQuizIdAndQuestionQuestionId(Integer quizId, Integer questionId);
+
+    void deleteByQuizQuizIdAndQuestionGroupGroupId(Integer quizId, Integer groupId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT qq.quiz.quizId) FROM QuizQuestion qq WHERE qq.questionGroup.groupId = :groupId")
+    long countByQuestionGroup_GroupId(@org.springframework.data.repository.query.Param("groupId") Integer groupId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(qq) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
+    long countByQuestion_QuestionId(@org.springframework.data.repository.query.Param("questionId") Integer questionId);
 }

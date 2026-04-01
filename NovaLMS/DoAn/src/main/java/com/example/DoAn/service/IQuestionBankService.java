@@ -3,6 +3,7 @@ package com.example.DoAn.service;
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.QuestionBankResponseDTO;
+import com.example.DoAn.dto.response.QuestionBankItemDTO;
 
 public interface IQuestionBankService {
 
@@ -14,7 +15,7 @@ public interface IQuestionBankService {
 
     QuestionBankResponseDTO getQuestionById(Integer questionId);
 
-    PageResponse<QuestionBankResponseDTO> getQuestions(String skill, String cefrLevel,
+    PageResponse<QuestionBankItemDTO> getQuestions(String skill, String cefrLevel,
         String questionType, String topic, String status, String keyword,
         int page, int size);
 
