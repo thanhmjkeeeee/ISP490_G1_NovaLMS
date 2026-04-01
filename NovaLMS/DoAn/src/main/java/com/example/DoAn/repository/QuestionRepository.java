@@ -1,8 +1,6 @@
 package com.example.DoAn.repository;
 
 import com.example.DoAn.model.Question;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,15 +26,15 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
            "(:questionType IS NULL OR q.questionType = :questionType) AND " +
            "(:topic IS NULL OR q.topic LIKE %:topic%) AND " +
            "(:status IS NULL OR q.status = :status) AND " +
-           "(:keyword IS NULL OR q.content LIKE %:keyword%) " +
+           "(:keyword IS NULL OR q.content LIKE %:keyword% OR q.topic LIKE %:keyword%) AND " +
+           "q.questionGroup IS NULL " +
            "ORDER BY q.createdAt DESC")
-    Page<Question> findByFilters(
+    List<Question> findAllLoneQuestions(
         @Param("skill") String skill,
         @Param("cefrLevel") String cefrLevel,
         @Param("questionType") String questionType,
         @Param("topic") String topic,
         @Param("status") String status,
-        @Param("keyword") String keyword,
-        Pageable pageable
+        @Param("keyword") String keyword
     );
 }

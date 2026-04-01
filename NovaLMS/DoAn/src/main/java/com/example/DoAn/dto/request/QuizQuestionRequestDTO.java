@@ -13,6 +13,7 @@ public class QuizQuestionRequestDTO {
     @NotNull(message = "questionId không được để trống")
     private Integer questionId;
 
+    private String itemType; // "SINGLE" hoặc "GROUP"
     private Integer orderIndex;
     private BigDecimal points;
 }

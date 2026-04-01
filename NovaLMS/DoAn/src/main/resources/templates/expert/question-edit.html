@@ -9,127 +9,109 @@
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='question-bank')}"></aside>
 <aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
 
-<main class="dash-main d-flex flex-column" id="dashMain">
+<style>
+    .split-container { display: flex; height: calc(100vh - 160px); gap: 20px; transition: all 0.3s ease; }
+    .passage-panel { flex: 0 0 45%; background: #fff; border-radius: 12px; border: 1px solid #eef2f6; overflow-y: auto; padding: 20px; }
+    .questions-panel { flex: 1; overflow-y: auto; padding: 5px; }
+    .single-container { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    
+    .upgrade-banner { 
+        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); 
+        color: white; border-radius: 12px; padding: 15px 20px;
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+    }
+    .preview-box { border: 2px dashed #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; }
+    .option-card { background: #fdfdfd; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; transition: all 0.2s; }
+    .option-card:hover { border-color: #6366f1; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1); }
+</style>
 
-    <div class="d-flex justify-content-between align-items-end mb-4">
+<main class="dash-main d-flex flex-column" id="dashMain">
+    
+    <!-- Top Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Chỉnh sửa câu hỏi</h3>
-            <p class="text-muted small m-0">Cập nhật thông tin câu hỏi #<span th:text="${questionId}"></span></p>
+            <h4 class="fw-bold m-0" id="pageTitle">Cập nhật câu hỏi</h4>
+            <span class="text-muted small">#<span th:text="${questionId}"></span> • <span id="modeDisplay">Chế độ câu hỏi đơn</span></span>
         </div>
-        <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Quay lại
-        </a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-light border px-3">Hủy bỏ</a>
+            <button class="btn btn-sm btn-primary px-4 rounded-pill" onclick="saveAll()">Lưu thay đổi</button>
+        </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-auto">
-        <div class="card-body">
-            <form id="questionForm">
-                <div class="row g-3 mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Loại câu hỏi <span class="text-danger">*</span></label>
-                        <select id="questionType" class="form-select" required onchange="onTypeChange()">
-                            <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Single)</option>
-                            <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Multi)</option>
-                            <option value="FILL_IN_BLANK">Fill in the Blank</option>
+
+
+    <!-- Unified Editor Container -->
+    <div id="editorLayout" class="single-container">
+        <!-- SINGLE MODE: Form fields will be rendered here -->
+        <!-- GROUP MODE: Will switch to split-container via JS -->
+        <div id="formContent">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-uppercase">Kỹ năng</label>
+                    <select id="skill" class="form-select border-0 bg-light shadow-none" onchange="onSkillChange()">
+                        <option value="READING">Reading</option>
+                        <option value="LISTENING">Listening</option>
+                        <option value="WRITING">Writing</option>
+                        <option value="SPEAKING">Speaking</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-uppercase">Cấp độ CEFR</label>
+                    <select id="cefrLevel" class="form-select border-0 bg-light shadow-none">
+                        <option value="A1">A1</option><option value="A2">A2</option>
+                        <option value="B1">B1</option><option value="B2">B2</option>
+                        <option value="C1">C1</option><option value="C2">C2</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-uppercase">Chủ đề</label>
+                    <input type="text" id="topic" class="form-control border-0 bg-light shadow-none" placeholder="Ví dụ: Education, Travel...">
+                </div>
+            </div>
+
+            <!-- This div will be swapped between Single Content and Passage Content -->
+            <div id="mainContentArea">
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-uppercase" id="contentLabel">Nội dung câu hỏi</label>
+                    <textarea id="content" class="form-control border-0 bg-light shadow-none" rows="5" placeholder="Nhập câu hỏi tại đây..."></textarea>
+                </div>
+
+                <div class="row g-3 mb-4" id="mediaSection">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-uppercase">Audio</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="audioUrl" class="form-control form-control-sm border-0 bg-light" placeholder="URL Audio...">
+                            <label class="btn btn-light btn-sm border-start-0" for="audioUpload"><i class="bi bi-upload"></i></label>
+                            <input type="file" id="audioUpload" class="d-none" accept="audio/*" onchange="uploadFile(this, 'audio')">
+                        </div>
+                        <div id="audioPreviewWrap" class="preview-box d-none"><audio id="audioPreview" controls class="w-100"></audio></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-uppercase">Hình ảnh</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="imageUrl" class="form-control form-control-sm border-0 bg-light" placeholder="URL Hình ảnh...">
+                            <label class="btn btn-light btn-sm border-start-0" for="imageUpload"><i class="bi bi-image"></i></label>
+                            <input type="file" id="imageUpload" class="d-none" accept="image/*" onchange="uploadFile(this, 'image')">
+                        </div>
+                        <div id="imagePreviewWrap" class="preview-box d-none text-center"><img id="imagePreview" src="" class="img-fluid rounded" style="max-height:150px"></div>
+                    </div>
+                </div>
+                
+                <div id="optionsWrapper">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-uppercase small">Đáp án & Lựa chọn</h6>
+                        <select id="questionType" class="form-select form-select-sm w-auto border-0 bg-light fw-bold text-primary" onchange="renderOptions()">
+                            <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>
+                            <option value="FILL_IN_BLANK">Fill in Blank</option>
                             <option value="MATCHING">Matching</option>
                             <option value="WRITING">Writing (Tự luận)</option>
-                            <option value="SPEAKING">Speaking (Ghi âm)</option>
                         </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Kỹ năng <span class="text-danger">*</span></label>
-                        <select id="skill" class="form-select" required>
-                            <option value="LISTENING">Listening</option>
-                            <option value="READING">Reading</option>
-                            <option value="WRITING">Writing</option>
-                            <option value="SPEAKING">Speaking</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Cấp độ CEFR <span class="text-danger">*</span></label>
-                        <select id="cefrLevel" class="form-select" required>
-                            <option value="A1">A1</option><option value="A2">A2</option>
-                            <option value="B1">B1</option><option value="B2">B2</option>
-                            <option value="C1">C1</option><option value="C2">C2</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Chủ đề</label>
-                        <input type="text" id="topic" class="form-control">
-                    </div>
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Tags</label>
-                        <input type="text" id="tags" class="form-control" placeholder="tag1, tag2, tag3">
-                    </div>
-
-                    <!-- Audio Upload -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Audio <span class="text-muted small fw-normal">(mp3, wav, ogg – tối đa 20MB)</span></label>
-                        <div class="input-group mb-1">
-                            <input type="text" id="audioUrl" class="form-control form-control-sm"
-                                   placeholder="Dán link hoặc chọn file..." 
-                                   oninput="updatePreview('audio', this.value, 'audioPreviewWrap', 'audioPreview')">
-                            <label class="btn btn-outline-secondary btn-sm mb-0" for="audioFileInput"
-                                   title="Chọn file audio từ máy">
-                                <i class="bi bi-upload"></i>
-                            </label>
-                        </div>
-                        <input type="file" id="audioFileInput" accept="audio/*" class="d-none"
-                               onchange="handleFileUpload(this,'audio','audioUrl','audioPreviewWrap')">
-                        <div id="audioPreviewWrap" class="mt-1 d-none">
-                            <audio id="audioPreview" controls class="w-100" style="height:36px;"></audio>
-                        </div>
-                        <small id="audioUploadStatus" class="text-muted"></small>
-                    </div>
-
-                    <!-- Image Upload -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">Hình ảnh <span class="text-muted small fw-normal">(jpg, png, webp – tối đa 5MB)</span></label>
-                        <div class="input-group mb-1">
-                            <input type="text" id="imageUrl" class="form-control form-control-sm"
-                                   placeholder="Dán link hoặc chọn file..."
-                                   oninput="updatePreview('image', this.value, 'imagePreviewWrap', 'imagePreview')">
-                            <label class="btn btn-outline-secondary btn-sm mb-0" for="imageFileInput"
-                                   title="Chọn file ảnh từ máy">
-                                <i class="bi bi-image"></i>
-                            </label>
-                        </div>
-                        <input type="file" id="imageFileInput" accept="image/*" class="d-none"
-                               onchange="handleFileUpload(this,'image','imageUrl','imagePreviewWrap')">
-                        <div id="imagePreviewWrap" class="mt-1 d-none">
-                            <img id="imagePreview" src="" alt="preview"
-                                 class="img-fluid rounded border" style="max-height:120px;object-fit:cover;">
-                        </div>
-                        <small id="imageUploadStatus" class="text-muted"></small>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Nội dung câu hỏi <span class="text-danger">*</span></label>
-                    <textarea id="content" class="form-control" rows="4" required></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Giải thích đáp án</label>
-                    <textarea id="explanation" class="form-control" rows="2"></textarea>
-                </div>
-
-                <div id="optionsSection">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label class="form-label fw-bold mb-0">Đáp án</label>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addOption()">
-                            <i class="bi bi-plus-lg me-1"></i> Thêm đáp án
-                        </button>
                     </div>
                     <div id="optionsContainer"></div>
+                    <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2" onclick="addOption()"><i class="bi bi-plus-circle me-1"></i>Thêm lựa chọn</button>
                 </div>
-
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="button" class="btn btn-outline-secondary" onclick="updateQuestion()">Lưu thay đổi</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -139,152 +121,397 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script th:inline="javascript">
-const questionId = /*[[${questionId}]]*/ 0;
-let optionIndex = 0;
-const noOptionsTypes = ['WRITING', 'SPEAKING'];
+const itemId = /*[[${itemId}]]*/ 0;
+const itemType = /*[[${itemType}]]*/ 'SINGLE';
+let isGroupMode = false;
+let currentGroupId = null;
+let subQuestions = [];
+let subQuestionCounter = 0;
 
-function onTypeChange() {
-    const type = document.getElementById('questionType').value;
-    document.getElementById('optionsSection').style.display = noOptionsTypes.includes(type) ? 'none' : 'block';
-}
-
-// ─── FILE UPLOAD ────────────────────────────────────────────────────────────
-function updatePreview(type, url, wrapId, previewId) {
-    const wrap = document.getElementById(wrapId);
-    const preview = document.getElementById(previewId);
-    if (url && url.length > 0) {
-        wrap.classList.remove('d-none');
-        preview.src = url;
-    } else {
-        wrap.classList.add('d-none');
-        preview.src = "";
-    }
-}
-
-async function handleFileUpload(input, type, urlFieldId, previewWrapperId) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const statusEl = document.getElementById(type === 'audio' ? 'audioUploadStatus' : 'imageUploadStatus');
-    statusEl.textContent = 'Đang tải lên...';
-    statusEl.className = 'text-warning small';
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+async function loadData() {
     try {
-        const res = await fetch(`/api/v1/upload/${type}`, { method: 'POST', body: formData });
-        const result = await res.json();
-
-        if (res.ok && result.data) {
-            document.getElementById(urlFieldId).value = result.data;
-            statusEl.textContent = '✓ Upload thành công';
-            statusEl.className = 'text-success small';
-
-            updatePreview(type, result.data, previewWrapperId, type === 'image' ? 'imagePreview' : 'audioPreview');
-        } else {
-            statusEl.textContent = '✗ ' + (result.message || 'Upload thất bại');
-            statusEl.className = 'text-danger small';
+        if (itemType === 'GROUP') {
+             loadGroup(itemId);
+             return;
         }
-    } catch (e) {
-        statusEl.textContent = '✗ Lỗi kết nối: ' + e.message;
-        statusEl.className = 'text-danger small';
-    }
-    input.value = '';
-}
-
-function addOption(data = {}) {
-    const type = document.getElementById('questionType').value;
-    const isMatching = type === 'MATCHING';
-    const container = document.getElementById('optionsContainer');
-    const idx = optionIndex++;
-    const div = document.createElement('div');
-    div.className = 'row g-2 mb-2 align-items-center option-row';
-    div.innerHTML = `
-        <div class="${isMatching ? 'col-md-4' : 'col-md-6'}">
-            <input type="text" class="form-control form-control-sm" data-field="title" value="${data.title || ''}">
-        </div>
-        ${isMatching ? `<div class="col-md-4">
-            <input type="text" class="form-control form-control-sm" data-field="matchTarget" value="${data.matchTarget || ''}">
-        </div>` : ''}
-        <div class="col-md-2">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" data-field="correct" ${data.correctAnswer ? 'checked' : ''}>
-                <label class="form-check-label small">Đúng</label>
-            </div>
-        </div>
-        <div class="col-md-1">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.option-row').remove()"><i class="bi bi-trash"></i></button>
-        </div>
-    `;
-    container.appendChild(div);
-}
-
-function collectOptions() {
-    return Array.from(document.querySelectorAll('.option-row')).map((row, i) => ({
-        title: row.querySelector('[data-field="title"]').value,
-        correct: row.querySelector('[data-field="correct"]').checked,
-        orderIndex: i,
-        matchTarget: row.querySelector('[data-field="matchTarget"]')?.value || null
-    }));
-}
-
-async function loadQuestion() {
-    try {
-        const res = await fetch(`/api/v1/expert/question-bank/${questionId}`);
+        const res = await fetch(`/api/v1/expert/question-bank/${itemId}`);
         const result = await res.json();
-        if (result.status === 200 && result.data) {
-            const q = result.data;
-            document.getElementById('questionType').value = q.questionType;
-            document.getElementById('skill').value = q.skill;
-            document.getElementById('cefrLevel').value = q.cefrLevel;
-            document.getElementById('topic').value = q.topic || '';
-            document.getElementById('tags').value = q.tags || '';
-            document.getElementById('audioUrl').value = q.audioUrl || '';
-            document.getElementById('imageUrl').value = q.imageUrl || '';
-            
-            // Trigger preview
-            if (q.audioUrl) updatePreview('audio', q.audioUrl, 'audioPreviewWrap', 'audioPreview');
-            if (q.imageUrl) updatePreview('image', q.imageUrl, 'imagePreviewWrap', 'imagePreview');
-
-            document.getElementById('content').value = q.content || '';
-            document.getElementById('explanation').value = q.explanation || '';
-            onTypeChange();
-            if (q.options && q.options.length > 0) {
-                q.options.forEach(opt => addOption(opt));
-            }
+        if (result.status === 200) {
+            renderSingle(result.data);
         }
     } catch (e) { console.error(e); }
 }
 
-async function updateQuestion() {
-    const type = document.getElementById('questionType').value;
+function renderSingle(q) {
+    document.getElementById('skill').value = q.skill;
+    document.getElementById('cefrLevel').value = q.cefrLevel;
+    document.getElementById('topic').value = q.topic || '';
+    document.getElementById('content').value = q.content || '';
+    document.getElementById('questionType').value = q.questionType;
+    document.getElementById('audioUrl').value = q.audioUrl || '';
+    document.getElementById('imageUrl').value = q.imageUrl || '';
+    
+    if(q.audioUrl) updatePreview('audio', q.audioUrl);
+    if(q.imageUrl) updatePreview('image', q.imageUrl);
+    
+    renderOptions(q.options || []);
+}
+
+async function loadGroup(groupId) {
+    isGroupMode = true;
+    currentGroupId = groupId;
+    try {
+        const res = await fetch(`/api/v1/expert/questions/groups/${groupId}`);
+        const result = await res.json();
+        if (result.status === 200) {
+            switchToSplitView(result.data);
+        }
+    } catch (e) { console.error(e); }
+}
+
+function switchToSplitView(groupData) {
+    const layout = document.getElementById('editorLayout');
+    layout.className = 'split-container';
+    document.getElementById('modeDisplay').textContent = 'Chế độ bộ câu hỏi (Passage)';
+    
+    layout.innerHTML = `
+        <div class="passage-panel shadow-sm">
+            <h6 class="fw-bold mb-3">NỘI DUNG BÀI ĐỌC/NGHE</h6>
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label small fw-bold text-muted">KỸ NĂNG</label>
+                    <select id="skill" class="form-select border-0 bg-light">
+                        <option value="READING" ${groupData.skill === 'READING' ? 'selected' : ''}>Reading</option>
+                        <option value="LISTENING" ${groupData.skill === 'LISTENING' ? 'selected' : ''}>Listening</option>
+                        <option value="WRITING" ${groupData.skill === 'WRITING' ? 'selected' : ''}>Writing</option>
+                        <option value="SPEAKING" ${groupData.skill === 'SPEAKING' ? 'selected' : ''}>Speaking</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label small fw-bold text-muted">CEFR</label>
+                    <select id="cefrLevel" class="form-select border-0 bg-light">
+                        <option value="A1" ${groupData.cefrLevel === 'A1' ? 'selected' : ''}>A1</option><option value="A2" ${groupData.cefrLevel === 'A2' ? 'selected' : ''}>A2</option>
+                        <option value="B1" ${groupData.cefrLevel === 'B1' ? 'selected' : ''}>B1</option><option value="B2" ${groupData.cefrLevel === 'B2' ? 'selected' : ''}>B2</option>
+                        <option value="C1" ${groupData.cefrLevel === 'C1' ? 'selected' : ''}>C1</option><option value="C2" ${groupData.cefrLevel === 'C2' ? 'selected' : ''}>C2</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">TIÊU ĐỀ/CHỦ ĐỀ</label>
+                <input type="text" id="groupTopic" class="form-control border-0 bg-light" value="${groupData.topic || ''}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">NỘI DUNG CHÍNH</label>
+                <textarea id="groupContent" class="form-control border-0 bg-light" rows="12">${groupData.groupContent || ''}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">MEDIA</label>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <input type="text" id="groupAudio" class="form-control form-control-sm border-0 bg-light mb-1" value="${groupData.audioUrl || ''}" placeholder="Audio URL">
+                        <input type="file" class="form-control form-control-sm" accept="audio/*" onchange="uploadFile(this, 'audio', 'groupAudio')">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" id="groupImage" class="form-control form-control-sm border-0 bg-light mb-1" value="${groupData.imageUrl || ''}" placeholder="Image URL">
+                        <input type="file" class="form-control form-control-sm" accept="image/*" onchange="uploadFile(this, 'image', 'groupImage')">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="questions-panel" id="subQuestionsList">
+            <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+                <h6 class="fw-bold m-0">DANH SÁCH CÂU HỎI CON</h6>
+                <button class="btn btn-sm btn-primary rounded-pill" onclick="addSubQuestion()"><i class="bi bi-plus-lg me-1"></i>Thêm câu</button>
+            </div>
+            <div id="subQuestionsContainer"></div>
+        </div>
+    `;
+    
+    subQuestions = groupData.questions || [];
+    renderSubQuestions();
+}
+
+function getSubOptionHTML(data, type) {
+    const isMatching = type === 'MATCHING';
+    const checked = data.correctAnswer || data.correct ? 'checked' : '';
+    const title = data.title || '';
+    const match = data.matchTarget || '';
+    
+    return `
+        <div class="d-flex align-items-center mb-1 sub-opt-row border-bottom pb-1">
+            ${!isMatching ? `<input type="checkbox" class="form-check-input me-2 mt-0 sub-chk-correct" ${checked}>` : ''}
+            <input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none sub-opt-title" value="${title}" placeholder="${isMatching ? 'Vế trái' : 'Nhập đáp án...'}">
+            ${isMatching ? `<input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none border-start ps-2 sub-opt-match" value="${match}" placeholder="Vế phải">` : ''}
+            <button class="btn btn-sm text-muted p-0 ms-2" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
+        </div>
+    `;
+}
+
+function renderSubQuestions() {
+    const container = document.getElementById('subQuestionsContainer');
+    container.innerHTML = '';
+    subQuestionCounter = 0;
+    subQuestions.forEach(q => {
+        const id = subQuestionCounter++;
+        const div = document.createElement('div');
+        div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
+        div.id = `sub-q-${id}`;
+        // Lưu lại questionId để backend có thể update in-place
+        if (q.questionId) div.dataset.questionId = q.questionId;
+        div.innerHTML = `
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-light text-dark border q-number">Câu hỏi ${container.children.length + 1}</span>
+                    <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
+                </div>
+                <!-- Selection Type -->
+                <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubType(this, ${id})">
+                    <option value="MULTIPLE_CHOICE_SINGLE" ${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'selected' : ''}>Multiple Choice Single</option>
+                    <option value="MULTIPLE_CHOICE_MULTI" ${q.questionType === 'MULTIPLE_CHOICE_MULTI' ? 'selected' : ''}>Multiple Choice Multi</option>
+                    <option value="FILL_IN_BLANK" ${q.questionType === 'FILL_IN_BLANK' ? 'selected' : ''}>Fill in the Blank</option>
+                    <option value="MATCHING" ${q.questionType === 'MATCHING' ? 'selected' : ''}>Matching</option>
+                    <option value="WRITING" ${q.questionType === 'WRITING' ? 'selected' : ''}>Writing / Tự luận</option>
+                </select>
+                <!-- Question Content -->
+                <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nội dung câu hỏi..." value="${q.content || ''}">
+                <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
+                <!-- Options container -->
+                <div class="sub-options-container" ${q.questionType === 'WRITING' ? 'style="display:none;"' : ''}>
+                    ${(q.options || []).map(opt => getSubOptionHTML(opt, q.questionType)).join('')}
+                </div>
+                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" ${q.questionType === 'WRITING' ? 'style="display:none;"' : ''} onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function addSubQuestion() {
+    const container = document.getElementById('subQuestionsContainer');
+    const id = subQuestionCounter++;
+    const div = document.createElement('div');
+    div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
+    div.id = `sub-q-${id}`;
+    div.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="badge bg-light text-dark border q-number">${container.children.length + 1}</span>
+                <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
+            </div>
+            <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubType(this, ${id})">
+                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
+                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
+                <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                <option value="MATCHING">Matching</option>
+                <option value="WRITING">Writing / Tự luận</option>
+            </select>
+            <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nội dung câu hỏi con...">
+            <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
+            <div class="sub-options-container"></div>
+            <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
+        </div>
+    `;
+    container.appendChild(div);
+    addSubOption(id); addSubOption(id);
+}
+
+function removeSubQuestion(id) {
+    document.getElementById(`sub-q-${id}`).remove();
+    document.querySelectorAll('.q-number').forEach((el, idx) => el.textContent = idx + 1);
+}
+
+function updateSubType(selectEl, qId) {
+    const type = selectEl.value;
+    const container = document.querySelector(`#sub-q-${qId} .sub-options-container`);
+    const addBtn = document.querySelector(`#sub-q-${qId} .sub-add-btn`);
+    
+    container.innerHTML = '';
+    if (type === 'WRITING') {
+        container.style.display = 'none';
+        if(addBtn) addBtn.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    if(addBtn) addBtn.style.display = 'inline-block';
+    
+    const count = type === 'MATCHING' ? 3 : 4;
+    for(let i=0; i<count; i++) addSubOption(qId, type);
+}
+
+function addSubOption(qId, forceType = null) {
+    const qDiv = document.querySelector(`#sub-q-${qId}`);
+    if(!qDiv) return;
+    const type = forceType || qDiv.querySelector('.sub-type').value;
+    const container = qDiv.querySelector('.sub-options-container');
+    
+    const temp = document.createElement('div');
+    temp.innerHTML = getSubOptionHTML({}, type);
+    container.appendChild(temp.firstElementChild);
+}
+
+async function saveAll() {
+    if(isGroupMode) {
+        const body = {
+            topic: document.getElementById('groupTopic').value,
+            groupContent: document.getElementById('groupContent').value,
+            audioUrl: document.getElementById('groupAudio').value,
+            imageUrl: document.getElementById('groupImage').value,
+            skill: document.getElementById('skill').value,
+            cefrLevel: document.getElementById('cefrLevel').value,
+            questions: Array.from(document.querySelectorAll('.sub-question-item')).map(item => {
+                const subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => {
+                    const chk = opt.querySelector('.sub-chk-correct');
+                    const matchEl = opt.querySelector('.sub-opt-match');
+                    return {
+                        title: opt.querySelector('.sub-opt-title').value,
+                        correct: chk ? chk.checked : false,
+                        matchTarget: matchEl ? matchEl.value : null
+                    };
+                });
+                const qId = item.dataset.questionId ? parseInt(item.dataset.questionId) : null;
+                return {
+                    questionId: qId,  // Trượng quan trọng: để backend update in-place
+                    content: item.querySelector('.sub-content').value,
+                    questionType: item.querySelector('.sub-type').value,
+                    skill: document.getElementById('skill').value,
+                    cefrLevel: document.getElementById('cefrLevel').value,
+                    options: subOpts
+                };
+            })
+        };
+        try {
+            const res = await fetch(`/api/v1/expert/questions/groups/${currentGroupId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await res.json();
+            if(res.ok) { 
+                alert("Cập nhật bộ câu hỏi thành công!"); 
+                window.location.href = '/expert/question-bank'; 
+            } else {
+                alert("Lỗi: " + result.message);
+            }
+        } catch(e) { console.error(e); alert("Lỗi kết nối"); }
+    } else {
+        updateSingle();
+    }
+}
+
+async function updateSingle() {
     const body = {
         content: document.getElementById('content').value,
-        questionType: type,
+        questionType: document.getElementById('questionType').value,
         skill: document.getElementById('skill').value,
         cefrLevel: document.getElementById('cefrLevel').value,
-        topic: document.getElementById('topic').value || null,
-        tags: document.getElementById('tags').value || null,
-        explanation: document.getElementById('explanation').value || null,
-        audioUrl: document.getElementById('audioUrl').value || null,
-        imageUrl: document.getElementById('imageUrl').value || null,
-        options: noOptionsTypes.includes(type) ? [] : collectOptions()
+        topic: document.getElementById('topic').value,
+        audioUrl: document.getElementById('audioUrl').value,
+        imageUrl: document.getElementById('imageUrl').value,
+        options: collectOptions()
     };
-
     try {
-        const res = await fetch(`/api/v1/expert/question-bank/${questionId}`, {
+        const res = await fetch(`/api/v1/expert/question-bank/${itemId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
         const result = await res.json();
-        if (res.ok) { alert('Cập nhật thành công!'); window.location.href = '/expert/question-bank'; }
-        else { alert(result.message || 'Có lỗi xảy ra.'); }
-    } catch (e) { alert('Lỗi: ' + e.message); }
+        if(res.ok) { 
+            alert("Cập nhật thành công!"); 
+            window.location.href = '/expert/question-bank'; 
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    } catch(e) { console.error(e); alert("Lỗi kết nối server"); }
 }
 
-loadQuestion();
+function renderOptions(options = []) {
+    const type = document.getElementById('questionType').value;
+    const container = document.getElementById('optionsContainer');
+    const addBtn = document.querySelector('button[onclick="addOption()"]');
+    
+    container.innerHTML = '';
+    if (type === 'WRITING') {
+        container.style.display = 'none';
+        if (addBtn) addBtn.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    if (addBtn) addBtn.style.display = 'inline-block';
+    
+    if(options.length === 0) {
+        for(let i=0; i<(type==='MATCHING'?3:4); i++) _addOptionRow(container);
+    } else {
+        options.forEach(opt => _addOptionRow(container, opt));
+    }
+}
+
+function _addOptionRow(container, data = {}) {
+    const type = document.getElementById('questionType').value;
+    const isMatching = type === 'MATCHING';
+    
+    const div = document.createElement('div');
+    div.className = 'option-card p-2 mb-2';
+    div.innerHTML = `
+        <div class="input-group input-group-sm border-0">
+            ${!isMatching ? `
+            <div class="input-group-text bg-transparent border-0">
+                <input class="form-check-input mt-0" type="checkbox" data-field="correct" ${data.correctAnswer ? 'checked' : ''}>
+            </div>` : ''}
+            <input type="text" class="form-control border-0 bg-transparent shadow-none" data-field="title" value="${data.title || ''}" placeholder="${isMatching ? 'Vế trái' : 'Nhập lựa chọn...'}">
+            ${isMatching ? `
+            <input type="text" class="form-control border-0 bg-transparent shadow-none border-start" data-field="matchTarget" value="${data.matchTarget || ''}" placeholder="Vế phải">
+            ` : ''}
+            <button class="btn btn-sm text-muted" onclick="this.closest('.option-card').remove()"><i class="bi bi-x"></i></button>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function addOption() {
+    const container = document.getElementById('optionsContainer');
+    _addOptionRow(container);
+}
+
+function collectOptions() {
+    return Array.from(document.querySelectorAll('.option-card')).map((card, i) => {
+        const correctEl = card.querySelector('[data-field="correct"]');
+        const matchEl = card.querySelector('[data-field="matchTarget"]');
+        return {
+            title: card.querySelector('[data-field="title"]').value,
+            correct: correctEl ? correctEl.checked : false,
+            matchTarget: matchEl ? matchEl.value : null,
+            orderIndex: i
+        };
+    });
+}
+
+function updatePreview(type, url) {
+    const wrap = document.getElementById(type + 'PreviewWrap');
+    const preview = document.getElementById(type + 'Preview');
+    if(url) { wrap.classList.remove('d-none'); preview.src = url; }
+    else { wrap.classList.add('d-none'); }
+}
+
+async function uploadFile(input, type, targetId) {
+    const file = input.files[0];
+    if(!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+        const res = await fetch(`/api/v1/upload/${type}`, { method: 'POST', body: formData });
+        const result = await res.json();
+        if(res.ok && result.data) {
+            document.getElementById(targetId || (type + 'Url')).value = result.data;
+            updatePreview(type, result.data);
+            alert('Tải lên thành công!');
+        }
+    } catch(e) { console.error(e); }
+}
+
+loadData();
 </script>
 </body>
 </html>

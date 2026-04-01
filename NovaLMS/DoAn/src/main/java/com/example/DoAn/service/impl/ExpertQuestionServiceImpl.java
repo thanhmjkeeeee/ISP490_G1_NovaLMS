@@ -2,7 +2,9 @@ package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
+import com.example.DoAn.dto.request.QuestionGroupRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
+import com.example.DoAn.dto.response.QuestionGroupResponseDTO;
 import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.*;
@@ -24,6 +26,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
     private final AnswerOptionRepository answerOptionRepository;
     private final ModuleRepository moduleRepository;
     private final UserRepository userRepository;
+    private final QuestionGroupRepository questionGroupRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -216,6 +220,9 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .moduleId(module != null ? module.getModuleId() : null)
                 .moduleName(module != null ? module.getModuleName() : null)
                 .content(question.getContent())
+                .questionType(question.getQuestionType())
+                .skill(question.getSkill())
+                .cefrLevel(question.getCefrLevel())
                 .status(question.getStatus())
                 .optionCount(opts.size())
                 .correctOptionCount(correctCount)
@@ -295,6 +302,215 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
             saved++;
         }
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public QuestionGroupResponseDTO createQuestionGroup(QuestionGroupRequestDTO request, String email) {
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        QuestionGroup group = QuestionGroup.builder()
+                .groupContent(request.getGroupContent())
+                .audioUrl(request.getAudioUrl())
+                .imageUrl(request.getImageUrl())
+                .skill(request.getSkill())
+                .cefrLevel(request.getCefrLevel())
+                .topic(request.getTopic())
+                .explanation(request.getExplanation())
+                .status(request.getStatus() != null ? request.getStatus() : "PUBLISHED")
+                .user(expert)
+                .build();
+        
+        questionGroupRepository.save(group);
+
+        if (request.getQuestions() != null) {
+            if (group.getQuestions() == null) {
+                group.setQuestions(new java.util.ArrayList<>());
+            }
+            for (QuestionRequestDTO qReq : request.getQuestions()) {
+                group.getQuestions().add(saveChildQuestion(group, qReq, expert));
+            }
+        }
+
+        return getQuestionGroupById(group.getGroupId(), email);
+    }
+
+    @Override
+    @Transactional
+    public QuestionGroupResponseDTO updateQuestionGroup(Integer groupId, QuestionGroupRequestDTO request, String email) {
+        QuestionGroup group = questionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi."));
+        
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        if (!group.getUser().getUserId().equals(expert.getUserId())) {
+            throw new InvalidDataException("Bạn không có quyền sửa bộ câu hỏi này.");
+        }
+
+        if (request.getGroupContent() != null) group.setGroupContent(request.getGroupContent());
+        if (request.getAudioUrl() != null) group.setAudioUrl(request.getAudioUrl());
+        if (request.getImageUrl() != null) group.setImageUrl(request.getImageUrl());
+        if (request.getSkill() != null) group.setSkill(request.getSkill());
+        if (request.getCefrLevel() != null) group.setCefrLevel(request.getCefrLevel());
+        if (request.getTopic() != null) group.setTopic(request.getTopic());
+        if (request.getExplanation() != null) group.setExplanation(request.getExplanation());
+        if (request.getStatus() != null) group.setStatus(request.getStatus());
+
+        // Cập nhật câu hỏi con: update in-place, tránh xóa câu đang dùng trong quiz
+        if (request.getQuestions() != null) {
+            List<Question> existingChildren = group.getQuestions() != null
+                    ? new java.util.ArrayList<>(group.getQuestions())
+                    : new java.util.ArrayList<>();
+
+            // Lấy danh sách ID câu hỏi con mà request muốn giữ lại (có questionId)
+            List<Integer> keepIds = request.getQuestions().stream()
+                    .filter(q -> q.getQuestionId() != null)
+                    .map(QuestionRequestDTO::getQuestionId)
+                    .collect(java.util.stream.Collectors.toList());
+
+            // Xóa những câu không còn trong request VÀ không bị dùng trong quiz
+            for (Question old : existingChildren) {
+                if (!keepIds.contains(old.getQuestionId())) {
+                    long quizUsage = quizQuestionRepository.countByQuestion_QuestionId(old.getQuestionId());
+                    if (quizUsage == 0) {
+                        answerOptionRepository.deleteByQuestionQuestionId(old.getQuestionId());
+                        questionRepository.delete(old);
+                    }
+                    // Nếu đang dùng trong quiz → giữ lại, không làm gì
+                }
+            }
+
+            // Update hoặc tạo mới từng câu trong request
+            List<Question> newChildren = new java.util.ArrayList<>();
+            for (QuestionRequestDTO qReq : request.getQuestions()) {
+                if (qReq.getQuestionId() != null) {
+                    // Update in-place
+                    questionRepository.findById(qReq.getQuestionId()).ifPresent(q -> {
+                        if (qReq.getContent() != null) q.setContent(qReq.getContent());
+                        if (qReq.getQuestionType() != null) q.setQuestionType(qReq.getQuestionType());
+                        q.setSkill(group.getSkill());
+                        q.setCefrLevel(group.getCefrLevel());
+                        q.setTopic(group.getTopic());
+                        if (qReq.getExplanation() != null) q.setExplanation(qReq.getExplanation());
+                        questionRepository.save(q);
+                        // Update answer options
+                        if (qReq.getOptions() != null && !qReq.getOptions().isEmpty()) {
+                            answerOptionRepository.deleteByQuestionQuestionId(q.getQuestionId());
+                            for (QuestionRequestDTO.AnswerOptionDTO optDTO : qReq.getOptions()) {
+                                answerOptionRepository.save(AnswerOption.builder()
+                                        .question(q)
+                                        .title(optDTO.getTitle())
+                                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                                        .build());
+                            }
+                        }
+                        newChildren.add(q);
+                    });
+                } else {
+                    // Tạo mới
+                    newChildren.add(saveChildQuestion(group, qReq, expert));
+                }
+            }
+            // QUAN TRỌNG: Không được thay reference của collection (setQuestions) vì Hibernate quản lý nó.
+            // Phải clear() rồi addAll() để giữ nguyên reference gốc.
+            if (group.getQuestions() == null) {
+                group.setQuestions(new java.util.ArrayList<>());
+            }
+            // Chỉ remove khỏi collection những câu đã bị xóa thực sự
+            group.getQuestions().removeIf(q -> !keepIds.contains(q.getQuestionId()) &&
+                    quizQuestionRepository.countByQuestion_QuestionId(q.getQuestionId()) == 0);
+            // Thêm các câu mới tạo vào collection
+            for (Question child : newChildren) {
+                if (child.getQuestionId() != null && group.getQuestions().stream()
+                        .noneMatch(q -> q.getQuestionId().equals(child.getQuestionId()))) {
+                    group.getQuestions().add(child);
+                }
+            }
+        }
+
+        questionGroupRepository.save(group);
+        return getQuestionGroupById(groupId, email);
+    }
+
+    @Override
+    @Transactional
+    public void deleteQuestionGroup(Integer groupId, String email) {
+        QuestionGroup group = questionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi."));
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        if (!group.getUser().getUserId().equals(expert.getUserId())) {
+            throw new InvalidDataException("Bạn không có quyền xóa bộ câu hỏi này.");
+        }
+
+        questionGroupRepository.delete(group);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<QuestionGroupResponseDTO> getMyQuestionGroups(String email) {
+        return questionGroupRepository.findByUserEmail(email).stream()
+                .map(this::toGroupResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionGroupResponseDTO getQuestionGroupById(Integer groupId, String email) {
+        QuestionGroup group = questionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi."));
+        return toGroupResponseDTO(group);
+    }
+
+    private Question saveChildQuestion(QuestionGroup group, QuestionRequestDTO qReq, User expert) {
+        Question q = Question.builder()
+                .questionGroup(group)
+                .user(expert)
+                .content(qReq.getContent())
+                .questionType(qReq.getQuestionType())
+                .skill(group.getSkill())
+                .cefrLevel(group.getCefrLevel())
+                .topic(group.getTopic())
+                .explanation(qReq.getExplanation())
+                .status("PUBLISHED")
+                .build();
+        q = questionRepository.save(q);
+
+        if (qReq.getOptions() != null) {
+            for (QuestionRequestDTO.AnswerOptionDTO optDTO : qReq.getOptions()) {
+                answerOptionRepository.save(AnswerOption.builder()
+                        .question(q)
+                        .title(optDTO.getTitle())
+                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                        .build());
+            }
+        }
+        return q;
+    }
+
+    private QuestionGroupResponseDTO toGroupResponseDTO(QuestionGroup group) {
+        List<QuestionResponseDTO> childQ = new java.util.ArrayList<>();
+        if (group.getQuestions() != null) {
+            childQ = group.getQuestions().stream()
+                    .map(this::toResponseDTO)
+                    .collect(Collectors.toList());
+        }
+        return QuestionGroupResponseDTO.builder()
+                .groupId(group.getGroupId())
+                .groupContent(group.getGroupContent())
+                .audioUrl(group.getAudioUrl())
+                .imageUrl(group.getImageUrl())
+                .skill(group.getSkill())
+                .cefrLevel(group.getCefrLevel())
+                .topic(group.getTopic())
+                .explanation(group.getExplanation())
+                .status(group.getStatus())
+                .createdAt(group.getCreatedAt())
+                .questions(childQ)
+                .build();
     }
 
     private void validateExpertOwnsModule(String email, Integer moduleId) {

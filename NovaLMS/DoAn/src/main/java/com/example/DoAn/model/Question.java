@@ -24,6 +24,10 @@ public class Question {
     private Module module;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = true)
+    private QuestionGroup questionGroup;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 

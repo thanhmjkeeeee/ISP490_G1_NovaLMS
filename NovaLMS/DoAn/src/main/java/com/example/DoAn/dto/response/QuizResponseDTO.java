@@ -45,6 +45,8 @@ public class QuizResponseDTO {
     public static class QuizQuestionResponseDTO {
         private Integer quizQuestionId;
         private Integer questionId;
+        private Integer groupId;
+        private String groupContent;
         private String questionContent;
         private String questionType;
         private String skill;
