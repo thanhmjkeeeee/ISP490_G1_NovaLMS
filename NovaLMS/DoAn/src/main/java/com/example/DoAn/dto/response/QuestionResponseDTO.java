@@ -16,6 +16,7 @@ public class QuestionResponseDTO {
     private int optionCount;
     private int correctOptionCount;
     private List<AnswerOptionResponseDTO> options;
+    private List<AnswerOptionResponseDTO> matchRightOptions;
 
     @Data
     @NoArgsConstructor
@@ -25,5 +26,7 @@ public class QuestionResponseDTO {
         private Integer answerOptionId;
         private String title;
         private Boolean correctAnswer;
+        private String matchTarget;
+        private Integer orderIndex;
     }
 }

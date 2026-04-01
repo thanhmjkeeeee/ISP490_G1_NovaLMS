@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -300,10 +301,12 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         }
 
         if ("MATCHING".equals(type)) {
-            boolean allHaveTarget = request.getOptions().stream()
-                    .allMatch(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank());
-            if (!allHaveTarget) {
-                throw new InvalidDataException("Câu hỏi Matching: mỗi đáp án phải có match_target.");
+            int withTarget = (int) request.getOptions().stream()
+                    .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank()).count();
+            int withoutTarget = request.getOptions().size() - withTarget;
+            if (withTarget == 0 || withoutTarget == 0) {
+                throw new InvalidDataException(
+                    "Câu hỏi Matching cần có ít nhất 1 đáp án bên trái (có ghép nối) và 1 bên phải (không ghép nối).");
             }
         }
 
@@ -321,15 +324,30 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(question.getQuestionId());
         long quizUsage = questionRepository.countQuizUsage(question.getQuestionId());
 
-        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> optDTOs = opts.stream()
-                .map(o -> QuestionBankResponseDTO.AnswerOptionResponseDTO.builder()
+        List<AnswerOption> lefts = opts.stream()
+                .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                .sorted((a, b) -> Integer.compare(
+                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                .toList();
+        List<AnswerOption> rights = opts.stream()
+                .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                .sorted((a, b) -> Integer.compare(
+                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                .toList();
+
+        Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o ->
+                QuestionBankResponseDTO.AnswerOptionResponseDTO.builder()
                         .answerOptionId(o.getAnswerOptionId())
                         .title(o.getTitle())
                         .correctAnswer(o.getCorrectAnswer())
                         .orderIndex(o.getOrderIndex())
                         .matchTarget(o.getMatchTarget())
-                        .build())
-                .collect(Collectors.toList());
+                        .build();
+
+        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> leftDTOs = lefts.stream().map(toDto).toList();
+        List<QuestionBankResponseDTO.AnswerOptionResponseDTO> rightDTOs = rights.stream().map(toDto).toList();
 
         return QuestionBankResponseDTO.builder()
                 .questionId(question.getQuestionId())
@@ -348,7 +366,8 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .createdAt(question.getCreatedAt())
                 .updatedAt(question.getUpdatedAt())
                 .usedInQuizCount((int) quizUsage)
-                .options(optDTOs)
+                .options(leftDTOs)
+                .matchRightOptions(rightDTOs)
                 .build();
     }
 }

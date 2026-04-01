@@ -15,7 +15,6 @@ public class ExpertLessonResponseDTO {
     private String videoUrl;
     private String videoEmbedUrl; // YouTube embed URL (auto-converted)
     private String contentText;
-    private Integer quizId;
     private String duration;
     private Integer orderIndex;
 

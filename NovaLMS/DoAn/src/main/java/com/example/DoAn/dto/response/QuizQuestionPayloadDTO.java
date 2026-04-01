@@ -16,4 +16,6 @@ public class QuizQuestionPayloadDTO {
     private String imageUrl;
     private String audioUrl;
     private List<AnswerOptionPayloadDTO> options;
+    // MATCHING: options chỉ LEFT, đây là RIGHT
+    private List<AnswerOptionPayloadDTO> matchRightOptions;
 }

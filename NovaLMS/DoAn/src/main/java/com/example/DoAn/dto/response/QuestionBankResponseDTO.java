@@ -26,6 +26,8 @@ public class QuestionBankResponseDTO {
     private LocalDateTime updatedAt;
     private int usedInQuizCount;
     private List<AnswerOptionResponseDTO> options;
+    // cho MATCHING: options chỉ hiện LEFT, này là RIGHT
+    private List<AnswerOptionResponseDTO> matchRightOptions;
 
     @Data
     @NoArgsConstructor

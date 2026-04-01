@@ -1,5 +1,6 @@
 package com.example.DoAn.service.impl;
 
+import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
 import com.example.DoAn.exception.InvalidDataException;
@@ -65,13 +66,40 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .build();
         questionRepository.save(question);
 
-        for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
-            AnswerOption opt = AnswerOption.builder()
-                    .question(question)
-                    .title(optDTO.getTitle())
-                    .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                    .build();
-            answerOptionRepository.save(opt);
+        if ("MATCHING".equals(request.getQuestionType())) {
+            var lefts = request.getOptions().stream()
+                    .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                    .toList();
+            var rights = request.getOptions().stream()
+                    .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                    .toList();
+            for (int i = 0; i < lefts.size(); i++) {
+                var left = lefts.get(i);
+                answerOptionRepository.save(AnswerOption.builder()
+                        .question(question)
+                        .title(left.getTitle())
+                        .correctAnswer(false)
+                        .orderIndex(i)
+                        .matchTarget(left.getMatchTarget())
+                        .build());
+            }
+            for (int i = 0; i < rights.size(); i++) {
+                answerOptionRepository.save(AnswerOption.builder()
+                        .question(question)
+                        .title(rights.get(i).getTitle())
+                        .correctAnswer(false)
+                        .orderIndex(lefts.size() + i)
+                        .build());
+            }
+        } else {
+            for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
+                AnswerOption opt = AnswerOption.builder()
+                        .question(question)
+                        .title(optDTO.getTitle())
+                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                        .build();
+                answerOptionRepository.save(opt);
+            }
         }
 
         return toResponseDTO(question);
@@ -110,13 +138,40 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
 
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
             answerOptionRepository.deleteByQuestionQuestionId(questionId);
-            for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
-                AnswerOption opt = AnswerOption.builder()
-                        .question(question)
-                        .title(optDTO.getTitle())
-                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                        .build();
-                answerOptionRepository.save(opt);
+            if ("MATCHING".equals(request.getQuestionType())) {
+                var lefts = request.getOptions().stream()
+                        .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                        .toList();
+                var rights = request.getOptions().stream()
+                        .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                        .toList();
+                for (int i = 0; i < lefts.size(); i++) {
+                    var left = lefts.get(i);
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(left.getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(left.getMatchTarget())
+                            .build());
+                }
+                for (int i = 0; i < rights.size(); i++) {
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(rights.get(i).getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(lefts.size() + i)
+                            .build());
+                }
+            } else {
+                for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
+                    AnswerOption opt = AnswerOption.builder()
+                            .question(question)
+                            .title(optDTO.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                            .build();
+                    answerOptionRepository.save(opt);
+                }
             }
         }
 
@@ -140,10 +195,15 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         Module module = question.getModule();
 
         List<QuestionResponseDTO.AnswerOptionResponseDTO> optDTOs = opts.stream()
+                .sorted((a, b) -> Integer.compare(
+                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
                 .map(o -> QuestionResponseDTO.AnswerOptionResponseDTO.builder()
                         .answerOptionId(o.getAnswerOptionId())
                         .title(o.getTitle())
                         .correctAnswer(o.getCorrectAnswer())
+                        .matchTarget(o.getMatchTarget())
+                        .orderIndex(o.getOrderIndex())
                         .build())
                 .collect(Collectors.toList());
 
@@ -173,6 +233,68 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         if (correctCount == 0) {
             throw new InvalidDataException("Phải có ít nhất 1 đáp án đúng (correct=true).");
         }
+    }
+
+    @Override
+    @Transactional
+    public int saveAIQuestions(AIImportRequestDTO request, String email) {
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        int saved = 0;
+        for (AIImportRequestDTO.AIQuestionDTO qdto : request.getQuestions()) {
+            Question question = Question.builder()
+                    .content(qdto.getContent())
+                    .questionType(qdto.getQuestionType() != null ? qdto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
+                    .skill(qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : "READING")
+                    .cefrLevel(qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : "B1")
+                    .topic(qdto.getTopic())
+                    .explanation(qdto.getExplanation())
+                    .audioUrl(qdto.getAudioUrl())
+                    .imageUrl(qdto.getImageUrl())
+                    .status("DRAFT")
+                    .source("EXPERT_BANK")
+                    .createdMethod("AI_GENERATED")
+                    .user(expert)
+                    .build();
+            questionRepository.save(question);
+
+            if (qdto.getOptions() != null && !qdto.getOptions().isEmpty()) {
+                int idx = 0;
+                for (AIImportRequestDTO.AIOptionDTO opt : qdto.getOptions()) {
+                    AnswerOption ao = AnswerOption.builder()
+                            .question(question)
+                            .title(opt.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(opt.getCorrect()))
+                            .orderIndex(idx++)
+                            .build();
+                    answerOptionRepository.save(ao);
+                }
+            } else if (qdto.getMatchLeft() != null && qdto.getMatchRight() != null
+                    && qdto.getCorrectPairs() != null) {
+                List<String> left = qdto.getMatchLeft();
+                List<String> right = qdto.getMatchRight();
+                List<Integer> pairs = qdto.getCorrectPairs();
+                for (int i = 0; i < left.size(); i++) {
+                    int rightIdx = pairs.get(i) - 1;
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(left.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(right.get(rightIdx))
+                            .build());
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(right.get(rightIdx))
+                            .correctAnswer(false)
+                            .orderIndex(left.size() + i)
+                            .build());
+                }
+            }
+            saved++;
+        }
+        return saved;
     }
 
     private void validateExpertOwnsModule(String email, Integer moduleId) {

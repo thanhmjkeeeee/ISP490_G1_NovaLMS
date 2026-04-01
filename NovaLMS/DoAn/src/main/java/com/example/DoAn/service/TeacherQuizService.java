@@ -29,6 +29,8 @@ public class TeacherQuizService {
     private final ClazzRepository clazzRepository;
     private final QuizResultRepository quizResultRepository;
     private final ClassSessionRepository classSessionRepository;
+    private final LessonRepository lessonRepository;
+    private final CourseRepository courseRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -47,7 +49,8 @@ public class TeacherQuizService {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Tạo quiz mới cho teacher (gắn với class/session).
+     * Tạo quiz mới cho teacher.
+     * Supports COURSE_QUIZ (requires classId) and LESSON_QUIZ (requires lessonId).
      */
     @Transactional
     public ResponseData<TeacherQuizDTO> createQuiz(QuizRequestDTO request, String email) {
@@ -58,19 +61,11 @@ public class TeacherQuizService {
             if (request.getTitle() == null || request.getTitle().isBlank()) {
                 return ResponseData.error(400, "Tên quiz không được để trống");
             }
-            if (request.getClassId() == null) {
-                return ResponseData.error(400, "Phải gắn quiz với một lớp học");
-            }
-
-            Clazz clazz = clazzRepository.findById(request.getClassId()).orElse(null);
-            if (clazz == null) {
-                return ResponseData.error(404, "Không tìm thấy lớp học");
-            }
 
             Quiz quiz = Quiz.builder()
                     .title(request.getTitle())
                     .description(request.getDescription())
-                    .quizCategory("COURSE_QUIZ")
+                    .quizCategory(request.getQuizCategory() != null ? request.getQuizCategory() : "COURSE_QUIZ")
                     .status("DRAFT")
                     .timeLimitMinutes(request.getTimeLimitMinutes())
                     .passScore(request.getPassScore())
@@ -79,9 +74,40 @@ public class TeacherQuizService {
                     .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
                     .showAnswerAfterSubmit(request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
                     .user(teacher)
-                    .clazz(clazz)
-                    .course(clazz.getCourse())
                     .build();
+
+            // LESSON_QUIZ — attach to lesson
+            if ("LESSON_QUIZ".equals(request.getQuizCategory())) {
+                if (request.getLessonId() == null) {
+                    return ResponseData.error(400, "Phải gắn quiz với một bài học (lessonId)");
+                }
+                Lesson lesson = lessonRepository.findById(request.getLessonId()).orElse(null);
+                if (lesson == null) {
+                    return ResponseData.error(404, "Không tìm thấy bài học");
+                }
+                quiz.setLesson(lesson);
+                // Auto-derive course from lesson's module
+                if (lesson.getModule() != null && lesson.getModule().getCourse() != null) {
+                    quiz.setCourse(lesson.getModule().getCourse());
+                }
+            } else {
+                // COURSE_QUIZ or default — requires classId
+                if (request.getClassId() == null) {
+                    return ResponseData.error(400, "Phải gắn quiz với một lớp học (classId)");
+                }
+                Clazz clazz = clazzRepository.findById(request.getClassId()).orElse(null);
+                if (clazz == null) {
+                    return ResponseData.error(404, "Không tìm thấy lớp học");
+                }
+                quiz.setClazz(clazz);
+                quiz.setCourse(clazz.getCourse());
+            }
+
+            // Override with explicit courseId if provided
+            if (request.getCourseId() != null) {
+                Course course = courseRepository.findById(request.getCourseId()).orElse(null);
+                if (course != null) quiz.setCourse(course);
+            }
 
             quizRepository.save(quiz);
             return ResponseData.success("Tạo quiz thành công", toTeacherQuizDTO(quiz));
