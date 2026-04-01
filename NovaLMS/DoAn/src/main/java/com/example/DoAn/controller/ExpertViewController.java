@@ -110,10 +110,11 @@ public class ExpertViewController {
         return "expert/question-create";
     }
 
-    @GetMapping("/question-bank/{questionId}/edit")
-    public String questionEditPage(@PathVariable Integer questionId, Model model) {
+    @GetMapping("/question-bank/{itemId}/edit")
+    public String questionEditPage(@PathVariable Integer itemId, @RequestParam(required = false, defaultValue = "SINGLE") String type, Model model) {
         model.addAttribute("isDashboard", true);
-        model.addAttribute("questionId", questionId);
+        model.addAttribute("itemId", itemId);
+        model.addAttribute("itemType", type);
         return "expert/question-edit";
     }
 
@@ -122,7 +123,11 @@ public class ExpertViewController {
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/quiz-management")
-    public String quizListPage(Model model) {
+    public String quizListPage(Model model, Principal principal) {
+        String email = getEmail(principal);
+        if (email != null) {
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+        }
         model.addAttribute("isDashboard", true);
         return "expert/quiz-list";
     }

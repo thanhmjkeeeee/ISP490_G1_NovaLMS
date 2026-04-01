@@ -2,6 +2,7 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.response.PageResponse;
+import com.example.DoAn.dto.response.QuestionBankItemDTO;
 import com.example.DoAn.dto.response.QuestionBankResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.IQuestionBankService;
@@ -33,7 +34,7 @@ public class QuestionBankController {
 
     @Operation(summary = "Lấy danh sách câu hỏi với filter và phân trang")
     @GetMapping
-    public ResponseData<PageResponse<QuestionBankResponseDTO>> getQuestions(
+    public ResponseData<PageResponse<QuestionBankItemDTO>> getQuestions(
             @RequestParam(required = false) String skill,
             @RequestParam(required = false) String cefrLevel,
             @RequestParam(required = false) String questionType,

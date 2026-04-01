@@ -122,6 +122,16 @@ public class ExpertQuizController {
                 quizService.removeQuestionFromQuiz(quizId, questionId, getEmail(principal)));
     }
 
+    @Operation(summary = "Gỡ cả bộ câu hỏi (Passage) khỏi Quiz")
+    @DeleteMapping("/{quizId}/groups/{groupId}")
+    public ResponseData<QuizResponseDTO> removeGroupFromQuiz(
+            @PathVariable Integer quizId,
+            @PathVariable Integer groupId,
+            Principal principal) {
+        return ResponseData.success("Bộ câu hỏi đã được gỡ khỏi quiz.",
+                quizService.removeGroupFromQuiz(quizId, groupId, getEmail(principal)));
+    }
+
     @Operation(summary = "Sắp xếp lại thứ tự câu hỏi trong Quiz")
     @PutMapping("/{quizId}/questions/reorder")
     public ResponseData<QuizResponseDTO> reorderQuestions(

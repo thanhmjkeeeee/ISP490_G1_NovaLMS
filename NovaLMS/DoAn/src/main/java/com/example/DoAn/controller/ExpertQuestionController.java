@@ -4,15 +4,18 @@ import com.example.DoAn.dto.request.AIGenerateRequestDTO;
 import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.ExcelImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
+import com.example.DoAn.dto.request.QuestionGroupRequestDTO;
 import com.example.DoAn.dto.response.AIGenerateResponseDTO;
 import com.example.DoAn.dto.response.ExcelParseResultDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
+import com.example.DoAn.dto.response.QuestionGroupResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.AIQuestionService;
 import com.example.DoAn.service.ExcelQuestionImportService;
 import com.example.DoAn.service.IExpertQuestionService;
 import com.example.DoAn.util.ExcelTemplateGenerator;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +32,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/expert/questions")
 @RequiredArgsConstructor
+@Tag(name = "Expert - Question Management", description = "Quản lý câu hỏi và bộ câu hỏi bài đọc/nghe")
 public class ExpertQuestionController {
 
     private final IExpertQuestionService questionService;
@@ -72,6 +76,48 @@ public class ExpertQuestionController {
             @PathVariable Integer questionId, Principal principal) {
         questionService.deleteQuestion(questionId, getEmail(principal));
         return ResponseData.success("Câu hỏi đã được xóa.");
+    }
+
+    // ── Question Group Endpoints ─────────────────────────────────────────────
+
+    @Operation(summary = "Create a question group (passage-based)")
+    @PostMapping("/groups")
+    public ResponseData<QuestionGroupResponseDTO> createQuestionGroup(
+            @Valid @RequestBody QuestionGroupRequestDTO request, Principal principal) {
+        return new ResponseData<>(HttpStatus.CREATED.value(), "Bộ câu hỏi đã được tạo.",
+                questionService.createQuestionGroup(request, getEmail(principal)));
+    }
+
+    @Operation(summary = "Update a question group")
+    @PutMapping("/groups/{groupId}")
+    public ResponseData<QuestionGroupResponseDTO> updateQuestionGroup(
+            @PathVariable Integer groupId,
+            @Valid @RequestBody QuestionGroupRequestDTO request, Principal principal) {
+        return ResponseData.success("Bộ câu hỏi đã được cập nhật.",
+                questionService.updateQuestionGroup(groupId, request, getEmail(principal)));
+    }
+
+    @Operation(summary = "Delete a question group")
+    @DeleteMapping("/groups/{groupId}")
+    public ResponseData<Void> deleteQuestionGroup(
+            @PathVariable Integer groupId, Principal principal) {
+        questionService.deleteQuestionGroup(groupId, getEmail(principal));
+        return ResponseData.success("Bộ câu hỏi đã được xóa.");
+    }
+
+    @Operation(summary = "Get my question groups")
+    @GetMapping("/groups")
+    public ResponseData<List<QuestionGroupResponseDTO>> getMyQuestionGroups(Principal principal) {
+        return ResponseData.success("Danh sách bộ câu hỏi",
+                questionService.getMyQuestionGroups(getEmail(principal)));
+    }
+
+    @Operation(summary = "Get a question group by ID")
+    @GetMapping("/groups/{groupId}")
+    public ResponseData<QuestionGroupResponseDTO> getQuestionGroupById(
+            @PathVariable Integer groupId, Principal principal) {
+        return ResponseData.success("Chi tiết bộ câu hỏi",
+                questionService.getQuestionGroupById(groupId, getEmail(principal)));
     }
 
     // ── AI Generation ──────────────────────────────────────────────────────────

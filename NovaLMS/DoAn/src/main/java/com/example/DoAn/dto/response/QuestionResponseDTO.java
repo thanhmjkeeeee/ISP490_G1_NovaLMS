@@ -12,6 +12,9 @@ public class QuestionResponseDTO {
     private Integer moduleId;
     private String moduleName;
     private String content;
+    private String questionType;
+    private String skill;
+    private String cefrLevel;
     private String status;
     private int optionCount;
     private int correctOptionCount;

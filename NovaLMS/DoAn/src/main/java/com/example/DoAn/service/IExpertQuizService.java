@@ -26,5 +26,7 @@ public interface IExpertQuizService {
 
     QuizResponseDTO removeQuestionFromQuiz(Integer quizId, Integer questionId, String email);
 
+    QuizResponseDTO removeGroupFromQuiz(Integer quizId, Integer groupId, String email);
+
     QuizResponseDTO reorderQuestions(Integer quizId, List<QuizQuestionRequestDTO> orderedList, String email);
 }
