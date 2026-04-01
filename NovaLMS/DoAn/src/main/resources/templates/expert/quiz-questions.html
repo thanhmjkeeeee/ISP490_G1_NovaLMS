@@ -320,10 +320,26 @@ async function previewQuestion(questionId) {
             section.classList.remove('d-none');
             let optionsHtml = '';
             if (q.options && q.options.length > 0) {
-                optionsHtml = '<ul class="list-group list-group-flush mt-2">' +
-                    q.options.map(o => `<li class="list-group-item ${o.correctAnswer ? 'list-group-item-success' : ''}">
-                        ${o.title} ${o.matchTarget ? '→ ' + o.matchTarget : ''} ${o.correctAnswer ? '✓' : ''}
-                    </li>`).join('') + '</ul>';
+                if (q.questionType === 'MATCHING') {
+                    const rightItems = (q.matchRightOptions || []).map(o => o.title);
+                    optionsHtml = `<div class="row mt-2">
+                        <div class="col-6">
+                            <ul class="list-group list-group-flush">` +
+                            q.options.map(o => `<li class="list-group-item">${o.title} <span class="text-muted">→</span> <strong>${o.matchTarget || ''}</strong></li>`).join('') +
+                        `</ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="list-group list-group-flush">` +
+                            rightItems.map(title => `<li class="list-group-item">${title}</li>`).join('') +
+                        `</ul>
+                        </div>
+                    </div>`;
+                } else {
+                    optionsHtml = '<ul class="list-group list-group-flush mt-2">' +
+                        q.options.map(o => `<li class="list-group-item ${o.correctAnswer ? 'list-group-item-success' : ''}">
+                            ${o.title} ${o.correctAnswer ? '✓' : ''}
+                        </li>`).join('') + '</ul>';
+                }
             }
             document.getElementById('previewContent').innerHTML = `
                 <p><strong>Loại:</strong> ${typeName(q.questionType)} | <strong>Skill:</strong> ${q.skill} | <strong>CEFR:</strong> ${q.cefrLevel}</p>

@@ -109,9 +109,9 @@
                       <select class="form-select form-select-lg p-3 border-2 rounded-3 shadow-none"
                               th:name="'q_' + ${question.questionId} + '_' + ${opt.answerOptionId}">
                         <option value="">-- Chọn đáp án ghép nối --</option>
-                        <option th:each="matchOpt : ${question.options}"
-                                th:value="${matchOpt.matchTarget}"
-                                th:text="${matchOpt.matchTarget}"></option>
+                        <option th:each="rightOpt : ${question.matchRightOptions}"
+                                th:value="${rightOpt.title}"
+                                th:text="${rightOpt.title}"></option>
                       </select>
                     </div>
                   </div>

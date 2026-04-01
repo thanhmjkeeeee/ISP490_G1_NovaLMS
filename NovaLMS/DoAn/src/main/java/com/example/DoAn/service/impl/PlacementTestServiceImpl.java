@@ -59,14 +59,38 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             }
 
             List<AnswerOptionPayloadDTO> optionsDTO = new ArrayList<>();
+            List<AnswerOptionPayloadDTO> matchRightOptionsDTO = new ArrayList<>();
             if (options != null && !options.isEmpty()) {
-                optionsDTO = options.stream()
-                        .map(opt -> AnswerOptionPayloadDTO.builder()
-                                .answerOptionId(opt.getAnswerOptionId())
-                                .title(opt.getTitle())
-                                .matchTarget(opt.getMatchTarget())
-                                .build())
-                        .collect(java.util.stream.Collectors.toList());
+                if ("MATCHING".equals(q.getQuestionType())) {
+                    List<AnswerOption> lefts = options.stream()
+                            .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                            .sorted((a, b) -> Integer.compare(
+                                    a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                                    b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                            .toList();
+                    List<AnswerOption> rights = options.stream()
+                            .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                            .sorted((a, b) -> Integer.compare(
+                                    a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                                    b.getOrderIndex() != null ? b.getOrderIndex() : 0))
+                            .toList();
+                    java.util.function.Function<AnswerOption, AnswerOptionPayloadDTO> toDto = opt ->
+                            AnswerOptionPayloadDTO.builder()
+                                    .answerOptionId(opt.getAnswerOptionId())
+                                    .title(opt.getTitle())
+                                    .matchTarget(opt.getMatchTarget())
+                                    .build();
+                    optionsDTO = lefts.stream().map(toDto).toList();
+                    matchRightOptionsDTO = rights.stream().map(toDto).toList();
+                } else {
+                    optionsDTO = options.stream()
+                            .map(opt -> AnswerOptionPayloadDTO.builder()
+                                    .answerOptionId(opt.getAnswerOptionId())
+                                    .title(opt.getTitle())
+                                    .matchTarget(opt.getMatchTarget())
+                                    .build())
+                            .collect(java.util.stream.Collectors.toList());
+                }
             }
 
             boolean noOptionsType = "WRITING".equals(q.getQuestionType()) || "SPEAKING".equals(q.getQuestionType()) || "FILL_IN_BLANK".equals(q.getQuestionType());
@@ -81,6 +105,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     .imageUrl(q.getImageUrl())
                     .audioUrl(q.getAudioUrl())
                     .options(noOptionsType ? new ArrayList<>() : optionsDTO)
+                    .matchRightOptions(matchRightOptionsDTO)
                     .build();
         }).collect(java.util.stream.Collectors.toList());
 

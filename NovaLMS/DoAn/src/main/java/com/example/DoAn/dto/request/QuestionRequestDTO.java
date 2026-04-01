@@ -47,5 +47,6 @@ public class QuestionRequestDTO {
         private String title;
 
         private Boolean correct;
+        private String matchTarget;
     }
 }
