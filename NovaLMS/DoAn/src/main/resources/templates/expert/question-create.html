@@ -35,13 +35,6 @@
             transition: box-shadow 0.3s ease;
         }
         .sub-question-item:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .q-number {
-            width: 28px; height: 28px;
-            background: #223a58;
-            color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; font-size: 14px; font-weight: bold;
-        }
     </style>
 
     <div class="d-flex justify-content-between align-items-end mb-4">
@@ -313,21 +306,28 @@
         const container = document.getElementById('subQuestionsContainer');
         const id = subQuestionCounter++;
         const div = document.createElement('div');
-        div.className = "sub-question-item";
+        div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
         div.id = `sub-q-${id}`;
         div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="q-number">${container.children.length + 1}</span>
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-trash"></i> Xóa</button>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-light text-dark border q-number">Câu hỏi ${container.children.length + 1}</span>
+                    <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
+                </div>
+                <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubQuestionUI(${id})">
+                    <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
+                    <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
+                    <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                    <option value="MATCHING">Matching</option>
+                    <option value="WRITING">Writing / Tự luận</option>
+                </select>
+                <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nhập nội dung câu hỏi..." value="">
+                <div class="sub-options-section">
+                    <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
+                    <div class="sub-options-container"></div>
+                    <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
+                </div>
             </div>
-            <select class="form-select form-select-sm mb-2 sub-type" onchange="updateSubQuestionUI(${id})">
-                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
-                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
-                <option value="FILL_IN_BLANK">Fill in the Blank</option>
-            </select>
-            <textarea class="form-control form-control-sm mb-2 sub-content" rows="2" placeholder="Nội dung câu hỏi con..."></textarea>
-            <div class="sub-options-container"></div>
-            <button class="btn btn-xs btn-outline-secondary w-100 mt-2 py-1 small" style="font-size: 11px" onclick="addSubOption(${id})">+ Thêm đáp án</button>
         `;
         container.appendChild(div);
         addSubOption(id); addSubOption(id);
@@ -335,73 +335,78 @@
 
     function removeSubQuestion(id) {
         document.getElementById(`sub-q-${id}`).remove();
-        // Recalculate numbers
-        document.querySelectorAll('.q-number').forEach((el, idx) => el.textContent = idx + 1);
+        document.querySelectorAll('.q-number').forEach((el, idx) => el.textContent = `Câu hỏi ${idx + 1}`);
+    }
+
+    function updateSubQuestionUI(qId) {
+        const item = document.getElementById(`sub-q-${qId}`);
+        const type = item.querySelector('.sub-type').value;
+        const section = item.querySelector('.sub-options-section');
+        section.style.display = (type === 'WRITING') ? 'none' : 'block';
+        const container = item.querySelector('.sub-options-container');
+        container.innerHTML = '';
+        addSubOption(qId); addSubOption(qId);
     }
 
     function addSubOption(qId) {
-        const container = document.querySelector(`#sub-q-${qId} .sub-options-container`);
-        const item = document.createElement('div');
-        item.className = "input-group input-group-sm mb-1 sub-opt-row";
-        item.innerHTML = `
-            <div class="input-group-text"><input type="checkbox" class="form-check-input mt-0 sub-chk-correct"></div>
-            <input type="text" class="form-control sub-opt-title" placeholder="Đáp án...">
-            <button class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
+        const item = document.getElementById(`sub-q-${qId}`);
+        const type = item.querySelector('.sub-type').value;
+        const isMatching = type === 'MATCHING';
+        const container = item.querySelector('.sub-options-container');
+        
+        const div = document.createElement('div');
+        div.className = "d-flex align-items-center mb-1 sub-opt-row border-bottom pb-1";
+        div.innerHTML = `
+            ${!isMatching ? `<input type="checkbox" class="form-check-input me-2 mt-0 sub-chk-correct">` : ''}
+            <input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none sub-opt-title" placeholder="${isMatching ? 'Vế trái' : 'Nhập đáp án...'}">
+            ${isMatching ? `<input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none border-start ps-2 sub-opt-match" placeholder="Vế phải">` : ''}
+            <button class="btn btn-sm text-muted p-0 ms-2" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
         `;
-        container.appendChild(item);
+        container.appendChild(div);
     }
 
     // --- SAVE LOGIC ---
     async function saveData(status) {
-        const commonData = {
-            skill: document.getElementById('skill').value,
-            cefrLevel: document.getElementById('cefrLevel').value,
-            topic: document.getElementById('topic').value,
-            status: status
-        };
+        const skill = document.getElementById('skill').value;
+        const cefrLevel = document.getElementById('cefrLevel').value;
+        const topic = document.getElementById('topic').value;
+        const commonData = { skill, cefrLevel, topic, status };
 
         if(currentMode === 'SINGLE') {
-            const options = Array.from(document.querySelectorAll('#singleOptionsContainer .input-group')).map(el => ({
-                title: el.querySelector('.opt-title').value,
-                correct: el.querySelector('.chk-correct')?.checked || false,
-                matchTarget: el.querySelector('.opt-match')?.value || null
-            }));
-
-            const finalBody = {
-                ...commonData,
-                content: document.getElementById('singleContent').value,
-                questionType: document.getElementById('singleType').value,
-                audioUrl: document.getElementById('singleAudioUrl').value,
-                imageUrl: document.getElementById('singleImageUrl').value,
-                explanation: document.getElementById('singleExplanation').value,
-                options: options
-            };
-
-            await sendRequest('/api/v1/expert/question-bank', finalBody);
+            const content = document.getElementById('singleContent').value.trim();
+            if(!content) return alert('Vui lòng nhập nội dung câu hỏi.');
+            const qType = document.getElementById('singleType').value;
+            let options = [];
+            if (qType !== 'WRITING') {
+                options = Array.from(document.querySelectorAll('#singleOptionsContainer .input-group')).map(el => ({
+                    title: el.querySelector('.opt-title').value.trim(),
+                    correct: el.querySelector('.chk-correct')?.checked || false,
+                    matchTarget: el.querySelector('.opt-match')?.value.trim() || null
+                })).filter(o => o.title !== "");
+                if (qType !== 'FILL_IN_BLANK' && options.length < 2) return alert('Câu hỏi trắc nghiệm/ghép cặp cần ít nhất 2 đáp án.');
+            }
+            const finalBody = { ...commonData, content, questionType: qType, options, audioUrl: document.getElementById('singleAudioUrl').value, imageUrl: document.getElementById('singleImageUrl').value, explanation: document.getElementById('singleExplanation').value };
+            await sendRequest('/api/v1/expert/questions', finalBody);
         } else {
-            // Group Mode
+            const groupContent = document.getElementById('groupPassageContent').value.trim();
+            if(!groupContent) return alert('Vui lòng nhập nội dung bài đọc (Passage).');
             const questions = Array.from(document.querySelectorAll('.sub-question-item')).map(item => {
-                const subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => ({
-                    title: opt.querySelector('.sub-opt-title').value,
-                    correct: opt.querySelector('.sub-chk-correct').checked
-                }));
-                return {
-                    content: item.querySelector('.sub-content').value,
-                    questionType: item.querySelector('.sub-type').value,
-                    skill: commonData.skill,
-                    cefrLevel: commonData.cefrLevel,
-                    options: subOpts
-                };
+                const subType = item.querySelector('.sub-type').value;
+                let subOpts = [];
+                if (subType !== 'WRITING') {
+                    subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => ({
+                        title: opt.querySelector('.sub-opt-title').value.trim(),
+                        correct: opt.querySelector('.sub-chk-correct')?.checked || false,
+                        matchTarget: opt.querySelector('.sub-opt-match')?.value.trim() || null
+                    })).filter(o => o.title !== "");
+                }
+                return { content: item.querySelector('.sub-content').value.trim(), questionType: subType, skill, cefrLevel, options: subOpts };
             });
-
-            const finalBody = {
-                ...commonData,
-                groupContent: document.getElementById('groupPassageContent').value,
-                audioUrl: document.getElementById('groupAudioUrl').value,
-                imageUrl: document.getElementById('groupImageUrl').value,
-                questions: questions
-            };
-
+            for(let q of questions) {
+                if(!q.content) return alert('Vui lòng nhập nội dung cho tất cả các câu hỏi con.');
+                if(q.questionType !== 'WRITING' && q.questionType !== 'FILL_IN_BLANK' && q.options.length < 2) return alert('Mỗi câu hỏi trắc nghiệm/ghép cặp con cần ít nhất 2 đáp án.');
+            }
+            const finalBody = { ...commonData, groupContent, audioUrl: document.getElementById('groupAudioUrl').value, imageUrl: document.getElementById('groupImageUrl').value, questions };
             await sendRequest('/api/v1/expert/questions/groups', finalBody);
         }
     }
@@ -418,7 +423,7 @@
                 alert('Đã lưu thành công!');
                 window.location.href = '/expert/question-bank';
             } else {
-                alert('Lỗi: ' + result.message);
+                alert('Lỗi: ' + (result.message || 'Không thể lưu câu hỏi.'));
             }
         } catch(e) { alert('Lỗi kết nối server'); }
     }
