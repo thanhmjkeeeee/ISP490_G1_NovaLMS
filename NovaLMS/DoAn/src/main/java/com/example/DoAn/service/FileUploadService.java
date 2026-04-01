@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -30,11 +31,27 @@ public class FileUploadService {
 
     public String uploadFile(MultipartFile file, String type) {
         try {
-            // Resource type "auto" sẽ tự nhận diện audio/video/image
-            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
-                "resource_type", "auto"
-            ));
-            return uploadResult.get("secure_url").toString();
+            String originalFilename = file.getOriginalFilename();
+            Map<String, Object> params = new HashMap<>();
+            
+            // Đối với file tài liệu .docx, Cloudinary cần resource_type: raw để không bị strip extension
+            if (originalFilename != null && originalFilename.toLowerCase().endsWith(".docx")) {
+                params.put("resource_type", "raw");
+                
+                String fileNameWithoutExt = originalFilename.substring(0, originalFilename.lastIndexOf("."));
+                String cleanName = fileNameWithoutExt.replaceAll("[^a-zA-Z0-9-]", "_");
+                
+                // Quan trọng: public_id của 'raw' phải chứa cả extension
+                params.put("public_id", cleanName + "_" + System.currentTimeMillis() + ".docx");
+            } else {
+                params.put("resource_type", "auto");
+                params.put("use_filename", true);
+                params.put("unique_filename", true);
+            }
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
+            String url = uploadResult.get("secure_url").toString();
+            return url;
 
         } catch (IOException e) {
             throw new RuntimeException("Lỗi khi tải " + type + " lên Cloudinary", e);

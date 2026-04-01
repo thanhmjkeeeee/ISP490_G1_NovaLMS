@@ -124,11 +124,27 @@
                 </div>
 
                 <!-- DOC fields -->
-                <div class="mb-3" id="field-contentText" style="display:none;">
-                    <label class="form-label small fw-bold text-secondary">Nội dung văn bản <span class="text-danger">*</span></label>
-                    <div id="lessonContentTextEditor" style="background:#fff;"></div>
-                    <!-- Hidden textarea holds raw HTML for form submission -->
-                    <input type="hidden" id="lessonContentText" autocomplete="off">
+                <div id="field-doc-group" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Mô tả / Nội dung tóm tắt <span class="text-danger">*</span></label>
+                        <textarea id="lessonContentText" class="form-control" rows="4" placeholder="Nhập mô tả cho tài liệu bài học..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Tài liệu đính kèm (.docx) <span class="text-secondary small">(Tùy chọn)</span></label>
+                        <div class="input-group">
+                            <input type="file" id="lessonDocFile" class="form-control" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            <span class="input-group-text bg-light"><i class="bi bi-file-earmark-word"></i></span>
+                        </div>
+                        <div id="docUploadStatus" class="small mt-1" style="display:none;"></div>
+                        <div id="currentDocLink" class="mt-2 small" style="display:none;">
+                            <span class="text-muted">File hiện tại:</span>
+                            <a href="#" target="_blank" id="docUrlDisplay" class="text-decoration-none">
+                                <i class="bi bi-link-45deg"></i> Xem tài liệu
+                            </a>
+                        </div>
+                        <!-- Hidden input to store uploaded URL -->
+                        <input type="hidden" id="uploadedDocUrl">
+                    </div>
                 </div>
                 <div id="lessonError" class="text-danger small" style="display:none;"></div>
             </div>
@@ -316,9 +332,6 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Quill Rich Text Editor -->
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
 <script>
 const COURSE_ID = [[${courseId}]];
@@ -340,7 +353,6 @@ const COURSE_ID = [[${courseId}]];
 var _allModules = [];        // cached for edit modal
 var _allLessons = {};        // moduleId -> lesson list
 var _activeModuleId = null;  // module whose lesson modal is open
-var lessonQuill;            // Quill rich-text editor instance
 
 var moduleModal, lessonModal, quizModal, quizEditModal;
 
@@ -351,22 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
     quizModal = new bootstrap.Modal(document.getElementById('quizModal'));
     quizEditModal = new bootstrap.Modal(document.getElementById('quizEditModal'));
 
-    // Init Quill rich-text editor for DOC lesson content
-    lessonQuill = new Quill('#lessonContentTextEditor', {
-        theme: 'snow',
-        placeholder: 'Nhập nội dung bài học...',
-        modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'header': [1, 2, 3, false] }],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                [{ 'indent': '-1' }, { 'indent': '+1' }],
-                ['link', 'image'],
-                [{ 'color': [] }, { 'background': [] }],
-                ['clean']
-            ]
-        }
-    });
 
     loadModules();
 
@@ -621,7 +617,7 @@ function closeVideoModal() {
 function onLessonTypeChange() {
     var type = document.getElementById('lessonType').value;
     document.getElementById('field-videoUrl').style.display  = type === 'VIDEO' ? 'block' : 'none';
-    document.getElementById('field-contentText').style.display = type === 'DOC'  ? 'block' : 'none';
+    document.getElementById('field-doc-group').style.display = type === 'DOC'  ? 'block' : 'none';
     if (type !== 'VIDEO') {
         document.getElementById('ytPreview').style.display = 'none';
         document.getElementById('ytPreviewError').style.display = 'none';
@@ -680,12 +676,13 @@ function openLessonModal(moduleId) {
     document.getElementById('ytPreviewFrame').src = '';
     document.getElementById('ytPreview').style.display = 'none';
     document.getElementById('ytPreviewError').style.display = 'none';
-    // Clear Quill rich-text editor
-    if (lessonQuill) {
-        lessonQuill.root.innerHTML = '';
-        lessonQuill.setContents([]);
-    }
+    // DOC data
     document.getElementById('lessonContentText').value = '';
+    document.getElementById('uploadedDocUrl').value = '';
+    document.getElementById('lessonDocFile').value = '';
+    document.getElementById('docUploadStatus').style.display = 'none';
+    document.getElementById('currentDocLink').style.display = 'none';
+    
     onLessonTypeChange();
     lessonModal.show();
 }
@@ -701,13 +698,20 @@ function editLesson(moduleId, lessonId) {
     document.getElementById('lessonName').value = l.lessonName || '';
     document.getElementById('lessonType').value = l.type || 'VIDEO';
     document.getElementById('lessonOrder').value = l.orderIndex || '';
-    document.getElementById('lessonVideoUrl').value = l.videoUrl || '';
+    // Load DOC content
     document.getElementById('lessonContentText').value = l.contentText || '';
-    document.getElementById('lessonError').style.display = 'none';
-    // Load DOC content into Quill editor
-    if (lessonQuill) {
-        lessonQuill.root.innerHTML = l.contentText || '';
+    var docUrl = (l.type === 'DOC') ? l.videoUrl : '';
+    document.getElementById('uploadedDocUrl').value = docUrl || '';
+    document.getElementById('lessonDocFile').value = '';
+    document.getElementById('docUploadStatus').style.display = 'none';
+    
+    if (l.type === 'DOC' && docUrl) {
+        document.getElementById('currentDocLink').style.display = 'block';
+        document.getElementById('docUrlDisplay').href = docUrl;
+    } else {
+        document.getElementById('currentDocLink').style.display = 'none';
     }
+
     onLessonTypeChange();
     if (l.type === 'VIDEO') previewYouTube(l.videoUrl || '');
     lessonModal.show();
@@ -719,22 +723,51 @@ async function saveLesson() {
     var type = document.getElementById('lessonType').value;
     var orderStr = document.getElementById('lessonOrder').value.trim();
     var videoUrl = document.getElementById('lessonVideoUrl').value.trim();
-    // Sync Quill HTML into hidden textarea before reading
-    if (lessonQuill) {
-        document.getElementById('lessonContentText').value = lessonQuill.root.innerHTML;
-    }
     var contentText = document.getElementById('lessonContentText').value.trim();
     var errorEl = document.getElementById('lessonError');
+    var docFile = document.getElementById('lessonDocFile').files[0];
+    var savedDocUrl = document.getElementById('uploadedDocUrl').value;
 
     if (!lessonName) { errorEl.textContent = 'Tên bài học không được để trống.'; errorEl.style.display = 'block'; return; }
     if (type === 'VIDEO' && !videoUrl) { errorEl.textContent = 'Video URL là bắt buộc khi loại là Video.'; errorEl.style.display = 'block'; return; }
-    if (type === 'DOC' && !contentText) { errorEl.textContent = 'Nội dung văn bản là bắt buộc khi loại là Tài liệu.'; errorEl.style.display = 'block'; return; }
+    if (type === 'DOC' && !contentText) { errorEl.textContent = 'Nội dung mô tả là bắt buộc khi loại là Tài liệu.'; errorEl.style.display = 'block'; return; }
+
+    // If there's a new file to upload
+    if (type === 'DOC' && docFile) {
+        var statusEl = document.getElementById('docUploadStatus');
+        statusEl.style.display = 'block';
+        statusEl.className = 'small mt-1 text-primary';
+        statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tải tài liệu lên...';
+        
+        var formData = new FormData();
+        formData.append('file', docFile);
+        
+        try {
+            var uploadRes = await fetch('/api/v1/upload/document', { method: 'POST', body: formData });
+            var uploadResult = await uploadRes.json();
+            if (uploadResult.status === 200) {
+                savedDocUrl = uploadResult.data;
+                statusEl.className = 'small mt-1 text-success';
+                statusEl.innerHTML = '<i class="bi bi-check-circle me-1"></i> Tải lên thành công.';
+            } else {
+                errorEl.textContent = 'Lỗi upload tài liệu: ' + uploadResult.message;
+                errorEl.style.display = 'block';
+                statusEl.style.display = 'none';
+                return;
+            }
+        } catch (e) {
+            errorEl.textContent = 'Lỗi kết nối upload: ' + e.message;
+            errorEl.style.display = 'block';
+            statusEl.style.display = 'none';
+            return;
+        }
+    }
 
     var body = {
         moduleId: _activeModuleId,
         lessonName: lessonName,
         type: type,
-        videoUrl: type === 'VIDEO' ? videoUrl : null,
+        videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
         contentText: type === 'DOC' ? contentText : null,
         orderIndex: orderStr ? parseInt(orderStr) : null
     };
