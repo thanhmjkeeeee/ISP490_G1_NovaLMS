@@ -163,6 +163,156 @@
     </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+     QUIZ MODAL — tạo quiz cho module
+     ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="quizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:#223a58;">Tạo Quiz cho chương</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="quizModuleId">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" id="quizTitle" class="form-control"
+                               placeholder="VD: Kiểm tra chương 1" autocomplete="off">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Thời gian (phút)</label>
+                        <input type="number" id="quizTimeLimit" class="form-control"
+                               placeholder="Để trống = không giới hạn" min="1" autocomplete="off">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Điểm đạt (%)</label>
+                        <input type="number" id="quizPassScore" class="form-control"
+                               placeholder="VD: 70" min="0" max="100" step="0.01" autocomplete="off">
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Mô tả</label>
+                        <textarea id="quizDescription" class="form-control" rows="2"
+                                  placeholder="Mô tả quiz (tùy chọn)"></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Số lần làm lại</label>
+                        <input type="number" id="quizMaxAttempts" class="form-control"
+                               placeholder="Để trống = không giới hạn" min="1" autocomplete="off">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Thứ tự câu hỏi</label>
+                        <select id="quizQuestionOrder" class="form-select">
+                            <option value="FIXED">Cố định</option>
+                            <option value="RANDOM">Ngẫu nhiên</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="quizShowAnswer">
+                        <label class="form-check-label small fw-bold text-secondary" for="quizShowAnswer">
+                            Hiển thị đáp án ngay sau khi nộp bài
+                        </label>
+                    </div>
+                </div>
+                <div id="quizError" class="text-danger small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn text-white fw-bold"
+                        style="background-color:#136ad5; border:none;"
+                        onclick="saveModuleQuiz()" id="quizSaveBtn">
+                    <i class="bi bi-check-lg me-1"></i> Tạo Quiz
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     QUIZ EDIT MODAL — sửa quiz trong module
+     ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="quizEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:#223a58;">Sửa Quiz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <input type="hidden" id="editQuizId">
+                <input type="hidden" id="editQuizModuleId">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" id="editQuizTitle" class="form-control" autocomplete="off">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Trạng thái</label>
+                        <select id="editQuizStatus" class="form-select">
+                            <option value="DRAFT">Nháp</option>
+                            <option value="PUBLISHED">Xuất bản</option>
+                            <option value="ARCHIVED">Lưu trữ</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Thời gian (phút)</label>
+                        <input type="number" id="editQuizTimeLimit" class="form-control" min="1" autocomplete="off">
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Mô tả</label>
+                        <textarea id="editQuizDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Điểm đạt (%)</label>
+                        <input type="number" id="editQuizPassScore" class="form-control"
+                               min="0" max="100" step="0.01" autocomplete="off">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Số lần làm lại</label>
+                        <input type="number" id="editQuizMaxAttempts" class="form-control" min="1" autocomplete="off">
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Thứ tự câu hỏi</label>
+                        <select id="editQuizQuestionOrder" class="form-select">
+                            <option value="FIXED">Cố định</option>
+                            <option value="RANDOM">Ngẫu nhiên</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mt-4">
+                            <input class="form-check-input" type="checkbox" id="editQuizShowAnswer">
+                            <label class="form-check-label small fw-bold text-secondary" for="editQuizShowAnswer">
+                                Hiển thị đáp án sau khi nộp
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="quizEditError" class="text-danger small" style="display:none;"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Hủy</button>
+                <a id="editQuizQuestionsBtn" class="btn btn-outline-info" style="border-color:#0d6efd;">
+                    <i class="bi bi-list-check me-1"></i> Quản lý câu hỏi
+                </a>
+                <button type="button" class="btn text-white fw-bold"
+                        style="background-color:#136ad5; border:none;"
+                        onclick="updateModuleQuiz()">
+                    <i class="bi bi-check-lg me-1"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -192,12 +342,14 @@ var _allLessons = {};        // moduleId -> lesson list
 var _activeModuleId = null;  // module whose lesson modal is open
 var lessonQuill;            // Quill rich-text editor instance
 
-var moduleModal, lessonModal;
+var moduleModal, lessonModal, quizModal, quizEditModal;
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
     moduleModal = new bootstrap.Modal(document.getElementById('moduleModal'));
     lessonModal = new bootstrap.Modal(document.getElementById('lessonModal'));
+    quizModal = new bootstrap.Modal(document.getElementById('quizModal'));
+    quizEditModal = new bootstrap.Modal(document.getElementById('quizEditModal'));
 
     // Init Quill rich-text editor for DOC lesson content
     lessonQuill = new Quill('#lessonContentTextEditor', {
@@ -300,7 +452,7 @@ function renderModules(modules) {
                         '<h6 class="mb-0 text-secondary"><i class="bi bi-list-check me-1"></i>Quizzes</h6>' +
                         '<button class="btn btn-sm text-white fw-bold" ' +
                             'style="background-color:#059669; border:none;" ' +
-                            'onclick="event.stopPropagation(); openModuleQuizModal(' + m.moduleId + ')">' +
+                            'onclick="event.stopPropagation(); openQuizModal(' + m.moduleId + ')">' +
                             '<i class="bi bi-plus-lg me-1"></i>Thêm Quiz' +
                         '</button>' +
                     '</div>' +
@@ -643,8 +795,9 @@ function renderModuleQuizzes(moduleId, quizzes) {
             '<div><strong>' + escape(q.title || '—') + '</strong>' + statusBadge +
             '<span class="text-muted small ms-2">(' + (q.numberOfQuestions || 0) + ' câu)</span></div>' +
             '<div>' +
-                '<a href="/expert/quizzes/' + q.quizId + '" class="btn btn-sm btn-light border shadow-sm me-1" title="Sửa">' +
-                    '<i class="bi bi-pencil-square text-primary"></i></a> ' +
+                '<button class="btn btn-sm btn-light border shadow-sm me-1" title="Sửa" ' +
+                    'onclick="openEditQuizModal(' + q.quizId + ',' + moduleId + ')">' +
+                    '<i class="bi bi-pencil-square text-primary"></i></button> ' +
                 '<button class="btn btn-sm btn-light border shadow-sm" title="Gỡ khỏi chương" ' +
                     'onclick="detachModuleQuiz(' + moduleId + ',' + q.quizId + ')">' +
                     '<i class="bi bi-x-circle text-danger"></i></button>' +
@@ -657,14 +810,133 @@ async function detachModuleQuiz(moduleId, quizId) {
     try {
         var res = await fetch('/api/v1/expert/modules/' + moduleId + '/quizzes/' + quizId, { method: 'DELETE' });
         var result = await res.json();
-        if (result.status === 200) loadModuleQuizzes(moduleId);
+        if (result.status === 200 || result.status === 201) loadModuleQuizzes(moduleId);
         else alert('Lỗi: ' + (result.message || 'Gỡ thất bại.'));
     } catch(e) { alert('Lỗi: ' + e.message); }
 }
 
-function openModuleQuizModal(moduleId) {
-    // Redirect to quiz creation page with moduleId pre-filled
-    window.location.href = '/expert/quizzes/create?moduleId=' + moduleId;
+function openQuizModal(moduleId) {
+    document.getElementById('quizModuleId').value = moduleId;
+    document.getElementById('quizTitle').value = '';
+    document.getElementById('quizDescription').value = '';
+    document.getElementById('quizTimeLimit').value = '';
+    document.getElementById('quizPassScore').value = '';
+    document.getElementById('quizMaxAttempts').value = '';
+    document.getElementById('quizQuestionOrder').value = 'FIXED';
+    document.getElementById('quizShowAnswer').checked = false;
+    document.getElementById('quizError').style.display = 'none';
+    quizModal.show();
+}
+
+async function saveModuleQuiz() {
+    var moduleId = parseInt(document.getElementById('quizModuleId').value);
+    var title = document.getElementById('quizTitle').value.trim();
+    if (!title) {
+        document.getElementById('quizError').textContent = 'Vui lòng nhập tên quiz.';
+        document.getElementById('quizError').style.display = 'block';
+        return;
+    }
+
+    var body = {
+        title: title,
+        description: document.getElementById('quizDescription').value.trim() || null,
+        quizCategory: 'MODULE_QUIZ',
+        moduleId: moduleId,
+        timeLimitMinutes: parseInt(document.getElementById('quizTimeLimit').value) || null,
+        passScore: parseFloat(document.getElementById('quizPassScore').value) || null,
+        maxAttempts: parseInt(document.getElementById('quizMaxAttempts').value) || null,
+        questionOrder: document.getElementById('quizQuestionOrder').value,
+        showAnswerAfterSubmit: document.getElementById('quizShowAnswer').checked,
+        status: 'DRAFT'
+    };
+
+    try {
+        var res = await fetch('/api/v1/expert/quizzes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        var result = await res.json();
+        if (res.ok) {
+            quizModal.hide();
+            loadModuleQuizzes(moduleId);
+        } else {
+            document.getElementById('quizError').textContent = result.message || 'Lỗi khi tạo quiz.';
+            document.getElementById('quizError').style.display = 'block';
+        }
+    } catch(e) {
+        document.getElementById('quizError').textContent = 'Lỗi: ' + e.message;
+        document.getElementById('quizError').style.display = 'block';
+    }
+}
+
+async function openEditQuizModal(quizId, moduleId) {
+    document.getElementById('editQuizId').value = quizId;
+    document.getElementById('editQuizModuleId').value = moduleId;
+    document.getElementById('quizEditError').style.display = 'none';
+
+    // Load quiz data
+    try {
+        var res = await fetch('/api/v1/expert/quizzes/' + quizId);
+        var result = await res.json();
+        if (result.status === 200 && result.data) {
+            var q = result.data;
+            document.getElementById('editQuizTitle').value = q.title || '';
+            document.getElementById('editQuizDescription').value = q.description || '';
+            document.getElementById('editQuizStatus').value = q.status || 'DRAFT';
+            document.getElementById('editQuizTimeLimit').value = q.timeLimitMinutes || '';
+            document.getElementById('editQuizPassScore').value = q.passScore || '';
+            document.getElementById('editQuizMaxAttempts').value = q.maxAttempts || '';
+            document.getElementById('editQuizQuestionOrder').value = q.questionOrder || 'FIXED';
+            document.getElementById('editQuizShowAnswer').checked = q.showAnswerAfterSubmit || false;
+            document.getElementById('editQuizQuestionsBtn').href = '/expert/quiz-management/' + quizId + '/questions';
+        }
+    } catch(e) { console.error(e); }
+
+    quizEditModal.show();
+}
+
+async function updateModuleQuiz() {
+    var quizId = parseInt(document.getElementById('editQuizId').value);
+    var moduleId = parseInt(document.getElementById('editQuizModuleId').value);
+    var title = document.getElementById('editQuizTitle').value.trim();
+    if (!title) {
+        document.getElementById('quizEditError').textContent = 'Vui lòng nhập tên quiz.';
+        document.getElementById('quizEditError').style.display = 'block';
+        return;
+    }
+
+    var body = {
+        title: title,
+        description: document.getElementById('editQuizDescription').value.trim() || null,
+        quizCategory: 'MODULE_QUIZ',
+        moduleId: moduleId,
+        timeLimitMinutes: parseInt(document.getElementById('editQuizTimeLimit').value) || null,
+        passScore: parseFloat(document.getElementById('editQuizPassScore').value) || null,
+        maxAttempts: parseInt(document.getElementById('editQuizMaxAttempts').value) || null,
+        questionOrder: document.getElementById('editQuizQuestionOrder').value,
+        showAnswerAfterSubmit: document.getElementById('editQuizShowAnswer').checked,
+        status: document.getElementById('editQuizStatus').value
+    };
+
+    try {
+        var res = await fetch('/api/v1/expert/quizzes/' + quizId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        var result = await res.json();
+        if (res.ok) {
+            quizEditModal.hide();
+            loadModuleQuizzes(moduleId);
+        } else {
+            document.getElementById('quizEditError').textContent = result.message || 'Lỗi khi cập nhật quiz.';
+            document.getElementById('quizEditError').style.display = 'block';
+        }
+    } catch(e) {
+        document.getElementById('quizEditError').textContent = 'Lỗi: ' + e.message;
+        document.getElementById('quizEditError').style.display = 'block';
+    }
 }
 
 // ── Utility ──────────────────────────────────────────────────────────────

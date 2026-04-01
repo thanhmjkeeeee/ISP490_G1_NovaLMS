@@ -30,6 +30,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final QuestionRepository questionRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final QuizResultRepository quizResultRepository;
+    private final QuizAssignmentRepository quizAssignmentRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final ClazzRepository clazzRepository;
@@ -103,6 +104,23 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         quizRepository.save(quiz);
+
+        // Tạo QuizAssignment để quiz xuất hiện trong danh sách quiz của module
+        if ("MODULE_QUIZ".equals(request.getQuizCategory()) && quiz.getModule() != null) {
+            int maxOrder = quizAssignmentRepository
+                    .findByModule_ModuleIdOrderByOrderIndexAsc(quiz.getModule().getModuleId())
+                    .stream()
+                    .mapToInt(QuizAssignment::getOrderIndex)
+                    .max()
+                    .orElse(0);
+            QuizAssignment assignment = QuizAssignment.builder()
+                    .module(quiz.getModule())
+                    .quiz(quiz)
+                    .orderIndex(maxOrder + 1)
+                    .build();
+            quizAssignmentRepository.save(assignment);
+        }
+
         return toResponseDTO(quiz);
     }
 

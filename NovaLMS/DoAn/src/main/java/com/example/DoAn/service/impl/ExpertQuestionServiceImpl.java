@@ -66,13 +66,40 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .build();
         questionRepository.save(question);
 
-        for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
-            AnswerOption opt = AnswerOption.builder()
-                    .question(question)
-                    .title(optDTO.getTitle())
-                    .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                    .build();
-            answerOptionRepository.save(opt);
+        if ("MATCHING".equals(request.getQuestionType())) {
+            var lefts = request.getOptions().stream()
+                    .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                    .toList();
+            var rights = request.getOptions().stream()
+                    .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                    .toList();
+            for (int i = 0; i < lefts.size(); i++) {
+                var left = lefts.get(i);
+                answerOptionRepository.save(AnswerOption.builder()
+                        .question(question)
+                        .title(left.getTitle())
+                        .correctAnswer(false)
+                        .orderIndex(i)
+                        .matchTarget(left.getMatchTarget())
+                        .build());
+            }
+            for (int i = 0; i < rights.size(); i++) {
+                answerOptionRepository.save(AnswerOption.builder()
+                        .question(question)
+                        .title(rights.get(i).getTitle())
+                        .correctAnswer(false)
+                        .orderIndex(lefts.size() + i)
+                        .build());
+            }
+        } else {
+            for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
+                AnswerOption opt = AnswerOption.builder()
+                        .question(question)
+                        .title(optDTO.getTitle())
+                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                        .build();
+                answerOptionRepository.save(opt);
+            }
         }
 
         return toResponseDTO(question);
@@ -111,13 +138,40 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
 
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
             answerOptionRepository.deleteByQuestionQuestionId(questionId);
-            for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
-                AnswerOption opt = AnswerOption.builder()
-                        .question(question)
-                        .title(optDTO.getTitle())
-                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                        .build();
-                answerOptionRepository.save(opt);
+            if ("MATCHING".equals(request.getQuestionType())) {
+                var lefts = request.getOptions().stream()
+                        .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                        .toList();
+                var rights = request.getOptions().stream()
+                        .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                        .toList();
+                for (int i = 0; i < lefts.size(); i++) {
+                    var left = lefts.get(i);
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(left.getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(left.getMatchTarget())
+                            .build());
+                }
+                for (int i = 0; i < rights.size(); i++) {
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(rights.get(i).getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(lefts.size() + i)
+                            .build());
+                }
+            } else {
+                for (QuestionRequestDTO.AnswerOptionDTO optDTO : request.getOptions()) {
+                    AnswerOption opt = AnswerOption.builder()
+                            .question(question)
+                            .title(optDTO.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                            .build();
+                    answerOptionRepository.save(opt);
+                }
             }
         }
 
@@ -141,10 +195,15 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         Module module = question.getModule();
 
         List<QuestionResponseDTO.AnswerOptionResponseDTO> optDTOs = opts.stream()
+                .sorted((a, b) -> Integer.compare(
+                        a.getOrderIndex() != null ? a.getOrderIndex() : 0,
+                        b.getOrderIndex() != null ? b.getOrderIndex() : 0))
                 .map(o -> QuestionResponseDTO.AnswerOptionResponseDTO.builder()
                         .answerOptionId(o.getAnswerOptionId())
                         .title(o.getTitle())
                         .correctAnswer(o.getCorrectAnswer())
+                        .matchTarget(o.getMatchTarget())
+                        .orderIndex(o.getOrderIndex())
                         .build())
                 .collect(Collectors.toList());
 
@@ -218,21 +277,19 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 List<Integer> pairs = qdto.getCorrectPairs();
                 for (int i = 0; i < left.size(); i++) {
                     int rightIdx = pairs.get(i) - 1;
-                    AnswerOption aoLeft = AnswerOption.builder()
+                    answerOptionRepository.save(AnswerOption.builder()
                             .question(question)
                             .title(left.get(i))
                             .correctAnswer(false)
                             .orderIndex(i)
-                            .build();
-                    answerOptionRepository.save(aoLeft);
-                    AnswerOption aoRight = AnswerOption.builder()
+                            .matchTarget(right.get(rightIdx))
+                            .build());
+                    answerOptionRepository.save(AnswerOption.builder()
                             .question(question)
                             .title(right.get(rightIdx))
                             .correctAnswer(false)
-                            .orderIndex(left.size() + rightIdx)
-                            .matchTarget(left.get(i))
-                            .build();
-                    answerOptionRepository.save(aoRight);
+                            .orderIndex(left.size() + i)
+                            .build());
                 }
             }
             saved++;

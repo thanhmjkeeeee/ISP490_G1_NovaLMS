@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +75,12 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
     public int importQuestions(ExcelImportRequestDTO request, String userEmail) throws Exception {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("User không tồn tại: " + userEmail));
+        log.info("[IMPORT] total questions={}", request.getQuestions().size());
+        for (int qi = 0; qi < request.getQuestions().size(); qi++) {
+            var qdto = request.getQuestions().get(qi);
+            log.info("[IMPORT] question[{}]: content='{}' type={} matchLeft={} matchRight={} correctPairs={}",
+                    qi, qdto.getContent(), qdto.getQuestionType(), qdto.getMatchLeft(), qdto.getMatchRight(), qdto.getCorrectPairs());
+        }
 
         int saved = 0;
         for (ExcelImportRequestDTO.ExcelQuestionDTO qdto : request.getQuestions()) {
@@ -96,24 +103,32 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                 List<String> left = qdto.getMatchLeft();
                 List<String> right = qdto.getMatchRight();
                 List<Integer> pairs = qdto.getCorrectPairs();
+                log.info("[MATCHING] row={} content='{}' left={} right={} pairs={}",
+                        qdto.getRowIndex(), qdto.getContent(), left, right, pairs);
                 for (int i = 0; i < left.size(); i++) {
                     int rightIdx = pairs.get(i) - 1;
+                    log.info("[MATCHING] i={} left[{}]='{}' pairs[{}]={} rightIdx={} right[{}]='{}'",
+                            i, i, left.get(i), i, pairs.get(i), rightIdx, rightIdx, right.get(rightIdx));
                     AnswerOption aoLeft = AnswerOption.builder()
                             .question(question)
                             .title(left.get(i))
                             .correctAnswer(false)
                             .orderIndex(i)
+                            .matchTarget(right.get(rightIdx))
                             .build();
                     answerOptionRepository.save(aoLeft);
+                    log.info("[MATCHING] SAVED LEFT: title='{}' matchTarget='{}' orderIndex={}",
+                            left.get(i), right.get(rightIdx), i);
 
                     AnswerOption aoRight = AnswerOption.builder()
                             .question(question)
                             .title(right.get(rightIdx))
                             .correctAnswer(false)
-                            .orderIndex(left.size() + rightIdx)
-                            .matchTarget(left.get(i))
+                            .orderIndex(left.size() + i)
                             .build();
                     answerOptionRepository.save(aoRight);
+                    log.info("[MATCHING] SAVED RIGHT: title='{}' matchTarget=null orderIndex={}",
+                            right.get(rightIdx), left.size() + i);
                 }
             }
             saved++;
@@ -205,6 +220,9 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                 .audioUrl(audioUrl)
                 .selected(true);
 
+        log.info("[PARSE-ROW] row={} type={} content='{}' skill='{}' cefr='{}' topic='{}' explanation='{}'",
+                rowIdx, questionType, content, skill, cefr, topic, explanation);
+
         switch (questionType) {
             case "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI" -> parseMCOptions(row, rowIdx, builder, questionType);
             case "FILL_IN_BLANK" -> builder.correctAnswer(trim(getCell(row, 1)));
@@ -279,6 +297,8 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
             }
         }
 
+        log.info("[PARSE-MATCHING] row={} leftStr='{}' rightStr='{}' pairsStr='{}' => left={} right={} pairs={}",
+                rowIdx, leftStr, rightStr, pairsStr, left, right, pairs);
         builder.matchLeft(left).matchRight(right).correctPairs(pairs);
     }
 
@@ -308,7 +328,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                 case "skill" -> 2; case "cefr" -> 3; case "topic" -> 4; case "explanation" -> 5; default -> 0;
             };
             case "MATCHING" -> switch (field) {
-                case "skill" -> 4; case "cefr" -> 5; case "topic" -> 6; default -> 0;
+                case "skill" -> 4; case "cefr" -> 5; case "topic" -> 6; case "explanation" -> -1; case "audioUrl" -> -1; default -> 0;
             };
             case "WRITING" -> switch (field) {
                 case "skill" -> 1; case "cefr" -> 2; case "topic" -> 3; case "explanation" -> 4; default -> 0;
@@ -339,7 +359,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
 
     private List<String> split(String s, String delim) {
         if (s == null) return List.of();
-        return Arrays.stream(s.split("\\s*\\" + delim + "\\s*"))
+        return Arrays.stream(s.split("\\s*" + Pattern.quote(delim) + "\\s*"))
                 .filter(t -> !t.isBlank())
                 .toList();
     }
