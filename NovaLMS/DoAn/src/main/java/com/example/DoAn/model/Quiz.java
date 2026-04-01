@@ -5,6 +5,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.example.DoAn.model.Module;
+import com.example.DoAn.model.Lesson;
 
 @Entity
 @Table(name = "quiz")
@@ -23,6 +25,16 @@ public class Quiz {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = true)
     private Course course;
+
+    // Module-level quiz (Expert creates)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "module_id", nullable = true)
+    private Module module;
+
+    // Lesson-level quiz (Teacher creates)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lesson_id", nullable = true)
+    private Lesson lesson;
 
     // Expert tạo quiz
     @ManyToOne(fetch = FetchType.LAZY)

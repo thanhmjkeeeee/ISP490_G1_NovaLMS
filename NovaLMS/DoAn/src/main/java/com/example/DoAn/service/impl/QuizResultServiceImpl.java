@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +37,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
     private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
+    private final com.example.DoAn.service.LessonQuizService lessonQuizService;
 
     @Override
     @Transactional(readOnly = true)
@@ -125,14 +127,34 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
 
             List<AnswerOptionPayloadDTO> optionsDTO = new ArrayList<>();
+            List<AnswerOptionPayloadDTO> matchRightOptionsDTO = new ArrayList<>();
             if (options != null && !options.isEmpty()) {
-                optionsDTO = options.stream()
-                        .map(opt -> AnswerOptionPayloadDTO.builder()
-                                .answerOptionId(opt.getAnswerOptionId())
-                                .title(opt.getTitle())
-                                .matchTarget(opt.getMatchTarget())
-                                .build())
-                        .collect(Collectors.toList());
+                if ("MATCHING".equals(q.getQuestionType())) {
+                    List<AnswerOption> lefts = options.stream()
+                            .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                            .sorted(Comparator.comparingInt(a -> a.getOrderIndex() != null ? a.getOrderIndex() : 0))
+                            .toList();
+                    List<AnswerOption> rights = options.stream()
+                            .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                            .sorted(Comparator.comparingInt(a -> a.getOrderIndex() != null ? a.getOrderIndex() : 0))
+                            .toList();
+                    Function<AnswerOption, AnswerOptionPayloadDTO> toDto = opt ->
+                            AnswerOptionPayloadDTO.builder()
+                                    .answerOptionId(opt.getAnswerOptionId())
+                                    .title(opt.getTitle())
+                                    .matchTarget(opt.getMatchTarget())
+                                    .build();
+                    optionsDTO = lefts.stream().map(toDto).toList();
+                    matchRightOptionsDTO = rights.stream().map(toDto).toList();
+                } else {
+                    optionsDTO = options.stream()
+                            .map(opt -> AnswerOptionPayloadDTO.builder()
+                                    .answerOptionId(opt.getAnswerOptionId())
+                                    .title(opt.getTitle())
+                                    .matchTarget(opt.getMatchTarget())
+                                    .build())
+                            .collect(Collectors.toList());
+                }
             }
 
             boolean noOptionsType = "WRITING".equals(q.getQuestionType()) || "SPEAKING".equals(q.getQuestionType()) || "FILL_IN_BLANK".equals(q.getQuestionType());
@@ -147,6 +169,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .imageUrl(q.getImageUrl())
                     .audioUrl(q.getAudioUrl())
                     .options(noOptionsType ? new ArrayList<AnswerOptionPayloadDTO>() : optionsDTO)
+                    .matchRightOptions(matchRightOptionsDTO)
                     .build();
         }).collect(Collectors.toList());
 
@@ -278,6 +301,18 @@ public class QuizResultServiceImpl implements QuizResultService {
             lessonRepository.findByQuizId(quizId).ifPresent(l -> {
                 learningService.markLessonCompleted(l.getLessonId(), email);
             });
+        }
+
+        // Update lesson quiz progress + unlock next quiz
+        if (quiz.getLesson() != null) {
+            try {
+                double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
+                lessonQuizService.updateProgressAfterSubmit(
+                        quiz.getLesson().getLessonId(), quizId, user.getUserId(),
+                        scorePercent, Boolean.TRUE.equals(passed));
+            } catch (Exception e) {
+                // Non-critical: log but don't fail the submission
+            }
         }
 
         return quizResult.getResultId();
@@ -552,6 +587,18 @@ public class QuizResultServiceImpl implements QuizResultService {
             lessonRepository.findByQuizId(quiz.getQuizId()).ifPresent(l -> {
                 learningService.markLessonCompleted(l.getLessonId(), qr.getUser().getEmail());
             });
+        }
+
+        // After grading, update lesson quiz progress + unlock next
+        if (quiz.getLesson() != null) {
+            try {
+                double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
+                lessonQuizService.updateProgressAfterSubmit(
+                        quiz.getLesson().getLessonId(), quiz.getQuizId(), qr.getUser().getUserId(),
+                        scorePercent, Boolean.TRUE.equals(passed));
+            } catch (Exception e) {
+                // Non-critical
+            }
         }
     }
 }

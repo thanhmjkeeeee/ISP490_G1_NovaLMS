@@ -7,6 +7,7 @@ import com.example.DoAn.dto.response.QuizResponseDTO;
 import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.*;
+import com.example.DoAn.model.Module;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.IExpertQuizService;
 import lombok.RequiredArgsConstructor;
@@ -29,11 +30,14 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final QuestionRepository questionRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final QuizResultRepository quizResultRepository;
+    private final QuizAssignmentRepository quizAssignmentRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final ClazzRepository clazzRepository;
+    private final ModuleRepository moduleRepository;
+    private final LessonRepository lessonRepository;
 
-    private static final Set<String> VALID_CATEGORIES = Set.of("ENTRY_TEST", "COURSE_QUIZ");
+    private static final Set<String> VALID_CATEGORIES = Set.of("ENTRY_TEST", "COURSE_QUIZ", "MODULE_QUIZ", "LESSON_QUIZ");
     private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
     private static final Set<String> VALID_ORDERS = Set.of("FIXED", "RANDOM");
 
@@ -79,7 +83,44 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             }
         }
 
+        // Gắn module nếu là MODULE_QUIZ
+        if ("MODULE_QUIZ".equals(request.getQuizCategory()) && request.getModuleId() != null) {
+            Module module = moduleRepository.findById(request.getModuleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với ID: " + request.getModuleId()));
+            quiz.setModule(module);
+            if (quiz.getCourse() == null && module.getCourse() != null) {
+                quiz.setCourse(module.getCourse());
+            }
+        }
+
+        // Gắn lesson nếu là LESSON_QUIZ
+        if ("LESSON_QUIZ".equals(request.getQuizCategory()) && request.getLessonId() != null) {
+            Lesson lesson = lessonRepository.findById(request.getLessonId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + request.getLessonId()));
+            quiz.setLesson(lesson);
+            if (lesson.getModule() != null && lesson.getModule().getCourse() != null && quiz.getCourse() == null) {
+                quiz.setCourse(lesson.getModule().getCourse());
+            }
+        }
+
         quizRepository.save(quiz);
+
+        // Tạo QuizAssignment để quiz xuất hiện trong danh sách quiz của module
+        if ("MODULE_QUIZ".equals(request.getQuizCategory()) && quiz.getModule() != null) {
+            int maxOrder = quizAssignmentRepository
+                    .findByModule_ModuleIdOrderByOrderIndexAsc(quiz.getModule().getModuleId())
+                    .stream()
+                    .mapToInt(QuizAssignment::getOrderIndex)
+                    .max()
+                    .orElse(0);
+            QuizAssignment assignment = QuizAssignment.builder()
+                    .module(quiz.getModule())
+                    .quiz(quiz)
+                    .orderIndex(maxOrder + 1)
+                    .build();
+            quizAssignmentRepository.save(assignment);
+        }
+
         return toResponseDTO(quiz);
     }
 
@@ -349,7 +390,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (!VALID_CATEGORIES.contains(request.getQuizCategory())) {
             throw new InvalidDataException("Loại quiz không hợp lệ: " + request.getQuizCategory());
         }
-        if ("COURSE_QUIZ".equals(request.getQuizCategory()) && request.getCourseId() == null) {
+        if (Set.of("COURSE_QUIZ").contains(request.getQuizCategory()) && request.getCourseId() == null) {
             throw new InvalidDataException("Course Quiz phải gắn với một khóa học (courseId bắt buộc).");
         }
         if (request.getQuestionOrder() != null && !VALID_ORDERS.contains(request.getQuestionOrder())) {
@@ -393,6 +434,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .quizCategory(quiz.getQuizCategory())
                 .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
+                .moduleId(quiz.getModule() != null ? quiz.getModule().getModuleId() : null)
+                .moduleName(quiz.getModule() != null ? quiz.getModule().getModuleName() : null)
+                .lessonId(quiz.getLesson() != null ? quiz.getLesson().getLessonId() : null)
+                .lessonName(quiz.getLesson() != null ? quiz.getLesson().getLessonName() : null)
                 .status(quiz.getStatus())
                 .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())

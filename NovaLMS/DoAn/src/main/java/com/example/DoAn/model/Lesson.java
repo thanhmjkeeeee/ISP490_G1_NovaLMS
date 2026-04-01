@@ -3,6 +3,7 @@ package com.example.DoAn.model;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import java.util.List;
 
 @Entity
 @Table(name = "lesson")
@@ -31,11 +32,6 @@ public class Lesson {
     @Column(name = "content_text")
     private String content_text;
 
-    @Column(name = "quiz_id")
-    private Integer quiz_id;
-
-
-
     @Column(name = "order_index")
     private Integer orderIndex;
 
@@ -43,5 +39,9 @@ public class Lesson {
     @JoinColumn(name = "module_id")
     @JsonBackReference(value = "module-lessons")
     private Module module;
+
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private List<QuizAssignment> quizAssignments;
 
 }

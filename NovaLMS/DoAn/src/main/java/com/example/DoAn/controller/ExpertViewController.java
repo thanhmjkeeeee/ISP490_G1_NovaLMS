@@ -128,8 +128,9 @@ public class ExpertViewController {
     }
 
     @GetMapping("/quiz-management/create")
-    public String quizCreatePage(Model model) {
+    public String quizCreatePage(@RequestParam(required = false) Integer moduleId, Model model) {
         model.addAttribute("isDashboard", true);
+        model.addAttribute("moduleId", moduleId);
         return "expert/quiz-create";
     }
 

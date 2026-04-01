@@ -1,5 +1,6 @@
 package com.example.DoAn.service;
 
+import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
 import java.util.List;
@@ -9,4 +10,5 @@ public interface IExpertQuestionService {
     QuestionResponseDTO createQuestion(QuestionRequestDTO request, String email);
     QuestionResponseDTO updateQuestion(Integer questionId, QuestionRequestDTO request, String email);
     void deleteQuestion(Integer questionId, String email);
+    int saveAIQuestions(AIImportRequestDTO request, String email);
 }

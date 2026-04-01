@@ -29,7 +29,7 @@
                         <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
                         <input type="text" id="title" class="form-control" required placeholder="VD: Entry Test IELTS A1">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3" id="quizCategoryCol">
                         <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
                         <select id="quizCategory" class="form-select" required onchange="onCategoryChange()">
                             <option value="">-- Chọn --</option>
@@ -108,6 +108,15 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script>
+(function() {
+    const moduleId = /*[[${moduleId}]]*/ null;
+    if (moduleId) {
+        // Ẩn dropdown loại quiz vì đang tạo quiz cho module
+        document.getElementById('quizCategoryCol').style.display = 'none';
+        document.getElementById('publishLabel').textContent = 'Tạo Quiz cho Chương';
+    }
+})();
+
 function onCategoryChange() {
     const cat = document.getElementById('quizCategory').value;
     document.getElementById('courseSection').style.display = cat === 'COURSE_QUIZ' ? 'block' : 'none';
@@ -151,8 +160,15 @@ async function loadCourses() {
 }
 
 async function submitQuiz(status) {
-    const cat = document.getElementById('quizCategory').value;
-    if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
+    const moduleId = /*[[${moduleId}]]*/ null;
+    let cat = document.getElementById('quizCategory').value;
+
+    // Nếu đang tạo quiz cho module, loại quiz luôn là MODULE_QUIZ
+    if (moduleId) {
+        cat = 'MODULE_QUIZ';
+    } else {
+        if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
+    }
 
     // Entry Test: luôn lưu DRAFT trước để expert thêm câu hỏi trước khi publish
     if (cat === 'ENTRY_TEST') {
@@ -164,6 +180,7 @@ async function submitQuiz(status) {
         description: document.getElementById('description').value || null,
         quizCategory: cat,
         courseId: cat === 'COURSE_QUIZ' ? parseInt(document.getElementById('courseId').value) || null : null,
+        moduleId: moduleId || null,
         timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
         passScore: parseFloat(document.getElementById('passScore').value) || null,
         maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
