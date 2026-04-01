@@ -32,6 +32,9 @@ public class Lesson {
     @Column(name = "content_text", columnDefinition = "TEXT")
     private String content_text;
 
+    @Column(name = "quiz_id")
+    private Integer quiz_id;
+
     @Column(name = "order_index")
     private Integer orderIndex;
 
@@ -40,6 +43,17 @@ public class Lesson {
     @JsonBackReference(value = "module-lessons")
     private Module module;
 
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SessionLesson> sessionLessons;
+
+    // Helper methods for compatibility with StudentServiceImpl calls
+    public String getLessonType() {
+        return this.type;
+    }
+
+    public String getTitle() {
+        return this.lessonName;
+    }
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<QuizAssignment> quizAssignments;
