@@ -14,6 +14,8 @@ public interface ClassRepository extends JpaRepository<Clazz, Integer>, JpaSpeci
     // Tìm các lớp theo Course ID và trạng thái (ví dụ: tìm lớp đang mở 'Open')
     List<Clazz> findByCourse_CourseIdAndStatus(Integer courseId, String status);
 
+    List<Clazz> findByCourse_CourseIdAndStatusAndStartDateBetween(Integer courseId, String status, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
     List<Clazz> findByStatus(String status);
     List<Clazz> findByStatusAndCourse_Category_SettingId(String status, Integer categoryId);
 

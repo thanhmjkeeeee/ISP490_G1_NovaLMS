@@ -228,6 +228,9 @@ public class StudentServiceImpl implements StudentService {
             List<RegistrationResponseDTO> dtoList = pagedList.stream()
                     .map(r -> {
                         String courseName = r.getCourse() != null ? r.getCourse().getCourseName() : "N/A";
+                        String categoryName = (r.getCourse() != null && r.getCourse().getCategory() != null)
+                                ? r.getCourse().getCategory().getName()
+                                : "N/A";
                         String className = r.getClazz() != null ? r.getClazz().getClassName() : "N/A";
                         String userName = r.getUser() != null ? r.getUser().getFullName() : "N/A";
                         String userEmail = r.getUser() != null ? r.getUser().getEmail() : "N/A";
@@ -235,6 +238,7 @@ public class StudentServiceImpl implements StudentService {
                         return RegistrationResponseDTO.builder()
                                 .registrationId(r.getRegistrationId())
                                 .courseName(courseName)
+                                .categoryName(categoryName)
                                 .className(className)
                                 .status(r.getStatus())
                                 .registrationPrice(r.getRegistrationPrice())
