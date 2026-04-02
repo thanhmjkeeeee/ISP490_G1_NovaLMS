@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,10 +29,17 @@ public class ClassPublicServiceImpl implements ClassPublicService {
     @Override
     public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").ascending());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDateMin = now.minusDays(7);
+        LocalDateTime startDateMax = now.plusDays(7);
+
         Specification<Clazz> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             predicates.add(cb.equal(root.get("status"), "Open"));
+
+            // Filter classes starting within 7 days from now (past or future)
+            predicates.add(cb.between(root.get("startDate"), startDateMin, startDateMax));
 
             if (categoryId != null && categoryId > 0) {
                 predicates.add(cb.equal(root.get("course").get("category").get("settingId"), categoryId));

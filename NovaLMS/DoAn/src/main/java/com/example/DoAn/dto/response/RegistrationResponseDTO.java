@@ -17,6 +17,7 @@ public class RegistrationResponseDTO {
     private String className;
     private Integer courseId;
     private String courseName;
+    private String categoryName;
     private String status;
     private String paymentStatus;
     private BigDecimal registrationPrice;
