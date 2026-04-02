@@ -363,7 +363,15 @@ public class StudentServiceImpl implements StudentService {
                     .build());
         }
 
-        // 3. Gom Session và Map Lesson thật từ Database
+        // 3. Tối ưu N+1: Kéo toàn bộ SessionLesson của lớp trong 1 query duy nhất
+        List<SessionLesson> allLessonsInClass = sessionLessonRepository
+                .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
+        
+        // Nhóm theo sessionId để truy xuất nhanh
+        java.util.Map<Integer, List<SessionLesson>> lessonsGroupedBySession = allLessonsInClass.stream()
+                .collect(java.util.stream.Collectors.groupingBy(sl -> sl.getSession().getSessionId()));
+
+        // 4. Gom Session và Map Lesson thật
         List<SessionDetailDTO> sessionDTOs = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
@@ -372,8 +380,6 @@ public class StudentServiceImpl implements StudentService {
 
         if (clazz.getSessions() != null) {
             for (ClassSession session : clazz.getSessions()) {
-
-                // Xác định trạng thái của Buổi học (Dựa vào thời gian thực)
                 String sessionStatus = "UPCOMING";
                 LocalDate sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate() : null;
 
@@ -382,46 +388,57 @@ public class StudentServiceImpl implements StudentService {
                     else if (sessionDate.isEqual(today)) sessionStatus = "LEARNING";
                 }
 
-                // Kéo mapping SessionLesson từ Database thật
-                List<SessionLesson> sessionLessons = sessionLessonRepository
-                        .findByClassSession_SessionIdOrderByOrderIndexAsc(session.getSessionId());
+                // Lấy nội dung từ Map thay vì query database trong loop
+                List<SessionLesson> sessionLessons = lessonsGroupedBySession.getOrDefault(session.getSessionId(), new ArrayList<>());
 
-                List<LessonResponseDTO> lessonDTOs = new ArrayList<>();
+                List<LessonResponseDTO> materials = new ArrayList<>();
+                List<LessonResponseDTO> quizzes = new ArrayList<>();
 
                 for (SessionLesson sl : sessionLessons) {
                     Lesson lesson = sl.getLesson();
                     if (lesson == null) continue;
 
-                    totalLessonsInClass++; // Tăng tổng số bài học của lớp
+                    totalLessonsInClass++; 
 
-                    // Check xem User đã hoàn thành bài này chưa (Từ bảng user_lesson)
                     boolean isLessonCompleted = userLessonRepository
                             .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
 
                     if (isLessonCompleted) completedLessonsByUser++;
 
-                    // Áp dụng Business Rule: Khóa bài học nếu Session chưa tới ngày (UPCOMING)
                     boolean isLocked = sessionStatus.equals("UPCOMING");
 
-                    lessonDTOs.add(LessonResponseDTO.builder()
+                    // FIX: Sử dụng đúng Getter từ Entity Lesson (lessonName, type, quiz_id)
+                    LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
                             .lessonId(lesson.getLessonId())
-                            .type(lesson.getLessonType() != null ? lesson.getLessonType() : "DOC")
-                            .lessonTitle(lesson.getTitle())
+                            .type(lesson.getType() != null ? lesson.getType() : "DOC")
+                            .lessonTitle(lesson.getLessonName())
                             .lessonName(lesson.getLessonName())
                             .duration(lesson.getDuration())
                             .videoUrl(lesson.getVideoUrl())
+                            .quizId(lesson.getQuiz_id()) 
                             .isCompleted(isLessonCompleted)
                             .isLocked(isLocked)
-                            .build());
+                            .build();
+
+                    if ("QUIZ".equalsIgnoreCase(lessonDTO.getType())) {
+                        quizzes.add(lessonDTO);
+                    } else {
+                        materials.add(lessonDTO);
+                    }
                 }
 
                 sessionDTOs.add(SessionDetailDTO.builder()
                         .sessionId(session.getSessionId())
                         .sessionNo(session.getSessionNumber())
+                        .startTime(session.getStartTime())
+                        .endTime(session.getEndTime())
+                        .dayOfWeek(session.getSessionDate() != null ? session.getSessionDate().getDayOfWeek().getValue() : null)
+                        .slotNumber(calculateSlotNumber(session.getStartTime()))
                         .topic(session.getTopic())
-                        .date(session.getSessionDate() != null ? session.getSessionDate().toString() : "")
+                        .date(session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "")
                         .status(sessionStatus)
-                        .lessons(lessonDTOs) // Gắn danh sách Lesson thật vào đây
+                        .materials(materials)
+                        .quizzes(quizzes)
                         .build());
             }
         }
@@ -436,6 +453,7 @@ public class StudentServiceImpl implements StudentService {
         // 5. Đóng gói DTO Tổng
         return StudentClassDetailResponse.builder()
                 .classId(clazz.getClassId())
+                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
                 .className(clazz.getClassName())
                 .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "")
                 .courseImage(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : "")
@@ -449,5 +467,25 @@ public class StudentServiceImpl implements StudentService {
                 .sessions(sessionDTOs)
                 .members(members)
                 .build();
+    }
+
+    private int calculateSlotNumber(String startTime) {
+        if (startTime == null || startTime.length() < 5) return 1;
+        int hour;
+        try {
+            hour = Integer.parseInt(startTime.substring(0, 2));
+        } catch (Exception e) {
+            return 1;
+        }
+        if (hour >= 7 && hour < 9) return 1;
+        if (hour >= 9 && hour < 11) return 2;
+        if (hour >= 13 && hour < 15) return 3;
+        if (hour >= 15 && hour < 17) return 4;
+        if (hour >= 18 && hour < 20) return 5;
+        // Default mappings if outside standard slots
+        if (hour < 7) return 1;
+        if (hour >= 11 && hour < 13) return 2;
+        if (hour >= 17 && hour < 18) return 4;
+        return 5;
     }
 }

@@ -42,7 +42,7 @@ public class StudentClassApiController {
         return studentClassService.getMyClasses(email, keyword, status, page, size);
     }
 
-    @GetMapping("/{classId}")
+    @GetMapping("/{classId}/detail")
     public ResponseData<StudentClassDetailResponse> getClassDetail(@PathVariable Integer classId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
