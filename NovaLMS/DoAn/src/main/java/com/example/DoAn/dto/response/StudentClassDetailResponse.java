@@ -13,6 +13,7 @@ import java.util.List;
 @Builder
 public class StudentClassDetailResponse {
     private Integer classId;
+    private Integer courseId;
     private String className;
     private String courseName;
     private String courseImage;

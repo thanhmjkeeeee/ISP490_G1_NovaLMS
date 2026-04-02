@@ -321,7 +321,7 @@
         }
 
         try {
-            const response = await fetch(`/api/v1/student/classes/${classIdFromUrl}`);
+            const response = await fetch(`/api/v1/student/classes/${classIdFromUrl}/detail`);
             const result = await response.json();
 
             if (result.status !== 200) {
@@ -338,7 +338,7 @@
             // Initialize Timetable Selectors
             initTimetableSelectors();
 
-            document.getElementById('classBannerContainer').classList.remove('d-none'); // Đảm bảo container không bị ẩn
+            document.getElementById('classBannerContainer').classList.add('d-none');
             document.getElementById('classContentWrapper').classList.remove('d-none');
 
         } catch (error) {
@@ -362,6 +362,7 @@
         const currentWeek = getISOWeek(now);
 
         // Years
+        yearSelect.innerHTML = '';
         for (let y = currentYear - 1; y <= currentYear + 1; y++) {
             const opt = document.createElement('option');
             opt.value = y; opt.textContent = y;
@@ -370,6 +371,7 @@
         }
 
         // Weeks
+        weekSelect.innerHTML = '';
         for (let w = 1; w <= 52; w++) {
             const opt = document.createElement('option');
             opt.value = w; opt.textContent = `Tuần ${w}`;
@@ -413,88 +415,116 @@
         if (!classDetailData || !classDetailData.sessions) return;
 
         classDetailData.sessions.forEach(session => {
+            if(!session.date) return;
             const sDate = new Date(session.date);
+
+            // So sánh tuần và năm
             if (getISOWeek(sDate) === week && sDate.getFullYear() === year) {
-                const day = session.dayOfWeek;
-                const slot = session.slotNumber;
+                // Đảm bảo dayOfWeek và slotNumber hợp lệ
+                const day = session.dayOfWeek || 1;
+                const slot = session.slotNumber || 1;
                 const cell = document.getElementById(`cell-${day}-${slot}`);
 
                 if (cell) {
+                    // Xử lý an toàn chuỗi thời gian
+                    const startTime = session.startTime ? session.startTime.substring(0, 5) : '--:--';
+                    const endTime = session.endTime ? session.endTime.substring(0, 5) : '--:--';
+                    const topicStr = session.topic ? session.topic : `Chủ đề buổi ${session.sessionNo}`;
+
                     cell.innerHTML = `
                         <div class="session-badge shadow-sm" onclick="openSessionModal(${session.sessionId})">
-                            <div class="topic" title="${session.topic}">${session.topic || 'Chủ đề buổi ' + session.sessionNo}</div>
-                            <div class="time"><i class="bi bi-clock me-1"></i>${session.startTime} - ${session.endTime}</div>
+                            <div class="topic" title="${topicStr}">${topicStr}</div>
+                            <div class="time"><i class="bi bi-clock me-1"></i>${startTime} - ${endTime}</div>
                         </div>`;
                 }
             }
         });
     }
 
-    // --- MODAL LOGIC ---
     function openSessionModal(sessionId) {
+        console.log("Session selected:", sessionId);
+        if (!classDetailData || !classDetailData.sessions) return;
+
         const session = classDetailData.sessions.find(s => s.sessionId === sessionId);
+        console.log("Full Session Data:", session); // DEBUG LOG
         if(!session) return;
+
+        const modalEl = document.getElementById('sessionModal');
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
 
         document.getElementById('modalSessionNo').textContent = `BUỔI ${session.sessionNo < 10 ? '0'+session.sessionNo : session.sessionNo}`;
         document.getElementById('modalTopic').textContent = session.topic || 'Chưa cập nhật chủ đề';
 
-        // Materials
+        // 1. LẤY TRỰC TIẾP DỮ LIỆU ĐÃ ĐƯỢC BACKEND PHÂN LOẠI
+        // Backend (SessionDetailDTO) trả thẳng về 2 list: materials và quizzes
+        const materials = session.materials || [];
+        const quizzes = session.quizzes || [];
+
+        // 2. RENDER MẢNG TÀI LIỆU (MATERIALS)
         const materialsContainer = document.getElementById('materialsList');
-        if (session.materials && session.materials.length > 0) {
-            materialsContainer.innerHTML = session.materials.map(m => {
-                const icon = m.type === 'VIDEO' ? 'bi-play-btn-fill icon-video' : 'bi-file-earmark-text icon-doc';
-                return `
-                    <a href="/student/learn/${classDetailData.courseId}?lessonId=${m.lessonId}" class="content-item shadow-sm">
+        materialsContainer.innerHTML = '';
+
+        if (materials.length > 0) {
+            let materialsHtml = '';
+            materials.forEach(m => {
+                const typeStr = (m.type || '').toUpperCase();
+                const isVideo = typeStr === 'VIDEO' || typeStr.includes('VID');
+                const icon = isVideo ? 'bi-play-btn-fill icon-video' : 'bi-file-earmark-text icon-doc';
+
+                const title = m.lessonTitle || m.lessonName || m.title || 'Tài liệu học tập';
+                const url = `/student/lesson/view/${m.lessonId}`;
+
+                materialsHtml += `
+                    <a href="${url}" class="content-item shadow-sm">
                         <div class="icon ${icon.split(' ')[1]}"><i class="bi ${icon.split(' ')[0]}"></i></div>
-                        <div class="fw-bold">${m.lessonTitle || m.lessonName}</div>
+                        <div class="fw-bold fs-6">${title}</div>
                     </a>`;
-            }).join('');
+            });
+            materialsContainer.innerHTML = materialsHtml;
         } else {
             materialsContainer.innerHTML = '<div class="empty-state">Chưa có tài liệu học tập cho buổi này</div>';
         }
 
-        // Quizzes
+        // 3. RENDER MẢNG BÀI TẬP (QUIZZES)
         const quizzesContainer = document.getElementById('quizzesList');
-        if (session.quizzes && session.quizzes.length > 0) {
-            quizzesContainer.innerHTML = session.quizzes.map(q => `
-                <a href="/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}" class="content-item shadow-sm">
-                    <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
-                    <div class="fw-bold">${q.lessonTitle || q.lessonName || 'Bài kiểm tra'}</div>
-                </a>`).join('');
+        quizzesContainer.innerHTML = '';
+
+        if (quizzes.length > 0) {
+            let quizzesHtml = '';
+            quizzes.forEach(q => {
+                const title = q.lessonTitle || q.lessonName || q.title || 'Bài kiểm tra';
+                const qId = q.quizId;
+
+                let url = '#';
+                let onclick = `onclick="alert('Chưa có ID bài tập!')"`;
+
+                if(qId) {
+                    url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
+                    onclick = '';
+                }
+
+                quizzesHtml += `
+                    <a href="${url}" ${onclick} class="content-item shadow-sm">
+                        <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
+                        <div class="fw-bold fs-6">${title}</div>
+                    </a>`;
+            });
+            quizzesContainer.innerHTML = quizzesHtml;
         } else {
             quizzesContainer.innerHTML = '<div class="empty-state">Chưa có bài tập trắc nghiệm cho buổi này</div>';
         }
 
-        const modal = new bootstrap.Modal(document.getElementById('sessionModal'));
-        modal.show();
+        modalInstance.show();
     }
 
-    // --- UTILS ---
-    function getISOWeek(date) {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
-    function getDateOfISOWeek(w, y) {
-        const simple = new Date(y, 0, 1 + (w - 1) * 7);
-        const dow = simple.getDay();
-        const ISOweekStart = simple;
-        if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-        else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
-        return ISOweekStart;
-    }
-
-    function formatDateDM(date) {
-        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
-    }
-
+    // --- RENDER UTILS ---
     function renderBanner(data) {
         const statusClass = data.status === 'Closed' ? 'bi-slash-circle' : 'bi-play-circle-fill';
         const progress = data.progressPercent || 0;
-        document.getElementById('classBannerContainer').innerHTML = `
+        const bannerContainer = document.getElementById('classBannerContainer');
+
+        // Tạo banner HTML mới thay vì thay thế toàn bộ container để giữ nguyên cấu trúc loading nếu cần
+        const bannerHtml = `
             <div class="course-banner bg-primary bg-gradient rounded-4 p-4 p-md-5 mb-4 shadow-sm text-white position-relative overflow-hidden">
                 <div class="position-absolute top-0 end-0 opacity-25" style="transform: translate(20%, -30%);">
                     <i class="bi bi-mortarboard-fill" style="font-size: 15rem;"></i>
@@ -526,21 +556,23 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>`;
+
+        // Thay thế banner loading bằng banner chính
+        bannerContainer.insertAdjacentHTML('afterend', bannerHtml);
     }
 
     function renderInfoAndTeacher(data) {
         const teacher = (data.members || []).find(m => m.role === 'TEACHER') || { name: 'Chưa phân công' };
 
-        // Tab Thông tin
         document.getElementById('infoContent').innerHTML = `
-            Lớp học <strong>${data.className}</strong> thuộc khóa học <strong>${data.courseName}</strong>.<br><br>
-            Bắt đầu từ ngày: <strong>${data.startDate ? new Date(data.startDate).toLocaleDateString('vi-VN') : '--'}</strong><br>
-            Dự kiến kết thúc: <strong>${data.endDate ? new Date(data.endDate).toLocaleDateString('vi-VN') : '--'}</strong>
+            Lớp học <strong class="text-dark">${data.className || '--'}</strong> thuộc khóa học <strong class="text-dark">${data.courseName || '--'}</strong>.<br><br>
+            Bắt đầu từ ngày: <strong class="text-dark">${data.startDate ? new Date(data.startDate).toLocaleDateString('vi-VN') : '--'}</strong><br>
+            Dự kiến kết thúc: <strong class="text-dark">${data.endDate ? new Date(data.endDate).toLocaleDateString('vi-VN') : '--'}</strong>
         `;
 
-        // Card Giảng viên (Cột phải)
         document.getElementById('teacherName').textContent = teacher.name;
         if(teacher.avatar) {
             document.getElementById('teacherAvatar').src = teacher.avatar;
@@ -551,25 +583,52 @@
 
     function renderMembers(data) {
         const students = (data.members || []).filter(m => m.role === 'STUDENT');
+        const membersContainer = document.getElementById('membersContent');
+
         if(students.length === 0) {
-            document.getElementById('membersContent').innerHTML = '<div class="col-12 text-center py-4 text-muted">Chưa có học viên nào tham gia.</div>';
+            membersContainer.innerHTML = '<div class="col-12 text-center py-4 text-muted fst-italic">Chưa có học viên nào tham gia.</div>';
             return;
         }
 
-        document.getElementById('membersContent').innerHTML = students.map(s => {
+        let html = '';
+        students.forEach(s => {
             const avatar = s.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=eff6ff&color=0d6efd`;
-            return `
+            html += `
             <div class="col-md-6">
-                <div class="d-flex align-items-center p-3 border rounded-3 bg-light transition-all hover-bg-light">
-                    <img src="${avatar}" class="rounded-circle border border-2 border-white shadow-sm me-3" width="45" height="45">
+                <div class="d-flex align-items-center p-3 border rounded-3 bg-light transition-all hover-bg-light hover-card">
+                    <img src="${avatar}" class="rounded-circle border border-2 border-white shadow-sm me-3" width="45" height="45" style="object-fit: cover;">
                     <div class="overflow-hidden">
-                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;">${s.name}</div>
-                        <div class="text-muted text-truncate" style="font-size: 0.8rem;"><i class="bi bi-envelope me-1"></i>${s.email}</div>
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;">${s.name || '--'}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.8rem;"><i class="bi bi-envelope me-1"></i>${s.email || '--'}</div>
                     </div>
                 </div>
             </div>`;
-        }).join('');
+        });
+        membersContainer.innerHTML = html;
+    }
+
+    // --- DATE UTILS ---
+    function getISOWeek(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+
+    function getDateOfISOWeek(w, y) {
+        const simple = new Date(y, 0, 1 + (w - 1) * 7);
+        const dow = simple.getDay();
+        const ISOweekStart = simple;
+        if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+        else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        return ISOweekStart;
+    }
+
+    function formatDateDM(date) {
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
     }
 </script>
+
 </body>
 </html>
