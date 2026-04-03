@@ -734,4 +734,187 @@ public class TeacherQuizService {
             private String matchTarget;
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  AI IMPORT (Teacher)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Import câu hỏi AI đã chọn vào quiz.
+     * Tạo câu hỏi dạng TEACHER_PRIVATE (PENDING_REVIEW) rồi add vào quiz.
+     */
+    @Transactional
+    public ResponseData<AIImportResultDTO> importAIQuestions(AIImportRequestDTO request, String email) {
+        try {
+            if (request.getQuizId() == null) {
+                return ResponseData.error(400, "quizId không được để trống");
+            }
+            if (request.getQuestions() == null || request.getQuestions().isEmpty()) {
+                return ResponseData.error(400, "Danh sách câu hỏi trống");
+            }
+
+            Quiz quiz = quizRepository.findById(request.getQuizId()).orElse(null);
+            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+
+            User teacher = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+            List<Integer> importedIds = new ArrayList<>();
+            int addedCount = 0;
+
+            for (AIImportRequestDTO.AIQuestionDTO q : request.getQuestions()) {
+                // Validate
+                if (q.getContent() == null || q.getContent().isBlank()) continue;
+                if (q.getQuestionType() == null || !VALID_QUESTION_TYPES.contains(q.getQuestionType())) continue;
+                if (q.getSkill() == null || !VALID_SKILLS.contains(q.getSkill())) continue;
+                if (q.getCefrLevel() == null || !VALID_CEFR.contains(q.getCefrLevel())) continue;
+
+                // Validate options for choice types
+                boolean isNoOptions = NO_OPTIONS_TYPES.contains(q.getQuestionType());
+                if (!isNoOptions && (q.getOptions() == null || q.getOptions().isEmpty())) continue;
+
+                // Create question
+                Question question = Question.builder()
+                        .content(q.getContent())
+                        .questionType(q.getQuestionType())
+                        .skill(q.getSkill())
+                        .cefrLevel(q.getCefrLevel())
+                        .topic(q.getTopic())
+                        .explanation(q.getExplanation())
+                        .audioUrl(q.getAudioUrl())
+                        .imageUrl(q.getImageUrl())
+                        .status("PENDING_REVIEW")
+                        .source("TEACHER_PRIVATE")
+                        .user(teacher)
+                        .build();
+                questionRepository.save(question);
+                importedIds.add(question.getQuestionId());
+
+                // Save answer options
+                if (q.getOptions() != null) {
+                    for (int i = 0; i < q.getOptions().size(); i++) {
+                        AIImportRequestDTO.AIOptionDTO optDto = q.getOptions().get(i);
+                        if (optDto.getTitle() == null || optDto.getTitle().isBlank()) continue;
+
+                        // For FILL_IN_BLANK, single correct answer
+                        if ("FILL_IN_BLANK".equals(q.getQuestionType())) {
+                            // All options are potential correct answers (trimmed)
+                            AnswerOption opt = AnswerOption.builder()
+                                    .question(question)
+                                    .title(optDto.getTitle().trim())
+                                    .correctAnswer(Boolean.TRUE.equals(optDto.getCorrect()))
+                                    .orderIndex(i)
+                                    .build();
+                            answerOptionRepository.save(opt);
+                        } else if ("MATCHING".equals(q.getQuestionType())) {
+                            // matchTarget comes from correctPairs mapping
+                            // Build matchTarget from index mapping
+                            String matchTarget = null;
+                            if (q.getCorrectPairs() != null && q.getMatchRight() != null) {
+                                for (int pairIdx = 0; pairIdx < q.getCorrectPairs().size(); pairIdx++) {
+                                    int leftIdx = q.getCorrectPairs().get(pairIdx) - 1; // 1-based to 0-based
+                                    int rightIdx = pairIdx;
+                                    if (q.getOptions().get(i).equals(q.getMatchLeft().get(leftIdx))) {
+                                        if (rightIdx < q.getMatchRight().size()) {
+                                            matchTarget = q.getMatchRight().get(rightIdx);
+                                        }
+                                    }
+                                }
+                            }
+                            AnswerOption opt = AnswerOption.builder()
+                                    .question(question)
+                                    .title(optDto.getTitle())
+                                    .correctAnswer(Boolean.TRUE.equals(optDto.getCorrect()))
+                                    .orderIndex(i)
+                                    .matchTarget(matchTarget)
+                                    .build();
+                            answerOptionRepository.save(opt);
+                        } else {
+                            // MULTIPLE_CHOICE_*
+                            AnswerOption opt = AnswerOption.builder()
+                                    .question(question)
+                                    .title(optDto.getTitle())
+                                    .correctAnswer(Boolean.TRUE.equals(optDto.getCorrect()))
+                                    .orderIndex(i)
+                                    .build();
+                            answerOptionRepository.save(opt);
+                        }
+                    }
+                }
+
+                // Add to quiz (if question was saved successfully)
+                if (!quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), question.getQuestionId())) {
+                    int currentCount = quizQuestionRepository.countByQuizQuizId(quiz.getQuizId());
+                    QuizQuestion qq = QuizQuestion.builder()
+                            .quiz(quiz)
+                            .question(question)
+                            .orderIndex(currentCount + 1)
+                            .points(BigDecimal.ONE)
+                            .build();
+                    quizQuestionRepository.save(qq);
+                    addedCount++;
+                }
+            }
+
+            AIImportResultDTO result = AIImportResultDTO.builder()
+                    .imported(addedCount)
+                    .questionIds(importedIds)
+                    .build();
+
+            return ResponseData.success("Đã tạo " + addedCount + " câu hỏi và thêm vào quiz", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  REQUEST / RESPONSE DTOs
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    @lombok.Builder
+    public static class AIImportRequestDTO {
+        private Integer quizId;
+        private List<AIQuestionDTO> questions;
+
+        @lombok.Data
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        @lombok.Builder
+        public static class AIQuestionDTO {
+            private String content;
+            private String questionType;
+            private String skill;
+            private String cefrLevel;
+            private String topic;
+            private String explanation;
+            private String audioUrl;
+            private String imageUrl;
+            private List<AIOptionDTO> options;
+            private String correctAnswer;
+            private List<String> matchLeft;
+            private List<String> matchRight;
+            private List<Integer> correctPairs;
+        }
+
+        @lombok.Data
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        @lombok.Builder
+        public static class AIOptionDTO {
+            private String title;
+            private Boolean correct;
+        }
+    }
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    @lombok.Builder
+    public static class AIImportResultDTO {
+        private int imported;
+        private List<Integer> questionIds;
+    }
 }
