@@ -119,12 +119,12 @@ public class LearningServiceImpl implements LearningService {
             int progress = totalLessonsCount == 0 ? 0 : Math.round(((float) completedCount / totalLessonsCount) * 100);
             courseInfo.setProgressPercent(progress);
 
-            // Lấy tất cả quiz COURSE_QUIZ đã publish của khóa học
+            // Lấy tất cả quiz COURSE_QUIZ (Global + Class-specific)
+            Integer targetClassId = (reg != null && reg.getClazz() != null) ? reg.getClazz().getClassId() : null;
+            List<Quiz> studentQuizzes = quizRepository.findQuizzesForStudent(course.getCourseId(), targetClassId);
+
             List<CourseLearningInfoDTO.QuizInfoDTO> quizList = new ArrayList<>();
-            List<Quiz> publishedQuizzes = quizRepository.findAllByCourseCourseIdAndQuizCategoryAndStatus(
-                    course.getCourseId(), "COURSE_QUIZ", "PUBLISHED"
-            );
-            for (Quiz quiz : publishedQuizzes) {
+            for (Quiz quiz : studentQuizzes) {
                 long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quiz.getQuizId(), user.getUserId());
                 quizList.add(CourseLearningInfoDTO.QuizInfoDTO.builder()
                         .quizId(quiz.getQuizId())
