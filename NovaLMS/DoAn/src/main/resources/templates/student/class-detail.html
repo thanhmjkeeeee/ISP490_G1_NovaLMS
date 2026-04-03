@@ -442,11 +442,9 @@
     }
 
     function openSessionModal(sessionId) {
-        console.log("Session selected:", sessionId);
         if (!classDetailData || !classDetailData.sessions) return;
 
         const session = classDetailData.sessions.find(s => s.sessionId === sessionId);
-        console.log("Full Session Data:", session); // DEBUG LOG
         if(!session) return;
 
         const modalEl = document.getElementById('sessionModal');
@@ -456,7 +454,6 @@
         document.getElementById('modalTopic').textContent = session.topic || 'Chưa cập nhật chủ đề';
 
         // 1. LẤY TRỰC TIẾP DỮ LIỆU ĐÃ ĐƯỢC BACKEND PHÂN LOẠI
-        // Backend (SessionDetailDTO) trả thẳng về 2 list: materials và quizzes
         const materials = session.materials || [];
         const quizzes = session.quizzes || [];
 
@@ -470,15 +467,20 @@
                 const typeStr = (m.type || '').toUpperCase();
                 const isVideo = typeStr === 'VIDEO' || typeStr.includes('VID');
                 const icon = isVideo ? 'bi-play-btn-fill icon-video' : 'bi-file-earmark-text icon-doc';
+                const isLocked = m.isLocked === true;
 
                 const title = m.lessonTitle || m.lessonName || m.title || 'Tài liệu học tập';
-                const url = `/student/lesson/view/${m.lessonId}`;
+                const url = isLocked ? 'javascript:void(0)' : `/student/lesson/view/${m.lessonId}`;
+                const lockedState = isLocked ? 'opacity: 0.6; cursor: not-allowed;' : '';
 
                 materialsHtml += `
-                    <a href="${url}" class="content-item shadow-sm">
-                        <div class="icon ${icon.split(' ')[1]}"><i class="bi ${icon.split(' ')[0]}"></i></div>
-                        <div class="fw-bold fs-6">${title}</div>
-                    </a>`;
+                    <div class="position-relative">
+                        <a href="${url}" class="content-item shadow-sm" style="${lockedState}">
+                            <div class="icon ${icon.split(' ')[1]}"><i class="bi ${icon.split(' ')[0]}"></i></div>
+                            <div class="fw-bold fs-6 flex-grow-1">${title}</div>
+                            ${isLocked ? '<i class="bi bi-lock-fill ms-auto text-muted"></i>' : ''}
+                        </a>
+                    </div>`;
             });
             materialsContainer.innerHTML = materialsHtml;
         } else {
@@ -492,22 +494,30 @@
         if (quizzes.length > 0) {
             let quizzesHtml = '';
             quizzes.forEach(q => {
-                const title = q.lessonTitle || q.lessonName || q.title || 'Bài kiểm tra';
+                const title = q.lessonTitle || q.lessonName || q.title || 'Bài tập trắc nghiệm';
                 const qId = q.quizId;
+                const isLocked = q.isLocked === true;
 
-                let url = '#';
-                let onclick = `onclick="alert('Chưa có ID bài tập!')"`;
+                let url = 'javascript:void(0)';
+                let onclick = '';
+                let lockedState = '';
 
-                if(qId) {
+                if (isLocked) {
+                    lockedState = 'opacity: 0.6; cursor: not-allowed;';
+                } else if (qId) {
                     url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
-                    onclick = '';
+                } else {
+                    onclick = `onclick="alert('Chưa có ID bài tập!')"`;
                 }
 
                 quizzesHtml += `
-                    <a href="${url}" ${onclick} class="content-item shadow-sm">
-                        <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
-                        <div class="fw-bold fs-6">${title}</div>
-                    </a>`;
+                    <div class="position-relative">
+                        <a href="${url}" ${onclick} class="content-item shadow-sm" style="${lockedState}">
+                            <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
+                            <div class="fw-bold fs-6 flex-grow-1">${title}</div>
+                            ${isLocked ? '<i class="bi bi-lock-fill ms-auto text-muted"></i>' : ''}
+                        </a>
+                    </div>`;
             });
             quizzesContainer.innerHTML = quizzesHtml;
         } else {
