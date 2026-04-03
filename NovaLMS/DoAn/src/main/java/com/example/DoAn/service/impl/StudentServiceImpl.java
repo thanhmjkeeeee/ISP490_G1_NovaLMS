@@ -32,6 +32,7 @@ public class StudentServiceImpl implements StudentService {
     private final PayosService payosService;
     private final UserLessonRepository userLessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
+    private final SessionQuizRepository sessionQuizRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -338,7 +339,7 @@ public class StudentServiceImpl implements StudentService {
 
     public StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId) {
         // 1. Check phân quyền thật
-            boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");
+        boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");
         if (!isEnrolled) {
             throw new RuntimeException("Bạn không có quyền truy cập hoặc chưa thanh toán khóa học này!");
         }
@@ -346,7 +347,7 @@ public class StudentServiceImpl implements StudentService {
         Clazz clazz = classRepository.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
 
-        // 2. Gom danh sách Members thật
+        // 2. Gom danh sách Members
         List<MemberDTO> members = new ArrayList<>();
         if (clazz.getTeacher() != null) {
             members.add(MemberDTO.builder()
@@ -367,19 +368,26 @@ public class StudentServiceImpl implements StudentService {
                     .build());
         }
 
-        // 3. Tối ưu N+1: Kéo toàn bộ SessionLesson của lớp trong 1 query duy nhất
+        // 3. Tối ưu N+1: Kéo toàn bộ SessionLesson và SessionQuiz của lớp
         List<SessionLesson> allLessonsInClass = sessionLessonRepository
                 .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
         
-        // Nhóm theo sessionId để truy xuất nhanh
         java.util.Map<Integer, List<SessionLesson>> lessonsGroupedBySession = allLessonsInClass.stream()
-                .collect(java.util.stream.Collectors.groupingBy(sl -> sl.getSession().getSessionId()));
+                .collect(Collectors.groupingBy(sl -> sl.getSession().getSessionId()));
 
-        // 4. Gom Session và Map Lesson thật
+        List<SessionQuiz> allQuizzesInClass = sessionQuizRepository.findAll().stream()
+                .filter(sq -> sq.getSession() != null && sq.getSession().getClazz() != null 
+                        && sq.getSession().getClazz().getClassId().equals(classId))
+                .toList();
+        
+        java.util.Map<Integer, List<SessionQuiz>> sessionQuizzesGrouped = allQuizzesInClass.stream()
+                .collect(Collectors.groupingBy(sq -> sq.getSession().getSessionId()));
+
+        // 4. Gom Session và Map nội dung
         List<SessionDetailDTO> sessionDTOs = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
-        int totalLessonsInClass = 0;
+        int totalLessonsMapped = 0;
         int completedLessonsByUser = 0;
 
         if (clazz.getSessions() != null) {
@@ -392,8 +400,16 @@ public class StudentServiceImpl implements StudentService {
                     else if (sessionDate.isEqual(today)) sessionStatus = "LEARNING";
                 }
 
-                // Lấy nội dung từ Map thay vì query database trong loop
+                boolean isLocked = sessionStatus.equals("UPCOMING");
+
+                // --- CATEGORY 1: MATERIALS & EXPERT QUIZZES (from SessionLesson) ---
                 List<SessionLesson> sessionLessons = lessonsGroupedBySession.getOrDefault(session.getSessionId(), new ArrayList<>());
+                
+                // Aggregate Topic: Nối tên tất cả bài học
+                String aggregatedTopic = sessionLessons.stream()
+                        .map(sl -> sl.getLesson().getLessonName())
+                        .collect(Collectors.joining(", "));
+                if (aggregatedTopic.isEmpty()) aggregatedTopic = session.getTopic(); // Fallback to database topic
 
                 List<LessonResponseDTO> materials = new ArrayList<>();
                 List<LessonResponseDTO> quizzes = new ArrayList<>();
@@ -402,17 +418,11 @@ public class StudentServiceImpl implements StudentService {
                     Lesson lesson = sl.getLesson();
                     if (lesson == null) continue;
 
-                    totalLessonsInClass++; 
+                    totalLessonsMapped++; 
+                    boolean isComp = userLessonRepository.existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
+                    if (isComp) completedLessonsByUser++;
 
-                    boolean isLessonCompleted = userLessonRepository
-                            .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
-
-                    if (isLessonCompleted) completedLessonsByUser++;
-
-                    boolean isLocked = sessionStatus.equals("UPCOMING");
-
-                    // FIX: Sử dụng đúng Getter từ Entity Lesson (lessonName, type, quiz_id)
-                    LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
+                    LessonResponseDTO lDTO = LessonResponseDTO.builder()
                             .lessonId(lesson.getLessonId())
                             .type(lesson.getType() != null ? lesson.getType() : "DOC")
                             .lessonTitle(lesson.getLessonName())
@@ -420,14 +430,41 @@ public class StudentServiceImpl implements StudentService {
                             .duration(lesson.getDuration())
                             .videoUrl(lesson.getVideoUrl())
                             .quizId(lesson.getQuiz_id()) 
-                            .isCompleted(isLessonCompleted)
+                            .isCompleted(isComp)
                             .isLocked(isLocked)
                             .build();
 
-                    if ("QUIZ".equalsIgnoreCase(lessonDTO.getType())) {
-                        quizzes.add(lessonDTO);
-                    } else {
-                        materials.add(lessonDTO);
+                    if ("QUIZ".equalsIgnoreCase(lDTO.getType())) quizzes.add(lDTO);
+                    else materials.add(lDTO);
+                }
+
+                // --- CATEGORY 2: TEACHER DIRECT QUIZ (ClassSession.quiz) ---
+                if (session.getQuiz() != null) {
+                    Quiz q = session.getQuiz();
+                    quizzes.add(LessonResponseDTO.builder()
+                            .quizId(q.getQuizId())
+                            .lessonTitle("[Lớp] " + q.getTitle())
+                            .lessonName(q.getTitle())
+                            .type("QUIZ")
+                            .isCompleted(false) // Cần check QuizResult nếu muốn chính xác hơn
+                            .isLocked(isLocked)
+                            .build());
+                }
+
+                // --- CATEGORY 3: TEACHER MAPPED QUIZZES (SessionQuiz) ---
+                List<SessionQuiz> sessionQuizzes = sessionQuizzesGrouped.getOrDefault(session.getSessionId(), new ArrayList<>());
+                for (SessionQuiz sq : sessionQuizzes) {
+                    Quiz q = sq.getQuiz();
+                    // Chỉ hiển thị nếu Teacher đã "Open"
+                    if (Boolean.TRUE.equals(sq.getIsOpen())) {
+                        quizzes.add(LessonResponseDTO.builder()
+                                .quizId(q.getQuizId())
+                                .lessonTitle("[Bổ trợ] " + q.getTitle())
+                                .lessonName(q.getTitle())
+                                .type("QUIZ")
+                                .isCompleted(false)
+                                .isLocked(isLocked)
+                                .build());
                     }
                 }
 
@@ -438,7 +475,7 @@ public class StudentServiceImpl implements StudentService {
                         .endTime(session.getEndTime())
                         .dayOfWeek(session.getSessionDate() != null ? session.getSessionDate().getDayOfWeek().getValue() : null)
                         .slotNumber(calculateSlotNumber(session.getStartTime()))
-                        .topic(session.getTopic())
+                        .topic(aggregatedTopic)
                         .date(session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "")
                         .status(sessionStatus)
                         .materials(materials)
@@ -447,14 +484,8 @@ public class StudentServiceImpl implements StudentService {
             }
         }
 
-        // 4. CÔNG THỨC TÍNH PROGRESS CHUẨN KẾ HOẠCH V2
-        // Progress = (Completed Lessons in UserLesson / Total Lessons mapped to Class) * 100
-        int progress = 0;
-        if (totalLessonsInClass > 0) {
-            progress = (completedLessonsByUser * 100) / totalLessonsInClass;
-        }
+        int progress = totalLessonsMapped == 0 ? 0 : (completedLessonsByUser * 100) / totalLessonsMapped;
 
-        // 5. Đóng gói DTO Tổng
         return StudentClassDetailResponse.builder()
                 .classId(clazz.getClassId())
                 .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
