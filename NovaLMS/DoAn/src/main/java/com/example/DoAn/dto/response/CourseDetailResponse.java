@@ -20,4 +20,5 @@ public class CourseDetailResponse implements Serializable {
     private Integer expertId;
     private String expertName;
     private Long registrationCount;
+    private Integer numberOfSessions;
 }

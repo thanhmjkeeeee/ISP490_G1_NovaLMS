@@ -69,4 +69,7 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
 
     @Column(name = "meet_link")
     private String meetLink;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 }

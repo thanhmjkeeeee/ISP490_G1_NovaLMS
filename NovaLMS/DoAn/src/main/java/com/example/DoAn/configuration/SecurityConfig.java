@@ -95,9 +95,9 @@ public class SecurityConfig {
 
                         // Phân quyền cứng
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/manager/**").hasRole("MANAGER")
+                        .requestMatchers("/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/teacher/**").hasRole("TEACHER")
-                        .requestMatchers("/expert/**").hasRole("EXPERT")
+                        .requestMatchers("/expert/**").hasAnyRole("EXPERT", "ADMIN")
                         .requestMatchers("/student/**").hasRole("STUDENT")
 
                         .anyRequest().authenticated()

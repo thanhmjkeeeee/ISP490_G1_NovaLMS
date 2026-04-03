@@ -27,5 +27,6 @@ public class ClassDetailResponse {
     private String slotTime;
     private Integer numberOfSessions;
     private String meetLink;
+    private String description;
     private List<RegistrationResponseDTO> registrations;
 }
