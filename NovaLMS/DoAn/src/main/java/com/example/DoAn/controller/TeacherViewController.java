@@ -2,7 +2,11 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.RescheduleRequest;
 import com.example.DoAn.dto.request.RescheduleRequestDTO;
+import com.example.DoAn.dto.response.LessonResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.dto.response.SessionDetailDTO;
+import com.example.DoAn.model.*;
+import com.example.DoAn.repository.*;
 import com.example.DoAn.service.RescheduleService;
 import jakarta.persistence.EntityManager;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -16,11 +20,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.*;
-
-import com.example.DoAn.model.ClassSession;
-import com.example.DoAn.model.Registration;
-import com.example.DoAn.repository.ClassSessionRepository;
-import com.example.DoAn.repository.RegistrationRepository;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/teacher")
@@ -28,17 +28,20 @@ public class TeacherViewController {
 
     private final EntityManager entityManager;
     private final ClassSessionRepository classSessionRepository;
-    private final RegistrationRepository registrationRepository;
     private final RescheduleService rescheduleService;
+    private final SessionLessonRepository sessionLessonRepository;
+    private final SessionQuizRepository sessionQuizRepository;
 
     public TeacherViewController(EntityManager entityManager,
                                   ClassSessionRepository classSessionRepository,
-                                  RegistrationRepository registrationRepository,
-                                  RescheduleService rescheduleService) {
+                                  RescheduleService rescheduleService,
+                                  SessionLessonRepository sessionLessonRepository,
+                                  SessionQuizRepository sessionQuizRepository) {
         this.entityManager = entityManager;
         this.classSessionRepository = classSessionRepository;
-        this.registrationRepository = registrationRepository;
         this.rescheduleService = rescheduleService;
+        this.sessionLessonRepository = sessionLessonRepository;
+        this.sessionQuizRepository = sessionQuizRepository;
     }
 
     @GetMapping("/dashboard")
@@ -268,7 +271,7 @@ public class TeacherViewController {
 
     @GetMapping("/api/session/{sessionId}/detail")
     @ResponseBody
-    public ResponseData<Map<String, Object>> sessionDetail(
+    public ResponseData<SessionDetailDTO> sessionDetail(
             @PathVariable Integer sessionId,
             Principal principal) {
         Integer teacherId = getTeacherId(principal);
@@ -281,33 +284,66 @@ public class TeacherViewController {
             return ResponseData.error(403, "Không có quyền");
         }
 
-        Map<String, Object> info = new LinkedHashMap<>();
-        info.put("sessionId", session.getSessionId());
-        info.put("sessionNumber", session.getSessionNumber());
-        info.put("date", session.getSessionDate() != null
-                ? session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null);
-        info.put("startTime", session.getStartTime());
-        info.put("endTime", session.getEndTime());
-        info.put("topic", session.getTopic());
-        info.put("notes", session.getNotes());
-        info.put("classId", session.getClazz().getClassId());
-        info.put("className", session.getClazz().getClassName());
-        info.put("courseName", session.getClazz().getCourse() != null
-                ? session.getClazz().getCourse().getCourseName() : null);
+        // 1. Topic Aggregation from SessionLesson
+        List<SessionLesson> sessionLessons = sessionLessonRepository.findBySessionSessionId(sessionId);
+        String aggregatedTopic = sessionLessons.stream()
+                .map(sl -> sl.getLesson().getLessonName())
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
 
-        // Students list
-        List<Registration> regs = registrationRepository.findApprovedByClassId(session.getClazz().getClassId());
-        List<Map<String, Object>> students = regs.stream().map(r -> {
-            Map<String, Object> s = new LinkedHashMap<>();
-            s.put("userId", r.getUser().getUserId());
-            s.put("fullName", r.getUser().getFullName());
-            s.put("email", r.getUser().getEmail());
-            return s;
-        }).toList();
-        info.put("students", students);
-        info.put("studentCount", students.size());
+        if (aggregatedTopic.isEmpty()) aggregatedTopic = session.getTopic(); // Fallback
+        if (aggregatedTopic == null || aggregatedTopic.isEmpty()) aggregatedTopic = "Chưa cập nhật";
 
-        return ResponseData.success("Chi tiết buổi học", info);
+        // 2. Classify Lessons into Materials and Quizzes
+        List<LessonResponseDTO> materials = new ArrayList<>();
+        List<LessonResponseDTO> quizzes = new ArrayList<>();
+
+        for (SessionLesson sl : sessionLessons) {
+            Lesson l = sl.getLesson();
+            LessonResponseDTO dto = LessonResponseDTO.builder()
+                    .lessonId(l.getLessonId())
+                    .lessonName(l.getLessonName())
+                    .type(l.getType())
+                    .build();
+
+            if ("QUIZ".equalsIgnoreCase(l.getType())) {
+                quizzes.add(dto);
+            } else {
+                materials.add(dto);
+            }
+        }
+
+        // Add additional session materials (attachments)
+        if (session.getMaterials() != null && !session.getMaterials().isBlank()) {
+            // This assumes the frontend can handle both Lesson objects and raw filenames or similar structure
+            // For now, let's keep it consistent with LessonResponseDTO
+        }
+
+        // Add actual SessionQuizzes linked to this session
+        List<SessionQuiz> sessionQuizzes = sessionQuizRepository.findBySessionSessionId(sessionId);
+        for (SessionQuiz sq : sessionQuizzes) {
+            quizzes.add(LessonResponseDTO.builder()
+                    .quizId(sq.getQuiz().getQuizId())
+                    .lessonName(sq.getQuiz().getTitle())
+                    .type("QUIZ")
+                    .status(sq.getIsOpen() ? "OPEN" : "CLOSED")
+                    .build());
+        }
+
+        SessionDetailDTO detail = SessionDetailDTO.builder()
+                .sessionId(session.getSessionId())
+                .sessionNo(session.getSessionNumber())
+                .date(session.getSessionDate() != null
+                        ? session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : null)
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .slotNumber(session.getSlotNumber())
+                .topic(aggregatedTopic)
+                .materials(materials)
+                .quizzes(quizzes)
+                .build();
+
+        return ResponseData.success("Chi tiết buổi học", detail);
     }
 
     @GetMapping("/api/session/{sessionId}/reschedule-status")
