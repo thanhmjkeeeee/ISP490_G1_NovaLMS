@@ -30,6 +30,10 @@ public class TeacherClassSessionService {
     private final ClazzRepository clazzRepository;
     private final SessionQuizRepository sessionQuizRepository;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final RegistrationRepository registrationRepository;
+    private final ModuleRepository moduleRepository;
+    private final LessonRepository lessonRepository;
+    private final SessionLessonRepository sessionLessonRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -513,6 +517,127 @@ public class TeacherClassSessionService {
             }).toList();
 
             return ResponseData.success("Danh sách quiz", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  WORKSPACE ADDITIONS (Students, Course Content, Mapping)
+    // ─────────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public ResponseData<List<Map<String, Object>>> getStudentsByClass(String email, Integer classId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+
+            List<Registration> regs = registrationRepository.findApprovedByClassId(classId);
+            List<Map<String, Object>> result = regs.stream().map(r -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("studentId", r.getUser().getUserId());
+                m.put("fullName", r.getUser().getFullName());
+                m.put("email", r.getUser().getEmail());
+                m.put("progress", 0); // Mock progress for now
+                return m;
+            }).toList();
+
+            return ResponseData.success("Danh sách học viên", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public ResponseData<Map<String, Object>> getCourseContentForMapping(String email, Integer classId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+
+            Clazz clazz = clazzRepository.findById(classId).orElse(null);
+            if (clazz == null || clazz.getCourse() == null) return ResponseData.error(404, "Không tìm thấy khóa học của lớp");
+
+            // Fetch current mappings for this class
+            List<SessionLesson> currentMappings = sessionLessonRepository.findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
+            Map<Integer, Integer> lessonToSessionMap = new HashMap<>(); // lessonId -> sessionId
+            for (SessionLesson sl : currentMappings) {
+                if (sl.getLesson() != null && sl.getSession() != null) {
+                    lessonToSessionMap.put(sl.getLesson().getLessonId(), sl.getSession().getSessionId());
+                }
+            }
+
+            List<com.example.DoAn.model.Module> modules = moduleRepository.findByCourse_CourseIdOrderByOrderIndexAsc(clazz.getCourse().getCourseId());
+            
+            List<Map<String, Object>> moduleList = modules.stream().map(m -> {
+                Map<String, Object> mm = new LinkedHashMap<>();
+                mm.put("moduleId", m.getModuleId());
+                mm.put("moduleName", m.getModuleName());
+                
+                List<Map<String, Object>> lessons = m.getLessons().stream().map(l -> {
+                    Map<String, Object> lm = new LinkedHashMap<>();
+                    lm.put("lessonId", l.getLessonId());
+                    lm.put("lessonName", l.getLessonName());
+                    // Find if this lesson is already mapped to a session in this class
+                    lm.put("sessionId", lessonToSessionMap.get(l.getLessonId()));
+                    return lm;
+                }).toList();
+                mm.put("lessons", lessons);
+                return mm;
+            }).toList();
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("modules", moduleList);
+            return ResponseData.success("Nội dung khóa học", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ResponseData<Void> saveMapping(String email, Integer classId, List<Map<String, Integer>> mappings) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+
+            // 1. Clear old mappings for this class
+            sessionLessonRepository.deleteBySession_Clazz_ClassId(classId);
+            
+            // 2. Clear topics for all sessions in this class (for refresh)
+            List<ClassSession> classSessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
+            for (ClassSession s : classSessions) {
+                s.setTopic("Chưa cập nhật chủ đề..."); 
+                classSessionRepository.save(s);
+            }
+
+            // 3. Save new mappings
+            for (Map<String, Integer> map : mappings) {
+                Integer lessonId = map.get("lessonId");
+                Integer sessionId = map.get("sessionId");
+                
+                if (lessonId != null && sessionId != null) {
+                    ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
+                    Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
+                    
+                    if (session != null && lesson != null && session.getClazz().getClassId().equals(classId)) {
+                        // Create persistent link
+                        SessionLesson sl = SessionLesson.builder()
+                                .session(session)
+                                .lesson(lesson)
+                                .orderIndex(session.getSessionNumber())
+                                .build();
+                        sessionLessonRepository.save(sl);
+
+                        // Update session topic for UI display
+                        session.setTopic(lesson.getLessonName());
+                        classSessionRepository.save(session);
+                    }
+                }
+            }
+
+            return ResponseData.success("Lưu mapping thành công");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
