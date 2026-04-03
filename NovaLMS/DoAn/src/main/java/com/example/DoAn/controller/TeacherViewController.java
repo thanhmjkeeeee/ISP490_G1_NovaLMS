@@ -5,7 +5,6 @@ import com.example.DoAn.dto.request.RescheduleRequestDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.RescheduleService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +13,6 @@ import java.security.Principal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.*;
@@ -242,7 +240,6 @@ public class TeacherViewController {
         }
 
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
         for (ClassSession s : sessions) {
             int dayIndex = s.getSessionDate().getDayOfWeek().getValue(); // 1=Mon
