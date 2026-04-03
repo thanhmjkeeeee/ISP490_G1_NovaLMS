@@ -47,15 +47,10 @@
             <a th:href="@{/teacher/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/teacher/my-classes}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
+            <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-people"></i><span>Lớp của tôi</span>
             </a>
-            <a th:href="@{/teacher/schedule}" th:classappend="${activePage == 'schedule'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-calendar3"></i><span>Lịch dạy</span>
-            </a>
-            <a th:href="@{/teacher/students}" th:classappend="${activePage == 'students'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-person-lines-fill"></i><span>Học viên</span>
-            </a>
+
             <a th:href="@{/teacher/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
             </a>
@@ -83,6 +78,9 @@
 
             <a th:href="@{/manager/class/list}" th:classappend="${activePage == 'classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-building"></i><span>Lớp học</span>
+            </a>
+            <a th:href="@{/manager/reschedule/list}" th:classappend="${activePage == 'reschedule'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-calendar-range"></i><span>Duyệt đổi lịch</span>
             </a>
         </div>
 

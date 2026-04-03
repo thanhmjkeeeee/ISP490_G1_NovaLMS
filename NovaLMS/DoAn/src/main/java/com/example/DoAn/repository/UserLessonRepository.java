@@ -45,5 +45,13 @@ public interface UserLessonRepository extends JpaRepository<UserLesson, UserLess
 
 
     List<UserLesson> findByUser_UserId(Integer userId);
+    
     Optional<UserLesson> findByUser_UserIdAndLesson_LessonId(Integer userId, Integer lessonId);
+
+    @Query("SELECT CASE WHEN COUNT(ul) > 0 THEN true ELSE false END FROM UserLesson ul " +
+            "WHERE ul.user.userId = :userId AND ul.lesson.lessonId = :lessonId AND ul.status = 'Completed'")
+    boolean existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(
+            @Param("userId") Integer userId,
+            @Param("lessonId") Integer lessonId
+    );
 }

@@ -11,4 +11,5 @@ public interface ICourseService {
     PageResponse<?> getAllCourses(int pageNo, int pageSize);
     void deleteCourse(Integer id);
     PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status);
+    long getLessonCount(Integer courseId);
 }

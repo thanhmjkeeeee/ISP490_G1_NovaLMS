@@ -6,9 +6,13 @@ import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.RegistrationResponseDTO;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.ClassSession;
+import com.example.DoAn.model.Lesson;
+import com.example.DoAn.model.SessionLesson;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.ClassSessionRepository;
 import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.LessonRepository;
+import com.example.DoAn.repository.SessionLessonRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.IClassService;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +30,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +55,8 @@ public class ClassServiceImpl implements IClassService {
     private final ClassSessionRepository classSessionRepository;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
+    private final LessonRepository lessonRepository;
+    private final SessionLessonRepository sessionLessonRepository;
 
     @Override
     public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId) {
@@ -113,6 +117,14 @@ public class ClassServiceImpl implements IClassService {
             List<String> availableSlots = getAvailableSlotTimes(request.getTeacherId(), request.getSchedule(), excludeClassId);
             if (!availableSlots.stream().map(this::normalizeSlot).toList().contains(normalizeSlot(request.getSlotTime()))) {
                 throw new RuntimeException("Giáo viên đã có lớp trùng lịch học và ca học");
+            }
+        }
+
+        // Validate number of sessions vs lesson count
+        if (request.getCourseId() != null && request.getNumberOfSessions() != null) {
+            long lessonCount = lessonRepository.countByModuleCourse_CourseId(request.getCourseId());
+            if (request.getNumberOfSessions() < lessonCount) {
+                throw new RuntimeException("Số buổi học (" + request.getNumberOfSessions() + ") không được nhỏ hơn tổng số bài học trong khóa (" + lessonCount + ")");
             }
         }
     }
@@ -182,6 +194,23 @@ public class ClassServiceImpl implements IClassService {
                     request.getStartDate(), request.getNumberOfSessions());
             if (!sessions.isEmpty()) {
                 classSessionRepository.saveAll(sessions);
+
+                // --- Auto mapping lessons 1:1 ---
+                List<Lesson> courseLessons = lessonRepository.findAll().stream()
+                        .filter(l -> l.getModule().getCourse().getCourseId().equals(clazz.getCourse().getCourseId()))
+                        .toList();
+                
+                // Better: Use repository method for sorted lessons if available
+                // List<Lesson> courseLessons = lessonRepository.findByCourseIdSorted(clazz.getCourse().getCourseId());
+
+                for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
+                    SessionLesson mapping = SessionLesson.builder()
+                            .session(sessions.get(i))
+                            .lesson(courseLessons.get(i))
+                            .orderIndex(1)
+                            .build();
+                    sessionLessonRepository.save(mapping);
+                }
             }
         }
 

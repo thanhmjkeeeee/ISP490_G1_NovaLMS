@@ -25,4 +25,19 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
             @Param("start") java.time.LocalDateTime start,
             @Param("end") java.time.LocalDateTime end
     );
+
+
+    @Query("SELECT COUNT(cs) FROM ClassSession cs " +
+           "WHERE cs.clazz.teacher.userId = :teacherId " +
+           "AND cs.sessionDate >= :startOfDay " +
+           "AND cs.sessionDate < :endOfDay " +
+           "AND cs.startTime = :startTime " +
+           "AND cs.sessionId != :sessionId")
+    long countConflictsInDateRange(
+            @Param("teacherId") Integer teacherId,
+            @Param("startOfDay") java.time.LocalDateTime startOfDay,
+            @Param("endOfDay") java.time.LocalDateTime endOfDay,
+            @Param("startTime") String startTime,
+            @Param("sessionId") Integer sessionId
+    );
 }

@@ -2,16 +2,8 @@ package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.response.*;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
-import com.example.DoAn.model.Clazz;
-import com.example.DoAn.model.Course;
-import com.example.DoAn.model.Payment;
-import com.example.DoAn.model.Registration;
-import com.example.DoAn.model.User;
-import com.example.DoAn.repository.ClassRepository;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.PaymentRepository;
-import com.example.DoAn.repository.RegistrationRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.model.*;
+import com.example.DoAn.repository.*;
 import com.example.DoAn.service.PayosService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +30,8 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
     private final PayosService payosService;
+    private final UserLessonRepository userLessonRepository;
+    private final SessionLessonRepository sessionLessonRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -338,5 +334,162 @@ public class StudentServiceImpl implements StudentService {
         if (price instanceof Double) return (Double) price > 0;
         if (price instanceof Number) return ((Number) price).doubleValue() > 0;
         return false;
+    }
+
+    public StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId) {
+        // 1. Check phân quyền thật
+            boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");
+        if (!isEnrolled) {
+            throw new RuntimeException("Bạn không có quyền truy cập hoặc chưa thanh toán khóa học này!");
+        }
+
+        Clazz clazz = classRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        // 2. Gom danh sách Members thật
+        List<MemberDTO> members = new ArrayList<>();
+        if (clazz.getTeacher() != null) {
+            members.add(MemberDTO.builder()
+                    .name(clazz.getTeacher().getFullName())
+                    .email(clazz.getTeacher().getEmail())
+                    .avatar(clazz.getTeacher().getAvatarUrl())
+                    .role("TEACHER")
+                    .build());
+        }
+
+        List<Registration> activeStudents = registrationRepository.findByClazz_ClassIdAndStatus(classId, "Approved");
+        for (Registration reg : activeStudents) {
+            members.add(MemberDTO.builder()
+                    .name(reg.getUser().getFullName())
+                    .email(reg.getUser().getEmail())
+                    .avatar(reg.getUser().getAvatarUrl())
+                    .role("STUDENT")
+                    .build());
+        }
+
+        // 3. Tối ưu N+1: Kéo toàn bộ SessionLesson của lớp trong 1 query duy nhất
+        List<SessionLesson> allLessonsInClass = sessionLessonRepository
+                .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
+        
+        // Nhóm theo sessionId để truy xuất nhanh
+        java.util.Map<Integer, List<SessionLesson>> lessonsGroupedBySession = allLessonsInClass.stream()
+                .collect(java.util.stream.Collectors.groupingBy(sl -> sl.getSession().getSessionId()));
+
+        // 4. Gom Session và Map Lesson thật
+        List<SessionDetailDTO> sessionDTOs = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        int totalLessonsInClass = 0;
+        int completedLessonsByUser = 0;
+
+        if (clazz.getSessions() != null) {
+            for (ClassSession session : clazz.getSessions()) {
+                String sessionStatus = "UPCOMING";
+                LocalDate sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate() : null;
+
+                if (sessionDate != null) {
+                    if (sessionDate.isBefore(today)) sessionStatus = "COMPLETED";
+                    else if (sessionDate.isEqual(today)) sessionStatus = "LEARNING";
+                }
+
+                // Lấy nội dung từ Map thay vì query database trong loop
+                List<SessionLesson> sessionLessons = lessonsGroupedBySession.getOrDefault(session.getSessionId(), new ArrayList<>());
+
+                List<LessonResponseDTO> materials = new ArrayList<>();
+                List<LessonResponseDTO> quizzes = new ArrayList<>();
+
+                for (SessionLesson sl : sessionLessons) {
+                    Lesson lesson = sl.getLesson();
+                    if (lesson == null) continue;
+
+                    totalLessonsInClass++; 
+
+                    boolean isLessonCompleted = userLessonRepository
+                            .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
+
+                    if (isLessonCompleted) completedLessonsByUser++;
+
+                    boolean isLocked = sessionStatus.equals("UPCOMING");
+
+                    // FIX: Sử dụng đúng Getter từ Entity Lesson (lessonName, type, quiz_id)
+                    LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
+                            .lessonId(lesson.getLessonId())
+                            .type(lesson.getType() != null ? lesson.getType() : "DOC")
+                            .lessonTitle(lesson.getLessonName())
+                            .lessonName(lesson.getLessonName())
+                            .duration(lesson.getDuration())
+                            .videoUrl(lesson.getVideoUrl())
+                            .quizId(lesson.getQuiz_id()) 
+                            .isCompleted(isLessonCompleted)
+                            .isLocked(isLocked)
+                            .build();
+
+                    if ("QUIZ".equalsIgnoreCase(lessonDTO.getType())) {
+                        quizzes.add(lessonDTO);
+                    } else {
+                        materials.add(lessonDTO);
+                    }
+                }
+
+                sessionDTOs.add(SessionDetailDTO.builder()
+                        .sessionId(session.getSessionId())
+                        .sessionNo(session.getSessionNumber())
+                        .startTime(session.getStartTime())
+                        .endTime(session.getEndTime())
+                        .dayOfWeek(session.getSessionDate() != null ? session.getSessionDate().getDayOfWeek().getValue() : null)
+                        .slotNumber(calculateSlotNumber(session.getStartTime()))
+                        .topic(session.getTopic())
+                        .date(session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "")
+                        .status(sessionStatus)
+                        .materials(materials)
+                        .quizzes(quizzes)
+                        .build());
+            }
+        }
+
+        // 4. CÔNG THỨC TÍNH PROGRESS CHUẨN KẾ HOẠCH V2
+        // Progress = (Completed Lessons in UserLesson / Total Lessons mapped to Class) * 100
+        int progress = 0;
+        if (totalLessonsInClass > 0) {
+            progress = (completedLessonsByUser * 100) / totalLessonsInClass;
+        }
+
+        // 5. Đóng gói DTO Tổng
+        return StudentClassDetailResponse.builder()
+                .classId(clazz.getClassId())
+                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
+                .className(clazz.getClassName())
+                .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "")
+                .courseImage(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : "")
+                .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
+                .endDate(clazz.getEndDate() != null ? clazz.getEndDate().toString() : "")
+                .status(clazz.getStatus())
+                .meetLink(clazz.getMeetLink())
+                .progressPercent(progress)
+                .completedSessions((int) sessionDTOs.stream().filter(s -> s.getStatus().equals("COMPLETED")).count())
+                .totalSessions(sessionDTOs.size())
+                .sessions(sessionDTOs)
+                .members(members)
+                .build();
+    }
+
+    private int calculateSlotNumber(String startTime) {
+        if (startTime == null || startTime.length() < 5) return 1;
+        int hour;
+        try {
+            hour = Integer.parseInt(startTime.substring(0, 2));
+        } catch (Exception e) {
+            return 1;
+        }
+        if (hour >= 7 && hour < 9) return 1;
+        if (hour >= 9 && hour < 11) return 2;
+        if (hour >= 13 && hour < 15) return 3;
+        if (hour >= 15 && hour < 17) return 4;
+        if (hour >= 18 && hour < 20) return 5;
+        // Default mappings if outside standard slots
+        if (hour < 7) return 1;
+        if (hour >= 11 && hour < 13) return 2;
+        if (hour >= 17 && hour < 18) return 4;
+        return 5;
     }
 }
