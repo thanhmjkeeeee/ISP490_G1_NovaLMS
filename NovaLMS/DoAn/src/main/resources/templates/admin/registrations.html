@@ -58,11 +58,12 @@
                 <table class="table table-hover align-middle mb-0" style="table-layout: fixed;">
                     <thead class="table-light">
                     <tr>
-                        <th class="ps-4 py-3 text-uppercase small text-muted" style="width: 60px;">ID</th>
-                        <th class="py-3 text-uppercase small text-muted">Học viên</th>
-                        <th class="py-3 text-uppercase small text-muted">Khóa học</th>
-                        <th class="py-3 text-uppercase small text-muted">Lớp học</th>
-                        <th class="py-3 text-uppercase small text-muted" style="width: 110px;">Giá</th>
+                        <th class="ps-4 py-3 text-uppercase small text-muted" style="width: 85px;">ID</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 180px;">Học viên</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 150px;">Chương trình</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 200px;">Khóa học</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 120px;">Lớp học</th>
+                        <th class="py-3 text-uppercase small text-muted" style="width: 120px;">Giá</th>
                         <th class="py-3 text-uppercase small text-muted" style="width: 130px;">TT Đăng ký</th>
                         <th class="py-3 text-uppercase small text-muted" style="width: 130px;">TT Thanh toán</th>
                         <th class="text-end pe-4 py-3 text-uppercase small text-muted" style="width: 70px;">Thao tác</th>
@@ -125,9 +126,10 @@
     /* ĐÃ FIX: Điều chỉnh lại CSS cho khớp với vị trí cột mới */
     #registrationDataBody td:nth-child(2),
     #registrationDataBody td:nth-child(3),
-    #registrationDataBody td:nth-child(4) {
+    #registrationDataBody td:nth-child(4),
+    #registrationDataBody td:nth-child(5) {
         white-space: normal;
-        min-width: 140px;
+        min-width: 120px;
     }
 </style>
 
@@ -196,9 +198,10 @@
         // ĐÃ FIX LỖI LỆCH CỘT: Thêm cột hiển thị Tên Học Viên (r.fullName hoặc r.studentName tùy Backend trả về)
         tbody.innerHTML = registrations.map(r => `
             <tr>
-                <td class="ps-4 fw-medium text-secondary">#${r.registrationId}</td>
-                <td class="fw-bold text-primary">${r.userName || r.userEmail || 'N/A'}</td>
-                <td class="fw-medium text-dark">${r.courseName || 'N/A'}</td>
+                <td class="ps-4 fw-medium text-secondary" style="white-space: nowrap; overflow: visible;">#${r.registrationId}</td>
+                <td class="fw-bold text-primary" title="${r.userName || r.userEmail}">${r.userName || r.userEmail || 'N/A'}</td>
+                <td class="fw-medium text-info">${r.categoryName || 'N/A'}</td>
+                <td class="fw-medium text-dark" title="${r.courseName}">${r.courseName || 'N/A'}</td>
                 <td><span class="badge bg-light text-dark border">${r.className || 'N/A'}</span></td>
                 <td class="fw-bold ${r.registrationPrice && r.registrationPrice > 0 ? 'text-danger' : 'text-success'}">${r.registrationPrice && r.registrationPrice > 0 ? r.registrationPrice.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</td>
                 <td><span class="badge ${getRegStatusBadge(r.status, r.paymentStatus)} px-2 py-1">${getRegStatusLabel(r.status, r.paymentStatus)}</span></td>

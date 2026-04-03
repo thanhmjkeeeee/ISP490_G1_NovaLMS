@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -83,8 +84,12 @@ public class CoursePublicServiceImpl implements CourseService {
                 ))
                 .toList();
 
-        // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày tháng)
-        var classes = classRepository.findByCourse_CourseIdAndStatus(id, "Open")
+        // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày tháng + Lọc thời gian)
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDateMin = now.minusDays(7);
+        LocalDateTime startDateMax = now.plusDays(7);
+
+        var classes = classRepository.findByCourse_CourseIdAndStatusAndStartDateBetween(id, "Open", startDateMin, startDateMax)
                 .stream()
                 .map(c -> new CoursePublicResponseDTO.ClassResponseDTO(
                         c.getClassId(),
