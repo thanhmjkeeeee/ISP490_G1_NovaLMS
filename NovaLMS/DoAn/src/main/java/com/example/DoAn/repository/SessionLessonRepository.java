@@ -13,4 +13,6 @@ public interface SessionLessonRepository extends JpaRepository<SessionLesson, In
     
     @Query("SELECT sl FROM SessionLesson sl JOIN FETCH sl.lesson WHERE sl.session.clazz.classId = :classId ORDER BY sl.orderIndex ASC")
     List<SessionLesson> findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(@Param("classId") Integer classId);
+
+    void deleteBySession_Clazz_ClassId(Integer classId);
 }

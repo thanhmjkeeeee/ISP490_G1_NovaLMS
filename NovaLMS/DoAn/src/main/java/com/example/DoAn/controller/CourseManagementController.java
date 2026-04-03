@@ -4,7 +4,6 @@ import com.example.DoAn.dto.request.CourseRequestDTO;
 import com.example.DoAn.dto.response.CourseDetailResponse;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.ResponseData;
-import com.example.DoAn.dto.response.ResponseError;
 import com.example.DoAn.service.ICourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,7 +36,7 @@ public class CourseManagementController {
             PageResponse<?> courses = courseService.getAllCoursesWithFilter(pageNo, pageSize, search, status);
             return new ResponseData<>(HttpStatus.OK.value(), "Success", courses);
         } catch (Exception e) {
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
 
@@ -49,7 +48,7 @@ public class CourseManagementController {
             Integer courseId = courseService.saveCourse(request);
             return new ResponseData<>(HttpStatus.CREATED.value(), "Course created successfully", courseId);
         } catch (Exception e) {
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Add course fail: " + e.getMessage());
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Add course fail: " + e.getMessage());
         }
     }
 
@@ -60,7 +59,7 @@ public class CourseManagementController {
             courseService.updateCourse(id, request);
             return new ResponseData<>(HttpStatus.ACCEPTED.value(), "Course updated successfully");
         } catch (Exception e) {
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Update fail");
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Update fail");
         }
     }
 
@@ -71,7 +70,7 @@ public class CourseManagementController {
             CourseDetailResponse response = courseService.getById(id);
             return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
         } catch (Exception e) {
-            return new ResponseError(HttpStatus.NOT_FOUND.value(), "Course not found");
+            return ResponseData.error(HttpStatus.NOT_FOUND.value(), "Course not found");
         }
     }
 
@@ -82,7 +81,18 @@ public class CourseManagementController {
             courseService.deleteCourse(id);
             return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "Course deleted");
         } catch (Exception e) {
-            return new ResponseError(HttpStatus.BAD_REQUEST.value(), "Delete fail");
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Delete fail");
+        }
+    }
+
+    @Operation(summary = "Get lesson count of course")
+    @GetMapping("/{id}/lessons/count")
+    public ResponseData<Long> getLessonCount(@PathVariable Integer id) {
+        try {
+            long count = courseService.getLessonCount(id);
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", count);
+        } catch (Exception e) {
+            return ResponseData.error(HttpStatus.NOT_FOUND.value(), "Course not found");
         }
     }
 }

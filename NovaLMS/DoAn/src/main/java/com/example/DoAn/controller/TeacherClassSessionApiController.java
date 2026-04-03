@@ -193,4 +193,32 @@ public class TeacherClassSessionApiController {
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return sessionService.deleteMaterial(email, sessionId, filename);
     }
+
+    // ─────────────────────────────────────────────
+    //  WORKSPACE ADDITIONS
+    // ─────────────────────────────────────────────
+
+    @GetMapping("/{classId}/students")
+    public ResponseData<?> getStudentsByClass(@PathVariable Integer classId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.getStudentsByClass(email, classId);
+    }
+
+    @GetMapping("/{classId}/course-content")
+    public ResponseData<?> getCourseContentForMapping(@PathVariable Integer classId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.getCourseContentForMapping(email, classId);
+    }
+
+    @PostMapping("/{classId}/mapping")
+    public ResponseData<?> saveMapping(
+            @PathVariable Integer classId,
+            @RequestBody List<Map<String, Integer>> mappings,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.saveMapping(email, classId, mappings);
+    }
 }

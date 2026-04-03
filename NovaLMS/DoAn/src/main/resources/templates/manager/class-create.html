@@ -398,12 +398,26 @@
           renderSlotOptions(ALL_SLOT_TIMES);
           loadCourses(); loadTeachers();
           bindScheduleTeacherEvents(); bindAutoEndDate(); setupDateConstraints();
-          // Auto-fill Số buổi học khi chọn khóa học
-          document.getElementById('courseId').addEventListener('change', function() {
+          // Auto-fill Số buổi học khi chọn khóa học (Khôi phục logic call API count lesson)
+          document.getElementById('courseId').addEventListener('change', async function() {
               const courseId = this.value;
-              if (courseId && courseDataMap[courseId] && courseDataMap[courseId].numberOfSessions) {
-                  document.getElementById('numberOfSessions').value = courseDataMap[courseId].numberOfSessions;
-                  calculateEndDate();
+              if (!courseId) {
+                  window.currentCourseLessonCount = 0;
+                  return;
+              }
+              try {
+                  // Gọi API lấy số lượng Lesson thực tế của khóa học
+                  const res = await fetch(`/api/v1/courses/${courseId}/lessons/count`);
+                  const result = await res.json();
+                  if (result.status === 200) {
+                      window.currentCourseLessonCount = parseInt(result.data);
+                      document.getElementById('numberOfSessions').value = window.currentCourseLessonCount;
+                      document.getElementById('numberOfSessions').classList.remove('is-invalid');
+                      document.getElementById('numberOfSessionsError').textContent = '';
+                      calculateEndDate();
+                  }
+              } catch (err) {
+                  console.error('Lỗi khi lấy số lượng bài học:', err);
               }
           });
       } else if (isEditMode && classId) {
@@ -500,6 +514,15 @@
       if (data.meetLink) document.getElementById('meetLink').value = data.meetLink;
       if (data.startDate) document.getElementById('startDate').value = data.startDate.split('T')[0];
       if (data.endDate) document.getElementById('endDate').value = data.endDate.split('T')[0];
+
+      // Khôi phục lesson count khi Edit để validate
+      if (data.courseId) {
+          try {
+              const res = await fetch(`/api/v1/courses/${data.courseId}/lessons/count`);
+              const result = await res.json();
+              if (result.status === 200) window.currentCourseLessonCount = parseInt(result.data);
+          } catch (err) { console.error('Lỗi khi lấy lesson count (edit):', err); }
+      }
       // Set radio for status
       document.querySelectorAll('input[name="classStatus"]').forEach(r => r.checked = false);
       const statusRadio = document.getElementById('st' + data.status);
@@ -590,6 +613,14 @@
       if (!startDate) { setError('startDate','Vui lòng chọn ngày khai giảng.'); hasError = true; }
       const meetLink = document.getElementById('meetLink').value.trim();
       if (!meetLink) { setError('meetLink','Vui lòng nhập link meet.'); hasError = true; }
+
+      // Validate: Số buổi học >= Số Lesson
+      if (window.currentCourseLessonCount > 0 && numberOfSessions < window.currentCourseLessonCount) {
+          setError('numberOfSessions', `Số buổi học (${numberOfSessions}) không được ít hơn số bài học của khóa (${window.currentCourseLessonCount} bài).`);
+          document.getElementById('numberOfSessions').classList.add('is-invalid');
+          hasError = true;
+      }
+
       if (hasError) return;
 
       const status = document.querySelector('input[name="classStatus"]:checked')?.value || 'Draft';

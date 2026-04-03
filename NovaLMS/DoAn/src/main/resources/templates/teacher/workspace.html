@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Không gian làm việc Giảng viên')}"></head>
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Workspace', breadcrumb='Không gian làm việc')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<style>
+    /* Custom styles for Workspace */
+    .workspace-tabs { background: #ffffff; border-radius: 12px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .workspace-tabs .nav-link { color: #64748b; font-weight: 600; padding: 12px 24px; border-radius: 8px; transition: all 0.2s; border: none; }
+    .workspace-tabs .nav-link:hover:not(.active) { background-color: #f8fafc; color: #0d6efd; }
+    .workspace-tabs .nav-link.active { background-color: #0d6efd !important; color: #ffffff !important; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2); }
+
+    .w-card { background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; min-height: 500px; }
+
+    /* Table Styles */
+    .table-custom th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; padding: 16px; border-bottom: 2px solid #e2e8f0; }
+    .table-custom td { vertical-align: middle; padding: 16px; color: #334155; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
+
+    /* Timetable */
+    .timetable th { background: #0d6efd; color: white; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+    .timetable td { height: 100px; border: 1px solid #e2e8f0; text-align: center; vertical-align: middle; padding: 6px; width: 13.5%; }
+    .slot-col { background: #f8fafc; font-weight: bold; color: #475569; width: 80px !important; }
+    .session-item { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px; cursor: pointer; transition: all 0.2s; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+    .session-item:hover { background: #dbeafe; border-color: #0d6efd; transform: translateY(-2px); }
+
+    /* Mapping Modal / Container */
+    .mapping-container { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+    .content-column { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; max-height: 60vh; overflow-y: auto; }
+    .session-column { background: #ffffff; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; height: fit-content; position: sticky; top: 0; }
+
+    .lesson-row { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+    .lesson-row.mapped { border-left: 4px solid #0d6efd; background: #f0f7ff; }
+
+    /* Filter Box */
+    .filter-box { max-width: 400px; }
+</style>
+
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid px-4">
+
+        <!-- Header & Global Filter -->
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1">Không gian làm việc</h3>
+                <p class="text-muted small mb-0">Điều phối lớp học, quản lý Quiz và học viên tập trung</p>
+            </div>
+
+            <div class="filter-box input-group shadow-sm rounded-pill overflow-hidden">
+                <span class="input-group-text bg-white border-0 text-primary"><i class="bi bi-funnel-fill"></i></span>
+                <select class="form-select border-0 bg-white fw-bold text-dark shadow-none py-2" id="globalClassFilter" onchange="handleGlobalFilterChange()">
+                    <option value="ALL">-- Tất cả lớp học --</option>
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+        </div>
+
+        <!-- 4 TABS NAVIGATION -->
+        <ul class="nav nav-pills workspace-tabs" id="workspaceTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-classes-btn" data-bs-toggle="tab" data-bs-target="#tab-classes" type="button" role="tab">
+                    <i class="bi bi-journal-text me-2"></i>Danh sách Lớp
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-schedule-btn" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
+                    <i class="bi bi-calendar-week me-2"></i>Lịch dạy
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-quiz-btn" data-bs-toggle="tab" data-bs-target="#tab-quiz" type="button" role="tab">
+                    <i class="bi bi-patch-question me-2"></i>Quản lý Quiz
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-students-btn" data-bs-toggle="tab" data-bs-target="#tab-students" type="button" role="tab">
+                    <i class="bi bi-people me-2"></i>Học viên
+                </button>
+            </li>
+        </ul>
+
+        <!-- TABS CONTENT -->
+        <div class="tab-content w-card" id="workspaceTabContent">
+
+            <!-- TAB 1: DANH SÁCH LỚP -->
+            <div class="tab-pane fade show active" id="tab-classes" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Lớp học bạn phụ trách</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-custom table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th width="60">#</th>
+                                <th>Lớp</th>
+                                <th>Khóa học</th>
+                                <th class="text-center">Học viên</th>
+                                <th class="text-center">Số buổi</th>
+                                <th class="text-end">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classesTableBody">
+                            <tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: LỊCH DẠY -->
+            <div class="tab-pane fade" id="tab-schedule" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-calendar-day text-primary me-2"></i>Lịch dạy hàng tuần</h5>
+                    <div class="d-flex gap-2">
+                        <select id="yearSelect" class="form-select form-select-sm rounded-pill" onchange="loadSchedule()"></select>
+                        <select id="weekSelect" class="form-select form-select-sm rounded-pill" onchange="loadSchedule()"></select>
+                        <span class="badge bg-light text-dark border d-flex align-items-center px-3" id="weekRangeLabel">...</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive rounded-4 overflow-hidden border">
+                    <table class="table timetable table-bordered mb-0 align-middle">
+                        <thead class="table-primary">
+                            <tr>
+                                <th class="slot-col">Slot</th>
+                                <th>MON<br><small class="fw-normal" id="date-1"></small></th>
+                                <th>TUE<br><small class="fw-normal" id="date-2"></small></th>
+                                <th>WED<br><small class="fw-normal" id="date-3"></small></th>
+                                <th>THU<br><small class="fw-normal" id="date-4"></small></th>
+                                <th>FRI<br><small class="fw-normal" id="date-5"></small></th>
+                                <th>SAT<br><small class="fw-normal" id="date-6"></small></th>
+                                <th>SUN<br><small class="fw-normal" id="date-7"></small></th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleTableBody">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: QUẢN LÝ QUIZ (NEW) -->
+            <div class="tab-pane fade" id="tab-quiz" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-patch-question me-2 text-primary"></i>Danh sách Quiz & Chấm điểm</h5>
+                </div>
+
+                <div id="quizTableContainer" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th width="60">STT</th>
+                                    <th>Tên bài Quiz</th>
+                                    <th class="text-center">Số lượng nộp bài</th>
+                                    <th class="text-center">Tỷ lệ hoàn thành</th>
+                                    <th class="text-end">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quizTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="quizEmptyState" class="text-center py-5">
+                    <div class="py-5">
+                        <i class="bi bi-patch-question fs-1 text-primary opacity-25"></i>
+                        <h6 class="fw-bold mt-3">Chọn lớp học để quản lý Quiz</h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: HỌC VIÊN -->
+            <div class="tab-pane fade" id="tab-students" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Học viên trong lớp</h5>
+                </div>
+
+                <div id="studentsTableContainer" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th width="60">STT</th>
+                                    <th>Học viên</th>
+                                    <th>Email</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-center">Tiến độ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="studentsEmptyState" class="text-center py-5">
+                    <div class="py-5">
+                        <i class="bi bi-people fs-1 text-primary opacity-25"></i>
+                        <h6 class="fw-bold mt-3">Chọn lớp học để xem danh sách học viên</h6>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+<!-- MODAL MAPPING (REFACTORED FROM TAB 3) -->
+<div class="modal fade" id="mappingModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-light border-0 py-3">
+                <h5 class="modal-title fw-bold" id="mappingModalTitle">
+                    <i class="bi bi-diagram-3 me-2 text-primary"></i>Cấu hình nội dung bài học
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="text-muted small mb-0">Gán các bài học (Lessons/Quizzes) từ khóa học vào từng buổi học (Sessions) tương ứng.</p>
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="saveMapping()">
+                        <i class="bi bi-cloud-check me-2"></i>Lưu cấu hình
+                    </button>
+                </div>
+                <div class="mapping-container">
+                    <div class="content-column">
+                        <h6 class="fw-bold mb-3 small text-uppercase text-muted">Kho bài giảng & Quiz</h6>
+                        <div class="accordion accordion-flush" id="courseAccordion">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    <div class="session-column shadow-sm">
+                        <h6 class="fw-bold mb-3 small text-uppercase text-muted">Lộ trình buổi học</h6>
+                        <div id="sessionRoadmap" class="small">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Detail Modal (For Tab 2) -->
+<div class="modal fade" id="sessionDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="fw-bold mb-1" id="m-className">—</h5>
+                    <p class="mb-0 text-muted small" id="m-courseName">—</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <!-- Nav Tabs inside Modal -->
+                <ul class="nav nav-tabs nav-fill mb-4 border-bottom-0 bg-light p-1 rounded-3" id="sessionModalTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active rounded-3 border-0 fw-bold" id="m-content-tab" data-bs-toggle="tab" data-bs-target="#m-content-pane" type="button">
+                            <i class="bi bi-collection me-2"></i>Nội dung
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link rounded-3 border-0 fw-bold" id="m-reschedule-tab" data-bs-toggle="tab" data-bs-target="#m-reschedule-pane" type="button">
+                            <i class="bi bi-calendar-event me-2"></i>Đổi lịch dạy
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="sessionModalTabContent">
+                    <!-- Tab 1: Content -->
+                    <div class="tab-pane fade show active" id="m-content-pane" role="tabpanel">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><div class="p-3 bg-light rounded-3 h-100 text-center"><div class="small text-muted mb-1">Buổi</div><div class="fw-bold fs-5" id="m-sessionNo">—</div></div></div>
+                            <div class="col-md-4"><div class="p-3 bg-light rounded-3 h-100 text-center"><div class="small text-muted mb-1">Thời gian</div><div class="fw-bold" id="m-time">—</div></div></div>
+                            <div class="col-md-4"><div class="p-3 bg-light rounded-3 h-100 text-center"><div class="small text-muted mb-1">Ngày</div><div class="fw-bold" id="m-date">—</div></div></div>
+                        </div>
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-bookmark-star me-2"></i>Chủ đề bài học</h6>
+                            <div class="p-3 rounded-3 border bg-white shadow-sm" id="m-topic">—</div>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-collection me-2"></i>Tài liệu & Bài tập</h6>
+                            <div class="list-group list-group-flush border rounded-3 overflow-hidden" id="m-contentList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Reschedule Form -->
+                    <div class="tab-pane fade" id="m-reschedule-pane" role="tabpanel">
+                        <div id="rescheduleFormContainer">
+                            <form id="rescheduleForm">
+                                <input type="hidden" id="res-sessionId">
+                                <div class="alert alert-info small mb-4">
+                                    <i class="bi bi-info-circle me-1"></i> Yêu cầu đổi lịch của bạn sẽ được gửi tới Manager phê duyệt.
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Ngày dạy mới</label>
+                                        <input type="date" class="form-control" id="res-newDate" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Giờ dạy mới</label>
+                                        <select class="form-select" id="res-newStartTime" required>
+                                            <option value="" disabled selected>-- Chọn Slot --</option>
+                                            <option value="07:00">Slot 1: Sáng (07:00 - 09:00)</option>
+                                            <option value="09:00">Slot 2: Sáng (09:00 - 11:00)</option>
+                                            <option value="13:00">Slot 3: Chiều (13:00 - 15:00)</option>
+                                            <option value="15:00">Slot 4: Chiều (15:00 - 17:00)</option>
+                                            <option value="18:00">Slot 5: Tối (18:00 - 20:00)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-muted text-uppercase">Lý do đổi lịch</label>
+                                        <textarea class="form-control" id="res-reason" rows="3" placeholder="Ghi rõ lý do (VD: Bận việc cá nhân, Trùng lịch họp...)" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-end">
+                                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                        <i class="bi bi-send me-1"></i> Gửi yêu cầu
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <div id="reschedulePendingMsg" style="display: none;" class="text-center py-5">
+                            <div class="bg-warning bg-opacity-10 text-warning p-4 rounded-4 border border-warning border-opacity-25">
+                                <i class="bi bi-hourglass-split fs-1 mb-3 d-block"></i>
+                                <h6 class="fw-bold mb-2">Đang chờ phê duyệt</h6>
+                                <p class="small mb-0 text-dark">Bạn đã gửi yêu cầu đổi lịch cho buổi này. Vui lòng chờ Manager phản hồi trước khi gửi yêu cầu mới.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    const state = {
+        allClasses: [],
+        selectedClassId: 'ALL',
+        mappingClassId: null,
+        sessions: [],
+        currentWeek: 0,
+        currentYear: 0
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const now = new Date();
+        state.currentYear = now.getFullYear();
+        state.currentWeek = getWeekNumber(now);
+
+        initTimeSelectors();
+        await fetchAllClasses();
+
+        // Initial load
+        refreshActiveTab();
+    });
+
+    function initTimeSelectors() {
+        const ySel = document.getElementById('yearSelect');
+        const wSel = document.getElementById('weekSelect');
+        if (!ySel || !wSel) return;
+
+        ySel.innerHTML = '';
+        for (let y = state.currentYear - 1; y <= state.currentYear + 1; y++) {
+            ySel.innerHTML += `<option value="${y}" ${y === state.currentYear ? 'selected' : ''}>Năm ${y}</option>`;
+        }
+
+        wSel.innerHTML = '';
+        for (let w = 1; w <= 53; w++) {
+            wSel.innerHTML += `<option value="${w}" ${w === state.currentWeek ? 'selected' : ''}>Tuần ${w}</option>`;
+        }
+    }
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+
+    async function fetchAllClasses() {
+        try {
+            const res = await fetch('/teacher/api/my-classes?size=100');
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.items) {
+                state.allClasses = json.data.items;
+                renderGlobalFilter();
+                renderTabClasses();
+            }
+        } catch (err) {
+            console.error("Failed to fetch classes:", err);
+        }
+    }
+
+    function renderGlobalFilter() {
+        const select = document.getElementById('globalClassFilter');
+        if (!select) return;
+        select.innerHTML = '<option value="ALL">-- Tất cả lớp học --</option>' +
+            state.allClasses.map(c => `<option value="${c.classId}">${c.className}</option>`).join('');
+    }
+
+    function handleGlobalFilterChange() {
+        state.selectedClassId = document.getElementById('globalClassFilter').value;
+        refreshActiveTab();
+    }
+
+    function refreshActiveTab() {
+        const activeTabEl = document.querySelector('#workspaceTabs .nav-link.active');
+        if (!activeTabEl) return;
+
+        const tabId = activeTabEl.getAttribute('id');
+        if (tabId === 'tab-classes-btn') renderTabClasses();
+        else if (tabId === 'tab-schedule-btn') loadSchedule();
+        else if (tabId === 'tab-quiz-btn') loadQuizzes();
+        else if (tabId === 'tab-students-btn') loadStudents();
+    }
+
+    // Add event listeners for tab switching
+    document.querySelectorAll('#workspaceTabs [data-bs-toggle="tab"]').forEach(btn => {
+        btn.addEventListener('shown.bs.tab', refreshActiveTab);
+    });
+
+    // --- TAB 1: CLASSES ---
+    function renderTabClasses() {
+        const tbody = document.getElementById('classesTableBody');
+        if (!tbody) return;
+
+        let items = state.selectedClassId === 'ALL'
+            ? state.allClasses
+            : state.allClasses.filter(c => c.classId == state.selectedClassId);
+
+        if (items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="text-muted">Không có dữ liệu lớp học</div></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map((c, i) => `
+            <tr>
+                <td>${i + 1}</td>
+                <td>
+                    <div class="fw-bold">${c.className}</div>
+                    <div class="small text-muted">${c.status || 'Active'}</div>
+                </td>
+                <td class="text-muted">${c.courseName || 'N/A'}</td>
+                <td class="text-center"><span class="badge bg-light text-dark border">${c.studentCount || 0} HV</span></td>
+                <td class="text-center"><span class="fw-medium">${c.numberOfSessions || 0} buổi</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="openMappingModal(${c.classId}, '${c.className}')">
+                        <i class="bi bi-diagram-3 me-1"></i> Mapping
+                    </button>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold ms-2" onclick="selectClassAndGoToSchedule(${c.classId})">
+                        <i class="bi bi-calendar-week me-1"></i> Xem lịch
+                    </button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function selectClassAndGoToSchedule(classId) {
+        state.selectedClassId = classId;
+        document.getElementById('globalClassFilter').value = classId;
+        const scheduleTab = new bootstrap.Tab(document.getElementById('tab-schedule-btn'));
+        scheduleTab.show();
+    }
+
+    // --- MAPPING MODAL LOGIC (Manager Sessions Content) ---
+    async function openMappingModal(classId, className) {
+        state.mappingClassId = classId;
+        document.getElementById('mappingModalTitle').innerHTML = `<i class="bi bi-diagram-3 me-2 text-primary"></i>Mapping nội dung: ${className}`;
+
+        const roadmap = document.getElementById('sessionRoadmap');
+        roadmap.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+        try {
+            // Fetch Sessions
+            const sRes = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
+            const sJson = await sRes.json();
+            state.sessions = sJson.data || [];
+
+            // Render Roadmap
+            roadmap.innerHTML = state.sessions.map(s => `
+                <div class="p-2 mb-2 bg-light border rounded-3 d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:24px; height:24px; font-size:10px;">${s.sessionNumber}</div>
+                    <div class="text-truncate flex-grow-1 small">${s.topic || 'Chưa cập nhật chủ đề...'}</div>
+                </div>`).join('');
+
+            // Fetch Course Content
+            const cRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/course-content`);
+            const cJson = await cRes.json();
+            if (cJson.status === 200) {
+                renderMappingAccordion(cJson.data.modules);
+            }
+
+            new bootstrap.Modal('#mappingModal').show();
+        } catch (err) {
+            console.error("Mapping Error:", err);
+            roadmap.innerHTML = '<div class="alert alert-danger p-2 small">Lỗi tải dữ liệu mapping</div>';
+        }
+    }
+
+    function renderMappingAccordion(modules) {
+        const container = document.getElementById('courseAccordion');
+        if (!modules || modules.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-3">Không có Module nào</div>';
+            return;
+        }
+
+        container.innerHTML = modules.map((m, idx) => `
+            <div class="accordion-item border-0 mb-2 shadow-sm rounded-3 overflow-hidden">
+                <h2 class="accordion-header"><button class="accordion-button bg-white fw-bold py-2 collapsed" data-bs-toggle="collapse" data-bs-target="#mmod-${m.moduleId}">M${idx+1}: ${m.moduleName}</button></h2>
+                <div id="mmod-${m.moduleId}" class="accordion-collapse collapse">
+                    <div class="accordion-body bg-light p-2">
+                        ${m.lessons.map(l => {
+                            const options = state.sessions.map(s => `<option value="${s.sessionId}" ${s.sessionId == l.sessionId ? 'selected' : ''}>Buổi ${s.sessionNumber}</option>`).join('');
+                            return `<div class="lesson-row ${l.sessionId ? 'mapped' : ''}">
+                                <div class="text-truncate me-2 small fw-medium">${l.lessonName}</div>
+                                <select class="form-select form-select-sm mapping-select shadow-none" data-lesson="${l.lessonId}" style="width: 120px;" onchange="handleMappingRowChange(this)">
+                                    <option value="">Chưa gán</option>${options}
+                                </select>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>`).join('');
+    }
+
+    function handleMappingRowChange(select) {
+        const row = select.closest('.lesson-row');
+        if (select.value) row.classList.add('mapped'); else row.classList.remove('mapped');
+    }
+
+    async function saveMapping() {
+        const payload = [];
+        document.querySelectorAll('.mapping-select').forEach(s => {
+            if (s.value) payload.push({ lessonId: parseInt(s.dataset.lesson), sessionId: parseInt(s.value) });
+        });
+
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${state.mappingClassId}/mapping`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if ((await res.json()).status === 200) {
+                alert('Lưu cấu hình thành công!');
+                bootstrap.Modal.getInstance(document.getElementById('mappingModal')).hide();
+            }
+        } catch (err) {
+            alert('Lỗi lưu cấu hình: ' + err.message);
+        }
+    }
+
+    // --- TAB 2: SCHEDULE (WEEKLY GRID) ---
+    async function loadSchedule() {
+        const year = document.getElementById('yearSelect').value;
+        const week = document.getElementById('weekSelect').value;
+
+        try {
+            const res = await fetch(`/teacher/api/timetable?year=${year}&week=${week}`);
+            const json = await res.json();
+            if (json.status !== 200) return;
+
+            document.getElementById('weekRangeLabel').textContent = `${json.data.weekStart} - ${json.data.weekEnd}`;
+
+            // Set dynamic dates for header
+            // json.data.weekStart is in "dd/MM" format
+            const [startD, startM] = json.data.weekStart.split('/').map(Number);
+            const baseDate = new Date(year, startM - 1, startD);
+
+            for (let d = 1; d <= 7; d++) {
+                const headDate = document.getElementById(`date-${d}`);
+                if (headDate) {
+                    const current = new Date(baseDate);
+                    current.setDate(baseDate.getDate() + (d - 1));
+                    const dd = String(current.getDate()).padStart(2, '0');
+                    const mm = String(current.getMonth() + 1).padStart(2, '0');
+                    headDate.textContent = `${dd}/${mm}`;
+                }
+            }
+
+            const tbody = document.getElementById('scheduleTableBody');
+            tbody.innerHTML = '';
+            for (let s = 1; s <= 5; s++) { // Slot 1 to 5
+                let tr = `<tr><td class="slot-col text-center fw-bold">Slot ${s}</td>`;
+                for (let d = 1; d <= 7; d++) { // Mon to Sun
+                    const sessionsInSlot = (json.data.grid[d][s] || []);
+                    // Filter by global class
+                    const filtered = state.selectedClassId === 'ALL'
+                        ? sessionsInSlot
+                        : sessionsInSlot.filter(item => item.classId == state.selectedClassId);
+
+                    if (filtered.length > 0) {
+                        const sess = filtered[0];
+                        tr += `<td>
+                            <div class="session-item shadow-sm d-flex flex-column align-items-center text-center p-2" 
+                                 onclick="openSessionDetail(${sess.sessionId})" 
+                                 style="cursor: pointer; min-height: 85px; justify-content: center;">
+                                <div class="text-primary fw-bold mb-1" style="font-size: 0.85rem;">${sess.courseName}</div>
+                                <div class="text-dark mb-2 small">${sess.className}</div>
+                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success px-2 py-1" style="font-size: 0.7rem;">
+                                    <i class="bi bi-clock me-1"></i>${sess.time}
+                                </span>
+                            </div>
+                        </td>`;
+                    } else {
+                        tr += '<td></td>';
+                    }
+                }
+                tbody.innerHTML += tr + '</tr>';
+            }
+        } catch (err) {
+            console.error("Load Schedule Error:", err);
+        }
+    }
+
+    async function openSessionDetail(id) {
+        document.getElementById('res-sessionId').value = id;
+
+        // --- LOCAL TIMEZONE FIX FOR RESCHEDULE ---
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const localDate = new Date(now.getTime() - offset).toISOString().split('T')[0];
+        document.getElementById('res-newDate').setAttribute('min', localDate);
+
+        // Reset Modal Tabs
+        const firstTabEl = document.getElementById('m-content-tab');
+        const firstTab = bootstrap.Tab.getOrCreateInstance(firstTabEl);
+        firstTab.show();
+
+        try {
+            // Fetch Detail
+            const res = await fetch(`/teacher/api/session/${id}/detail`);
+            const json = await res.json();
+            if (json.status !== 200) return;
+            const d = json.data;
+
+            document.getElementById('m-className').textContent = d.className;
+            document.getElementById('m-courseName').textContent = d.courseName;
+            document.getElementById('m-sessionNo').textContent = d.sessionNumber;
+            document.getElementById('m-date').textContent = d.date;
+            document.getElementById('m-time').textContent = `${d.startTime} - ${d.endTime}`;
+            document.getElementById('m-topic').textContent = d.topic || 'Chưa cập nhật';
+
+            // Fetch materials / content if any (Mapping to UI)
+            const contentList = document.getElementById('m-contentList');
+            contentList.innerHTML = '<div class="p-4 text-center text-muted small">Đang tải nội dung...</div>';
+
+            // Check Reschedule Status
+            const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
+            const stJson = await stRes.json();
+            if (stJson.status === 200 && stJson.data.hasPending) {
+                document.getElementById('rescheduleFormContainer').style.display = 'none';
+                document.getElementById('reschedulePendingMsg').style.display = 'block';
+            } else {
+                document.getElementById('rescheduleFormContainer').style.display = 'block';
+                document.getElementById('reschedulePendingMsg').style.display = 'none';
+            }
+
+            new bootstrap.Modal('#sessionDetailModal').show();
+        } catch (err) {
+            console.error("Session Detail Error:", err);
+        }
+    }
+
+    // Handle Reschedule form submit
+    document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const sessionId = document.getElementById('res-sessionId').value;
+        const payload = {
+            newDate: document.getElementById('res-newDate').value,
+            newStartTime: document.getElementById('res-newStartTime').value,
+            reason: document.getElementById('res-reason').value
+        };
+
+        try {
+            const res = await fetch(`/teacher/api/session/${sessionId}/reschedule`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (json.status === 200) {
+                alert('Gửi yêu cầu thành công!');
+                bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal')).hide();
+            } else {
+                alert('Lỗi: ' + json.message);
+            }
+        } catch (err) {
+            alert('Lỗi kết nối server: ' + err.message);
+        }
+    });
+
+    // --- TAB 3: QUIZ MANAGEMENT ---
+    async function loadQuizzes() {
+        const classId = state.selectedClassId;
+        const container = document.getElementById('quizTableContainer');
+        const empty = document.getElementById('quizEmptyState');
+        const tbody = document.getElementById('quizTableBody');
+
+        if (classId === 'ALL') { container.style.display = 'none'; empty.style.display = 'block'; return; }
+
+        container.style.display = 'block';
+        empty.style.display = 'none';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+
+        try {
+            // Using correct API endpoint for class quizzes
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+            const json = await res.json();
+
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Chưa có Quiz nào cho lớp này.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = json.data.map((q, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td class="fw-bold text-dark">${q.title}</td>
+                    <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
+                    <td class="text-center">
+                        <div class="progress" style="height: 6px; width: 100px; margin: 0 auto;">
+                            <div class="progress-bar" role="progressbar" style="width: 75%"></div>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Mock: 75% hoàn thành</small>
+                    </td>
+                    <td class="text-end">
+                        <a href="/teacher/quiz/grading?quizId=${q.quizId}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
+                            <i class="bi bi-pencil-square me-1"></i> Chấm bài
+                        </a>
+                    </td>
+                </tr>`).join('');
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz</td></tr>';
+        }
+    }
+
+    // --- TAB 4: STUDENTS ---
+    async function loadStudents() {
+        const classId = state.selectedClassId;
+        const container = document.getElementById('studentsTableContainer');
+        const empty = document.getElementById('studentsEmptyState');
+        const tbody = document.getElementById('studentsTableBody');
+
+        if (classId === 'ALL') { container.style.display = 'none'; empty.style.display = 'block'; return; }
+
+        container.style.display = 'block';
+        empty.style.display = 'none';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/students`);
+            const json = await res.json();
+
+            if (!json.data || json.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Lớp chưa có học viên nào.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = json.data.map((s, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td><div class="fw-bold">${s.fullName}</div></td>
+                    <td>${s.email}</td>
+                    <td><span class="badge bg-success bg-opacity-10 text-success px-3">Đã duyệt</span></td>
+                    <td class="text-center">
+                        <span class="fw-bold text-primary">${s.progress || 0}%</span>
+                    </td>
+                </tr>`).join('');
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải danh sách học viên</td></tr>';
+        }
+    }
+</script>
+</body>
+</html>

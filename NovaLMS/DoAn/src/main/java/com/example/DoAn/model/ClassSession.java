@@ -39,6 +39,9 @@ public class ClassSession {
     @Column(name = "end_time")
     private String endTime;
 
+    @Column(name = "slot_number")
+    private Integer slotNumber;
+
     @Column(name = "topic")
     private String topic;
 
