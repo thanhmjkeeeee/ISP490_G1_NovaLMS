@@ -21,6 +21,8 @@ public class CourseRequestDTO implements Serializable {
 
     private Double sale;
 
+    private Integer numberOfSessions;
+
     private String avatar;
 
     private String status;

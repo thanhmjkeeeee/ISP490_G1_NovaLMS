@@ -28,4 +28,9 @@ public class ClassViewController {
     public String editPage(@PathVariable Integer id) {
         return "manager/class-create";
     }
+
+    @GetMapping("/students/{id}")
+    public String studentsPage(@PathVariable Integer id) {
+        return "manager/class-students";
+    }
 }

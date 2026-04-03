@@ -168,6 +168,7 @@ public class ClassServiceImpl implements IClassService {
                 .slotTime(request.getSlotTime())
                 .numberOfSessions(request.getNumberOfSessions())
                 .meetLink(request.getMeetLink())
+                .description(request.getDescription())
                 .build();
         classRepository.save(clazz);
 
@@ -389,6 +390,8 @@ public class ClassServiceImpl implements IClassService {
         clazz.setSchedule(request.getSchedule());
         clazz.setSlotTime(request.getSlotTime());
         clazz.setNumberOfSessions(request.getNumberOfSessions());
+        clazz.setMeetLink(request.getMeetLink());
+        clazz.setDescription(request.getDescription());
 
         classRepository.save(clazz);
 
@@ -425,19 +428,21 @@ public class ClassServiceImpl implements IClassService {
     }
 
     @Override
-    public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String search, String status) {
+    public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className, String courseName, String teacherName, String status) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").descending());
 
         Specification<Clazz> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (search != null && !search.trim().isEmpty()) {
-                String searchPattern = "%" + search.trim() + "%";
-                Predicate classNamePredicate = cb.like(cb.lower(root.get("className")), searchPattern.toLowerCase());
-                Predicate courseNamePredicate = cb.like(cb.lower(root.get("course").get("courseName")), searchPattern.toLowerCase());
-                predicates.add(cb.or(classNamePredicate, courseNamePredicate));
+            if (className != null && !className.trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("className")), "%" + className.trim().toLowerCase() + "%"));
             }
-
+            if (courseName != null && !courseName.trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("course").get("courseName")), "%" + courseName.trim().toLowerCase() + "%"));
+            }
+            if (teacherName != null && !teacherName.trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("teacher").get("fullName")), "%" + teacherName.trim().toLowerCase() + "%"));
+            }
             if (status != null && !status.trim().isEmpty()) {
                 predicates.add(cb.equal(cb.lower(root.get("status")), status.toLowerCase()));
             }
@@ -501,6 +506,7 @@ public class ClassServiceImpl implements IClassService {
                 .slotTime(clazz.getSlotTime() != null ? clazz.getSlotTime() : "N/A")
                 .numberOfSessions(clazz.getNumberOfSessions())
                 .meetLink(clazz.getMeetLink())
+                .description(clazz.getDescription())
                 .registrations(registrationDTOs)
                 .build();
     }

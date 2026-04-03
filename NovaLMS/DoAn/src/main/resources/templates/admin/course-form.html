@@ -76,6 +76,12 @@
                 <div id="saleError" class="text-danger small mt-1"></div>
               </div>
 
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Số buổi học</label>
+                <input type="number" id="numberOfSessions" class="form-control" placeholder="Ví dụ: 30" min="1" max="200">
+                <div class="form-text small">Số buổi học mặc định cho lớp thuộc khóa học này.</div>
+              </div>
+
               <div class="col-12">
                 <label class="form-label fw-bold small">Ảnh đại diện khóa học <span class="text-danger">*</span></label>
                 <div class="d-flex align-items-start gap-3">
@@ -281,6 +287,9 @@
             }
             document.getElementById('status').value = (course.status || 'active').toLowerCase();
             document.getElementById('description').value = course.description || '';
+            if (course.numberOfSessions) {
+              document.getElementById('numberOfSessions').value = course.numberOfSessions;
+            }
 
             // Chờ dropdowns load xong rồi set giá trị
             if (course.categoryId) {
@@ -318,6 +327,7 @@
       const courseName = document.getElementById('courseName').value.trim();
       const price = parseFloat(document.getElementById('price').value);
       const salePercent = parseFloat(document.getElementById('sale').value);
+      const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value) || null;
       const avatar = document.getElementById('avatar').value.trim();
       const description = document.getElementById('description').value.trim();
 
@@ -373,6 +383,7 @@
         courseName: courseName,
         price: price || 0,
         sale: saleAmount,
+        numberOfSessions: numberOfSessions,
         avatar: avatar,
         status: status,
         description: description,

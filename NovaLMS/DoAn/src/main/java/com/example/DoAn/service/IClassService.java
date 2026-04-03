@@ -10,7 +10,7 @@ public interface IClassService {
     Integer saveClass(ClassRequestDTO request);
     void updateClass(Integer id, ClassRequestDTO request);
     ClassDetailResponse getClassById(Integer id);
-    PageResponse<?> getAllClasses(int pageNo, int pageSize, String search, String status);
+    PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className, String courseName, String teacherName, String status);
     List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId);
     void deleteClass(Integer id);
 }
