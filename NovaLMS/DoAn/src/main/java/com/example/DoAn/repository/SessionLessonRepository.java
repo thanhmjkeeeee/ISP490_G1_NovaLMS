@@ -15,4 +15,6 @@ public interface SessionLessonRepository extends JpaRepository<SessionLesson, In
     List<SessionLesson> findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(@Param("classId") Integer classId);
 
     void deleteBySession_Clazz_ClassId(Integer classId);
+
+    List<SessionLesson> findBySessionSessionId(Integer sessionId);
 }

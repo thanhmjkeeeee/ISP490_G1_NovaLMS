@@ -113,8 +113,8 @@
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                     <h5 class="fw-bold mb-0"><i class="bi bi-calendar-day text-primary me-2"></i>Lịch dạy hàng tuần</h5>
                     <div class="d-flex gap-2">
-                        <select id="yearSelect" class="form-select form-select-sm rounded-pill" onchange="loadSchedule()"></select>
-                        <select id="weekSelect" class="form-select form-select-sm rounded-pill" onchange="loadSchedule()"></select>
+                        <select class="form-select form-select-sm rounded-pill fw-bold pe-4" style="width: 120px;" id="yearSelect" onchange="loadSchedule()"></select>
+                        <select class="form-select form-select-sm rounded-pill fw-bold pe-4" style="width: 160px;" id="weekSelect" onchange="loadSchedule()"></select>
                         <span class="badge bg-light text-dark border d-flex align-items-center px-3" id="weekRangeLabel">...</span>
                     </div>
                 </div>
@@ -899,16 +899,46 @@
             if (json.status !== 200) return;
             const d = json.data;
 
-            document.getElementById('m-className').textContent = d.className;
-            document.getElementById('m-courseName').textContent = d.courseName;
-            document.getElementById('m-sessionNo').textContent = d.sessionNumber;
-            document.getElementById('m-date').textContent = d.date;
-            document.getElementById('m-time').textContent = `${d.startTime} - ${d.endTime}`;
+            document.getElementById('m-className').textContent = d.className || 'Detail';
+            document.getElementById('m-courseName').textContent = d.courseName || '';
+            document.getElementById('m-sessionNo').textContent = d.sessionNo || '—';
+            document.getElementById('m-date').textContent = d.date || '—';
+            document.getElementById('m-time').textContent = `${d.startTime || ''} - ${d.endTime || ''}`;
             document.getElementById('m-topic').textContent = d.topic || 'Chưa cập nhật';
 
-            // Fetch materials / content if any (Mapping to UI)
+            // Render Content List (Materials & Quizzes)
             const contentList = document.getElementById('m-contentList');
-            contentList.innerHTML = '<div class="p-4 text-center text-muted small">Đang tải nội dung...</div>';
+            const mats = d.materials || [];
+            const qzs = d.quizzes || [];
+
+            if (mats.length === 0 && qzs.length === 0) {
+                contentList.innerHTML = '<div class="p-4 text-center text-muted small">Không có tài liệu hoặc bài tập nào</div>';
+            } else {
+                let html = '';
+                mats.forEach(m => {
+                    const icon = (m.type || '').toUpperCase() === 'VIDEO' ? 'bi-play-circle text-danger' : 'bi-file-earmark-text text-primary';
+                    html += `
+                        <div class="list-group-item d-flex align-items-center p-3">
+                            <i class="bi ${icon} fs-5 me-3"></i>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold text-dark">${m.lessonName}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Loại: ${m.type || 'Tài liệu'}</div>
+                            </div>
+                        </div>`;
+                });
+                qzs.forEach(q => {
+                    html += `
+                        <div class="list-group-item d-flex align-items-center p-3 bg-light bg-opacity-50">
+                            <i class="bi bi-patch-question text-warning fs-5 me-3"></i>
+                            <div class="flex-grow-1">
+                                <div class="small fw-bold text-dark">${q.lessonName}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Bài tập / Quiz</div>
+                            </div>
+                            <span class="badge rounded-pill bg-warning text-dark small px-2">QUIZ</span>
+                        </div>`;
+                });
+                contentList.innerHTML = html;
+            }
 
             // Check Reschedule Status
             const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
@@ -924,6 +954,7 @@
             new bootstrap.Modal('#sessionDetailModal').show();
         } catch (err) {
             console.error("Session Detail Error:", err);
+            document.getElementById('m-contentList').innerHTML = '<div class="p-4 text-center text-danger small">Lỗi tải dữ liệu</div>';
         }
     }
 
