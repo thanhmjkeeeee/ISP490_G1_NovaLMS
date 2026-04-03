@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết Lớp học')}"></head>
+
+<body class="dashboard-body bg-light">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết Lớp học', breadcrumb='Khóa học')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<style>
+    /* --- Layout & Utilities --- */
+    .transition-all { transition: all 0.3s ease; }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .backdrop-blur { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+    /* Hover Effects */
+    .hover-bg-light:hover { background-color: #f1f5f9 !important; }
+    .hover-card:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.08)!important; }
+    .hover-primary:hover { background-color: #0d6efd !important; color: white !important; }
+
+    /* Custom Nav Tabs (Pills style - Giống Course Detail) */
+    .nav-pills .nav-link { color: #6c757d; border: 1px solid transparent; transition: all 0.2s; padding: 0.75rem 1.5rem; font-weight: 600;}
+    .nav-pills .nav-link:hover { background-color: #f8f9fa; color: #0d6efd; }
+    .nav-pills .nav-link.active { background-color: #0d6efd; color: white; box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3); }
+
+    /* Back button */
+    .btn-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 18px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        text-decoration: none;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        transition: all 0.2s;
+        margin-bottom: 20px;
+    }
+    .btn-back:hover { background: #f8fafc; color: #0d6efd; border-color: #bfdbfe; }
+
+    /* Timetable Table Styling */
+    .timetable-card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        background: white;
+    }
+    #timetableTable thead {
+        background: #f8f9fa; /* Header xám nhạt hiện đại */
+        color: #495057;
+    }
+    #timetableTable th {
+        padding: 15px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        border: 1px solid #edf2f7;
+        text-transform: uppercase;
+    }
+    #timetableTable td {
+        height: 100px;
+        vertical-align: middle;
+        border: 1px solid #edf2f7;
+        padding: 8px;
+    }
+    .slot-label {
+        background: #f8fafc;
+        font-weight: bold;
+        color: #475569;
+        width: 80px;
+    }
+    .session-badge {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 10px;
+        text-align: left;
+        transition: all 0.2s;
+        cursor: pointer;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .session-badge:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+        background: #dbeafe;
+        border-color: #0d6efd;
+    }
+    .session-badge .topic {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 0.85rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+    .session-badge .time {
+        font-size: 0.75rem;
+        color: #0b5ed7;
+        font-weight: 500;
+    }
+
+    /* Modal Styling */
+    .modal-content { border-radius: 20px; border: none; }
+    .modal-header { border-bottom: 1px solid #f1f5f9; padding: 24px; }
+    .section-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6c757d;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+    }
+    .section-title i { margin-right: 8px; }
+    .content-item {
+        display: flex;
+        align-items: center;
+        padding: 14px 18px;
+        background: #f8fafc;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        text-decoration: none;
+        color: #334155;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    .content-item:hover {
+        background: #ffffff;
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transform: translateX(4px);
+        color: #0d6efd;
+    }
+    .content-item .icon {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 14px;
+        font-size: 1.1rem;
+    }
+    .icon-video { background: #fee2e2; color: #ef4444; }
+    .icon-doc { background: #e0e7ff; color: #0d6efd; }
+    .icon-quiz { background: #fef3c7; color: #f59e0b; }
+
+    .empty-state {
+        text-align: center;
+        padding: 24px;
+        background: #f1f5f9;
+        border-radius: 12px;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+</style>
+
+<main class="dash-main d-flex flex-column py-4" id="dashMain">
+    <div class="container-fluid">
+
+        <a href="/student/my-classes" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Quay lại Danh sách
+        </a>
+
+        <div id="classBannerContainer">
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-3 fw-medium">Đang tải không gian học tập...</p>
+            </div>
+        </div>
+
+        <div id="classContentWrapper" class="d-none mt-4">
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="bg-white rounded-4 shadow-sm p-2 mb-4">
+                        <ul class="nav nav-pills nav-fill gap-2" id="classTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#tab-info" type="button" role="tab">
+                                    <i class="bi bi-info-circle me-2"></i>Thông tin
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
+                                    <i class="bi bi-calendar3-week me-2"></i>Thời khóa biểu
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#tab-members" type="button" role="tab">
+                                    <i class="bi bi-people me-2"></i>Thành viên
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="tab-content" id="classTabContent">
+
+                        <div class="tab-pane fade" id="tab-info" role="tabpanel">
+                            <div class="card p-4 border-0 shadow-sm rounded-4 mb-4">
+                                <h5 class="fw-bold mb-3 text-primary border-bottom pb-2"><i class="bi bi-journal-text me-2"></i>Giới thiệu lớp học</h5>
+                                <div id="infoContent" class="text-muted lh-lg">Đang cập nhật...</div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade show active" id="tab-schedule" role="tabpanel">
+                            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3 bg-white p-3 rounded-4 shadow-sm">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-calendar-event text-primary me-2"></i>Lịch học hàng tuần</h5>
+                                <div class="d-flex align-items-center gap-3">
+                                    <select id="yearSelect" class="form-select form-select-sm rounded-pill shadow-none" style="width:100px; border-color:#dee2e6;" onchange="renderTimetable()"></select>
+                                    <select id="weekSelect" class="form-select form-select-sm rounded-pill shadow-none" style="width:200px; border-color:#dee2e6;" onchange="renderTimetable()"></select>
+                                    <span id="weekRangeLabel" class="badge bg-light text-secondary border px-3 py-2 rounded-pill fw-medium"></span>
+                                </div>
+                            </div>
+
+                            <div class="timetable-card">
+                                <div class="table-responsive custom-scrollbar">
+                                    <table class="table table-bordered mb-0 text-center align-middle" id="timetableTable" style="table-layout:fixed; min-width: 800px;">
+                                        <thead>
+                                        <tr>
+                                            <th class="slot-label text-muted">Slot</th>
+                                            <th>THỨ 2<br><small id="day-1" class="text-secondary fw-normal"></small></th>
+                                            <th>THỨ 3<br><small id="day-2" class="text-secondary fw-normal"></small></th>
+                                            <th>THỨ 4<br><small id="day-3" class="text-secondary fw-normal"></small></th>
+                                            <th>THỨ 5<br><small id="day-4" class="text-secondary fw-normal"></small></th>
+                                            <th>THỨ 6<br><small id="day-5" class="text-secondary fw-normal"></small></th>
+                                            <th>THỨ 7<br><small id="day-6" class="text-secondary fw-normal"></small></th>
+                                            <th>CHỦ NHẬT<br><small id="day-7" class="text-secondary fw-normal"></small></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="timetableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-members" role="tabpanel">
+                            <div class="card p-4 border-0 shadow-sm rounded-4">
+                                <h5 class="fw-bold mb-4 border-bottom pb-2">Danh sách học viên</h5>
+                                <div id="membersContent" class="row g-3">Đang cập nhật...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="sticky-top" style="top: 100px;">
+                        <div class="card text-center p-4 border-0 shadow-sm rounded-4">
+                            <h6 class="fw-bold border-bottom pb-3 mb-4 text-start text-uppercase small tracking-wider text-muted">Giảng viên phụ trách</h6>
+                            <div class="position-relative d-inline-block mx-auto mb-3">
+                                <img id="teacherAvatar" src="/assets/img/default-avatar.png" onerror="this.src='/assets/img/default-avatar.png'" class="rounded-circle border border-4 border-white shadow-sm" width="120" height="120" style="object-fit: cover;">
+                                <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-2" title="Đang trực tuyến"></span>
+                            </div>
+                            <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
+                            <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
+                            <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary">
+                                <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="sessionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-light">
+                <div>
+                    <span class="badge bg-primary mb-2" id="modalSessionNo">BUỔI 01</span>
+                    <h5 class="modal-title fw-bold text-dark" id="modalTopic">Chủ đề bài học</h5>
+                </div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+
+                <div class="mb-4">
+                    <div class="section-title"><i class="bi bi-book-half"></i> Nội dung bài học</div>
+                    <div id="materialsList">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="section-title text-warning"><i class="bi bi-patch-question"></i> Bài tập & Trắc nghiệm</div>
+                    <div id="quizzesList">
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-light fw-bold rounded-pill px-5 border shadow-sm hover-bg-light" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+    const pathArray = window.location.pathname.replace(/\/$/, "").split('/');
+    const classIdFromUrl = pathArray[pathArray.length - 1];
+    let classDetailData = null;
+
+    document.addEventListener("DOMContentLoaded", async function() {
+        if (!classIdFromUrl || isNaN(classIdFromUrl)) {
+            alert("Mã lớp học không hợp lệ!");
+            window.location.href = '/student/my-classes';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/v1/student/classes/${classIdFromUrl}/detail`);
+            const result = await response.json();
+
+            if (result.status !== 200) {
+                throw new Error(result.message || "Không thể tải dữ liệu lớp học");
+            }
+
+            classDetailData = result.data;
+
+            // Render UI
+            renderBanner(classDetailData);
+            renderInfoAndTeacher(classDetailData);
+            renderMembers(classDetailData);
+
+            // Initialize Timetable Selectors
+            initTimetableSelectors();
+
+            document.getElementById('classBannerContainer').classList.add('d-none');
+            document.getElementById('classContentWrapper').classList.remove('d-none');
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById('classBannerContainer').innerHTML = `
+                <div class="alert alert-danger text-center p-4 rounded-4 bg-white shadow-sm border-0">
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-1"></i>
+                    <h5 class="mt-3 fw-bold">Lỗi tải dữ liệu</h5>
+                    <p class="text-muted">${error.message}</p>
+                    <a href="/student/my-classes" class="btn btn-outline-danger rounded-pill px-4 mt-2">Quay lại danh sách</a>
+                </div>`;
+        }
+    });
+
+    // --- TIMETABLE LOGIC ---
+    function initTimetableSelectors() {
+        const yearSelect = document.getElementById('yearSelect');
+        const weekSelect = document.getElementById('weekSelect');
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentWeek = getISOWeek(now);
+
+        // Years
+        yearSelect.innerHTML = '';
+        for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+            const opt = document.createElement('option');
+            opt.value = y; opt.textContent = y;
+            if (y === currentYear) opt.selected = true;
+            yearSelect.appendChild(opt);
+        }
+
+        // Weeks
+        weekSelect.innerHTML = '';
+        for (let w = 1; w <= 52; w++) {
+            const opt = document.createElement('option');
+            opt.value = w; opt.textContent = `Tuần ${w}`;
+            if (w === currentWeek) opt.selected = true;
+            weekSelect.appendChild(opt);
+        }
+
+        renderTimetable();
+    }
+
+    function renderTimetable() {
+        const year = parseInt(document.getElementById('yearSelect').value);
+        const week = parseInt(document.getElementById('weekSelect').value);
+        const tbody = document.getElementById('timetableBody');
+        tbody.innerHTML = '';
+
+        const weekStart = getDateOfISOWeek(week, year);
+        document.getElementById('weekRangeLabel').textContent =
+            `Từ ${formatDateDM(weekStart)} đến ${formatDateDM(new Date(weekStart.getTime() + 6*86400000))}`;
+
+        // Update day headers
+        for(let i=1; i<=7; i++) {
+            const d = new Date(weekStart.getTime() + (i-1)*86400000);
+            document.getElementById(`day-${i}`).textContent = formatDateDM(d);
+        }
+
+        // Generate 5 slots
+        for (let slot = 1; slot <= 5; slot++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="slot-label text-muted">Slot ${slot}</td>`;
+            for (let day = 1; day <= 7; day++) {
+                const td = document.createElement('td');
+                td.id = `cell-${day}-${slot}`;
+                td.innerHTML = '<span class="text-muted opacity-25">—</span>';
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        }
+
+        // Fill data
+        if (!classDetailData || !classDetailData.sessions) return;
+
+        classDetailData.sessions.forEach(session => {
+            if(!session.date) return;
+            const sDate = new Date(session.date);
+
+            // So sánh tuần và năm
+            if (getISOWeek(sDate) === week && sDate.getFullYear() === year) {
+                // Đảm bảo dayOfWeek và slotNumber hợp lệ
+                const day = session.dayOfWeek || 1;
+                const slot = session.slotNumber || 1;
+                const cell = document.getElementById(`cell-${day}-${slot}`);
+
+                if (cell) {
+                    // Xử lý an toàn chuỗi thời gian
+                    const startTime = session.startTime ? session.startTime.substring(0, 5) : '--:--';
+                    const endTime = session.endTime ? session.endTime.substring(0, 5) : '--:--';
+                    const topicStr = session.topic ? session.topic : `Chủ đề buổi ${session.sessionNo}`;
+
+                    cell.innerHTML = `
+                        <div class="session-badge shadow-sm" onclick="openSessionModal(${session.sessionId})">
+                            <div class="topic" title="${topicStr}">${topicStr}</div>
+                            <div class="time"><i class="bi bi-clock me-1"></i>${startTime} - ${endTime}</div>
+                        </div>`;
+                }
+            }
+        });
+    }
+
+    function openSessionModal(sessionId) {
+        console.log("Session selected:", sessionId);
+        if (!classDetailData || !classDetailData.sessions) return;
+
+        const session = classDetailData.sessions.find(s => s.sessionId === sessionId);
+        console.log("Full Session Data:", session); // DEBUG LOG
+        if(!session) return;
+
+        const modalEl = document.getElementById('sessionModal');
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        document.getElementById('modalSessionNo').textContent = `BUỔI ${session.sessionNo < 10 ? '0'+session.sessionNo : session.sessionNo}`;
+        document.getElementById('modalTopic').textContent = session.topic || 'Chưa cập nhật chủ đề';
+
+        // 1. LẤY TRỰC TIẾP DỮ LIỆU ĐÃ ĐƯỢC BACKEND PHÂN LOẠI
+        // Backend (SessionDetailDTO) trả thẳng về 2 list: materials và quizzes
+        const materials = session.materials || [];
+        const quizzes = session.quizzes || [];
+
+        // 2. RENDER MẢNG TÀI LIỆU (MATERIALS)
+        const materialsContainer = document.getElementById('materialsList');
+        materialsContainer.innerHTML = '';
+
+        if (materials.length > 0) {
+            let materialsHtml = '';
+            materials.forEach(m => {
+                const typeStr = (m.type || '').toUpperCase();
+                const isVideo = typeStr === 'VIDEO' || typeStr.includes('VID');
+                const icon = isVideo ? 'bi-play-btn-fill icon-video' : 'bi-file-earmark-text icon-doc';
+
+                const title = m.lessonTitle || m.lessonName || m.title || 'Tài liệu học tập';
+                const url = `/student/lesson/view/${m.lessonId}`;
+
+                materialsHtml += `
+                    <a href="${url}" class="content-item shadow-sm">
+                        <div class="icon ${icon.split(' ')[1]}"><i class="bi ${icon.split(' ')[0]}"></i></div>
+                        <div class="fw-bold fs-6">${title}</div>
+                    </a>`;
+            });
+            materialsContainer.innerHTML = materialsHtml;
+        } else {
+            materialsContainer.innerHTML = '<div class="empty-state">Chưa có tài liệu học tập cho buổi này</div>';
+        }
+
+        // 3. RENDER MẢNG BÀI TẬP (QUIZZES)
+        const quizzesContainer = document.getElementById('quizzesList');
+        quizzesContainer.innerHTML = '';
+
+        if (quizzes.length > 0) {
+            let quizzesHtml = '';
+            quizzes.forEach(q => {
+                const title = q.lessonTitle || q.lessonName || q.title || 'Bài kiểm tra';
+                const qId = q.quizId;
+
+                let url = '#';
+                let onclick = `onclick="alert('Chưa có ID bài tập!')"`;
+
+                if(qId) {
+                    url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
+                    onclick = '';
+                }
+
+                quizzesHtml += `
+                    <a href="${url}" ${onclick} class="content-item shadow-sm">
+                        <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
+                        <div class="fw-bold fs-6">${title}</div>
+                    </a>`;
+            });
+            quizzesContainer.innerHTML = quizzesHtml;
+        } else {
+            quizzesContainer.innerHTML = '<div class="empty-state">Chưa có bài tập trắc nghiệm cho buổi này</div>';
+        }
+
+        modalInstance.show();
+    }
+
+    // --- RENDER UTILS ---
+    function renderBanner(data) {
+        const statusClass = data.status === 'Closed' ? 'bi-slash-circle' : 'bi-play-circle-fill';
+        const progress = data.progressPercent || 0;
+        const bannerContainer = document.getElementById('classBannerContainer');
+
+        // Tạo banner HTML mới thay vì thay thế toàn bộ container để giữ nguyên cấu trúc loading nếu cần
+        const bannerHtml = `
+            <div class="course-banner bg-primary bg-gradient rounded-4 p-4 p-md-5 mb-4 shadow-sm text-white position-relative overflow-hidden">
+                <div class="position-absolute top-0 end-0 opacity-25" style="transform: translate(20%, -30%);">
+                    <i class="bi bi-mortarboard-fill" style="font-size: 15rem;"></i>
+                </div>
+
+                <div class="row align-items-center position-relative z-1">
+                    <div class="col-lg-8 mb-4 mb-lg-0">
+                        <span class="badge bg-white text-primary mb-3 px-3 py-2 rounded-pill fw-bold shadow-sm">
+                            <i class="bi ${statusClass} me-1"></i> ${data.status === 'Closed' ? 'Đã kết thúc' : 'Đang học'}
+                        </span>
+                        <h1 class="fw-bolder mb-3" style="font-size: 2.2rem;">${data.className || 'Chưa xếp tên lớp'}</h1>
+                        <p class="mb-0 text-white-50 lead fs-6">
+                            <i class="bi bi-book me-1"></i> Khóa học: ${data.courseName || '--'} <span class="mx-2">|</span>
+                            <i class="bi bi-calendar3 me-1"></i> Khai giảng: ${data.startDate ? new Date(data.startDate).toLocaleDateString('vi-VN') : '--'}
+                        </p>
+                    </div>
+
+                    <div class="col-lg-4 text-lg-end">
+                        <div class="bg-white bg-opacity-10 p-4 rounded-4 backdrop-blur">
+                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                <span class="fw-bold small text-uppercase tracking-wider">Tiến độ</span>
+                                <span class="fw-bolder fs-5">${progress}%</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px; background-color: rgba(255,255,255,0.2);">
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${progress}%"></div>
+                            </div>
+                            <div class="text-end small text-white-50">
+                                <i class="bi bi-check2-circle me-1"></i>Hoàn thành ${data.completedSessions || 0}/${data.totalSessions || 0} buổi
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>`;
+
+        // Thay thế banner loading bằng banner chính
+        bannerContainer.insertAdjacentHTML('afterend', bannerHtml);
+    }
+
+    function renderInfoAndTeacher(data) {
+        const teacher = (data.members || []).find(m => m.role === 'TEACHER') || { name: 'Chưa phân công' };
+
+        document.getElementById('infoContent').innerHTML = `
+            Lớp học <strong class="text-dark">${data.className || '--'}</strong> thuộc khóa học <strong class="text-dark">${data.courseName || '--'}</strong>.<br><br>
+            Bắt đầu từ ngày: <strong class="text-dark">${data.startDate ? new Date(data.startDate).toLocaleDateString('vi-VN') : '--'}</strong><br>
+            Dự kiến kết thúc: <strong class="text-dark">${data.endDate ? new Date(data.endDate).toLocaleDateString('vi-VN') : '--'}</strong>
+        `;
+
+        document.getElementById('teacherName').textContent = teacher.name;
+        if(teacher.avatar) {
+            document.getElementById('teacherAvatar').src = teacher.avatar;
+        } else {
+            document.getElementById('teacherAvatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(teacher.name)}&background=0d6efd&color=fff`;
+        }
+    }
+
+    function renderMembers(data) {
+        const students = (data.members || []).filter(m => m.role === 'STUDENT');
+        const membersContainer = document.getElementById('membersContent');
+
+        if(students.length === 0) {
+            membersContainer.innerHTML = '<div class="col-12 text-center py-4 text-muted fst-italic">Chưa có học viên nào tham gia.</div>';
+            return;
+        }
+
+        let html = '';
+        students.forEach(s => {
+            const avatar = s.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=eff6ff&color=0d6efd`;
+            html += `
+            <div class="col-md-6">
+                <div class="d-flex align-items-center p-3 border rounded-3 bg-light transition-all hover-bg-light hover-card">
+                    <img src="${avatar}" class="rounded-circle border border-2 border-white shadow-sm me-3" width="45" height="45" style="object-fit: cover;">
+                    <div class="overflow-hidden">
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 0.9rem;">${s.name || '--'}</div>
+                        <div class="text-muted text-truncate" style="font-size: 0.8rem;"><i class="bi bi-envelope me-1"></i>${s.email || '--'}</div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        membersContainer.innerHTML = html;
+    }
+
+    // --- DATE UTILS ---
+    function getISOWeek(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+
+    function getDateOfISOWeek(w, y) {
+        const simple = new Date(y, 0, 1 + (w - 1) * 7);
+        const dow = simple.getDay();
+        const ISOweekStart = simple;
+        if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+        else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        return ISOweekStart;
+    }
+
+    function formatDateDM(date) {
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+</script>
+
+</body>
+</html>

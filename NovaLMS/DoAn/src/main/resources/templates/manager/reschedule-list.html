@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:with="isDashboard=true">
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Duyệt đổi lịch')}"></th:block>
+    <style>
+        .card-custom { border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-radius: 16px; background: #fff; }
+
+        /* Badges status style pastel */
+        .status-badge { padding: 6px 14px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-PENDING { background: #fff8e6; color: #f59e0b; border: 1px solid #fde68a; }
+        .status-APPROVED { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+        .status-REJECTED { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+
+        /* Table styling */
+        .table-hover tbody tr:hover { background-color: #f8fafc; transition: all 0.2s; }
+        thead th { background-color: #f1f5f9 !important; color: #475569 !important; font-weight: 700 !important; border-bottom: 2px solid #e2e8f0 !important; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 12px !important;}
+        td { vertical-align: middle; padding: 16px 12px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+
+        /* Filter inputs */
+        .filter-input { border-radius: 50px; padding: 10px 20px; border: 1px solid #e2e8f0; background-color: #f8fafc; box-shadow: none; font-size: 0.9rem; }
+        .filter-input:focus { background-color: #fff; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+
+        /* Date time block */
+        .time-block { display: inline-flex; flex-direction: column; }
+        .time-date { font-weight: 700; color: #1e293b; font-size: 0.9rem;}
+        .time-hour { font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 4px;}
+        .time-new { color: #2563eb; }
+    </style>
+</head>
+
+<body class="dashboard-body bg-light">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Duyệt đổi lịch')}"></header>
+<aside id="dashSidebar" class="dash-sidebar">
+    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='reschedule')}"></div>
+</aside>
+
+<main class="dash-main d-flex flex-column py-4" id="dashMain">
+    <div class="container-fluid px-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-dark m-0">Duyệt yêu cầu đổi lịch</h3>
+                <p class="text-muted small mt-1 mb-0">Quản lý các yêu cầu thay đổi lịch dạy từ Giảng viên</p>
+            </div>
+        </div>
+
+        <div class="card card-custom overflow-hidden">
+            <div class="card-header bg-white border-bottom border-light p-4">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-5 col-lg-4">
+                        <div class="position-relative">
+                            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 16px;"></i>
+                            <input type="text" id="teacherFilter" class="form-control filter-input ps-5" placeholder="Tìm tên giảng viên..." oninput="handleFilterChange()">
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <select id="statusFilter" class="form-select filter-input fw-bold text-secondary" onchange="handleFilterChange()">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="PENDING" selected>Đang chờ duyệt (Pending)</option>
+                            <option value="APPROVED">Đã phê duyệt (Approved)</option>
+                            <option value="REJECTED">Đã từ chối (Rejected)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-lg-5 text-md-end">
+                        <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="fetchRequests()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Làm mới
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive custom-scrollbar">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th class="ps-4">Giảng viên</th>
+                            <th>Lớp học & Buổi</th>
+                            <th>Lịch cũ</th>
+                            <th>Lịch đề xuất</th>
+                            <th style="max-width: 200px;">Lý do</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end pe-4">Hành động</th>
+                        </tr>
+                        </thead>
+                        <tbody id="requestTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="text-muted mt-2 small">Đang tải dữ liệu...</div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="paginationContainer" class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
+                    <span class="small text-muted fw-medium" id="pageInfo">Hiển thị 0/0 yêu cầu</span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="paginationList"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark"><i class="bi bi-x-circle text-danger me-2"></i>Từ chối yêu cầu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-3">Vui lòng nhập lý do từ chối để Giảng viên có thể nắm được thông tin.</p>
+                <div class="mb-3">
+                    <textarea id="rejectNote" class="form-control bg-light border-light" rows="4" style="border-radius: 12px; resize: none;" placeholder="Ví dụ: Lịch này bị trùng phòng Zoom..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" onclick="confirmReject()">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script>
+    let state = {
+        items: [], page: 0, size: 10, totalPages: 1, totalElements: 0, selectedRequestId: null
+    };
+
+    let debounceTimer;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchRequests();
+    });
+
+    function handleFilterChange() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            state.page = 0;
+            fetchRequests();
+        }, 500); // Chờ 0.5s sau khi gõ phím mới gọi API
+    }
+
+    async function fetchRequests() {
+        const teacherName = document.getElementById('teacherFilter').value;
+        const status = document.getElementById('statusFilter').value;
+        const tbody = document.getElementById('requestTableBody');
+
+        try {
+            // FIX LỖI 1: Đổi URL gọi API cho khớp 100% với Controller của Backend
+            const url = `/manager/reschedule/api/requests?teacherName=${encodeURIComponent(teacherName)}&status=${status}&page=${state.page}&size=${state.size}`;
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (json.status === 200 && json.data) {
+                // Hỗ trợ cả 2 định dạng trả về của Spring Data Page: .content hoặc .items
+                state.items = json.data.content || json.data.items || [];
+                state.totalPages = json.data.totalPages || 1;
+                state.totalElements = json.data.totalElements || state.items.length;
+                renderTable();
+                renderPagination();
+            } else {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle me-2"></i>${json.message || 'Lỗi tải dữ liệu'}</td></tr>`;
+            }
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Không thể kết nối đến máy chủ. Vui lòng thử lại.</td></tr>`;
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('requestTableBody');
+        if (state.items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5"><i class="bi bi-inbox text-muted fs-1 d-block mb-3"></i><span class="text-muted fw-medium">Không tìm thấy yêu cầu đổi lịch nào.</span></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = state.items.map(r => `
+            <tr>
+                <td class="ps-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold me-3" style="width: 40px; height: 40px;">
+                            ${(r.createdBy?.fullName || 'GV').substring(0, 1).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">${r.createdBy?.fullName || 'N/A'}</div>
+                            <div class="small text-muted">${r.createdBy?.email || ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="fw-bold text-dark">${r.session?.clazz?.className || 'Lớp học'}</div>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary mt-1">Buổi ${r.session?.sessionNumber || '#'}</span>
+                </td>
+                <td>
+                    <div class="time-block">
+                        <span class="time-date">${formatDate(r.oldDate)}</span>
+                        <span class="time-hour"><i class="bi bi-clock"></i> ${r.oldStartTime || '--:--'}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="time-block time-new">
+                        <span class="time-date text-primary">${formatDate(r.newDate)}</span>
+                        <span class="time-hour fw-bold text-primary"><i class="bi bi-clock-fill"></i> ${r.newStartTime || '--:--'}</span>
+                    </div>
+                </td>
+                <td style="max-width: 200px;">
+                    <div class="small text-muted text-truncate" title="${r.reason || ''}">${r.reason || 'Không có lý do'}</div>
+                </td>
+                <td class="text-center">
+                    <span class="status-badge status-${r.status}">${r.status}</span>
+                </td>
+                <td class="text-end pe-4">
+                    ${r.status === 'PENDING' ? `
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold" onclick="updateStatus(${r.id}, 'APPROVED')">
+                                <i class="bi bi-check-lg me-1"></i> Duyệt
+                            </button>
+                            <button class="btn btn-sm btn-light text-danger rounded-pill px-3 fw-bold border border-danger border-opacity-25" onclick="openRejectModal(${r.id})">
+                                Từ chối
+                            </button>
+                        </div>
+                    ` : `<span class="small text-muted fst-italic"><i class="bi bi-info-circle me-1"></i> Đã xử lý</span>`}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function formatDate(str) {
+        if (!str) return '---';
+        try {
+            const d = new Date(str);
+            return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } catch { return str; }
+    }
+
+    function renderPagination() {
+        const info = document.getElementById('pageInfo');
+        info.innerHTML = `Hiển thị <span class="text-dark fw-bold">${state.items.length}</span> trên tổng số <span class="text-dark fw-bold">${state.totalElements}</span> yêu cầu`;
+
+        const list = document.getElementById('paginationList');
+        list.innerHTML = '';
+        for (let i = 0; i < state.totalPages; i++) {
+            list.innerHTML += `<li class="page-item ${i === state.page ? 'active' : ''}">
+                <button class="page-link shadow-none" onclick="goToPage(${i})">${i + 1}</button>
+            </li>`;
+        }
+    }
+
+    function goToPage(p) {
+        state.page = p;
+        fetchRequests();
+    }
+
+    async function updateStatus(id, status, note = '') {
+        if (status === 'APPROVED' && !confirm('Bạn chắc chắn muốn PHÊ DUYỆT yêu cầu này? Lịch học sẽ được cập nhật tự động.')) return;
+
+        try {
+            // FIX LỖI 2: Đổi URL cập nhật trạng thái cho khớp với Backend
+            const url = `/manager/reschedule/api/requests/${id}/status`;
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status, managerNote: note })
+            });
+            const json = await res.json();
+
+            if (json.status === 200) {
+                // Đóng modal từ chối nếu nó đang mở
+                const rejectModalEl = document.getElementById('rejectModal');
+                const rejectModalInstance = bootstrap.Modal.getInstance(rejectModalEl);
+                if (rejectModalInstance) rejectModalInstance.hide();
+
+                alert('Cập nhật trạng thái thành công!');
+                fetchRequests(); // Load lại bảng
+            } else {
+                alert('Lỗi: ' + json.message);
+            }
+        } catch (err) {
+            console.error("Update Status Error:", err);
+            alert('Lỗi kết nối Server!');
+        }
+    }
+
+    function openRejectModal(id) {
+        state.selectedRequestId = id;
+        document.getElementById('rejectNote').value = '';
+        new bootstrap.Modal('#rejectModal').show();
+    }
+
+    function confirmReject() {
+        const note = document.getElementById('rejectNote').value.trim();
+        if (!note) { alert('Vui lòng nhập lý do từ chối!'); return; }
+        updateStatus(state.selectedRequestId, 'REJECTED', note);
+        bootstrap.Modal.getInstance(document.getElementById('rejectModal')).hide();
+    }
+</script>
+</body>
+</html>

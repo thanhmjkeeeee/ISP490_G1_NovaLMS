@@ -1,21 +1,18 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.request.RescheduleRequest;
+import com.example.DoAn.dto.request.RescheduleRequestDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.service.RescheduleService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.*;
@@ -32,13 +29,16 @@ public class TeacherViewController {
     private final EntityManager entityManager;
     private final ClassSessionRepository classSessionRepository;
     private final RegistrationRepository registrationRepository;
+    private final RescheduleService rescheduleService;
 
     public TeacherViewController(EntityManager entityManager,
                                   ClassSessionRepository classSessionRepository,
-                                  RegistrationRepository registrationRepository) {
+                                  RegistrationRepository registrationRepository,
+                                  RescheduleService rescheduleService) {
         this.entityManager = entityManager;
         this.classSessionRepository = classSessionRepository;
         this.registrationRepository = registrationRepository;
+        this.rescheduleService = rescheduleService;
     }
 
     @GetMapping("/dashboard")
@@ -48,27 +48,22 @@ public class TeacherViewController {
 
     @GetMapping("/my-classes")
     public String myClassesPage() {
-        return "teacher/my-classes";
+        return "redirect:/teacher/workspace";
     }
 
-    @GetMapping("/schedule")
-    public String schedulePage() {
-        return "teacher/schedule";
-    }
-
-    @GetMapping("/students")
-    public String studentsPage() {
-        return "teacher/students";
+    @GetMapping("/workspace")
+    public String workspacePage() {
+        return "teacher/workspace";
     }
 
     @GetMapping("/quiz-bank")
     public String quizBankPage() {
-        return "teacher/quiz-bank";
+        return "redirect:/teacher/workspace";
     }
 
     @GetMapping("/sessions")
     public String classSessionsPage(@RequestParam Integer classId) {
-        return "teacher/class-sessions";
+        return "redirect:/teacher/workspace";
     }
 
     @GetMapping("/api/my-classes")
@@ -245,7 +240,6 @@ public class TeacherViewController {
         }
 
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
 
         for (ClassSession s : sessions) {
             int dayIndex = s.getSessionDate().getDayOfWeek().getValue(); // 1=Mon
@@ -314,6 +308,31 @@ public class TeacherViewController {
         info.put("studentCount", students.size());
 
         return ResponseData.success("Chi tiết buổi học", info);
+    }
+
+    @GetMapping("/api/session/{sessionId}/reschedule-status")
+    @ResponseBody
+    public ResponseData<Map<String, Object>> rescheduleStatus(@PathVariable Integer sessionId) {
+        Optional<RescheduleRequest> pending = rescheduleService.getPendingRequest(sessionId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("hasPending", pending.isPresent());
+        return ResponseData.success("Success", data);
+    }
+
+    @PostMapping("/api/session/{sessionId}/reschedule")
+    @ResponseBody
+    public ResponseData<Integer> reschedule(
+            @PathVariable Integer sessionId,
+            @RequestBody RescheduleRequestDTO request,
+            Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        return rescheduleService.createRequest(
+                sessionId,
+                request.getNewDate(),
+                request.getNewStartTime(),
+                request.getReason(),
+                email
+        );
     }
 
     private int getSlotIndex(String startTime) {

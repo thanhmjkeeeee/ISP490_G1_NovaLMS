@@ -20,7 +20,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -32,6 +31,7 @@ public class CourseServiceImpl implements ICourseService {
     private final RegistrationRepository registrationRepository;
     private final SettingRepository settingRepository;
     private final UserRepository userRepository;
+    private final com.example.DoAn.repository.LessonRepository lessonRepository;
 
     @Override
     public Integer saveCourse(CourseRequestDTO request) {
@@ -173,5 +173,10 @@ public class CourseServiceImpl implements ICourseService {
                 .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
                 .numberOfSessions(course.getNumberOfSessions())
                 .build();
+    }
+
+    @Override
+    public long getLessonCount(Integer courseId) {
+        return lessonRepository.countByModuleCourse_CourseId(courseId);
     }
 }

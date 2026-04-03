@@ -39,6 +39,9 @@ public class ClassSession {
     @Column(name = "end_time")
     private String endTime;
 
+    @Column(name = "slot_number")
+    private Integer slotNumber;
+
     @Column(name = "topic")
     private String topic;
 
@@ -51,6 +54,10 @@ public class ClassSession {
 
     @Column(name = "materials", columnDefinition = "TEXT")
     private String materials;
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private java.util.List<SessionLesson> sessionLessons = new java.util.ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

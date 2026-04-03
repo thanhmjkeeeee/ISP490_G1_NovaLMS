@@ -63,6 +63,10 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
     @Column(name = "number_of_sessions")
     private Integer numberOfSessions;
 
+    @OneToMany(mappedBy = "clazz", fetch = FetchType.LAZY)
+    @JsonManagedReference(value = "clazz-sessions")
+    private List<ClassSession> sessions;
+
     @Column(name = "meet_link")
     private String meetLink;
 

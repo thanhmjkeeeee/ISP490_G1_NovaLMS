@@ -1,7 +1,10 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.*;
+import com.example.DoAn.model.User;
+import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.StudentClassService;
+import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,8 @@ import java.util.List;
 public class StudentClassApiController {
 
     private final StudentClassService studentClassService;
+    private final StudentService studentService;
+    private final UserRepository userRepository;
 
     private String getEmailFromPrincipal(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
@@ -37,10 +42,18 @@ public class StudentClassApiController {
         return studentClassService.getMyClasses(email, keyword, status, page, size);
     }
 
-    @GetMapping("/{classId}")
-    public ResponseData<ClassDetailDTO> getClassDetail(@PathVariable Integer classId, Principal principal) {
+    @GetMapping("/{classId}/detail")
+    public ResponseData<StudentClassDetailResponse> getClassDetail(@PathVariable Integer classId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
-        return studentClassService.getClassDetail(email, classId);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return ResponseData.error(404, "User not found");
+
+        try {
+            return ResponseData.success("Chi tiết lớp học", studentService.getStudentClassDetail(classId, user.getUserId()));
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
     }
 }
