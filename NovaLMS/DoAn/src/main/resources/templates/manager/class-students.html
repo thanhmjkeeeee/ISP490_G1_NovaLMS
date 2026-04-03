@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:with="isDashboard=true">
+  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý sinh viên')}"></th:block>
+  <style>
+    html, body { height: auto !important; overflow-y: auto !important; }
+    .dashboard-body { display: block !important; }
+    .dash-main { min-height: 100vh !important; padding-bottom: 100px !important; overflow: visible !important; }
+    .card-custom { border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-radius: 12px; background: #fff; }
+    .input-custom { border-radius: 8px; background-color: #f8f9fa !important; border: 1px solid #dee2e6; height: 42px; }
+    .pagination .page-link { border: none; margin: 0 3px; border-radius: 8px !important; background-color: #f8f9fa; }
+    .pagination .page-item.active .page-link { background-color: #0d6efd; color: #fff; }
+    select.input-custom { display: flex; align-items: center; }
+  </style>
+</head>
+
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý đào tạo', breadcrumb='Sinh viên lớp')}"></header>
+<aside id="dashSidebar" class="dash-sidebar">
+  <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='classes')}"></div>
+</aside>
+
+<main class="dash-main" id="dashMain">
+  <div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <a th:href="@{/manager/class/list}" class="btn btn-sm btn-light text-muted fw-bold mb-2">
+          <i class="bi bi-arrow-left"></i> QUAY LẠI
+        </a>
+        <h3 class="fw-bold text-dark m-0" id="pageTitle">Đang tải...</h3>
+        <p class="text-muted small m-0" id="courseNameSubtitle"></p>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card card-custom mb-4">
+      <div class="card-body p-4">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
+            <input type="text" id="searchInput" class="form-control input-custom" placeholder="Tên hoặc email...">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-bold text-secondary">Trạng thái đăng ký</label>
+            <select id="statusFilter" class="form-select input-custom">
+              <option value="">Tất cả</option>
+              <option value="Submitted">Chờ duyệt</option>
+              <option value="Approved">Đã duyệt</option>
+              <option value="Cancelled">Đã hủy</option>
+              <option value="Rejected">Từ chối</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button type="button" onclick="loadStudents(0)" class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm" style="background-color: #3b82f6;">
+              <i class="bi bi-filter me-1"></i> Lọc
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card card-custom">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4 py-3 small text-muted">#</th>
+                <th class="py-3 small text-muted">Họ tên</th>
+                <th class="py-3 small text-muted">Email</th>
+                <th class="py-3 small text-muted">Ngày đăng ký</th>
+                <th class="py-3 small text-muted">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="studentsBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer bg-white py-4 border-0">
+        <div class="d-flex justify-content-between align-items-center">
+          <span id="paginationInfo" class="small text-muted"></span>
+          <nav><ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul></nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+  function getClassIdFromUrl() {
+      const parts = window.location.pathname.split('/');
+      return parts[parts.length - 1];
+  }
+
+  const classId = getClassIdFromUrl();
+
+  async function initPage() {
+      // Load class info for header
+      try {
+          const res = await fetch(`/api/v1/classes/detail/${classId}`);
+          const json = await res.json();
+          if (json.status === 200 && json.data) {
+              document.getElementById('pageTitle').innerText = 'Sinh viên lớp: ' + (json.data.className || 'N/A');
+              document.getElementById('courseNameSubtitle').innerText = json.data.courseName || '';
+          }
+      } catch (e) { console.error(e); }
+      loadStudents(0);
+  }
+
+  async function loadStudents(pageNo) {
+      const keyword = document.getElementById('searchInput').value;
+      const status = document.getElementById('statusFilter').value;
+      let url = `/api/v1/classes/${classId}/students?pageNo=${pageNo}&pageSize=10`;
+      if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+      if (status) url += `&status=${encodeURIComponent(status)}`;
+
+      const tbody = document.getElementById('studentsBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5">Đang tải...</td></tr>';
+
+      try {
+          const res = await fetch(url);
+          const json = await res.json();
+          if (json.status === 200 || json.status === 202) {
+              renderTable(json.data.items);
+              renderPagination(json.data.pageNo, json.data.totalPages);
+          } else {
+              tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải dữ liệu</td></tr>';
+          }
+      } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi kết nối</td></tr>';
+      }
+  }
+
+  function renderTable(items) {
+      const tbody = document.getElementById('studentsBody');
+      if (!items || items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Chưa có học viên.</td></tr>';
+          return;
+      }
+      tbody.innerHTML = items.map((s, i) => {
+          const statusMap = {
+              'Approved': ['bg-success', 'Đã duyệt'],
+              'Submitted': ['bg-warning text-dark', 'Chờ duyệt'],
+              'Cancelled': ['bg-secondary', 'Đã hủy'],
+              'Rejected': ['bg-danger', 'Từ chối']
+          };
+          const [cls, label] = statusMap[s.status] || ['bg-secondary', s.status || 'N/A'];
+          return `<tr>
+              <td class="ps-4 text-muted small">${i + 1}</td>
+              <td class="fw-semibold">${s.userName || '---'}</td>
+              <td class="text-secondary">${s.userEmail || '---'}</td>
+              <td class="text-secondary">${formatDate(s.registrationTime)}</td>
+              <td><span class="badge ${cls}">${label}</span></td>
+          </tr>`;
+      }).join('');
+  }
+
+  function formatDate(str) {
+      if (!str) return '---';
+      const d = new Date(str); return isNaN(d.getTime()) ? str : d.toLocaleDateString('vi-VN');
+  }
+
+  function renderPagination(currentPage, totalPages) {
+      document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
+      const container = document.getElementById('paginationButtons');
+      if (totalPages <= 1) { container.innerHTML = ''; return; }
+      let html = '';
+      html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadStudents(${currentPage - 1}); return false;">Trước</a></li>`;
+      for (let i = 0; i < totalPages; i++) {
+          html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadStudents(${i}); return false;">${i + 1}</a></li>`;
+      }
+      html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadStudents(${currentPage + 1}); return false;">Sau</a></li>`;
+      container.innerHTML = html;
+  }
+
+  // Debounce search
+  let debounceTimer;
+  document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => loadStudents(0), 400);
+  });
+
+  document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

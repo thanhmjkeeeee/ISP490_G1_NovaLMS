@@ -140,6 +140,27 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r FROM Registration r JOIN FETCH r.user u WHERE r.clazz.classId = :classId AND r.status = 'Approved' ORDER BY u.fullName ASC")
     List<Registration> findApprovedByClassId(@Param("classId") Integer classId);
 
-
-
+    @Query(value = """
+        SELECT r FROM Registration r
+        JOIN FETCH r.user u
+        LEFT JOIN FETCH r.course c
+        LEFT JOIN FETCH r.clazz cl
+        WHERE cl.classId = :classId
+          AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:status IS NULL OR r.status = :status)
+        ORDER BY r.registrationTime DESC
+    """, countQuery = """
+        SELECT COUNT(r) FROM Registration r
+        LEFT JOIN r.user u
+        LEFT JOIN r.clazz cl
+        WHERE cl.classId = :classId
+          AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:status IS NULL OR r.status = :status)
+    """)
+    Page<Registration> findByClassIdWithFilters(
+            @Param("classId") Integer classId,
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            Pageable pageable
+    );
 }

@@ -50,6 +50,7 @@ public class CourseServiceImpl implements ICourseService {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .sale(request.getSale())
+                .numberOfSessions(request.getNumberOfSessions())
                 .avatar(request.getAvatar())
                 .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
                 .category(category)
@@ -71,6 +72,7 @@ public class CourseServiceImpl implements ICourseService {
         course.setDescription(request.getDescription());
         course.setPrice(request.getPrice());
         course.setSale(request.getSale());
+        course.setNumberOfSessions(request.getNumberOfSessions());
         course.setAvatar(request.getAvatar());
         course.setStatus(request.getStatus());
 
@@ -169,6 +171,7 @@ public class CourseServiceImpl implements ICourseService {
                 .expertId(course.getExpert() != null ? course.getExpert().getUserId() : null)
                 .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
                 .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
+                .numberOfSessions(course.getNumberOfSessions())
                 .build();
     }
 }

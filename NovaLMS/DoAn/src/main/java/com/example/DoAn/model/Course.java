@@ -39,6 +39,9 @@ public class Course {
     @Column(name = "sale")
     private Double sale;
 
+    @Column(name = "number_of_sessions")
+    private Integer numberOfSessions;
+
     @Column(name = "avatar")
     private String avatar;
 

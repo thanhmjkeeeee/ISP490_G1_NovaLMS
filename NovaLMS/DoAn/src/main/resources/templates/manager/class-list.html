@@ -4,69 +4,17 @@
 <head th:with="isDashboard=true">
     <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý lớp học')}"></th:block>
     <style>
-        /* FIX LỖI CUỘN: ÉP TOÀN BỘ CẤU TRÚC PHẢI HIỆN THANH CUỘN */
-        html, body, .dashboard-body {
-            height: auto !important;
-            overflow: visible !important;
-        }
-
-        .dash-main {
-            height: auto !important;
-            min-height: 100vh !important;
-            overflow-y: visible !important;
-            padding-bottom: 5rem !important;
-            display: block !important;
-        }
-
-        /* FIX TRẠNG THÁI: Định nghĩa rõ màu sắc cho Badge */
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 50px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            display: inline-block;
-        }
+        html, body, .dashboard-body { height: auto !important; overflow: visible !important; }
+        .dash-main { height: auto !important; min-height: 100vh !important; overflow-y: visible !important; padding-bottom: 5rem !important; display: block !important; }
+        .status-badge { padding: 6px 12px; border-radius: 50px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block; }
         .st-open { background-color: #d1e7dd !important; color: #0f5132 !important; }
-        .st-pending { background-color: #fff3cd !important; color: #856404 !important; }
+        .st-pending, .st-draft { background-color: #fff3cd !important; color: #856404 !important; }
         .st-closed { background-color: #f8d7da !important; color: #842029 !important; }
-
-        /* Style Card & Table đồng bộ màn Create */
-        .card-custom {
-            border: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            border-radius: 12px;
-            background: #fff;
-        }
-
-        .input-custom {
-            border-radius: 8px;
-            background-color: #f8f9fa !important;
-            border: 1px solid #dee2e6;
-        }
-
-        .pagination .page-link {
-            border: none;
-            margin: 0 3px;
-            border-radius: 8px !important;
-            background-color: #f8f9fa;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            color: #fff;
-        }
-        .input-custom {
-    height: 42px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    line-height: 40px !important; /* Căn giữa chữ theo chiều dọc */
-    vertical-align: middle;
-}
-
-/* Riêng với thẻ select, đôi khi browser mặc định làm lệch chữ */
-select.input-custom {
-    display: flex;
-    align-items: center;
+        .card-custom { border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-radius: 12px; background: #fff; }
+        .input-custom { border-radius: 8px; background-color: #f8f9fa !important; border: 1px solid #dee2e6; height: 42px; }
+        .pagination .page-link { border: none; margin: 0 3px; border-radius: 8px !important; background-color: #f8f9fa; }
+        .pagination .page-item.active .page-link { background-color: #0d6efd; color: #fff; }
+        select.input-custom { display: flex; align-items: center; }
     </style>
 </head>
 
@@ -83,7 +31,7 @@ select.input-custom {
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="fw-bold text-dark m-0">Class Management</h3>
+                <h3 class="fw-bold text-dark m-0">Quản lý lớp học</h3>
                 <p class="text-muted small m-0">Danh sách lớp học và phân công giảng viên.</p>
             </div>
             <a th:href="@{/manager/class/create}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4">
@@ -91,34 +39,49 @@ select.input-custom {
             </a>
         </div>
 
+        <!-- Filter Row -->
         <div class="card card-custom mb-4">
             <div class="card-body p-4">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
-                        <input type="text" id="searchInput" class="form-control input-custom"
-                               placeholder="Tên lớp, khóa học...">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Tên lớp</label>
+                        <select id="filterClassName" class="form-select input-custom">
+                            <option value="">-- Tất cả lớp --</option>
+                        </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Tên khóa học</label>
+                        <select id="filterCourseName" class="form-select input-custom">
+                            <option value="">-- Tất cả khóa học --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Giảng viên</label>
+                        <select id="filterTeacherName" class="form-select input-custom">
+                            <option value="">-- Tất cả giảng viên --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
-                        <select id="statusFilter" class="form-select input-custom">
+                        <select id="filterStatus" class="form-select input-custom">
                             <option value="">Tất cả</option>
                             <option value="Draft">Nháp</option>
                             <option value="Open">Mở</option>
                             <option value="Closed">Đóng</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-1">
                         <button type="button" onclick="loadClassData(0)"
-                                class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm btn-filter-custom"
+                                class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm"
                                 style="background-color: #3b82f6;">
-                            <i class="bi bi-filter me-1"></i> Lọc dữ liệu
+                            <i class="bi bi-filter"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Table -->
         <div class="card card-custom">
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -126,9 +89,9 @@ select.input-custom {
                         <thead class="table-light">
                         <tr>
                             <th class="ps-4 py-3 small text-muted">ID</th>
-                            <th class="py-3 small text-muted">Lớp & Khóa học</th>
+                            <th class="py-3 small text-muted">Tên lớp</th>
+                            <th class="py-3 small text-muted">Tên khóa học</th>
                             <th class="py-3 small text-muted">Giảng viên</th>
-                            <th class="py-3 small text-muted">Lịch học</th>
                             <th class="py-3 small text-muted">Trạng thái</th>
                             <th class="text-end pe-4 py-3 small text-muted">Thao tác</th>
                         </tr>
@@ -152,12 +115,74 @@ select.input-custom {
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 
 <script th:inline="javascript">
-    document.addEventListener("DOMContentLoaded", () => loadClassData(0));
+    async function initFilters() {
+        // Load courses
+        try {
+            const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=100');
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.items) {
+                const select = document.getElementById('filterCourseName');
+                json.data.items.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.courseName;
+                    opt.textContent = c.courseName;
+                    select.appendChild(opt);
+                });
+            }
+        } catch (e) { console.error('Error loading courses', e); }
+
+        // Load teachers
+        try {
+            const res = await fetch('/api/v1/accounts/list?pageNo=0&pageSize=100');
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.items) {
+                const teachers = json.data.items.filter(u => u.roleName && u.roleName.toLowerCase().includes('teacher'));
+                const select = document.getElementById('filterTeacherName');
+                teachers.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.fullName;
+                    opt.textContent = t.fullName;
+                    select.appendChild(opt);
+                });
+            }
+        } catch (e) { console.error('Error loading teachers', e); }
+
+        // Load class names
+        try {
+            const res = await fetch('/api/v1/classes/list?pageNo=0&pageSize=500');
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.items) {
+                const select = document.getElementById('filterClassName');
+                const seen = new Set();
+                json.data.items.forEach(c => {
+                    if (c.className && !seen.has(c.className)) {
+                        seen.add(c.className);
+                        const opt = document.createElement('option');
+                        opt.value = c.className;
+                        opt.textContent = c.className;
+                        select.appendChild(opt);
+                    }
+                });
+            }
+        } catch (e) { console.error('Error loading class names', e); }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await initFilters();
+        loadClassData(0);
+    });
 
     async function loadClassData(pageNo) {
-        const search = document.getElementById('searchInput').value;
-        const status = document.getElementById('statusFilter').value;
-        let url = `/api/v1/classes/list?pageNo=${pageNo}&pageSize=10&search=${encodeURIComponent(search)}&status=${status}`;
+        const className = document.getElementById('filterClassName').value;
+        const courseName = document.getElementById('filterCourseName').value;
+        const teacherName = document.getElementById('filterTeacherName').value;
+        const status = document.getElementById('filterStatus').value;
+
+        let url = `/api/v1/classes/list?pageNo=${pageNo}&pageSize=10`;
+        if (className) url += `&className=${encodeURIComponent(className)}`;
+        if (courseName) url += `&courseName=${encodeURIComponent(courseName)}`;
+        if (teacherName) url += `&teacherName=${encodeURIComponent(teacherName)}`;
+        if (status) url += `&status=${encodeURIComponent(status)}`;
 
         const tbody = document.getElementById('classDataBody');
         tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5">Đang tải...</td></tr>`;
@@ -167,50 +192,43 @@ select.input-custom {
             const json = await res.json();
             if (json.status === 200 || json.status === 202) {
                 renderTable(json.data.items);
-                renderPagination(json.data.pageNo, json.data.totalPage);
+                renderPagination(json.data.pageNo, json.data.totalPages);
             }
         } catch (err) { console.error(err); }
     }
 
     function renderTable(classes) {
-    const tbody = document.getElementById('classDataBody');
-    if (!classes || classes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5">Không có dữ liệu.</td></tr>`;
-        return;
-    }
+        const tbody = document.getElementById('classDataBody');
+        if (!classes || classes.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5">Không có dữ liệu.</td></tr>`;
+            return;
+        }
 
-    tbody.innerHTML = classes.map(c => {
-        // Chuẩn hóa status về chữ thường để so sánh class CSS
-        const statusText = c.status || 'Pending';
-        const statusKey = statusText.toLowerCase();
-
-        return `
+        tbody.innerHTML = classes.map(c => {
+            const statusText = c.status || 'Pending';
+            const statusKey = statusText.toLowerCase();
+            return `
             <tr>
                 <td class="ps-4 text-muted small">#${c.classId}</td>
-                <td>
-                    <div class="fw-bold text-dark">${c.className || 'N/A'}</div>
-                    <div class="small text-muted">${c.courseName || 'N/A'}</div>
-                </td>
+                <td class="fw-semibold text-dark">${c.className || 'N/A'}</td>
+                <td class="small text-secondary">${c.courseName || 'N/A'}</td>
                 <td class="small fw-semibold">${c.teacherName || 'Chưa phân công'}</td>
-                <td class="small text-muted">${c.schedule || ''}<br>${c.slotTime || ''}</td>
                 <td>
                     <span class="status-badge ${getStatusClass(statusKey)}">${statusText}</span>
                 </td>
                 <td class="text-end pe-4">
-                    <a href="/manager/class/detail/${c.classId}" class="btn btn-sm btn-light text-info me-1 border shadow-sm"><i class="bi bi-eye"></i></a>
+                    <a href="/manager/class/detail/${c.classId}" class="btn btn-sm btn-light text-info border shadow-sm me-1"><i class="bi bi-eye"></i></a>
                     <a href="/manager/class/edit/${c.classId}" class="btn btn-sm btn-light text-primary border shadow-sm"><i class="bi bi-pencil"></i></a>
                 </td>
-            </tr>
-        `;
-    }).join('');
-}
+            </tr>`;
+        }).join('');
+    }
 
-// Cập nhật lại hàm này để nhận giá trị chữ thường
-function getStatusClass(statusKey) {
-    if (statusKey === 'open' || statusKey === 'active') return 'st-open';
-    if (statusKey === 'pending' || statusKey === 'draft') return 'st-pending';
-    return 'st-closed';
-}
+    function getStatusClass(statusKey) {
+        if (statusKey === 'open') return 'st-open';
+        if (statusKey === 'draft') return 'st-draft';
+        return 'st-closed';
+    }
 
     function renderPagination(currentPage, totalPages) {
         document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
@@ -218,11 +236,11 @@ function getStatusClass(statusKey) {
         if (totalPages <= 1) { container.innerHTML = ''; return; }
 
         let html = '';
-        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage - 1})">Trước</a></li>`;
+        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage - 1}); return false;">Trước</a></li>`;
         for (let i = 0; i < totalPages; i++) {
-            html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadClassData(${i})">${i + 1}</a></li>`;
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadClassData(${i}); return false;">${i + 1}</a></li>`;
         }
-        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage + 1})">Sau</a></li>`;
+        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage + 1}); return false;">Sau</a></li>`;
         container.innerHTML = html;
     }
 </script>
