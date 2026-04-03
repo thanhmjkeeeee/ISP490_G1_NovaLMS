@@ -251,8 +251,8 @@
                             </button>
                         </li>
                         <li class="nav-item">
-                            <button class="nav-link" id="tabNew" onclick="switchQuestionTab('new')">
-                                <i class="bi bi-plus-circle me-1"></i>Tạo câu hỏi mới
+                            <button class="nav-link" id="tabAI" onclick="switchQuestionTab('ai')">
+                                <i class="bi bi-robot me-1"></i>Sinh bằng AI
                             </button>
                         </li>
                     </ul>
@@ -297,6 +297,14 @@
                             </div>
                         </div>
 
+                        <!-- AI Assist suggestion panel -->
+                        <div id="aiAssistPanel" class="alert alert-light border small py-2 mb-3" style="display:none;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span id="aiAssistText" class="text-muted"></span>
+                            </div>
+                        </div>
+
                         <!-- Question list from bank -->
                         <div id="bankQuestionList" style="max-height:300px; overflow-y:auto;">
                             <div class="text-center py-4 text-muted">
@@ -306,29 +314,28 @@
                         </div>
                     </div>
 
-                    <!-- ======= TAB: CREATE NEW ======= -->
-                    <div id="newQuestionPanel" class="d-none">
-                        <div class="alert alert-info small py-2">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Câu hỏi mới tạo sẽ <strong>không lưu vào Master Bank</strong>.
-                            Nếu muốn lưu, hãy gửi duyệt để Expert xác nhận trước khi thêm vào bank.
+                    <!-- ======= TAB: AI GENERATE ======= -->
+                    <div id="aiQuestionPanel" class="d-none">
+                        <div class="alert alert-info small py-2 mb-3">
+                            <i class="bi bi-robot me-1"></i>
+                            AI sẽ sinh câu hỏi dựa trên chủ đề bạn nhập. Chọn những câu phù hợp rồi thêm vào quiz.
+                            Câu hỏi được tạo sẽ ở chế độ <strong>chờ duyệt</strong> — Expert sẽ xác nhận trước khi lưu vào Master Bank.
                         </div>
 
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Loại câu hỏi <span class="text-danger">*</span></label>
-                                <select class="form-select rounded-3" id="newQType" onchange="toggleNewQOptions()">
-                                    <option value="MULTIPLE_CHOICE_SINGLE">Trắc nghiệm 1 đáp án</option>
-                                    <option value="MULTIPLE_CHOICE_MULTI">Trắc nghiệm nhiều đáp án</option>
-                                    <option value="FILL_IN_BLANK">Điền từ</option>
-                                    <option value="MATCHING">Nối từ</option>
-                                    <option value="WRITING">Viết</option>
-                                    <option value="SPEAKING">Nói</option>
-                                </select>
+                        <!-- AI Input -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Chủ đề <span class="text-danger">*</span></label>
+                                <textarea class="form-control rounded-3" id="aiTopic" rows="2" placeholder="VD: English Grammar - Present Perfect, Travel Vocabulary, Reading Comprehension..."></textarea>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Kỹ năng <span class="text-danger">*</span></label>
-                                <select class="form-select rounded-3" id="newQSkill">
+                                <label class="form-label fw-semibold small">Số lượng câu hỏi</label>
+                                <input type="number" class="form-control rounded-3" id="aiQty" min="1" max="50" value="5">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Kỹ năng (tùy chọn)</label>
+                                <select class="form-select rounded-3" id="aiSkill">
+                                    <option value="">-- Tất cả --</option>
                                     <option value="READING">Reading</option>
                                     <option value="LISTENING">Listening</option>
                                     <option value="WRITING">Writing</option>
@@ -336,8 +343,9 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Cấp độ CEFR <span class="text-danger">*</span></label>
-                                <select class="form-select rounded-3" id="newQCefr">
+                                <label class="form-label fw-semibold small">CEFR (tùy chọn)</label>
+                                <select class="form-select rounded-3" id="aiCefr">
+                                    <option value="">-- Tất cả --</option>
                                     <option value="A1">A1</option>
                                     <option value="A2">A2</option>
                                     <option value="B1">B1</option>
@@ -347,50 +355,64 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-semibold small">Nội dung câu hỏi <span class="text-danger">*</span></label>
-                                <textarea class="form-control rounded-3" id="newQContent" rows="3" placeholder="Nhập nội dung câu hỏi..."></textarea>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Chủ đề</label>
-                                <input type="text" class="form-control rounded-3" id="newQTopic" placeholder="Ví dụ: Ngữ pháp">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Giải thích</label>
-                                <input type="text" class="form-control rounded-3" id="newQExplanation" placeholder="Giải thích đáp án đúng">
-                            </div>
-                        </div>
-
-                        <!-- Answer options for choice questions -->
-                        <div id="newQOptionsSection" class="mt-3">
-                            <label class="form-label fw-semibold small">Đáp án</label>
-                            <div id="newQOptionsContainer">
-                                <div class="input-group mb-2">
-                                    <div class="input-group-text rounded-3 rounded-end-0">
-                                        <input type="checkbox" class="form-check-input correct-answer" data-index="0">
+                                <label class="form-label fw-semibold small">Loại câu hỏi (tùy chọn)</label>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeMcS" value="MULTIPLE_CHOICE_SINGLE">
+                                        <label class="form-check-label small" for="aiTypeMcS">Trắc nghiệm 1 đáp án</label>
                                     </div>
-                                    <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án A" data-index="0">
-                                </div>
-                                <div class="input-group mb-2">
-                                    <div class="input-group-text rounded-3 rounded-end-0">
-                                        <input type="checkbox" class="form-check-input correct-answer" data-index="1">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeMcM" value="MULTIPLE_CHOICE_MULTI">
+                                        <label class="form-check-label small" for="aiTypeMcM">Trắc nghiệm nhiều đáp án</label>
                                     </div>
-                                    <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án B" data-index="1">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeFib" value="FILL_IN_BLANK">
+                                        <label class="form-check-label small" for="aiTypeFib">Điền từ</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeMatch" value="MATCHING">
+                                        <label class="form-check-label small" for="aiTypeMatch">Nối từ</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeWrite" value="WRITING">
+                                        <label class="form-check-label small" for="aiTypeWrite">Viết</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="aiTypeSpeak" value="SPEAKING">
+                                        <label class="form-check-label small" for="aiTypeSpeak">Nói</label>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="addNewOption()">
-                                <i class="bi bi-plus"></i> Thêm đáp án
-                            </button>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="generateAIQuestions()">
+                                    <i class="bi bi-lightning-charge me-1"></i>Sinh câu hỏi bằng AI
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- For Writing/Speaking, hide options -->
-                        <div id="newQWritingSection" class="d-none mt-3 alert alert-warning small py-2">
-                            <i class="bi bi-exclamation-triangle me-1"></i>Câu hỏi Writing/Speaking không cần đáp án trắc nghiệm.
+                        <!-- AI Loading -->
+                        <div id="aiLoading" class="text-center py-4" style="display:none;">
+                            <div class="spinner-border text-primary mb-2" role="status"></div>
+                            <p class="text-muted mb-0 small">AI đang sinh câu hỏi, vui lòng chờ...</p>
                         </div>
 
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-primary rounded-pill" onclick="createNewQuestion()">
-                                <i class="bi bi-plus-lg me-1"></i>Tạo & Thêm vào Quiz
-                            </button>
+                        <!-- AI Warning -->
+                        <div id="aiWarning" class="alert alert-warning small py-2" style="display:none;"></div>
+
+                        <!-- AI Preview -->
+                        <div id="aiPreview" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="m-0 fw-semibold"><i class="bi bi-check2-square me-1"></i>Kết quả (<span id="aiSelectedCount">0</span>/<span id="aiTotalCount">0</span> đã chọn)</h6>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="toggleAllAI()">Chọn tất cả</button>
+                                </div>
+                            </div>
+                            <div id="aiQuestionList" class="list-group mb-3" style="max-height:400px; overflow-y:auto;"></div>
+                            <div class="text-end">
+                                <button class="btn text-white shadow-sm rounded-pill" style="background-color: #136ad5;" onclick="importSelectedAIQuestions()">
+                                    <i class="bi bi-check-lg me-1"></i>Thêm các câu đã chọn vào Quiz
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -401,7 +423,7 @@
                             <span class="badge bg-primary rounded-pill" id="quizQuestionCount">0</span>
                         </div>
                         <div id="selectedQuestionsList">
-                            <div class="text-center py-3 text-muted small">Chưa có câu hỏi nào. Hãy thêm câu hỏi từ bank hoặc tạo mới.</div>
+                            <div class="text-center py-3 text-muted small">Chưa có câu hỏi nào. Hãy thêm từ Master Bank hoặc dùng AI để sinh câu hỏi.</div>
                         </div>
                     </div>
                 </div>
@@ -525,6 +547,11 @@
     let currentQuizStep = 1;
     let selectedQuestions = []; // { questionId, content, questionType, skill, cefrLevel, status, source, options }
 
+    // ======== AI GENERATION STATE ========
+    let aiGeneratedQuestions = [];
+    let aiSelectedSet = new Set();
+    let allAiSelected = false;
+
     document.addEventListener('DOMContentLoaded', () => {
         sessionModal = new bootstrap.Modal(document.getElementById('sessionModal'));
         deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
@@ -574,12 +601,28 @@
     // ======== QUESTION TAB SWITCH ========
     const switchQuestionTab = (tab) => {
         document.getElementById('bankQuestionPanel').classList.toggle('d-none', tab !== 'bank');
-        document.getElementById('newQuestionPanel').classList.toggle('d-none', tab !== 'new');
+        document.getElementById('aiQuestionPanel').classList.toggle('d-none', tab !== 'ai');
         document.getElementById('tabBank').classList.toggle('active', tab === 'bank');
-        document.getElementById('tabNew').classList.toggle('active', tab === 'new');
+        document.getElementById('tabAI').classList.toggle('active', tab === 'ai');
 
         if (tab === 'bank') {
             loadBankQuestionsOnTab();
+        } else if (tab === 'ai') {
+            // Reset AI state
+            aiGeneratedQuestions = [];
+            aiSelectedSet = new Set();
+            allAiSelected = false;
+            document.getElementById('aiPreview').style.display = 'none';
+            document.getElementById('aiWarning').style.display = 'none';
+            document.getElementById('aiQuestionList').innerHTML = '';
+            document.getElementById('aiSelectedCount').textContent = '0';
+            document.getElementById('aiTotalCount').textContent = '0';
+            document.getElementById('aiTopic').value = '';
+            document.getElementById('aiQty').value = '5';
+            document.getElementById('aiSkill').value = '';
+            document.getElementById('aiCefr').value = '';
+            // Uncheck all type checkboxes
+            document.querySelectorAll('[id^="aiType"]').forEach(cb => cb.checked = false);
         }
     };
 
@@ -705,7 +748,28 @@
 
             if (json.status !== 200 || !json.data || json.data.length === 0) {
                 container.innerHTML = '<div class="text-center py-4 text-muted small">Không có câu hỏi nào trong Master Bank</div>';
+                // Hide AI assist
+                document.getElementById('aiAssistPanel').style.display = 'none';
                 return;
+            }
+
+            // AI Assist: compute suggestion based on loaded data
+            const totalCount = json.data.length;
+            const skill = document.getElementById('bankSkillFilter').value;
+            const cefr = document.getElementById('bankCefrFilter').value;
+            const skillCount = skill ? json.data.filter(q => q.skill === skill).length : totalCount;
+            const suggested = Math.min(Math.max(Math.round(skillCount * 0.4), 3), 10);
+
+            const aiAssistText = document.getElementById('aiAssistText');
+            if (totalCount > 0) {
+                let hint = `Bank có <strong>${totalCount} câu</strong>`;
+                if (skill) hint += ` <strong>${skill}</strong>`;
+                if (cefr) hint += ` <strong>${cefr}</strong>`;
+                hint += ` — gợi ý chọn <strong>${suggested} câu</strong> cho quiz (40% tổng).`;
+                aiAssistText.innerHTML = hint;
+                document.getElementById('aiAssistPanel').style.display = 'block';
+            } else {
+                document.getElementById('aiAssistPanel').style.display = 'none';
             }
 
             container.innerHTML = json.data.map(q => {
@@ -887,158 +951,196 @@
         }).join('');
     };
 
-    // ======== TOGGLE OPTION VISIBILITY ========
-    const toggleNewQOptions = () => {
-        const type = document.getElementById('newQType').value;
-        const isWriting = ['WRITING', 'SPEAKING'].includes(type);
-        document.getElementById('newQOptionsSection').classList.toggle('d-none', isWriting);
-        document.getElementById('newQWritingSection').classList.toggle('d-none', !isWriting);
-    };
-
-    // ======== ADD ANSWER OPTION ========
-    const addNewOption = () => {
-        const container = document.getElementById('newQOptionsContainer');
-        const index = container.children.length;
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.innerHTML = `
-            <div class="input-group-text rounded-3 rounded-end-0">
-                <input type="checkbox" class="form-check-input correct-answer" data-index="${index}">
-            </div>
-            <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input"
-                   placeholder="Đáp án ${String.fromCharCode(65 + index)}" data-index="${index}">
-            <button class="btn btn-outline-danger rounded-3 rounded-start-0" type="button" onclick="this.parentElement.remove()">
-                <i class="bi bi-x"></i>
-            </button>
-        `;
-        container.appendChild(div);
-    };
-
-    // ======== CREATE NEW PRIVATE QUESTION ========
-    const createNewQuestion = async () => {
+    // ======== AI QUESTION GENERATION ========
+    const generateAIQuestions = async () => {
         if (!currentQuizId) {
             alert('Vui lòng tạo quiz trước (bước 1)');
             return;
         }
 
-        const questionType = document.getElementById('newQType').value;
-        const skill = document.getElementById('newQSkill').value;
-        const cefrLevel = document.getElementById('newQCefr').value;
-        const content = document.getElementById('newQContent').value.trim();
-        const topic = document.getElementById('newQTopic').value.trim();
-        const explanation = document.getElementById('newQExplanation').value.trim();
+        const topic = document.getElementById('aiTopic').value.trim();
+        const qty = parseInt(document.getElementById('aiQty').value);
+        const skill = document.getElementById('aiSkill').value;
+        const cefr = document.getElementById('aiCefr').value;
 
-        if (!content) {
-            alert('Vui lòng nhập nội dung câu hỏi');
+        if (!topic) {
+            alert('Vui lòng nhập chủ đề cho câu hỏi.');
+            return;
+        }
+        if (!qty || qty < 1 || qty > 50) {
+            alert('Số lượng phải từ 1-50.');
             return;
         }
 
-        // Build options
-        const options = [];
-        const isNoOptions = ['WRITING', 'SPEAKING'].includes(questionType);
+        // Collect selected question types
+        const questionTypes = [];
+        ['aiTypeMcS', 'aiTypeMcM', 'aiTypeFib', 'aiTypeMatch', 'aiTypeWrite', 'aiTypeSpeak'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.checked) questionTypes.push(el.value);
+        });
 
-        if (!isNoOptions) {
-            const inputs = document.querySelectorAll('.new-option-input');
-            const checkboxes = document.querySelectorAll('.correct-answer');
-            inputs.forEach((inp, i) => {
-                const title = inp.value.trim();
-                if (title) {
-                    const isCorrect = checkboxes[i] && checkboxes[i].checked;
-                    options.push({
-                        title,
-                        correct: isCorrect,
-                        orderIndex: i
-                    });
-                }
-            });
-
-            if (options.length < 2) {
-                alert('Vui lòng nhập ít nhất 2 đáp án');
-                return;
-            }
-
-            const hasCorrect = options.some(o => o.correct);
-            if (!hasCorrect) {
-                alert('Vui lòng chọn ít nhất 1 đáp án đúng');
-                return;
-            }
-        }
-
-        const payload = {
-            content,
-            questionType,
-            skill,
-            cefrLevel,
+        const body = {
             topic,
-            explanation,
-            status: 'PENDING_REVIEW',
-            source: 'TEACHER_PRIVATE',
-            options
+            quantity: qty
         };
+        if (skill) body.skill = skill;
+        if (cefr) body.cefrLevel = cefr;
+        if (questionTypes.length > 0) body.questionTypes = questionTypes;
+
+        document.getElementById('aiLoading').style.display = 'block';
+        document.getElementById('aiPreview').style.display = 'none';
+        document.getElementById('aiWarning').style.display = 'none';
+        document.getElementById('aiQuestionList').innerHTML = '';
 
         try {
-            // 1. Create private question
-            const resQ = await fetch('/api/v1/teacher/quizzes/questions', {
+            const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(body)
             });
-            const jsonQ = await resQ.json();
-
-            if (jsonQ.status !== 200 && jsonQ.status !== 201) {
-                alert(jsonQ.message || 'Lỗi khi tạo câu hỏi');
+            const result = await res.json();
+            if (!res.ok) {
+                alert(result.message || 'Lỗi khi sinh câu hỏi.');
                 return;
             }
 
-            const newQuestionId = jsonQ.data.questionId;
+            aiGeneratedQuestions = result.data.questions || [];
+            aiSelectedSet = new Set(aiGeneratedQuestions.map((_, i) => i));
+            allAiSelected = true;
+            renderAIQuestions();
 
-            // 2. Add question to quiz
-            const resAdd = await fetch(`/api/v1/teacher/quizzes/${currentQuizId}/questions`, {
+            if (result.data.warning) {
+                const w = document.getElementById('aiWarning');
+                w.textContent = result.data.warning;
+                w.style.display = 'block';
+            }
+        } catch (e) {
+            alert('Lỗi: ' + e.message);
+        } finally {
+            document.getElementById('aiLoading').style.display = 'none';
+        }
+    };
+
+    const renderAIQuestions = () => {
+        const container = document.getElementById('aiQuestionList');
+        document.getElementById('aiTotalCount').textContent = aiGeneratedQuestions.length;
+        document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+        document.getElementById('aiPreview').style.display = 'block';
+
+        const typeLabels = {
+            'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án',
+            'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
+            'FILL_IN_BLANK': 'Điền từ',
+            'MATCHING': 'Nối từ',
+            'WRITING': 'Viết',
+            'SPEAKING': 'Nói'
+        };
+
+        container.innerHTML = aiGeneratedQuestions.map((q, i) => `
+            <div class="list-group-item ${aiSelectedSet.has(i) ? 'border-primary' : ''}"
+                 style="border-left: 3px solid ${aiSelectedSet.has(i) ? '#136ad5' : '#dee2e6'};">
+                <div class="d-flex align-items-start gap-3">
+                    <input type="checkbox" class="form-check-input mt-1"
+                        id="aiChk${i}" ${aiSelectedSet.has(i) ? 'checked' : ''}
+                        onchange="toggleAI(${i})">
+                    <div class="flex-grow-1">
+                        <div class="d-flex gap-2 flex-wrap mb-1">
+                            <span class="badge bg-secondary">${typeLabels[q.questionType] || q.questionType}</span>
+                            <span class="badge bg-info text-dark">${q.skill || ''}</span>
+                            <span class="badge bg-primary">${q.cefrLevel || ''}</span>
+                            ${q.topic ? `<span class="badge bg-light text-dark">${escape(q.topic)}</span>` : ''}
+                        </div>
+                        <p class="mb-1 small fw-medium">${escape(q.content || '')}</p>
+                        ${q.options && q.options.length > 0 ? `
+                            <ul class="mb-1 small">${q.options.map(o => `
+                                <li class="${o.correct ? 'text-success fw-bold' : 'text-muted'}">
+                                    ${escape(o.title)} ${o.correct ? '✓' : ''}
+                                </li>
+                            `).join('')}</ul>` : ''}
+                        ${q.correctAnswer ? `<p class="mb-0 small text-muted">Đáp án: ${escape(q.correctAnswer)}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    };
+
+    const toggleAI = (idx) => {
+        if (aiSelectedSet.has(idx)) aiSelectedSet.delete(idx);
+        else aiSelectedSet.add(idx);
+        document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+        renderAIQuestions();
+    };
+
+    const toggleAllAI = () => {
+        allAiSelected = !allAiSelected;
+        if (allAiSelected) {
+            aiSelectedSet = new Set(aiGeneratedQuestions.map((_, i) => i));
+        } else {
+            aiSelectedSet.clear();
+        }
+        renderAIQuestions();
+    };
+
+    const importSelectedAIQuestions = async () => {
+        if (!currentQuizId) {
+            alert('Vui lòng tạo quiz trước (bước 1)');
+            return;
+        }
+        if (aiSelectedSet.size === 0) {
+            alert('Vui lòng chọn ít nhất 1 câu hỏi.');
+            return;
+        }
+        const selected = aiGeneratedQuestions.filter((_, i) => aiSelectedSet.has(i));
+
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/ai/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ questionIdForQuiz: newQuestionId })
+                body: JSON.stringify({
+                    quizId: currentQuizId,
+                    questions: selected
+                })
             });
-            const jsonAdd = await resAdd.json();
-
-            if (jsonAdd.status === 200 || jsonAdd.status === 201) {
-                // Track new question in selectedQuestions
-                selectedQuestions.push({
-                    questionId: newQuestionId,
-                    content,
-                    questionType,
-                    skill,
-                    cefrLevel,
-                    status: 'PENDING_REVIEW',
-                    source: 'TEACHER_PRIVATE'
-                });
-                renderSelectedQuestions();
-                alert('Đã tạo câu hỏi và thêm vào quiz! Câu hỏi đang chờ Expert duyệt trước khi lưu vào Master Bank.');
-                // Reset form
-                document.getElementById('newQContent').value = '';
-                document.getElementById('newQTopic').value = '';
-                document.getElementById('newQExplanation').value = '';
-                document.getElementById('newQOptionsContainer').innerHTML = `
-                    <div class="input-group mb-2">
-                        <div class="input-group-text rounded-3 rounded-end-0">
-                            <input type="checkbox" class="form-check-input correct-answer" data-index="0">
-                        </div>
-                        <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án A" data-index="0">
-                    </div>
-                    <div class="input-group mb-2">
-                        <div class="input-group-text rounded-3 rounded-end-0">
-                            <input type="checkbox" class="form-check-input correct-answer" data-index="1">
-                        </div>
-                        <input type="text" class="form-control rounded-3 rounded-start-0 new-option-input" placeholder="Đáp án B" data-index="1">
-                    </div>
-                `;
-                // Refresh bank list
-                loadBankQuestions();
-            } else {
-                alert('Câu hỏi đã tạo nhưng lỗi khi thêm vào quiz: ' + (jsonAdd.message || ''));
+            const result = await res.json();
+            if (!res.ok) {
+                alert(result.message || 'Lỗi khi lưu câu hỏi.');
+                return;
             }
+
+            // Reload quiz questions
+            await reloadQuizQuestions();
+
+            alert(`Đã tạo và thêm ${result.data.imported} câu hỏi vào quiz!`);
+
+            // Reset AI panel
+            aiGeneratedQuestions = [];
+            aiSelectedSet.clear();
+            allAiSelected = false;
+            document.getElementById('aiPreview').style.display = 'none';
+            document.getElementById('aiWarning').style.display = 'none';
+            document.getElementById('aiTopic').value = '';
         } catch (e) {
             alert('Lỗi kết nối: ' + e.message);
         }
+    };
+
+    const reloadQuizQuestions = async () => {
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${currentQuizId}`);
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.questions) {
+                selectedQuestions = json.data.questions.map(q => ({
+                    questionId: q.questionId,
+                    content: q.content,
+                    questionType: q.questionType,
+                    skill: q.skill,
+                    cefrLevel: q.cefrLevel,
+                    status: q.status,
+                    source: q.source || 'TEACHER_PRIVATE'
+                }));
+                renderSelectedQuestions();
+            }
+        } catch (e) { /* silent */ }
     };
 
     // ======== LOAD DATA ========
@@ -1295,6 +1397,18 @@
                 document.getElementById('quizTimeLimit').value = q.timeLimitMinutes || '';
                 document.getElementById('quizPassScore').value = q.passScore || '';
                 document.getElementById('quizMaxAttempts').value = q.maxAttempts || '';
+                // Load existing questions into selectedQuestions for UI state
+                if (q.questions && q.questions.length > 0) {
+                    selectedQuestions = q.questions.map(sq => ({
+                        questionId: sq.questionId,
+                        content: sq.content,
+                        questionType: sq.questionType,
+                        skill: sq.skill,
+                        cefrLevel: sq.cefrLevel,
+                        status: sq.status,
+                        source: sq.source || 'TEACHER_PRIVATE'
+                    }));
+                }
             }
         } catch (e) { /* ignore */ }
 
@@ -1326,6 +1440,10 @@
         currentQuizStep = 1;
         selectedQuestions = [];
         bankQuestionDataCache.clear();
+        // Reset AI state
+        aiGeneratedQuestions = [];
+        aiSelectedSet.clear();
+        allAiSelected = false;
         document.getElementById('quizIdBadge').classList.add('d-none');
         document.getElementById('createdQuizId').textContent = '';
         document.getElementById('bankSkillFilter').value = '';
@@ -1333,10 +1451,11 @@
         document.getElementById('bankTypeFilter').value = '';
         document.getElementById('bankKeywordFilter').value = '';
         document.getElementById('bankQuestionList').innerHTML = '<div class="text-center py-4 text-muted">Chuyển sang bước 2 để xem câu hỏi từ Master Bank.</div>';
+        document.getElementById('aiPreview').style.display = 'none';
+        document.getElementById('aiWarning').style.display = 'none';
         document.getElementById('statusDraft').checked = true;
         document.getElementById('statusPublish').checked = false;
         switchQuestionTab('bank');
-        toggleNewQOptions();
     };
 
     // ======== PUBLISH QUIZ ========

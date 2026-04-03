@@ -144,6 +144,9 @@
             <div class="tab-pane fade" id="tab-quiz" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0"><i class="bi bi-patch-question me-2 text-primary"></i>Danh sách Quiz & Chấm điểm</h5>
+                    <button class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold" id="btnCreateQuiz" onclick="openCreateQuizModal()" style="display:none;">
+                        <i class="bi bi-plus-lg me-1"></i>Tạo Quiz mới
+                    </button>
                 </div>
 
                 <div id="quizTableContainer" style="display: none;">
@@ -153,8 +156,9 @@
                                 <tr>
                                     <th width="60">STT</th>
                                     <th>Tên bài Quiz</th>
-                                    <th class="text-center">Số lượng nộp bài</th>
-                                    <th class="text-center">Tỷ lệ hoàn thành</th>
+                                    <th class="text-center">Buổi học</th>
+                                    <th class="text-center">Câu hỏi</th>
+                                    <th class="text-center">Trạng thái</th>
                                     <th class="text-end">Hành động</th>
                                 </tr>
                             </thead>
@@ -345,6 +349,255 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<!-- ═══════════════════════════════ QUIZ BUILDER MODAL ═══════════════════════════════ -->
+<div class="modal fade" id="wsQuizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width:950px">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0">
+                <div>
+                    <h5 class="modal-title fw-bold" id="wsQuizModalTitle">Tạo Quiz mới</h5>
+                    <small class="text-muted" id="wsQuizModalSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="resetWsQuizBuilder()"></button>
+            </div>
+
+            <!-- Step indicator -->
+            <div class="px-4 pt-2">
+                <ul class="nav nav-pills nav-fill small" id="wsQuizWizardTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="wsStep1Tab" onclick="wsSwitchStep(1)">
+                            <i class="bi bi-info-circle me-1"></i>1. Thông tin
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="wsStep2Tab" onclick="wsSwitchStep(2)">
+                            <i class="bi bi-list-check me-1"></i>2. Câu hỏi
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-body p-4">
+                <input type="hidden" id="wsQuizModalSessionId">
+                <!-- ======= STEP 1: Quiz Info ======= -->
+                <div id="wsQuizStep1">
+                    <!-- Chọn buổi học -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Gắn vào buổi học <span class="text-danger">*</span></label>
+                        <select class="form-select rounded-3" id="wsSessionSelect" onchange="wsOnSessionChange(this)">
+                            <option value="">-- Chọn buổi học --</option>
+                        </select>
+                        <div class="form-text small">Quiz sẽ hiển thị cho học sinh khi họ buổi học này.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3" id="wsQuizTitle" placeholder="VD: Buổi 1 - Bài tập từ vựng">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea class="form-control rounded-3" id="wsQuizDescription" rows="2" placeholder="Mô tả quiz..."></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Thời gian (phút)</label>
+                            <input type="number" class="form-control rounded-3" id="wsQuizTimeLimit" placeholder="30" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Điểm đạt (%)</label>
+                            <input type="number" class="form-control rounded-3" id="wsQuizPassScore" placeholder="70" min="0" max="100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Số lần làm tối đa</label>
+                            <input type="number" class="form-control rounded-3" id="wsQuizMaxAttempts" placeholder="3" min="1">
+                        </div>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded-3">
+                        <label class="form-label fw-semibold mb-2">Trạng thái khi tạo</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="wsQuizStatus" id="wsStatusDraft" value="DRAFT" checked>
+                                <label class="form-check-label" for="wsStatusDraft">
+                                    <i class="bi bi-pencil-square me-1 text-secondary"></i><strong>Nháp</strong>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="wsQuizStatus" id="wsStatusPublish" value="PUBLISHED">
+                                <label class="form-check-label" for="wsStatusPublish">
+                                    <i class="bi bi-globe2 me-1 text-success"></i><strong>Xuất bản</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ======= STEP 2: Questions Builder ======= -->
+                <div id="wsQuizStep2" class="d-none">
+                    <div id="wsQuizIdBadge" class="d-none mb-3">
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                            <i class="bi bi-check-circle me-1"></i>Quiz đã tạo (ID: <span id="wsCreatedQuizId"></span>)
+                        </span>
+                    </div>
+
+                    <!-- Tab: Bank / AI Generate -->
+                    <ul class="nav nav-tabs mb-3" id="wsQuestionSourceTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="wsTabBank" onclick="wsSwitchQuestionTab('bank')">
+                                <i class="bi bi-collection me-1"></i>Chọn từ Master Bank
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="wsTabAI" onclick="wsSwitchQuestionTab('ai')">
+                                <i class="bi bi-robot me-1"></i>Sinh bằng AI
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- ======= TAB: FROM BANK ======= -->
+                    <div id="wsBankPanel">
+                        <!-- AI Assist -->
+                        <div id="wsAiAssist" class="alert alert-light border small py-2 mb-3" style="display:none;">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span id="wsAiAssistText" class="text-muted"></span>
+                            </div>
+                        </div>
+                        <!-- Filters -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm rounded-3" id="wsBankSkill" onchange="wsLoadBank()">
+                                    <option value="">-- Kỹ năng --</option>
+                                    <option value="READING">Reading</option>
+                                    <option value="LISTENING">Listening</option>
+                                    <option value="WRITING">Writing</option>
+                                    <option value="SPEAKING">Speaking</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select form-select-sm rounded-3" id="wsBankCefr" onchange="wsLoadBank()">
+                                    <option value="">-- CEFR --</option>
+                                    <option value="A1">A1</option><option value="A2">A2</option>
+                                    <option value="B1">B1</option><option value="B2">B2</option>
+                                    <option value="C1">C1</option><option value="C2">C2</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select form-select-sm rounded-3" id="wsBankType" onchange="wsLoadBank()">
+                                    <option value="">-- Loại --</option>
+                                    <option value="MULTIPLE_CHOICE_SINGLE">Trắc nghiệm 1 đáp án</option>
+                                    <option value="MULTIPLE_CHOICE_MULTI">Trắc nghiệm nhiều đáp án</option>
+                                    <option value="FILL_IN_BLANK">Điền từ</option>
+                                    <option value="MATCHING">Nối từ</option>
+                                    <option value="WRITING">Viết</option>
+                                    <option value="SPEAKING">Nói</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control form-control-sm rounded-3" id="wsBankKeyword" placeholder="Tìm kiếm..." onkeyup="wsLoadBank()">
+                            </div>
+                        </div>
+                        <div id="wsBankList" style="max-height:300px; overflow-y:auto;">
+                            <div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm"></div> Đang tải...</div>
+                        </div>
+                    </div>
+
+                    <!-- ======= TAB: AI GENERATE ======= -->
+                    <div id="wsAiPanel" class="d-none">
+                        <div class="alert alert-info small py-2 mb-3">
+                            <i class="bi bi-robot me-1"></i>
+                            AI sinh câu hỏi theo chủ đề bạn nhập. Chọn câu phù hợp rồi thêm vào quiz.
+                            Câu hỏi được tạo sẽ ở chế độ <strong>chờ duyệt</strong>.
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Chủ đề <span class="text-danger">*</span></label>
+                                <textarea class="form-control rounded-3" id="wsAiTopic" rows="2" placeholder="VD: English Grammar - Present Perfect, Travel Vocabulary..."></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Số lượng câu hỏi</label>
+                                <input type="number" class="form-control rounded-3" id="wsAiQty" min="1" max="50" value="5">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">Kỹ năng (tùy chọn)</label>
+                                <select class="form-select rounded-3" id="wsAiSkill">
+                                    <option value="">-- Tất cả --</option>
+                                    <option value="READING">Reading</option>
+                                    <option value="LISTENING">Listening</option>
+                                    <option value="WRITING">Writing</option>
+                                    <option value="SPEAKING">Speaking</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold small">CEFR (tùy chọn)</label>
+                                <select class="form-select rounded-3" id="wsAiCefr">
+                                    <option value="">-- Tất cả --</option>
+                                    <option value="A1">A1</option><option value="A2">A2</option>
+                                    <option value="B1">B1</option><option value="B2">B2</option>
+                                    <option value="C1">C1</option><option value="C2">C2</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold small">Loại câu hỏi (tùy chọn)</label>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMcS" value="MULTIPLE_CHOICE_SINGLE"><label class="form-check-label small" for="wsAiTypeMcS">TN 1 đáp án</label></div>
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMcM" value="MULTIPLE_CHOICE_MULTI"><label class="form-check-label small" for="wsAiTypeMcM">TN nhiều đáp án</label></div>
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeFib" value="FILL_IN_BLANK"><label class="form-check-label small" for="wsAiTypeFib">Điền từ</label></div>
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMatch" value="MATCHING"><label class="form-check-label small" for="wsAiTypeMatch">Nối từ</label></div>
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeWrite" value="WRITING"><label class="form-check-label small" for="wsAiTypeWrite">Viết</label></div>
+                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeSpeak" value="SPEAKING"><label class="form-check-label small" for="wsAiTypeSpeak">Nói</label></div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="wsGenerateAI()">
+                                    <i class="bi bi-lightning-charge me-1"></i>Sinh câu hỏi bằng AI
+                                </button>
+                            </div>
+                        </div>
+                        <div id="wsAiLoading" class="text-center py-4" style="display:none;">
+                            <div class="spinner-border text-primary mb-2"></div>
+                            <p class="text-muted mb-0 small">AI đang sinh câu hỏi, vui lòng chờ...</p>
+                        </div>
+                        <div id="wsAiWarning" class="alert alert-warning small py-2" style="display:none;"></div>
+                        <div id="wsAiPreview" style="display:none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="m-0 fw-semibold"><i class="bi bi-check2-square me-1"></i>Kết quả (<span id="wsAiSelected">0</span>/<span id="wsAiTotal">0</span> đã chọn)</h6>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="wsToggleAllAI()">Chọn tất cả</button>
+                            </div>
+                            <div id="wsAiList" class="list-group mb-3" style="max-height:400px; overflow-y:auto;"></div>
+                            <div class="text-end">
+                                <button class="btn text-white shadow-sm rounded-pill" style="background-color:#136ad5;" onclick="wsImportSelected()">
+                                    <i class="bi bi-check-lg me-1"></i>Thêm các câu đã chọn vào Quiz
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ======= Selected Questions ======= -->
+                    <div class="mt-4 border-top pt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-1"></i>Câu hỏi trong Quiz</h6>
+                            <span class="badge bg-primary rounded-pill" id="wsQuizQuestionCount">0</span>
+                        </div>
+                        <div id="wsSelectedList">
+                            <div class="text-center py-3 text-muted small">Chưa có câu hỏi nào.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-0" id="wsQuizFooter">
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal" onclick="resetWsQuizBuilder()">Hủy</button>
+                <button type="button" class="btn btn-outline-primary rounded-pill d-none" id="wsBackBtn" onclick="wsSwitchStep(1)">
+                    <i class="bi bi-arrow-left me-1"></i>Quay lại
+                </button>
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" id="wsNextBtn" onclick="wsNextStep()">
+                    Tiếp theo <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
     const state = {
@@ -713,39 +966,619 @@
 
         container.style.display = 'block';
         empty.style.display = 'none';
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
 
         try {
-            // Using correct API endpoint for class quizzes
-            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
             const json = await res.json();
 
             if (json.status !== 200 || !json.data || json.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Chưa có Quiz nào cho lớp này.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có buổi học nào.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = json.data.map((q, i) => `
-                <tr>
+            // Flatten: each session + each quiz in session -> one row
+            const rows = [];
+            json.data.forEach(session => {
+                const sessionQuizzes = session.quizzes || [];
+                if (sessionQuizzes.length === 0) {
+                    rows.push({ session, quiz: null });
+                } else {
+                    sessionQuizzes.forEach(q => rows.push({ session, quiz: q }));
+                }
+            });
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Quiz nào cho lớp này.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rows.map((r, i) => {
+                const s = r.session;
+                const q = r.quiz;
+                const sessionLabel = `Buổi ${s.sessionNumber}`;
+                const sessionInfo = s.topic ? `${sessionLabel} — ${s.topic}` : sessionLabel;
+                const sessionDate = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+
+                if (!q) {
+                    return `<tr>
+                        <td>${i + 1}</td>
+                        <td class="text-muted small">— Chưa có quiz —</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary border">${sessionLabel}</span>
+                            ${sessionDate ? `<br><small class="text-muted">${sessionDate}</small>` : ''}
+                        </td>
+                        <td class="text-center text-muted">—</td>
+                        <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-secondary border">Chưa gắn</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
+                                onclick="wsAttachQuizToSession(${s.sessionId})">
+                                <i class="bi bi-plus-lg me-1"></i>Gắn Quiz
+                            </button>
+                        </td>
+                    </tr>`;
+                }
+
+                const statusBadge = q.status === 'PUBLISHED'
+                    ? `<span class="badge bg-success bg-opacity-10 text-success border border-success">Đã xuất bản</span>`
+                    : q.status === 'DRAFT'
+                    ? `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Nháp</span>`
+                    : `<span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.status}</span>`;
+
+                const isOpen = q.isOpen === true;
+                const openBadge = isOpen
+                    ? `<span class="badge bg-info bg-opacity-10 text-info border border-info ms-1"><i class="bi bi-unlock-fill me-1"></i>Đang mở</span>`
+                    : `<span class="badge bg-light text-muted border ms-1"><i class="bi bi-lock-fill me-1"></i>Đã đóng</span>`;
+
+                const openClass = isOpen ? 'btn-warning' : 'btn-success';
+                const openIcon = isOpen ? 'bi-lock-fill' : 'bi-unlock-fill';
+                const openLabel = isOpen ? 'Đóng' : 'Mở';
+
+                return `<tr>
                     <td>${i + 1}</td>
-                    <td class="fw-bold text-dark">${q.title}</td>
-                    <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
+                    <td>
+                        <div class="fw-bold text-dark">${wsEscape(q.title || '')}</div>
+                        <small class="text-muted">${sessionInfo}</small>
+                    </td>
                     <td class="text-center">
-                        <div class="progress" style="height: 6px; width: 100px; margin: 0 auto;">
-                            <div class="progress-bar" role="progressbar" style="width: 75%"></div>
-                        </div>
-                        <small class="text-muted mt-1 d-block">Mock: 75% hoàn thành</small>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border">${sessionLabel}</span>
+                        ${sessionDate ? `<br><small class="text-muted">${sessionDate}</small>` : ''}
                     </td>
+                    <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
+                    <td class="text-center">${statusBadge}${openBadge}</td>
                     <td class="text-end">
-                        <a href="/teacher/quiz/grading?quizId=${q.quizId}" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">
-                            <i class="bi bi-pencil-square me-1"></i> Chấm bài
+                        <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${openLabel} quiz">
+                            <i class="bi ${openIcon}"></i>
+                        </button>
+                        <a href="/teacher/quiz/grading?quizId=${q.quizId}" class="btn btn-sm btn-primary rounded-pill px-2" title="Chấm bài">
+                            <i class="bi bi-pencil-square"></i>
                         </a>
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="wsRemoveQuizFromSession(${s.sessionId}, ${q.quizId})" title="Xóa khỏi buổi">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz</td></tr>';
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  QUIZ BUILDER (workspace.html)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // --- Show "Create Quiz" button only when a class is selected ---
+    const originalLoadQuizzes = loadQuizzes;
+    loadQuizzes = async function() {
+        await originalLoadQuizzes.apply(this, arguments);
+        const btn = document.getElementById('btnCreateQuiz');
+        if (btn) btn.style.display = state.selectedClassId === 'ALL' ? 'none' : 'block';
+    };
+
+    let wsQuizModal;
+    let wsCurrentQuizId = null;
+    let wsCurrentStep = 1;
+    let wsSelectedQuestions = [];
+    let wsBankCache = new Map();
+    let wsAiQuestions = [];
+    let wsAiSelected = new Set();
+    let wsAllAiSelected = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        wsQuizModal = new bootstrap.Modal(document.getElementById('wsQuizModal'));
+    });
+
+    const openCreateQuizModal = async () => {
+        if (state.selectedClassId === 'ALL') { alert('Vui lòng chọn lớp học trước.'); return; }
+        resetWsQuizBuilder();
+        const cls = state.allClasses.find(c => c.classId == state.selectedClassId);
+        document.getElementById('wsQuizModalTitle').textContent = 'Tạo Quiz mới';
+        document.getElementById('wsQuizModalSubtitle').textContent = cls?.courseName || '';
+
+        // Load sessions for this class
+        const sel = document.getElementById('wsSessionSelect');
+        sel.innerHTML = '<option value="">-- Chọn buổi học --</option><option value="">Không gắn buổi (quiz chung)</option>';
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
+            const json = await res.json();
+            if (json.status === 200 && json.data && json.data.length > 0) {
+                json.data.forEach(s => {
+                    const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+                    sel.innerHTML += `<option value="${s.sessionId}">Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}</option>`;
+                });
+            }
+        } catch (e) { /* ignore */ }
+
+        wsSwitchStep(1);
+        wsQuizModal.show();
+    };
+
+    const resetWsQuizBuilder = () => {
+        wsCurrentQuizId = null;
+        wsCurrentStep = 1;
+        wsSelectedQuestions = [];
+        wsBankCache.clear();
+        wsAiQuestions = [];
+        wsAiSelected.clear();
+        wsAllAiSelected = false;
+        document.getElementById('wsQuizModalSessionId').value = '';
+        document.getElementById('wsQuizIdBadge').classList.add('d-none');
+        document.getElementById('wsCreatedQuizId').textContent = '';
+        document.getElementById('wsSessionSelect').value = '';
+        document.getElementById('wsQuizTitle').value = '';
+        document.getElementById('wsQuizDescription').value = '';
+        document.getElementById('wsQuizTimeLimit').value = '';
+        document.getElementById('wsQuizPassScore').value = '70';
+        document.getElementById('wsQuizMaxAttempts').value = '3';
+        document.getElementById('wsStatusDraft').checked = true;
+        document.getElementById('wsStatusPublish').checked = false;
+        document.getElementById('wsAiPreview').style.display = 'none';
+        document.getElementById('wsAiWarning').style.display = 'none';
+        document.getElementById('wsSelectedList').innerHTML = '<div class="text-center py-3 text-muted small">Chưa có câu hỏi nào.</div>';
+        document.getElementById('wsQuizQuestionCount').textContent = '0';
+        wsSwitchStep(1);
+    };
+
+    // When session is selected, auto-fill quiz title
+    const wsOnSessionChange = (sel) => {
+        if (!sel.value) return;
+        // Try to extract session number for default title
+        const opt = sel.options[sel.selectedIndex];
+        const text = opt.textContent;
+        const match = text.match(/Buổi (\d+)/);
+        if (match && !document.getElementById('wsQuizTitle').value.trim()) {
+            document.getElementById('wsQuizTitle').value = `Quiz — Buổi ${match[1]}`;
+        }
+    };
+
+    const wsSwitchStep = (step) => {
+        wsCurrentStep = step;
+        document.getElementById('wsQuizStep1').classList.toggle('d-none', step !== 1);
+        document.getElementById('wsQuizStep2').classList.toggle('d-none', step !== 2);
+        document.getElementById('wsStep1Tab').classList.toggle('active', step === 1);
+        document.getElementById('wsStep2Tab').classList.toggle('active', step === 2);
+        document.getElementById('wsStep1Tab').classList.toggle('text-muted', step === 1);
+        document.getElementById('wsStep2Tab').classList.toggle('text-muted', step === 2);
+        document.getElementById('wsBackBtn').classList.toggle('d-none', step === 1);
+
+        const nextBtn = document.getElementById('wsNextBtn');
+        if (step === 1) {
+            nextBtn.innerHTML = 'Tiếp theo <i class="bi bi-arrow-right ms-1"></i>';
+            nextBtn.className = 'btn btn-primary rounded-pill shadow-sm';
+        } else {
+            const isPub = document.getElementById('wsStatusPublish').checked;
+            nextBtn.innerHTML = isPub ? '<i class="bi bi-globe2 me-1"></i>Hoàn tất & Xuất bản' : '<i class="bi bi-check-lg me-1"></i>Hoàn tất';
+            nextBtn.className = isPub ? 'btn btn-success rounded-pill shadow-sm' : 'btn btn-primary rounded-pill shadow-sm';
+        }
+
+        if (step === 2 && wsCurrentQuizId) wsLoadBankOnTab();
+    };
+
+    const wsSwitchQuestionTab = (tab) => {
+        document.getElementById('wsBankPanel').classList.toggle('d-none', tab !== 'bank');
+        document.getElementById('wsAiPanel').classList.toggle('d-none', tab !== 'ai');
+        document.getElementById('wsTabBank').classList.toggle('active', tab === 'bank');
+        document.getElementById('wsTabAI').classList.toggle('active', tab === 'ai');
+        if (tab === 'bank') wsLoadBankOnTab();
+        else if (tab === 'ai') {
+            wsAiQuestions = [];
+            wsAiSelected.clear();
+            wsAllAiSelected = false;
+            document.getElementById('wsAiPreview').style.display = 'none';
+            document.getElementById('wsAiWarning').style.display = 'none';
+            document.getElementById('wsAiList').innerHTML = '';
+            document.getElementById('wsAiSelected').textContent = '0';
+            document.getElementById('wsAiTotal').textContent = '0';
+            document.getElementById('wsAiTopic').value = '';
+            document.getElementById('wsAiQty').value = '5';
+            document.getElementById('wsAiSkill').value = '';
+            document.getElementById('wsAiCefr').value = '';
+            document.querySelectorAll('[id^="wsAiType"]').forEach(cb => cb.checked = false);
+        }
+    };
+
+    const wsNextStep = async () => {
+        if (wsCurrentStep === 1) {
+            const title = document.getElementById('wsQuizTitle').value.trim();
+            if (!title) { alert('Vui lòng nhập tên quiz'); return; }
+            const sessionId = document.getElementById('wsSessionSelect').value;
+            const payload = {
+                title,
+                description: document.getElementById('wsQuizDescription').value.trim(),
+                classId: parseInt(state.selectedClassId),
+                timeLimitMinutes: document.getElementById('wsQuizTimeLimit').value ? parseInt(document.getElementById('wsQuizTimeLimit').value) : null,
+                passScore: document.getElementById('wsQuizPassScore').value ? parseFloat(document.getElementById('wsQuizPassScore').value) : null,
+                maxAttempts: document.getElementById('wsQuizMaxAttempts').value ? parseInt(document.getElementById('wsQuizMaxAttempts').value) : null
+            };
+            try {
+                const res = await fetch('/api/v1/teacher/quizzes', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.status === 200 || json.status === 201) {
+                    wsCurrentQuizId = json.data.quizId;
+                    document.getElementById('wsQuizModalSessionId').value = sessionId;
+                    document.getElementById('wsQuizIdBadge').classList.remove('d-none');
+                    document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
+                    wsSwitchStep(2);
+                } else {
+                    alert(json.message || 'Lỗi khi tạo quiz');
+                }
+            } catch (e) { alert('Lỗi kết nối: ' + e.message); }
+        } else {
+            // Finalize: attach to session, publish if needed
+            const sessionId = document.getElementById('wsQuizModalSessionId').value;
+            const isPub = document.getElementById('wsStatusPublish').checked;
+
+            // Gắn quiz vào session (nếu có)
+            if (sessionId && wsCurrentQuizId) {
+                try {
+                    await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ quizId: wsCurrentQuizId })
+                    });
+                } catch (e) { /* ignore */ }
+            }
+
+            // Publish nếu cần
+            if (isPub && wsCurrentQuizId) {
+                try {
+                    await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/publish`, { method: 'POST' });
+                    // Mở quiz nếu có session
+                    if (sessionId) {
+                        await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${wsCurrentQuizId}/toggle-open`, { method: 'PATCH' });
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            wsQuizModal.hide();
+            loadQuizzes();
+            alert(isPub ? 'Quiz đã được xuất bản và gắn vào buổi học!' : 'Quiz đã được lưu dạng nháp.');
+        }
+    };
+
+    // --- Bank Loading ---
+    const wsLoadBank = async () => {
+        const skill = document.getElementById('wsBankSkill').value;
+        const cefr = document.getElementById('wsBankCefr').value;
+        const type = document.getElementById('wsBankType').value;
+        const keyword = document.getElementById('wsBankKeyword').value;
+        const params = new URLSearchParams();
+        if (skill) params.append('skill', skill);
+        if (cefr) params.append('cefrLevel', cefr);
+        if (type) params.append('questionType', type);
+        if (keyword) params.append('keyword', keyword);
+
+        const list = document.getElementById('wsBankList');
+        list.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm"></div> Đang tải...</div>';
+
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/bank-questions?' + params.toString());
+            const json = await res.json();
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                list.innerHTML = '<div class="text-center py-4 text-muted small">Không có câu hỏi trong Master Bank</div>';
+                document.getElementById('wsAiAssist').style.display = 'none';
+                return;
+            }
+            const total = json.data.length;
+            const sk = document.getElementById('wsBankSkill').value;
+            const cf = document.getElementById('wsBankCefr').value;
+            const skCount = sk ? json.data.filter(q => q.skill === sk).length : total;
+            const sug = Math.min(Math.max(Math.round(skCount * 0.4), 3), 10);
+            const aiText = document.getElementById('wsAiAssistText');
+            let hint = `Bank có <strong>${total} câu</strong>`;
+            if (sk) hint += ` <strong>${sk}</strong>`;
+            if (cf) hint += ` <strong>${cf}</strong>`;
+            hint += ` — gợi ý chọn <strong>${sug} câu</strong> cho quiz.`;
+            aiText.innerHTML = hint;
+            document.getElementById('wsAiAssist').style.display = 'block';
+
+            const typeLabels = {
+                'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án', 'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
+                'FILL_IN_BLANK': 'Điền từ', 'MATCHING': 'Nối từ', 'WRITING': 'Viết', 'SPEAKING': 'Nói'
+            };
+            list.innerHTML = json.data.map(q => {
+                wsBankCache.set(q.questionId, q);
+                const isAdded = wsSelectedQuestions.some(sq => sq.questionId === q.questionId);
+                let optsHtml = '';
+                if (q.options && q.options.length > 0 && !['WRITING','SPEAKING'].includes(q.questionType)) {
+                    optsHtml = q.options.map(o => `<div class="small ${o.correctAnswer ? 'text-success fw-semibold' : 'text-muted'}"><i class="bi ${o.correctAnswer ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${wsEscape(o.title || '')}</div>`).join('');
+                }
+                return `<div class="border rounded-3 p-3 mb-2 bg-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex gap-2 mb-1 flex-wrap">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.skill || ''}</span>
+                                <span class="badge bg-info bg-opacity-10 text-info border">${q.cefrLevel || ''}</span>
+                                <span class="badge bg-warning bg-opacity-10 text-warning border">${typeLabels[q.questionType] || q.questionType}</span>
+                            </div>
+                            <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
+                            ${optsHtml ? `<div class="mt-1">${optsHtml}</div>` : ''}
+                        </div>
+                        <div class="ms-2">
+                            ${isAdded
+                                ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="wsRemoveBankQ(${q.questionId})" title="Xóa khỏi quiz"><i class="bi bi-dash-lg"></i></button>`
+                                : `<button class="btn btn-sm btn-success rounded-pill" onclick="wsAddBankQ(${q.questionId})" title="Thêm vào quiz"><i class="bi bi-plus"></i></button>`
+                            }
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            list.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi: ' + e.message + '</div>';
+        }
+    };
+
+    const wsLoadBankOnTab = () => { if (wsCurrentQuizId) wsLoadBank(); };
+
+    const wsAddBankQ = async (qId) => {
+        if (!wsCurrentQuizId) return;
+        const data = wsBankCache.get(qId);
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questionIdForQuiz: qId })
+            });
+            const json = await res.json();
+            if (json.status === 200 || json.status === 201) {
+                if (!wsSelectedQuestions.some(sq => sq.questionId === qId)) {
+                    wsSelectedQuestions.push(data ? { questionId: qId, content: data.content, questionType: data.questionType, skill: data.skill, cefrLevel: data.cefrLevel, status: data.status, source: 'EXPERT_BANK' }
+                        : { questionId: qId, content: '', questionType: '', skill: '', cefrLevel: '', status: 'PUBLISHED', source: 'EXPERT_BANK' });
+                }
+                wsRenderSelected();
+                wsLoadBank();
+            } else { alert(json.message || 'Lỗi khi thêm câu hỏi'); }
+        } catch (e) { alert('Lỗi kết nối: ' + e.message); }
+    };
+
+    const wsRemoveBankQ = async (qId) => {
+        if (!wsCurrentQuizId) return;
+        try {
+            const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions/${qId}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (json.status === 200 || json.status === 201) {
+                wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
+                wsRenderSelected();
+                wsLoadBank();
+            }
+        } catch (e) { /* ignore */ }
+    };
+
+    // --- AI Generation ---
+    const wsGenerateAI = async () => {
+        if (!wsCurrentQuizId) { alert('Vui lòng tạo quiz trước (bước 1)'); return; }
+        const topic = document.getElementById('wsAiTopic').value.trim();
+        const qty = parseInt(document.getElementById('wsAiQty').value);
+        if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
+        if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+
+        const body = { topic, quantity: qty };
+        const skill = document.getElementById('wsAiSkill').value;
+        const cefr = document.getElementById('wsAiCefr').value;
+        if (skill) body.skill = skill;
+        if (cefr) body.cefrLevel = cefr;
+        const types = [];
+        ['wsAiTypeMcS','wsAiTypeMcM','wsAiTypeFib','wsAiTypeMatch','wsAiTypeWrite','wsAiTypeSpeak'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.checked) types.push(el.value);
+        });
+        if (types.length > 0) body.questionTypes = types;
+
+        document.getElementById('wsAiLoading').style.display = 'block';
+        document.getElementById('wsAiPreview').style.display = 'none';
+        document.getElementById('wsAiWarning').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi sinh câu hỏi.'); return; }
+            wsAiQuestions = result.data.questions || [];
+            wsAiSelected = new Set(wsAiQuestions.map((_, i) => i));
+            wsAllAiSelected = true;
+            wsRenderAIQuestions();
+            if (result.data.warning) {
+                const w = document.getElementById('wsAiWarning');
+                w.textContent = result.data.warning;
+                w.style.display = 'block';
+            }
+        } catch (e) { alert('Lỗi: ' + e.message); }
+        finally { document.getElementById('wsAiLoading').style.display = 'none'; }
+    };
+
+    const wsRenderAIQuestions = () => {
+        const container = document.getElementById('wsAiList');
+        document.getElementById('wsAiTotal').textContent = wsAiQuestions.length;
+        document.getElementById('wsAiSelected').textContent = wsAiSelected.size;
+        document.getElementById('wsAiPreview').style.display = 'block';
+        const typeLabels = { 'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án', 'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án', 'FILL_IN_BLANK': 'Điền từ', 'MATCHING': 'Nối từ', 'WRITING': 'Viết', 'SPEAKING': 'Nói' };
+        container.innerHTML = wsAiQuestions.map((q, i) => `
+            <div class="list-group-item ${wsAiSelected.has(i) ? 'border-primary' : ''}" style="border-left: 3px solid ${wsAiSelected.has(i) ? '#136ad5' : '#dee2e6'};">
+                <div class="d-flex align-items-start gap-3">
+                    <input type="checkbox" class="form-check-input mt-1" id="wsAiChk${i}" ${wsAiSelected.has(i) ? 'checked' : ''} onchange="wsToggleAI(${i})">
+                    <div class="flex-grow-1">
+                        <div class="d-flex gap-2 flex-wrap mb-1">
+                            <span class="badge bg-secondary">${typeLabels[q.questionType] || q.questionType}</span>
+                            <span class="badge bg-info text-dark">${q.skill || ''}</span>
+                            <span class="badge bg-primary">${q.cefrLevel || ''}</span>
+                            ${q.topic ? `<span class="badge bg-light text-dark">${wsEscape(q.topic)}</span>` : ''}
+                        </div>
+                        <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
+                        ${q.options && q.options.length > 0 ? `<ul class="mb-1 small">${q.options.map(o => `<li class="${o.correct ? 'text-success fw-bold' : 'text-muted'}">${wsEscape(o.title)} ${o.correct ? '✓' : ''}</li>`).join('')}</ul>` : ''}
+                        ${q.correctAnswer ? `<p class="mb-0 small text-muted">Đáp án: ${wsEscape(q.correctAnswer)}</p>` : ''}
+                    </div>
+                </div>
+            </div>`).join('');
+    };
+
+    const wsToggleAI = (idx) => {
+        if (wsAiSelected.has(idx)) wsAiSelected.delete(idx); else wsAiSelected.add(idx);
+        document.getElementById('wsAiSelected').textContent = wsAiSelected.size;
+        wsRenderAIQuestions();
+    };
+
+    const wsToggleAllAI = () => {
+        wsAllAiSelected = !wsAllAiSelected;
+        wsAiSelected = wsAllAiSelected ? new Set(wsAiQuestions.map((_, i) => i)) : new Set();
+        wsRenderAIQuestions();
+    };
+
+    const wsImportSelected = async () => {
+        if (!wsCurrentQuizId) return;
+        if (wsAiSelected.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
+        const selected = wsAiQuestions.filter((_, i) => wsAiSelected.has(i));
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/ai/import', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quizId: wsCurrentQuizId, questions: selected })
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi lưu câu hỏi.'); return; }
+            // Reload questions
+            const qRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}`);
+            const qJson = await qRes.json();
+            if (qJson.status === 200 && qJson.data && qJson.data.questions) {
+                wsSelectedQuestions = qJson.data.questions.map(sq => ({
+                    questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
+                    skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
+                }));
+            }
+            wsRenderSelected();
+            alert(`Đã tạo và thêm ${result.data.imported} câu hỏi vào quiz!`);
+            wsAiQuestions = [];
+            wsAiSelected.clear();
+            wsAllAiSelected = false;
+            document.getElementById('wsAiPreview').style.display = 'none';
+            document.getElementById('wsAiWarning').style.display = 'none';
+            document.getElementById('wsAiTopic').value = '';
+        } catch (e) { alert('Lỗi kết nối: ' + e.message); }
+    };
+
+    const wsRenderSelected = () => {
+        const container = document.getElementById('wsSelectedList');
+        document.getElementById('wsQuizQuestionCount').textContent = wsSelectedQuestions.length;
+        if (wsSelectedQuestions.length === 0) {
+            container.innerHTML = '<div class="text-center py-3 text-muted small">Chưa có câu hỏi nào.</div>';
+            return;
+        }
+        const typeLabels = { 'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án', 'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án', 'FILL_IN_BLANK': 'Điền từ', 'MATCHING': 'Nối từ', 'WRITING': 'Viết', 'SPEAKING': 'Nói' };
+        container.innerHTML = wsSelectedQuestions.map((q, idx) => {
+            const srcBadge = q.source === 'TEACHER_PRIVATE' ? `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning small">Private</span>` : `<span class="badge bg-info bg-opacity-10 text-info border border-info small">Bank</span>`;
+            const stBadge = q.status === 'PENDING_REVIEW' ? `<span class="badge bg-secondary bg-opacity-10 text-secondary border small">Chờ duyệt</span>` : '';
+            return `<div class="d-flex align-items-start gap-2 p-2 border rounded-3 mb-2 bg-light">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary rounded-pill align-self-center" style="min-width:24px">${idx + 1}</span>
+                <div class="flex-grow-1">
+                    <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">${q.skill || ''}</span>
+                        <span class="badge bg-info bg-opacity-10 text-info border small">${q.cefrLevel || ''}</span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary border small">${typeLabels[q.questionType] || q.questionType || ''}</span>
+                        ${srcBadge}${stBadge}
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger rounded-pill align-self-center" onclick="wsRemoveSelected(${q.questionId})" title="Xóa"><i class="bi bi-trash"></i></button>
+            </div>`;
+        }).join('');
+    };
+
+    // --- Attach quiz to session ---
+    let wsAttachSessionId = null;
+    let wsAttachAvailableQuizzes = [];
+
+    const wsAttachQuizToSession = async (sessionId) => {
+        wsAttachSessionId = sessionId;
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}/quizzes`);
+            const json = await res.json();
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                alert('Chưa có quiz nào trong lớp. Hãy tạo quiz mới trước.');
+                return;
+            }
+            wsAttachAvailableQuizzes = json.data;
+            const list = wsAttachAvailableQuizzes.map((q, idx) =>
+                `  ${idx + 1}. ${q.title} (${q.status}) — ${q.questionCount || 0} câu`
+            ).join('\n');
+            const choice = prompt(`Chọn số quiz để gắn vào buổi học:\n${list}\n\nNhập số (1-${wsAttachAvailableQuizzes.length}) hoặc 0 để hủy:`);
+            if (!choice || choice.trim() === '0') return;
+            const idx = parseInt(choice.trim()) - 1;
+            if (idx < 0 || idx >= wsAttachAvailableQuizzes.length) {
+                alert('Lựa chọn không hợp lệ.');
+                return;
+            }
+            const quizId = wsAttachAvailableQuizzes[idx].quizId;
+            const attachRes = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quizId })
+            });
+            const attachJson = await attachRes.json();
+            if (attachJson.status === 200 || attachJson.status === 201 || attachJson.status === 400) {
+                loadQuizzes();
+                alert('Đã gắn quiz vào buổi học!');
+            } else {
+                alert(attachJson.message || 'Lỗi khi gắn quiz');
+            }
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    };
+
+    const wsToggleQuizOpen = async (sessionId, quizId, newOpen) => {
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
+            const json = await res.json();
+            if (json.status === 200) loadQuizzes();
+            else alert(json.message || 'Lỗi khi mở/đóng quiz');
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    };
+
+    const wsRemoveQuizFromSession = async (sessionId, quizId) => {
+        if (!confirm('Xóa quiz này khỏi buổi học?')) return;
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}`, { method: 'DELETE' });
+            const json = await res.json();
+            if (json.status === 200) {
+                loadQuizzes();
+                alert('Đã xóa quiz khỏi buổi học.');
+            } else {
+                alert(json.message || 'Lỗi khi xóa quiz');
+            }
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    };
+
+    const wsRemoveSelected = async (qId) => {
+        wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
+        wsRenderSelected();
+        if (wsCurrentQuizId) {
+            try { await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions/${qId}`, { method: 'DELETE' }); } catch (e) { /* ignore */ }
+        }
+    };
+
+    const wsEscape = (s) => {
+        if (s == null) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    };
 
     // --- TAB 4: STUDENTS ---
     async function loadStudents() {

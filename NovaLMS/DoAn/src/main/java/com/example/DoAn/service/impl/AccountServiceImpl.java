@@ -3,10 +3,12 @@ package com.example.DoAn.service.impl;
 import com.example.DoAn.dto.request.AccountRequestDTO;
 import com.example.DoAn.dto.response.AccountDetailResponse;
 import com.example.DoAn.dto.response.PageResponse;
+import com.example.DoAn.model.Setting;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.AccountService;
+import com.example.DoAn.service.EmailService;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,30 +30,52 @@ public class AccountServiceImpl implements AccountService {
     private final UserRepository userRepository;
     private final SettingRepository settingRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Override
     public Integer saveAccount(AccountRequestDTO request) {
+        Setting role = settingRepository.findById(request.getRoleId()).orElse(null);
+        String roleName = role != null ? role.getName() : "N/A";
+
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .mobile(request.getMobile())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(settingRepository.findById(request.getRoleId()).orElse(null))
+                .role(role)
                 .status("Active")
                 .build();
 
         userRepository.save(user);
         log.info("User saved successfully, userId={}", user.getUserId());
+
+        // Send notification email
+        try {
+            emailService.sendAccountCreatedEmail(
+                    request.getEmail(),
+                    request.getFullName(),
+                    roleName,
+                    request.getPassword()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send account created email to {}: {}", request.getEmail(), e.getMessage());
+        }
+
         return user.getUserId();
     }
 
     @Override
     public void updateAccount(Integer id, AccountRequestDTO request) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        String oldRoleName = user.getRole() != null ? user.getRole().getName() : "N/A";
+
         user.setFullName(request.getFullName());
         user.setMobile(request.getMobile());
-        user.setRole(settingRepository.findById(request.getRoleId()).orElse(null));
-        if(request.getStatus() != null) user.setStatus(request.getStatus());
+        Setting newRole = settingRepository.findById(request.getRoleId()).orElse(null);
+        user.setRole(newRole);
+        String newRoleName = newRole != null ? newRole.getName() : "N/A";
+
+        if (request.getStatus() != null) user.setStatus(request.getStatus());
 
         // Update password if provided
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -60,6 +84,20 @@ public class AccountServiceImpl implements AccountService {
 
         userRepository.save(user);
         log.info("User updated successfully, userId={}", id);
+
+        // Send role change notification email if role changed
+        if (!oldRoleName.equals(newRoleName)) {
+            try {
+                emailService.sendRoleUpdatedEmail(
+                        user.getEmail(),
+                        user.getFullName(),
+                        oldRoleName,
+                        newRoleName
+                );
+            } catch (Exception e) {
+                log.warn("Failed to send role updated email to {}: {}", user.getEmail(), e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -68,6 +106,17 @@ public class AccountServiceImpl implements AccountService {
         String newStatus = "Active".equalsIgnoreCase(user.getStatus()) ? "Inactive" : "Active";
         userRepository.updateStatusNative(newStatus, id);
         log.info("User status toggled to {}, userId={}", newStatus, id);
+
+        // Send status change notification email
+        try {
+            emailService.sendAccountStatusEmail(
+                    user.getEmail(),
+                    user.getFullName(),
+                    newStatus
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send status email to {}: {}", user.getEmail(), e.getMessage());
+        }
     }
 
     @Override

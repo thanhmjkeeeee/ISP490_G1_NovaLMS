@@ -1,9 +1,13 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.request.AIGenerateRequestDTO;
+import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.service.AIQuestionService;
 import com.example.DoAn.service.TeacherQuizService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +22,7 @@ import java.util.List;
 public class TeacherQuizApiController {
 
     private final TeacherQuizService teacherQuizService;
+    private final AIQuestionService aiQuestionService;
 
     private String getEmail(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
@@ -178,5 +183,37 @@ public class TeacherQuizApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return teacherQuizService.removeQuestionFromQuiz(quizId, questionId, email);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  AI QUESTION GENERATION (Teacher)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Sinh câu hỏi bằng AI (teacher).
+     * POST /api/v1/teacher/quizzes/ai/generate
+     * Body: { topic, quantity, skill?, cefrLevel?, questionTypes? }
+     */
+    @PostMapping("/ai/generate")
+    public ResponseData<?> generateAIQuestions(
+            @Valid @RequestBody AIGenerateRequestDTO request,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return ResponseData.success("Sinh câu hỏi thành công", aiQuestionService.generate(request, email));
+    }
+
+    /**
+     * Import câu hỏi AI đã chọn vào quiz.
+     * POST /api/v1/teacher/quizzes/ai/import
+     * Body: { quizId, questions: [...] }
+     */
+    @PostMapping("/ai/import")
+    public ResponseData<?> importAIQuestions(
+            @RequestBody TeacherQuizService.AIImportRequestDTO request,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return teacherQuizService.importAIQuestions(request, email);
     }
 }
