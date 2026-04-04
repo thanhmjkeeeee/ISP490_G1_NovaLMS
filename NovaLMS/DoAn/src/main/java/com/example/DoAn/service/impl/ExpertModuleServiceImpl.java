@@ -91,9 +91,16 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     @Override
     @Transactional(readOnly = true)
     public List<CourseOwnedByExpertDTO> getCoursesOwnedByExpert(String email) {
-        User expert = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
-        List<Course> courses = courseRepository.findByExpertUserId(expert.getUserId());
+        User user = userRepository.findByEmailWithRole(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
+
+        List<Course> courses;
+        if (isAdmin(user)) {
+            courses = courseRepository.findAll();
+        } else {
+            courses = courseRepository.findByExpertUserId(user.getUserId());
+        }
+
         return courses.stream().map(c -> {
             CourseOwnedByExpertDTO dto = new CourseOwnedByExpertDTO();
             dto.setCourseId(c.getCourseId());
@@ -113,9 +120,19 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     @Override
     @Transactional(readOnly = true)
     public ExpertDashboardStatsDTO getDashboardStats(String email) {
-        User expert = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
-        Integer userId = expert.getUserId();
+        User user = userRepository.findByEmailWithRole(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
+        
+        if (isAdmin(user)) {
+            return ExpertDashboardStatsDTO.builder()
+                    .totalCourses(courseRepository.count())
+                    .totalModules(moduleRepository.count())
+                    .totalLessons(lessonRepository.count())
+                    .totalQuestions(questionRepository.count())
+                    .build();
+        }
+
+        Integer userId = user.getUserId();
 
         return ExpertDashboardStatsDTO.builder()
                 .totalCourses((long) courseRepository.findByExpertUserId(userId).size())
@@ -151,12 +168,24 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     }
 
     private void validateExpertOwnsCourse(String email, Integer courseId) {
-        User expert = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+        User user = userRepository.findByEmailWithRole(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
+        
+        if (isAdmin(user)) return;
+
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học."));
-        if (course.getExpert() == null || !course.getExpert().getUserId().equals(expert.getUserId())) {
+        if (course.getExpert() == null || !course.getExpert().getUserId().equals(user.getUserId())) {
             throw new ResourceNotFoundException("Bạn không có quyền quản lý khóa học này.");
         }
+    }
+
+    private boolean isAdmin(User user) {
+        if (user.getRole() == null) return false;
+        String val = user.getRole().getValue();
+        String name = user.getRole().getName();
+        return "ROLE_ADMIN".equalsIgnoreCase(val) || "ADMIN".equalsIgnoreCase(val) || 
+               "ROLE_ADMIN".equalsIgnoreCase(name) || "ADMIN".equalsIgnoreCase(name) ||
+               "Quản trị viên".equalsIgnoreCase(name);
     }
 }
