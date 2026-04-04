@@ -619,6 +619,23 @@
 
         // Initial load
         refreshActiveTab();
+
+        // 3. EVENT LISTENER CHO VIỆC KHÓA SLOT TRÙNG (TRONG RESCHEDULE)
+        document.getElementById('res-newDate').addEventListener('change', function(e) {
+            const selectedDate = e.target.value;
+            const originalDate = e.target.dataset.originalDate;
+            const originalTime = e.target.dataset.originalTime;
+            const timeSelect = document.getElementById('res-newStartTime');
+
+            Array.from(timeSelect.options).forEach(opt => {
+                if (selectedDate === originalDate && opt.value === originalTime) {
+                    opt.disabled = true;
+                    if (timeSelect.value === originalTime) timeSelect.value = "";
+                } else {
+                    opt.disabled = false;
+                }
+            });
+        });
     });
 
     function initTimeSelectors() {
@@ -940,15 +957,49 @@
                 contentList.innerHTML = html;
             }
 
-            // Check Reschedule Status
-            const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
-            const stJson = await stRes.json();
-            if (stJson.status === 200 && stJson.data.hasPending) {
+            // --- 2. CHẶN ĐỔI LỊCH BUỔI HỌC QUÁ KHỨ ---
+            const [dd, mm, yyyy] = d.date.split('/');
+            const [h, min] = (d.startTime || "00:00").split(':');
+            const sessionTime = new Date(yyyy, mm - 1, dd, h, min);
+            const isPast = sessionTime < new Date();
+
+            const resTab = document.getElementById('m-reschedule-tab');
+            if (isPast) {
+                resTab.innerHTML = '<i class="bi bi-lock-fill me-2"></i>Đã diễn ra';
+                resTab.classList.add('disabled', 'text-muted');
                 document.getElementById('rescheduleFormContainer').style.display = 'none';
+                document.getElementById('reschedulePendingMsg').innerHTML = `
+                    <div class="alert alert-warning border-warning p-4 rounded-4">
+                        <i class="bi bi-exclamation-triangle-fill fs-2 mb-2 d-block"></i>
+                        <h6 class="fw-bold">Không thể đổi lịch</h6>
+                        <p class="small mb-0">Buổi học này đã diễn ra hoặc đang diễn ra, hệ thống không cho phép đổi lịch cho các buổi trong quá khứ.</p>
+                    </div>`;
                 document.getElementById('reschedulePendingMsg').style.display = 'block';
             } else {
-                document.getElementById('rescheduleFormContainer').style.display = 'block';
-                document.getElementById('reschedulePendingMsg').style.display = 'none';
+                resTab.innerHTML = '<i class="bi bi-calendar-event me-2"></i>Đổi lịch dạy';
+                resTab.classList.remove('disabled', 'text-muted');
+
+                // Lưu thông tin gốc để so sánh khi chọn ngày mới
+                const newDateInput = document.getElementById('res-newDate');
+                newDateInput.dataset.originalDate = `${yyyy}-${mm}-${dd}`;
+                newDateInput.dataset.originalTime = d.startTime;
+
+                // Check Reschedule Status
+                const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
+                const stJson = await stRes.json();
+                if (stJson.status === 200 && stJson.data.hasPending) {
+                    document.getElementById('rescheduleFormContainer').style.display = 'none';
+                    document.getElementById('reschedulePendingMsg').innerHTML = `
+                        <div class="bg-warning bg-opacity-10 text-warning p-4 rounded-4 border border-warning border-opacity-25 text-center">
+                            <i class="bi bi-hourglass-split fs-1 mb-3 d-block"></i>
+                            <h6 class="fw-bold mb-2">Đang chờ phê duyệt</h6>
+                            <p class="small mb-0 text-dark">Bạn đã gửi yêu cầu đổi lịch cho buổi này. Vui lòng chờ Manager phản hồi trước khi gửi yêu cầu mới.</p>
+                        </div>`;
+                    document.getElementById('reschedulePendingMsg').style.display = 'block';
+                } else {
+                    document.getElementById('rescheduleFormContainer').style.display = 'block';
+                    document.getElementById('reschedulePendingMsg').style.display = 'none';
+                }
             }
 
             new bootstrap.Modal('#sessionDetailModal').show();
