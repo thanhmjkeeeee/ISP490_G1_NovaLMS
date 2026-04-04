@@ -66,21 +66,30 @@
           html += `<div class="video-wrapper ratio ratio-16x9"><iframe src="${embedSrc}" allowfullscreen loading="lazy"></iframe></div>`;
       } else if (lesson.type === 'DOC') {
           const docUrl = lesson.videoUrl || '';
-          // Robust regex to detect .pdf or .docx even with query parameters
           const isPdf = /\.pdf($|\?)/i.test(docUrl);
           const isDocx = /\.(docx|doc)($|\?)/i.test(docUrl);
-          
+
           let previewHtml = '';
           if (isPdf) {
-              previewHtml = `<div class="preview-iframe-wrapper ratio ratio-4x3 shadow-sm rounded-3 overflow-hidden mb-4 border bg-light">
-                                <object data="${docUrl}" type="application/pdf" style="width:100%; height:75vh;">
-                                    <iframe src="${docUrl}" style="width:100%; height:75vh; border:none;" allow="autoplay">
-                                        <p>Trình duyệt của bạn không hỗ trợ xem PDF trực tiếp. <a href="${docUrl}">Tải về để xem</a>.</p>
-                                    </iframe>
-                                </object>
-                             </div>`;
+              const previewUrl = `/api/v1/files/preview?url=${encodeURIComponent(docUrl)}`;
+              const gViewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(docUrl)}&embedded=true`;
+
+              previewHtml = `
+              <ul class="nav nav-tabs mb-2" id="pdfTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                      <button class="nav-link active small py-1" data-bs-toggle="tab" data-bs-target="#native-pdf" type="button">Trình đọc Mặc định</button>
+                  </li>
+              </ul>
+              <div class="tab-content preview-iframe-wrapper shadow-sm rounded-3 overflow-hidden mb-4 border bg-light" style="height: 75vh;">
+                  <div class="tab-pane fade show active h-100" id="native-pdf">
+                      <iframe src="${previewUrl}#toolbar=0" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+                  </div>
+                  <div class="tab-pane fade h-100" id="google-pdf">
+                      <iframe src="${gViewUrl}" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+                  </div>
+              </div>`;
           } else if (isDocx && docUrl) {
-              // Google Docs Viewer for online preview of DOCX
+              // Google Docs Viewer cho file word
               const gViewUrl = `https://docs.google.com/gview?url=${encodeURIComponent(docUrl)}&embedded=true`;
               previewHtml = `<div class="preview-iframe-wrapper ratio ratio-4x3 shadow-sm rounded-3 overflow-hidden mb-4 border bg-light">
                                 <iframe src="${gViewUrl}" style="width:100%; height:75vh; border:none;">
@@ -92,7 +101,9 @@
           }
 
           let downloadBtn = '';
-          if (lesson.allowDownload !== false && docUrl) {
+          const canDownload = lesson.allowDownload !== false;
+
+          if (canDownload && docUrl) {
               const fileName = (lesson.lessonTitle || 'tai_lieu').replace(/[^a-zA-Z0-9]/g, '_') + (isPdf ? '.pdf' : '.docx');
               downloadBtn = `
                 <div class="text-center mt-3">
@@ -113,10 +124,9 @@
                 ${previewHtml}
                 <div class="p-4 bg-white rounded-4 shadow-sm border mb-4">
                     <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
-                        <h5 class="fw-bold text-primary mb-0"><i class="bi bi-info-circle me-2"></i>Mô tả tài liệu</h5>
-                        <a href="${docUrl}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">
-                            <i class="bi bi-box-arrow-up-right me-1"></i> Mở trong cửa sổ mới
-                        </a>
+                        <div class="d-flex align-items-center">
+                           <h5 class="fw-bold text-primary mb-0 me-3"><i class="bi bi-info-circle me-2"></i>Mô tả tài liệu</h5>
+                        </div>
                     </div>
                     <p class="text-secondary" style="line-height: 1.6;">${lesson.contentText || 'Không có mô tả chi tiết cho tài liệu này.'}</p>
                     ${downloadBtn}
@@ -141,7 +151,6 @@
       }
 
       area.innerHTML = html;
-      // Load lesson quizzes after lesson content renders
       loadLessonQuizzes(parseInt(currentLessonIdStr));
   };
 
