@@ -18,4 +18,6 @@ public interface SettingRepository extends JpaRepository<Setting, Integer> {
 
     List<Setting> findBySettingTypeAndStatus(String type, String status);
 
+    List<Setting> findBySettingType(String type);
+
 }
