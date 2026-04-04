@@ -403,7 +403,7 @@ function renderTable(data) {
                 <td class="px-3">
                     <div class="d-flex justify-content-center gap-1">
                         <a href="/expert/question-bank/${q.id}/edit?type=${q.type}" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
-                        ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success" onclick="changeStatus(${q.id},'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
+                        ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success" onclick="changeStatus(${q.id}, '${q.type}', 'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
                         ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id}, '${q.type}')" title="Xóa"><i class="bi bi-trash"></i></button>` : ''}
                     </div>
                 </td>
@@ -468,13 +468,13 @@ function renderPagination(data) {
     ul.innerHTML = html;
 }
 
-async function changeStatus(id, newStatus) {
+async function changeStatus(id, type, newStatus) {
     if (!confirm(`Chuyển trạng thái sang ${newStatus}?`)) return;
     try {
         const res = await fetch(`/api/v1/expert/question-bank/${id}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: newStatus, type: type })
         });
         if (res.ok) loadQuestions(currentPage);
         else {

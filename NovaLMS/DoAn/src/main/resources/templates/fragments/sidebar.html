@@ -76,6 +76,10 @@
 
         <div sec:authorize="hasAnyRole('ROLE_MANAGER', 'ROLE_ADMIN')">
 
+            <a th:href="@{/manager/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-building"></i><span>Tổng quan</span>
+            </a>
+
             <a th:href="@{/manager/class/list}" th:classappend="${activePage == 'classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-building"></i><span>Lớp học</span>
             </a>
