@@ -11,6 +11,7 @@ import lombok.*;
 @Builder
 public class LessonRequestDTO {
 
+    private Integer lessonId;
     @NotNull(message = "moduleId is required")
     private Integer moduleId;
 
@@ -24,5 +25,6 @@ public class LessonRequestDTO {
     private String videoUrl;
     private String contentText;
     private String duration;
+    private Boolean allowDownload;
     private Integer orderIndex;
 }

@@ -58,9 +58,25 @@ public class RescheduleService {
         LocalDateTime newDate;
         try {
             // Frontend sends YYYY-MM-DD
-            newDate = LocalDate.parse(newDateStr).atStartOfDay();
+                    newDate = LocalDate.parse(newDateStr).atStartOfDay();
         } catch (Exception e) {
             return ResponseData.error(400, "Định dạng ngày không hợp lệ (YYYY-MM-DD)");
+        }
+
+        // --- 1. Chặn đổi lịch buổi học trong quá khứ ---
+        try {
+            LocalTime oldTime = LocalTime.parse(session.getStartTime(), DateTimeFormatter.ofPattern("HH:mm"));
+            LocalDateTime originalSessionTime = session.getSessionDate().withHour(oldTime.getHour()).withMinute(oldTime.getMinute());
+            if (originalSessionTime.isBefore(LocalDateTime.now())) {
+                return ResponseData.error(400, "Không thể đổi lịch cho buổi học đã diễn ra.");
+            }
+        } catch (Exception e) {
+            log.error("Lỗi parse thời gian buổi học cũ: {}", e.getMessage());
+        }
+
+        // --- 2. Chặn đổi lịch trùng với lịch hiện tại ---
+        if (newDate.toLocalDate().isEqual(session.getSessionDate().toLocalDate()) && newStartTime.equals(session.getStartTime())) {
+            return ResponseData.error(400, "Thời gian đổi lịch không được trùng với lịch hiện tại.");
         }
 
         // --- 1. Chống trùng lịch với các buổi học ĐÃ XÁC NHẬN (Loại trừ chính nó) ---
