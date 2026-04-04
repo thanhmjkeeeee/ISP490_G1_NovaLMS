@@ -428,7 +428,19 @@ DROP TABLE IF EXISTS `question_group`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `question_group` (
   `group_id` int NOT NULL AUTO_INCREMENT,
-  PRIMARY KEY (`group_id`)
+  `group_content` text,
+  `audio_url` varchar(500) DEFAULT NULL,
+  `image_url` varchar(500) DEFAULT NULL,
+  `skill` varchar(20) DEFAULT NULL,
+  `cefr_level` varchar(5) DEFAULT NULL,
+  `topic` varchar(255) DEFAULT NULL,
+  `explanation` text,
+  `status` varchar(20) DEFAULT NULL,
+  `user_id` int DEFAULT NULL,
+  `created_at` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`group_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `question_group_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
