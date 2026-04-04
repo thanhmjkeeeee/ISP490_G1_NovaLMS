@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +37,7 @@ public class StudentServiceImpl implements StudentService {
     private final SessionQuizRepository sessionQuizRepository;
     private final LessonRepository lessonRepository;
     private final QuizResultRepository quizResultRepository;
+    private final ClassSessionRepository classSessionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -240,6 +243,112 @@ public class StudentServiceImpl implements StudentService {
                 }
             }
 
+            // ── UPCOMING EVENTS (Sắp diễn ra) ──
+            List<DashboardResponseDTO.UpcomingEventDTO> upcomingEvents = new ArrayList<>();
+            try {
+                LocalDateTime now = LocalDateTime.now();
+                // Get all class IDs user is enrolled in (Approved)
+                List<Registration> approvedRegs = myRegs.stream()
+                        .filter(r -> "Approved".equals(r.getStatus()) && r.getClazz() != null)
+                        .collect(Collectors.toList());
+
+                List<ClassSession> allUpcomingSessions = new ArrayList<>();
+                for (Registration reg : approvedRegs) {
+                    List<ClassSession> sessions = classSessionRepository
+                            .findByClazzClassIdOrderBySessionNumberAsc(reg.getClazz().getClassId());
+                    for (ClassSession s : sessions) {
+                        if (s.getSessionDate() != null && !s.getSessionDate().isBefore(now)) {
+                            allUpcomingSessions.add(s);
+                        }
+                    }
+                }
+                // Sort by date ascending, take first 3
+                allUpcomingSessions.sort((a, b) -> a.getSessionDate().compareTo(b.getSessionDate()));
+                int limit = Math.min(3, allUpcomingSessions.size());
+                String[] monthNames = {"", "Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6",
+                                       "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"};
+                for (int i = 0; i < limit; i++) {
+                    ClassSession s = allUpcomingSessions.get(i);
+                    String day = String.valueOf(s.getSessionDate().getDayOfMonth());
+                    String month = monthNames[s.getSessionDate().getMonthValue()];
+                    String className = s.getClazz() != null ? s.getClazz().getClassName() : "Lớp học";
+                    String timeRange = (s.getStartTime() != null ? s.getStartTime() : "") +
+                                       (s.getEndTime() != null ? " – " + s.getEndTime() : "");
+                    String subtitle = timeRange;
+                    if (s.getClazz() != null && s.getClazz().getMeetLink() != null) {
+                        subtitle += " • Live Zoom";
+                    }
+
+                    upcomingEvents.add(DashboardResponseDTO.UpcomingEventDTO.builder()
+                            .day(day)
+                            .month(month)
+                            .title(className + " - Buổi " + s.getSessionNumber())
+                            .subtitle(subtitle)
+                            .type("NORMAL")
+                            .build());
+                }
+            } catch (Exception ex) {
+                // Silently ignore if upcoming events fail
+            }
+
+            // ── RECENT QUIZ HISTORY (Lịch sử làm bài) ──
+            List<DashboardResponseDTO.RecentQuizHistoryDTO> quizHistoryList = new ArrayList<>();
+            try {
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
+                Page<QuizResult> historyPage = quizResultRepository.findByUserEmailOrderBySubmittedAtDesc(
+                        user.getEmail(), PageRequest.of(0, 5));
+                for (QuizResult qr : historyPage.getContent()) {
+                    String statusLabel;
+                    String statusClass;
+                    String iconBg, iconColor, iconClass;
+
+                    if (qr.getPassed() == null) {
+                        // Chờ chấm điểm
+                        statusLabel = "Chờ chấm điểm";
+                        statusClass = "badge-warn";
+                        iconBg = "#eff6ff"; iconColor = "#1d6de5"; iconClass = "bi-patch-question-fill";
+                    } else if (Boolean.TRUE.equals(qr.getPassed())) {
+                        statusLabel = "Đạt";
+                        statusClass = "badge-success";
+                        iconBg = "#dcfce7"; iconColor = "#16a34a"; iconClass = "bi-check-circle-fill";
+                    } else {
+                        statusLabel = "Không đạt";
+                        statusClass = "badge-danger";
+                        iconBg = "#fee2e2"; iconColor = "#dc2626"; iconClass = "bi-x-circle-fill";
+                    }
+
+                    // Determine max score: use numberOfQuestions from Quiz if available
+                    Integer maxScore = null;
+                    if (qr.getQuiz() != null && qr.getQuiz().getNumberOfQuestions() != null) {
+                        maxScore = qr.getQuiz().getNumberOfQuestions();
+                    } else if (qr.getQuiz() != null && qr.getQuiz().getQuizQuestions() != null) {
+                        maxScore = qr.getQuiz().getQuizQuestions().size();
+                    }
+
+                    String courseName = "";
+                    if (qr.getQuiz() != null && qr.getQuiz().getCourse() != null) {
+                        courseName = qr.getQuiz().getCourse().getCourseName();
+                    }
+
+                    quizHistoryList.add(DashboardResponseDTO.RecentQuizHistoryDTO.builder()
+                            .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
+                            .resultId(qr.getResultId())
+                            .quizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "Quiz")
+                            .courseName(courseName)
+                            .submittedAt(qr.getSubmittedAt() != null ? qr.getSubmittedAt().format(fmt) : "")
+                            .score(qr.getScore())
+                            .maxScore(maxScore)
+                            .statusLabel(statusLabel)
+                            .statusClass(statusClass)
+                            .iconBg(iconBg)
+                            .iconColor(iconColor)
+                            .iconClass(iconClass)
+                            .build());
+                }
+            } catch (Exception ex) {
+                // Silently ignore if quiz history fails
+            }
+
             DashboardResponseDTO dto = DashboardResponseDTO.builder()
                     .email(user.getEmail())
                     .fullName(user.getFullName())
@@ -249,6 +358,8 @@ public class StudentServiceImpl implements StudentService {
                     .completedQuizzes(completedQuizzesCount)
                     .recentQuizScores(recentScores)
                     .lastLesson(lastLessonDTO)
+                    .upcomingEvents(upcomingEvents)
+                    .recentQuizHistory(quizHistoryList)
                     .build();
 
             return ResponseData.success("Thành công", dto);

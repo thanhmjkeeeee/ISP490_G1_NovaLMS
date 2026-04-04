@@ -89,31 +89,11 @@
                 <div class="dash-card" style="padding:20px; flex:1;">
                     <div class="dash-card-title">
                         <span class="section-label">Sắp diễn ra</span>
-                        <a href="#">Xem lịch</a>
+                        <a href="/student/my-classes">Xem lịch</a>
                     </div>
-
-                    <div class="schedule-row">
-                        <div class="date-box">
-                            <div class="db-day">15</div>
-                            <div class="db-month">Thg 4</div>
-                        </div>
-                        <div>
-                            <div class="sch-title">Lớp IELTS-K01</div>
-                            <div class="sch-sub"><i class="bi bi-clock me-1"></i>19:30 – 21:00 • Live Zoom</div>
-                        </div>
+                    <div id="upcomingEventsArea">
+                        <div class="text-center text-muted py-3" style="font-size:0.85rem;">Đang tải...</div>
                     </div>
-
-                    <div class="schedule-row">
-                        <div class="date-box warning">
-                            <div class="db-day">18</div>
-                            <div class="db-month">Thg 4</div>
-                        </div>
-                        <div>
-                            <div class="sch-title">Hạn nộp Quiz Buổi 3</div>
-                            <div class="sch-sub"><i class="bi bi-exclamation-circle me-1"></i>Khóa Tiếng Anh Giao Tiếp</div>
-                        </div>
-                    </div>
-
                 </div>
 
             </div>
@@ -122,7 +102,7 @@
         <div class="dash-card fi fi-4" style="padding: 24px;">
             <div class="dash-card-title">
                 <span>Lịch sử làm bài gần đây</span>
-                <a href="/student/quizzes">Xem tất cả →</a>
+<!--                <a href=" /quiz ">Xem tất cả →</a>-->
             </div>
             <div class="table-responsive">
                 <table class="table table-custom mb-0">
@@ -138,34 +118,7 @@
                     </thead>
                     <tbody id="recentQuizHistory">
                     <tr>
-                        <td>
-                            <div class="d-flex align-items-center gap-3">
-                                <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;color:#1d6de5;">
-                                    <i class="bi bi-patch-question-fill"></i>
-                                </div>
-                                <span class="fw-bold">Quiz — Buổi 3</span>
-                            </div>
-                        </td>
-                        <td>IELTS 4.0</td>
-                        <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>23:05 03/04/2026</td>
-                        <td><span class="score-num">--</span> <span class="score-total">/ 8</span></td>
-                        <td><span class="badge-warn">Chờ chấm điểm</span></td>
-                        <td class="text-end"><button class="btn-detail">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center gap-3">
-                                <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;color:#dc2626;">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                </div>
-                                <span class="fw-bold">Kiểm tra năng lực đầu vào</span>
-                            </div>
-                        </td>
-                        <td>IELTS 4.0</td>
-                        <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>22:06 28/03/2026</td>
-                        <td><span class="score-num text-danger">0</span> <span class="score-total">/ 4</span></td>
-                        <td><span class="badge-danger">Không đạt</span></td>
-                        <td class="text-end"><button class="btn-detail">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
+                        <td colspan="6" class="text-center py-4 text-muted" style="font-size:0.85rem;">Đang tải...</td>
                     </tr>
                     </tbody>
                 </table>
@@ -291,7 +244,7 @@
 
           // Welcome message
           if (d.fullName) {
-            document.getElementById('welcomeUser').textContent = `Chào mừng trở lại, ${d.fullName}! 👋`;
+            document.getElementById('welcomeUser').textContent = `Chào mừng trở lại, ${d.fullName}!`;
           }
 
           // Stats
@@ -327,6 +280,12 @@
                    Bạn chưa có bài học nào đang dở. Hãy vào Khóa học để bắt đầu!
                 </div>`;
           }
+
+          // Render Upcoming Events
+          renderUpcomingEvents(d.upcomingEvents);
+
+          // Render Recent Quiz History
+          renderQuizHistory(d.recentQuizHistory);
 
         } catch (err) {
             console.error('Lỗi nghiêm trọng khi chạy Dashboard API:', err);
@@ -381,6 +340,71 @@
         } catch (e) {
             console.error("Lỗi khi render khối Đang học dở", e);
         }
+      };
+
+      const renderUpcomingEvents = (events) => {
+        const container = document.getElementById('upcomingEventsArea');
+        if (!container) return;
+
+        if (!Array.isArray(events) || events.length === 0) {
+          container.innerHTML = `<div class="text-center text-muted py-3" style="font-size:0.85rem;">Không có sự kiện nào sắp tới</div>`;
+          return;
+        }
+
+        let html = '';
+        events.forEach(ev => {
+          const boxClass = ev.type === 'WARNING' ? 'date-box warning' : 'date-box';
+          const icon = ev.type === 'WARNING'
+            ? '<i class="bi bi-exclamation-circle me-1"></i>'
+            : '<i class="bi bi-clock me-1"></i>';
+          html += `
+            <div class="schedule-row">
+              <div class="${boxClass}">
+                <div class="db-day">${ev.day}</div>
+                <div class="db-month">${ev.month}</div>
+              </div>
+              <div>
+                <div class="sch-title">${ev.title}</div>
+                <div class="sch-sub">${icon}${ev.subtitle || ''}</div>
+              </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+      };
+
+      const renderQuizHistory = (history) => {
+        const tbody = document.getElementById('recentQuizHistory');
+        if (!tbody) return;
+
+        if (!Array.isArray(history) || history.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted" style="font-size:0.85rem;">Chưa có lịch sử làm bài</td></tr>`;
+          return;
+        }
+
+        let html = '';
+        history.forEach(q => {
+          const scoreDisplay = q.score != null ? q.score : '--';
+          const scoreClass = q.statusClass === 'badge-danger' ? 'score-num text-danger' : 'score-num';
+          const maxScoreDisplay = q.maxScore != null ? q.maxScore : '?';
+
+          html += `
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:36px;height:36px;border-radius:10px;background:${q.iconBg};display:flex;align-items:center;justify-content:center;color:${q.iconColor};">
+                    <i class="bi ${q.iconClass}"></i>
+                  </div>
+                  <span class="fw-bold">${q.quizTitle}</span>
+                </div>
+              </td>
+              <td>${q.courseName || '—'}</td>
+              <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>${q.submittedAt}</td>
+              <td><span class="${scoreClass}">${scoreDisplay}</span> <span class="score-total">/ ${maxScoreDisplay}</span></td>
+              <td><span class="${q.statusClass}">${q.statusLabel}</span></td>
+              <td class="text-end"><button class="btn-detail" onclick="window.location.href='/student/quiz/result/${q.resultId}'">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
       };
 
       loadDashboard();
