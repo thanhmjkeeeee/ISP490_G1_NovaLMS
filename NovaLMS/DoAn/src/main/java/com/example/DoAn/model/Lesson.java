@@ -38,7 +38,7 @@ public class Lesson {
     @Column(name = "order_index")
     private Integer orderIndex;
 
-    @Column(name = "allow_download")
+    @Column(name = "allow_download", columnDefinition = "boolean default true")
     private Boolean allowDownload = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
