@@ -3,10 +3,13 @@ package com.example.DoAn.controller;
 import com.example.DoAn.dto.response.RegistrationResponseDTO;
 import com.example.DoAn.dto.response.DashboardResponseDTO;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
+import com.example.DoAn.dto.response.ChartDataDTO;
 import com.example.DoAn.dto.response.MyCourseDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.StudentService;
+import com.example.DoAn.service.LearningService;
+import com.example.DoAn.dto.response.ChartDataDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -21,6 +24,7 @@ import java.util.List;
 public class StudentApiController {
 
     private final StudentService studentService;
+    private final LearningService learningService;
 
     private String getEmailFromPrincipal(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
@@ -45,7 +49,6 @@ public class StudentApiController {
                     result.getData());
         }
 
-        // Nếu đã đăng ký rồi (status != Cancelled) → gợi ý retry thanh toán hoặc liên hệ admin
         if (result.getStatus() == 400) {
             return new ResponseData<>(result.getStatus(),
                     "Bạn đã có đăng ký chờ xử lý cho lớp này. "
@@ -90,4 +93,11 @@ public class StudentApiController {
         if (email == null) return ResponseData.success("Guest", false);
         return studentService.checkFirstTime(email);
     }
-}
+
+    @GetMapping("/dashboard/chart-data")
+    public ResponseData<ChartDataDTO> getChartData(Principal principal, @RequestParam(defaultValue = "7") int days) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return learningService.getDashboardChartData(email, days);
+    }
+}

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Tổng quan Học tập')}"></head>
+
+<style>
+
+</style>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan', breadcrumb='Dashboard')}"></header>
+<aside  th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+<div    th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid px-3 px-xl-4 py-4">
+
+        <div class="welcome-banner fi fi-1">
+            <h2 id="welcomeUser">Chào mừng trở lại!</h2>
+            <p id="welcomeSub">Hãy tiếp tục hành trình chinh phục kiến thức của bạn.</p>
+        </div>
+
+        <div class="row g-3 mb-4 fi fi-2">
+
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon si-blue"><i class="bi bi-journal-check"></i></div>
+                    <div class="stat-num" id="statCourses">--</div>
+                    <div class="stat-lbl">Khóa đang học</div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon si-orange"><i class="bi bi-patch-check"></i></div>
+                    <div class="stat-num" id="statQuizzes">--</div>
+                    <div class="stat-lbl">Quiz hoàn thành</div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="score-card">
+                    <div class="score-card-title">Điểm Quiz</div>
+                    <div style="position:relative; height:100px;">
+                        <canvas id="miniScoreChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-3 mb-4 fi fi-3">
+
+            <div class="col-lg-8">
+                <div class="dash-card">
+                    <div class="dash-card-title">
+                        <span>Thời gian học tập (Giờ)</span>
+                        <select class="chart-select" id="chartPeriod" onchange="loadChartData()">
+                            <option value="7">Tuần này</option>
+                            <option value="30">Tháng này</option>
+                        </select>
+                    </div>
+                    <div style="position:relative; height:260px;">
+                        <div id="chartLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                        </div>
+                        <canvas id="learningChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 d-flex flex-column gap-3">
+
+                <div class="dash-card" style="padding:20px;">
+                    <div class="dash-card-title">
+                        <span class="section-label">Đang học dở</span>
+                    </div>
+                    <div id="resumeLearningArea">
+                        <div class="d-flex align-items-center gap-3 p-2">
+                            <div class="skeleton" style="width:52px;height:52px;border-radius:10px;flex-shrink:0;"></div>
+                            <div class="flex-grow-1">
+                                <div class="skeleton mb-2" style="height:13px;width:70%;"></div>
+                                <div class="skeleton" style="height:10px;width:90%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-card" style="padding:20px; flex:1;">
+                    <div class="dash-card-title">
+                        <span class="section-label">Sắp diễn ra</span>
+                        <a href="#">Xem lịch</a>
+                    </div>
+
+                    <div class="schedule-row">
+                        <div class="date-box">
+                            <div class="db-day">15</div>
+                            <div class="db-month">Thg 4</div>
+                        </div>
+                        <div>
+                            <div class="sch-title">Lớp IELTS-K01</div>
+                            <div class="sch-sub"><i class="bi bi-clock me-1"></i>19:30 – 21:00 • Live Zoom</div>
+                        </div>
+                    </div>
+
+                    <div class="schedule-row">
+                        <div class="date-box warning">
+                            <div class="db-day">18</div>
+                            <div class="db-month">Thg 4</div>
+                        </div>
+                        <div>
+                            <div class="sch-title">Hạn nộp Quiz Buổi 3</div>
+                            <div class="sch-sub"><i class="bi bi-exclamation-circle me-1"></i>Khóa Tiếng Anh Giao Tiếp</div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <div class="dash-card fi fi-4" style="padding: 24px;">
+            <div class="dash-card-title">
+                <span>Lịch sử làm bài gần đây</span>
+                <a href="/student/quizzes">Xem tất cả →</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                    <tr>
+                        <th>Bài kiểm tra</th>
+                        <th>Khóa học</th>
+                        <th>Thời gian nộp</th>
+                        <th>Điểm</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recentQuizHistory">
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;color:#1d6de5;">
+                                    <i class="bi bi-patch-question-fill"></i>
+                                </div>
+                                <span class="fw-bold">Quiz — Buổi 3</span>
+                            </div>
+                        </td>
+                        <td>IELTS 4.0</td>
+                        <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>23:05 03/04/2026</td>
+                        <td><span class="score-num">--</span> <span class="score-total">/ 8</span></td>
+                        <td><span class="badge-warn">Chờ chấm điểm</span></td>
+                        <td class="text-end"><button class="btn-detail">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;color:#dc2626;">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </div>
+                                <span class="fw-bold">Kiểm tra năng lực đầu vào</span>
+                            </div>
+                        </td>
+                        <td>IELTS 4.0</td>
+                        <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>22:06 28/03/2026</td>
+                        <td><span class="score-num text-danger">0</span> <span class="score-total">/ 4</span></td>
+                        <td><span class="badge-danger">Không đạt</span></td>
+                        <td class="text-end"><button class="btn-detail">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header  :: dash-scripts}"></th:block>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+      /* ─────────────────────────────────────
+         1. LEARNING TIME CHART
+      ───────────────────────────────────── */
+      const ctxL = document.getElementById('learningChart').getContext('2d');
+      const gradL = ctxL.createLinearGradient(0, 0, 0, 260);
+      gradL.addColorStop(0,   'rgba(29,109,229,0.85)');
+      gradL.addColorStop(1,   'rgba(29,109,229,0.15)');
+
+      window.learningChart = new Chart(ctxL, {
+        type: 'bar',
+        data: {
+          labels: ['...', '...', '...', '...', '...', '...', 'Hôm nay'],
+          datasets: [{
+            label: 'Giờ học',
+            data: [0, 0, 0, 0, 0, 0, 0],
+            backgroundColor: gradL,
+            borderRadius: 8,
+            barThickness: 28,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              padding: 12,
+              callbacks: { label: ctx => ctx.parsed.y + ' giờ' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9', drawBorder: false },
+              ticks: { font: { size: 11 }, color: '#94a3b8' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 }, color: '#94a3b8' }
+            }
+          }
+        }
+      });
+
+      /* ─────────────────────────────────────
+         2. MINI QUIZ SCORE CHART
+      ───────────────────────────────────── */
+      const ctxS = document.getElementById('miniScoreChart').getContext('2d');
+      const gradS = ctxS.createLinearGradient(0, 0, 0, 100);
+      gradS.addColorStop(0, 'rgba(147,51,234,0.85)');
+      gradS.addColorStop(1, 'rgba(147,51,234,0.2)');
+
+      window.miniScoreChart = new Chart(ctxS, {
+        type: 'bar',
+        data: {
+          labels: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'],
+          datasets: [{
+            data: [0, 0, 0, 0, 0],
+            backgroundColor: gradS,
+            borderRadius: 5,
+            barThickness: 'flex',
+            maxBarThickness: 18,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              callbacks: { label: ctx => ctx.parsed.y + ' điểm' }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true, max: 10,
+              grid: { color: '#f1f5f9' },
+              ticks: { stepSize: 5, font: { size: 9 }, color: '#94a3b8' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 9 }, color: '#94a3b8' }
+            }
+          }
+        }
+      });
+
+      /* ─────────────────────────────────────
+         3. FETCH DASHBOARD DATA FROM API
+      ───────────────────────────────────── */
+      const loadDashboard = async () => {
+        try {
+          console.log("Đang gọi API /student/dashboard/data...");
+          const res = await fetch('/api/v1/student/dashboard/data');
+          const result = await res.json();
+          console.log("Dữ liệu nhận được:", result);
+
+          if (result.status !== 200) {
+              console.error("API trả về lỗi:", result.message);
+              return;
+          }
+          const d = result.data;
+
+          // Welcome message
+          if (d.fullName) {
+            document.getElementById('welcomeUser').textContent = `Chào mừng trở lại, ${d.fullName}! 👋`;
+          }
+
+          // Stats
+          document.getElementById('statCourses').textContent = d.activeCourses != null ? d.activeCourses : 0;
+          document.getElementById('statQuizzes').textContent = d.completedQuizzes != null ? d.completedQuizzes : 0;
+
+          // Quiz chart update
+          if (Array.isArray(d.recentQuizScores) && d.recentQuizScores.length > 0) {
+            const reversedScores = [...d.recentQuizScores].reverse();
+            const labels = reversedScores.map(q => q.quizName || "Quiz");
+            const data = reversedScores.map(q => q.score || 0);
+
+            window.miniScoreChart.data.labels = labels.map(l => l.length > 8 ? l.substring(0, 6) + '..' : l);
+            window.miniScoreChart.data.datasets[0].data = data;
+
+            window.miniScoreChart.options.plugins.tooltip.callbacks.title = (context) => {
+               return labels[context[0].dataIndex];
+            };
+            window.miniScoreChart.update();
+          } else {
+             window.miniScoreChart.data.labels = ['---'];
+             window.miniScoreChart.data.datasets[0].data = [0];
+             window.miniScoreChart.options.plugins.tooltip.callbacks.title = () => 'Chưa có dữ liệu';
+             window.miniScoreChart.update();
+          }
+
+          // Resume learning
+          if (d.lastLesson && d.lastLesson.courseName) {
+             renderResume(d.lastLesson);
+          } else {
+             document.getElementById('resumeLearningArea').innerHTML = `
+                <div class="resume-item justify-content-center text-muted" style="padding:22px 12px; font-size:0.85rem;">
+                   Bạn chưa có bài học nào đang dở. Hãy vào Khóa học để bắt đầu!
+                </div>`;
+          }
+
+        } catch (err) {
+            console.error('Lỗi nghiêm trọng khi chạy Dashboard API:', err);
+        }
+      };
+
+      window.loadChartData = async () => {
+        const periodElement = document.getElementById('chartPeriod');
+        const period = periodElement ? periodElement.value : 7;
+        const loading = document.getElementById('chartLoading');
+
+        if (loading) loading.style.display = 'flex';
+
+        try {
+          console.log(`Đang gọi API Chart Data với số ngày: ${period}...`);
+          const res    = await fetch(`/api/v1/student/dashboard/chart-data?days=${period}`);
+          const result = await res.json();
+          console.log("Dữ liệu Chart nhận được:", result);
+
+          if (result.status === 200 && result.data) {
+            if (result.data.labels) window.learningChart.data.labels = result.data.labels;
+            if (result.data.values) window.learningChart.data.datasets[0].data = result.data.values;
+            window.learningChart.update();
+          } else {
+              console.error("API Chart trả về lỗi:", result.message);
+          }
+        } catch (err) {
+            console.error('Lỗi khi vẽ Chart API:', err);
+        } finally {
+            if (loading) loading.style.display = 'none';
+        }
+      };
+
+      const renderResume = (lesson) => {
+        const thumb = lesson.courseImage
+          ? `<img src="${lesson.courseImage}" alt="">`
+          : `<span>${(lesson.courseName || '?').substring(0,3).toUpperCase()}</span>`;
+
+        try {
+            document.getElementById('resumeLearningArea').innerHTML = `
+              <a href="${lesson.lessonUrl || '#'}" class="resume-item" title="Tiếp tục ${lesson.courseName || ''}">
+                <div class="resume-thumb">${thumb}</div>
+                <div class="resume-info">
+                  <div class="ri-title">${lesson.courseName || 'Khóa học'}</div>
+                  <div class="ri-sub">${lesson.chapterName || 'Bài học'}</div>
+                  <div class="resume-progress">
+                    <div class="resume-progress-fill" style="width:${lesson.progress || 0}%"></div>
+                  </div>
+                </div>
+                <button class="btn-play"><i class="bi bi-play-fill"></i></button>
+              </a>`;
+        } catch (e) {
+            console.error("Lỗi khi render khối Đang học dở", e);
+        }
+      };
+
+      loadDashboard();
+      loadChartData();
+    });
+</script>
+
+</body>
+</html>

@@ -33,6 +33,8 @@ public class StudentServiceImpl implements StudentService {
     private final UserLessonRepository userLessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
     private final SessionQuizRepository sessionQuizRepository;
+    private final LessonRepository lessonRepository;
+    private final QuizResultRepository quizResultRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -183,15 +185,75 @@ public class StudentServiceImpl implements StudentService {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
+            // Active Courses Count
+            List<Registration> myRegs = registrationRepository.findByUserEmail(user.getEmail());
+            int activeCoursesCount = (int) myRegs.stream().filter(r -> "Approved".equals(r.getStatus())).count();
+
+            // Completed Quizzes Count
+            List<QuizResult> myQuizzes = quizResultRepository.findByUser_Email(user.getEmail());
+            int completedQuizzesCount = myQuizzes.size();
+
+            // Recent Quiz Scores (mapping to List<QuizScoreDTO>)
+            Page<QuizResult> recentPage = quizResultRepository.findByUserEmailOrderBySubmittedAtDesc(user.getEmail(), PageRequest.of(0, 5));
+            List<DashboardResponseDTO.QuizScoreDTO> recentScores = recentPage.getContent().stream()
+                    .map(q -> DashboardResponseDTO.QuizScoreDTO.builder()
+                            .quizName(q.getQuiz().getTitle())
+                            .score(q.getScore() != null ? q.getScore().doubleValue() : 0.0)
+                            .build())
+                    .collect(Collectors.toList());
+
+            // Last Lesson (Find latest active enrollment, then find its active lesson)
+            DashboardResponseDTO.LastLessonDTO lastLessonDTO = null;
+            Registration latestActiveReg = myRegs.stream()
+                    .filter(r -> "Approved".equals(r.getStatus()))
+                    .max(java.util.Comparator.comparing(Registration::getRegistrationTime))
+                    .orElse(null);
+
+            if (latestActiveReg != null) {
+                Course course = latestActiveReg.getCourse();
+                if (course != null) {
+                    List<Integer> uncompleted = userLessonRepository.findUncompletedLessonIds(user.getUserId(), course.getCourseId());
+                    Lesson targetLesson = null;
+
+                    if (!uncompleted.isEmpty()) {
+                        targetLesson = lessonRepository.findById(uncompleted.get(0)).orElse(null);
+                    } else {
+                        List<Integer> allIds = userLessonRepository.findAllLessonIdsOfCourse(course.getCourseId());
+                        if (!allIds.isEmpty()) {
+                            targetLesson = lessonRepository.findById(allIds.get(allIds.size() - 1)).orElse(null);
+                        }
+                    }
+
+                    if (targetLesson != null) {
+                        long completedCount = userLessonRepository.countCompletedLessonsByUserIdAndCourseId(user.getUserId(), course.getCourseId());
+                        long totalCount = userLessonRepository.findAllLessonIdsOfCourse(course.getCourseId()).size();
+                        int progress = totalCount > 0 ? (int) ((completedCount * 100) / totalCount) : 0;
+
+                        lastLessonDTO = DashboardResponseDTO.LastLessonDTO.builder()
+                                .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
+                                .chapterName(targetLesson.getLessonName())
+                                .progress(progress)
+                                .lessonUrl("/student/lesson/view/" + targetLesson.getLessonId())
+                                .courseImage(course.getImageUrl())
+                                .build();
+                    }
+                }
+            }
+
             DashboardResponseDTO dto = DashboardResponseDTO.builder()
                     .email(user.getEmail())
                     .fullName(user.getFullName())
                     .avatarUrl(user.getAvatarUrl())
                     .roleName(user.getRole().getName())
+                    .activeCourses(activeCoursesCount)
+                    .completedQuizzes(completedQuizzesCount)
+                    .recentQuizScores(recentScores)
+                    .lastLesson(lastLessonDTO)
                     .build();
 
             return ResponseData.success("Thành công", dto);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
     }
