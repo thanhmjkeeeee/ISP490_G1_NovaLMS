@@ -303,6 +303,55 @@
           originalBtn.innerHTML = originalHtml;
       }
   }
+
+    // ── 📊 STUDY TIME TRACKING (PAGE VISIBILITY API) ─────────────────────────
+    let studySeconds = 0;
+    let isActive = true;
+    let trackInterval;
+
+    const startTracking = () => {
+        trackInterval = setInterval(() => {
+            if (isActive) {
+                studySeconds++;
+                // Ping every 30 seconds
+                if (studySeconds % 30 === 0) {
+                    syncStudyTime(30);
+                }
+            }
+        }, 1000);
+    };
+
+    const stopTracking = () => {
+        clearInterval(trackInterval);
+    };
+
+    const syncStudyTime = (seconds) => {
+        if (seconds <= 0) return;
+        fetch('/api/v1/learning/track-time', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seconds: seconds })
+        }).catch(err => console.error('Tracking sync error:', err));
+    };
+
+    // Use sendBeacon for the last sync before leaving
+    window.addEventListener('beforeunload', () => {
+        const remaining = studySeconds % 30;
+        if (remaining > 0) {
+            const data = JSON.stringify({ seconds: remaining });
+            navigator.sendBeacon('/api/v1/learning/track-time', data);
+        }
+    });
+
+    // Handle Tab visibility & Focus
+    document.addEventListener('visibilitychange', () => {
+        isActive = (document.visibilityState === 'visible');
+    });
+
+    window.addEventListener('focus', () => isActive = true);
+    window.addEventListener('blur', () => isActive = false);
+
+    startTracking();
 </script>
 
 </body>
