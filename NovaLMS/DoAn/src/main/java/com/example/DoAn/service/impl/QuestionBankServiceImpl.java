@@ -8,6 +8,7 @@ import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.AnswerOption;
 import com.example.DoAn.model.Question;
+import com.example.DoAn.model.QuestionGroup;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.AnswerOptionRepository;
 import com.example.DoAn.repository.QuestionRepository;
@@ -88,16 +89,54 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 question.getAnswerOptions().clear();
             }
             
-            for (int i = 0; i < request.getOptions().size(); i++) {
-                QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
-                AnswerOption opt = AnswerOption.builder()
-                        .question(question)
-                        .title(optDTO.getTitle())
-                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                        .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
-                        .matchTarget(optDTO.getMatchTarget())
-                        .build();
-                question.getAnswerOptions().add(opt);
+            if ("MATCHING".equals(request.getQuestionType())) {
+                var allOptions = request.getOptions();
+                var lefts = allOptions.stream()
+                        .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                        .toList();
+                
+                var manualRights = allOptions.stream()
+                        .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                        .map(QuestionBankRequestDTO.AnswerOptionDTO::getTitle)
+                        .collect(java.util.stream.Collectors.toSet());
+                
+                var implicitRights = lefts.stream()
+                        .map(QuestionBankRequestDTO.AnswerOptionDTO::getMatchTarget)
+                        .collect(java.util.stream.Collectors.toSet());
+                
+                manualRights.addAll(implicitRights);
+                var uniqueRights = manualRights.stream().toList();
+
+                for (int i = 0; i < lefts.size(); i++) {
+                    var left = lefts.get(i);
+                    question.getAnswerOptions().add(AnswerOption.builder()
+                            .question(question)
+                            .title(left.getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(left.getMatchTarget())
+                            .build());
+                }
+                for (int i = 0; i < uniqueRights.size(); i++) {
+                    question.getAnswerOptions().add(AnswerOption.builder()
+                            .question(question)
+                            .title(uniqueRights.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(lefts.size() + i)
+                            .build());
+                }
+            } else {
+                for (int i = 0; i < request.getOptions().size(); i++) {
+                    QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
+                    AnswerOption opt = AnswerOption.builder()
+                            .question(question)
+                            .title(optDTO.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                            .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
+                            .matchTarget(optDTO.getMatchTarget())
+                            .build();
+                    question.getAnswerOptions().add(opt);
+                }
             }
             // Sử dụng repository để đảm bảo dữ liệu được lưu tức thì nếu cần
             answerOptionRepository.saveAll(question.getAnswerOptions());
@@ -143,16 +182,54 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 question.getAnswerOptions().clear();
             }
             
-            for (int i = 0; i < request.getOptions().size(); i++) {
-                QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
-                AnswerOption opt = AnswerOption.builder()
-                        .question(question)
-                        .title(optDTO.getTitle())
-                        .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
-                        .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
-                        .matchTarget(optDTO.getMatchTarget())
-                        .build();
-                question.getAnswerOptions().add(opt);
+            if ("MATCHING".equals(request.getQuestionType())) {
+                var allOptions = request.getOptions();
+                var lefts = allOptions.stream()
+                        .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
+                        .toList();
+                
+                var manualRights = allOptions.stream()
+                        .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
+                        .map(QuestionBankRequestDTO.AnswerOptionDTO::getTitle)
+                        .collect(java.util.stream.Collectors.toSet());
+                
+                var implicitRights = lefts.stream()
+                        .map(QuestionBankRequestDTO.AnswerOptionDTO::getMatchTarget)
+                        .collect(java.util.stream.Collectors.toSet());
+                
+                manualRights.addAll(implicitRights);
+                var uniqueRights = manualRights.stream().toList();
+
+                for (int i = 0; i < lefts.size(); i++) {
+                    var left = lefts.get(i);
+                    question.getAnswerOptions().add(AnswerOption.builder()
+                            .question(question)
+                            .title(left.getTitle())
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(left.getMatchTarget())
+                            .build());
+                }
+                for (int i = 0; i < uniqueRights.size(); i++) {
+                    question.getAnswerOptions().add(AnswerOption.builder()
+                            .question(question)
+                            .title(uniqueRights.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(lefts.size() + i)
+                            .build());
+                }
+            } else {
+                for (int i = 0; i < request.getOptions().size(); i++) {
+                    QuestionBankRequestDTO.AnswerOptionDTO optDTO = request.getOptions().get(i);
+                    AnswerOption opt = AnswerOption.builder()
+                            .question(question)
+                            .title(optDTO.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                            .orderIndex(optDTO.getOrderIndex() != null ? optDTO.getOrderIndex() : i)
+                            .matchTarget(optDTO.getMatchTarget())
+                            .build();
+                    question.getAnswerOptions().add(opt);
+                }
             }
         }
 
@@ -259,7 +336,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .build();
     }
 
-    private QuestionBankItemDTO toUnifiedItemDTO(com.example.DoAn.model.QuestionGroup g) {
+    private QuestionBankItemDTO toUnifiedItemDTO(QuestionGroup g) {
         return QuestionBankItemDTO.builder()
                 .id(g.getGroupId())
                 .type("GROUP")
@@ -267,7 +344,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .skill(g.getSkill())
                 .cefrLevel(g.getCefrLevel())
                 .topic(g.getTopic())
-                .status(g.getStatus() != null ? g.getStatus() : "PUBLISHED")
+                .status(g.getStatus()) // Không mặc định PUBLISHED nữa
                 .createdAt(g.getCreatedAt())
                 .questionType("PASSAGE")
                 .subQuestionCount(g.getQuestions() != null ? g.getQuestions().size() : 0)
@@ -282,30 +359,53 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
     @Override
     @Transactional
-    public QuestionBankResponseDTO changeStatus(Integer questionId, String newStatus, String email) {
+    public QuestionBankResponseDTO changeStatus(Integer questionId, String type, String newStatus, String email) {
         findExpert(email);
-        Question question = findQuestion(questionId);
 
         if (!VALID_STATUSES.contains(newStatus)) {
             throw new InvalidDataException("Trạng thái không hợp lệ: " + newStatus);
         }
 
-        String currentStatus = question.getStatus();
+        if ("GROUP".equals(type)) {
+            QuestionGroup group = questionGroupRepository.findById(questionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi ID: " + questionId));
+            
+            String currentStatus = group.getStatus();
+            if (newStatus.equals(currentStatus)) {
+                return toResponseDTO(group);
+            }
+
+            validateTransition(currentStatus, newStatus);
+            group.setStatus(newStatus);
+            questionGroupRepository.save(group);
+            return toResponseDTO(group);
+        } else {
+            Question question = findQuestion(questionId);
+            String currentStatus = question.getStatus();
+            
+            if (newStatus.equals(currentStatus)) {
+                return toResponseDTO(question);
+            }
+
+            validateTransition(currentStatus, newStatus);
+            question.setStatus(newStatus);
+            questionRepository.save(question);
+            return toResponseDTO(question);
+        }
+    }
+
+    private void validateTransition(String currentStatus, String newStatus) {
         // Validate transitions: DRAFT→PUBLISHED, PUBLISHED→ARCHIVED, PUBLISHED→DRAFT
-        boolean validTransition =
+        boolean valid =
             ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
             ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
             ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));
 
-        if (!validTransition) {
+        if (!valid) {
             throw new InvalidDataException(
-                "Không thể chuyển trạng thái từ " + currentStatus + " sang " + newStatus
+                "Không thể chuyển trạng thái từ " + (currentStatus == null ? "NULL" : currentStatus) + " sang " + newStatus
             );
         }
-
-        question.setStatus(newStatus);
-        questionRepository.save(question);
-        return toResponseDTO(question);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -365,12 +465,14 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         }
 
         if ("MATCHING".equals(type)) {
-            int withTarget = (int) request.getOptions().stream()
+            long withTarget = request.getOptions().stream()
                     .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank()).count();
-            int withoutTarget = request.getOptions().size() - withTarget;
-            if (withTarget == 0 || withoutTarget == 0) {
+            if (request.getOptions().size() < 2) {
+                throw new InvalidDataException("Câu hỏi Matching phải có ít nhất 2 hàng dữ liệu.");
+            }
+            if (withTarget == 0) {
                 throw new InvalidDataException(
-                    "Câu hỏi Matching cần có ít nhất 1 đáp án bên trái (có ghép nối) và 1 bên phải (không ghép nối).");
+                    "Câu hỏi Matching cần ít nhất 1 vế trái (nội dung có vế phải ghép nối).");
             }
         }
 
@@ -443,6 +545,25 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .usedInQuizCount((int) quizUsage)
                 .options(optionDTOs)
                 .matchRightOptions(rightDTOs)
+                .build();
+    }
+
+    private QuestionBankResponseDTO toResponseDTO(QuestionGroup group) {
+        int quizUsage = (int) quizQuestionRepository.countByQuestionGroup_GroupId(group.getGroupId());
+        return QuestionBankResponseDTO.builder()
+                .questionId(group.getGroupId())
+                .content(group.getGroupContent())
+                .questionType("PASSAGE")
+                .skill(group.getSkill())
+                .cefrLevel(group.getCefrLevel())
+                .topic(group.getTopic())
+                .explanation(group.getExplanation())
+                .audioUrl(group.getAudioUrl())
+                .imageUrl(group.getImageUrl())
+                .status(group.getStatus())
+                .createdByName(group.getUser() != null ? group.getUser().getFullName() : null)
+                .createdAt(group.getCreatedAt())
+                .usedInQuizCount(quizUsage)
                 .build();
     }
 }
