@@ -169,7 +169,7 @@
 
   async function loadCategories() {
     try {
-      const res = await fetch('/admin/settings/categories');
+      const res = await fetch('/api/settings?type=COURSE_CATEGORY');
       const result = await res.json();
       const select = document.getElementById('categoryId');
       select.innerHTML = '<option value="">-- Chọn chương trình --</option>';
@@ -217,7 +217,7 @@
     }
 
     try {
-      const res = await fetch('/admin/settings/category', {
+      const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name, value: value })
