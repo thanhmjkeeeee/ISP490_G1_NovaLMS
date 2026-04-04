@@ -700,7 +700,8 @@ function editLesson(moduleId, lessonId) {
     document.getElementById('lessonName').value = l.lessonName || '';
     document.getElementById('lessonType').value = l.type || 'VIDEO';
     document.getElementById('lessonOrder').value = l.orderIndex || '';
-    // Load DOC content
+    // Load VIDEO / DOC content
+    document.getElementById('lessonVideoUrl').value = l.videoUrl || '';
     document.getElementById('lessonContentText').value = l.contentText || '';
     var docUrl = (l.type === 'DOC') ? l.videoUrl : '';
     document.getElementById('uploadedDocUrl').value = docUrl || '';
