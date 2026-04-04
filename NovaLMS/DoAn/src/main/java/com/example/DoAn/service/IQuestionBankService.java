@@ -19,5 +19,5 @@ public interface IQuestionBankService {
         String questionType, String topic, String status, String keyword,
         int page, int size);
 
-    QuestionBankResponseDTO changeStatus(Integer questionId, String newStatus, String email);
+    QuestionBankResponseDTO changeStatus(Integer questionId, String type, String newStatus, String email);
 }
