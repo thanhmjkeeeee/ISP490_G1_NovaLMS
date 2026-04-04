@@ -28,6 +28,18 @@ public class SettingService {
                 .orElseThrow(() -> new RuntimeException("Setting not found with id: " + id));
     }
 
+    public Setting createSetting(String type, String name, String value, String description, Integer orderIndex) {
+        Setting setting = Setting.builder()
+                .name(name)
+                .value(value)
+                .settingType((type != null && !type.isEmpty()) ? type : "COURSE_CATEGORY")
+                .status("Active")
+                .description(description)
+                .orderIndex(orderIndex != null ? orderIndex : 0)
+                .build();
+        return settingRepository.save(setting);
+    }
+
     public Setting createCourseCategory(String name, String value, String description, Integer orderIndex) {
         Setting setting = Setting.builder()
                 .name(name)

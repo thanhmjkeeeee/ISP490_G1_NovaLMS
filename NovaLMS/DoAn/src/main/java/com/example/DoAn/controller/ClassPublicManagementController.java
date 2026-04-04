@@ -21,9 +21,10 @@ public class ClassPublicManagementController {
     public ResponseData<PageResponse<ClassPublicResponseDTO>> getClasses(
             @RequestParam(defaultValue = "0") int pageNo,
             @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) Integer categoryId) {
+            @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String keyword) {
 
-        var response = classPublicService.getOpenClassesWithFilter(pageNo, pageSize, categoryId);
+        var response = classPublicService.getOpenClassesWithFilter(pageNo, pageSize, categoryId, keyword);
         return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
     }
 }
