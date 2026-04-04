@@ -108,57 +108,66 @@
         font-weight: 500;
     }
 
-    /* Modal Styling */
-    .modal-content { border-radius: 20px; border: none; }
-    .modal-header { border-bottom: 1px solid #f1f5f9; padding: 24px; }
+    /* ── CSS DÀNH RIÊNG CHO MODAL ── */
+    .modal-content.custom-modal {
+        border-radius: 24px;
+        border: none;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
     .section-title {
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        text-transform: uppercase;
-        color: #6c757d;
         letter-spacing: 0.5px;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
     }
-    .section-title i { margin-right: 8px; }
-    .content-item {
+    /* Thẻ Content có thể click */
+    .action-card {
         display: flex;
         align-items: center;
-        padding: 14px 18px;
-        background: #f8fafc;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        padding: 16px;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
         text-decoration: none;
-        color: #334155;
-        transition: all 0.2s;
-        border: 1px solid transparent;
+        color: #1e293b;
+        margin-bottom: 12px;
+        transition: all 0.25s ease;
     }
-    .content-item:hover {
-        background: #ffffff;
+    .action-card:hover:not([style*="not-allowed"]) {
         border-color: #0d6efd;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transform: translateX(4px);
+        box-shadow: 0 8px 16px rgba(13, 110, 253, 0.12);
+        transform: translateY(-3px);
         color: #0d6efd;
     }
-    .content-item .icon {
-        width: 36px; height: 36px;
-        border-radius: 8px;
-        display: flex; align-items: center; justify-content: center;
-        margin-right: 14px;
-        font-size: 1.1rem;
+    .action-card .icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        margin-right: 16px;
+        flex-shrink: 0;
     }
-    .icon-video { background: #fee2e2; color: #ef4444; }
-    .icon-doc { background: #e0e7ff; color: #0d6efd; }
-    .icon-quiz { background: #fef3c7; color: #f59e0b; }
-
+    /* Biến thể màu sắc cho từng loại nội dung */
+    .icon-lesson { background-color: #eff6ff; color: #0d6efd; }
+    .icon-quiz   { background-color: #fffbeb; color: #f59e0b; }
+    .action-card .card-text { flex-grow: 1; }
+    .action-card .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 2px; }
+    .action-card .card-subtitle { font-size: 0.75rem; color: #64748b; margin-bottom: 0; }
+    .action-card .arrow-icon { color: #cbd5e1; font-size: 1.2rem; transition: transform 0.2s ease; }
+    .action-card:hover:not([style*="not-allowed"]) .arrow-icon { color: #0d6efd; transform: translateX(4px); }
+    
     .empty-state {
         text-align: center;
         padding: 24px;
         background: #f1f5f9;
         border-radius: 12px;
         color: #94a3b8;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-style: italic;
     }
 </style>
@@ -261,9 +270,9 @@
                             </div>
                             <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
                             <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
-                            <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary">
-                                <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi
-                            </button>
+<!--                            <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary">-->
+<!--                                <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi-->
+<!--                            </button>-->
                         </div>
                     </div>
                 </div>
@@ -275,31 +284,35 @@
 
 <div class="modal fade" id="sessionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg">
-            <div class="modal-header bg-light">
+        <div class="modal-content custom-modal">
+            <!-- Header -->
+            <div class="modal-header border-0 pb-0 px-4 pt-4 align-items-start">
                 <div>
-                    <span class="badge bg-primary mb-2" id="modalSessionNo">BUỔI 01</span>
-                    <h5 class="modal-title fw-bold text-dark" id="modalTopic">Chủ đề bài học</h5>
+                    <span class="badge bg-primary rounded-pill px-3 py-2 mb-2 shadow-sm" style="font-size: 0.75rem;" id="modalSessionNo">BUỔI 01</span>
+                    <h4 class="modal-title fw-bolder text-dark" id="modalTopic">Chủ đề bài học</h4>
                 </div>
-                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close shadow-none bg-light rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <!-- Body -->
             <div class="modal-body p-4">
-
+                <!-- Nhóm Nội Dung -->
                 <div class="mb-4">
-                    <div class="section-title"><i class="bi bi-book-half"></i> Nội dung bài học</div>
-                    <div id="materialsList">
+                    <div class="section-title text-secondary text-uppercase">
+                        <i class="bi bi-book-half text-primary me-2 fs-6"></i> NỘI DUNG BÀI HỌC
                     </div>
+                    <div id="materialsList"></div>
                 </div>
-
-                <div>
-                    <div class="section-title text-warning"><i class="bi bi-patch-question"></i> Bài tập & Trắc nghiệm</div>
-                    <div id="quizzesList">
+                <!-- Nhóm Quiz -->
+                <div class="mb-2">
+                    <div class="section-title text-warning text-uppercase">
+                        <i class="bi bi-patch-question-fill me-2 fs-6"></i> BÀI TẬP & TRẮC NGHIỆM
                     </div>
+                    <div id="quizzesList"></div>
                 </div>
-
             </div>
-            <div class="modal-footer border-0 pt-0 justify-content-center">
-                <button type="button" class="btn btn-light fw-bold rounded-pill px-5 border shadow-sm hover-bg-light" data-bs-dismiss="modal">Đóng</button>
+            <!-- Footer -->
+            <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                <button type="button" class="btn btn-light fw-bold rounded-pill px-5 py-2 border shadow-sm" style="color: #475569;" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -466,21 +479,25 @@
             materials.forEach(m => {
                 const typeStr = (m.type || '').toUpperCase();
                 const isVideo = typeStr === 'VIDEO' || typeStr.includes('VID');
-                const icon = isVideo ? 'bi-play-btn-fill icon-video' : 'bi-file-earmark-text icon-doc';
+                const icon = isVideo ? 'bi-play-btn-fill' : 'bi-file-earmark-text-fill';
                 const isLocked = m.isLocked === true;
 
                 const title = m.lessonTitle || m.lessonName || m.title || 'Tài liệu học tập';
+                const subtitle = isVideo ? 'Video bài giảng' : 'Tài liệu đọc';
                 const url = isLocked ? 'javascript:void(0)' : `/student/lesson/view/${m.lessonId}`;
                 const lockedState = isLocked ? 'opacity: 0.6; cursor: not-allowed;' : '';
 
                 materialsHtml += `
-                    <div class="position-relative">
-                        <a href="${url}" class="content-item shadow-sm" style="${lockedState}">
-                            <div class="icon ${icon.split(' ')[1]}"><i class="bi ${icon.split(' ')[0]}"></i></div>
-                            <div class="fw-bold fs-6 flex-grow-1">${title}</div>
-                            ${isLocked ? '<i class="bi bi-lock-fill ms-auto text-muted"></i>' : ''}
-                        </a>
-                    </div>`;
+                    <a href="${url}" class="action-card shadow-sm" style="${lockedState}">
+                        <div class="icon-box icon-lesson">
+                            <i class="bi ${icon}"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">${title}</div>
+                            <div class="card-subtitle">${subtitle} ${m.duration ? '• ' + m.duration : ''}</div>
+                        </div>
+                        ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '<i class="bi bi-chevron-right arrow-icon"></i>'}
+                    </a>`;
             });
             materialsContainer.innerHTML = materialsHtml;
         } else {
@@ -511,13 +528,16 @@
                 }
 
                 quizzesHtml += `
-                    <div class="position-relative">
-                        <a href="${url}" ${onclick} class="content-item shadow-sm" style="${lockedState}">
-                            <div class="icon icon-quiz"><i class="bi bi-patch-question-fill"></i></div>
-                            <div class="fw-bold fs-6 flex-grow-1">${title}</div>
-                            ${isLocked ? '<i class="bi bi-lock-fill ms-auto text-muted"></i>' : ''}
-                        </a>
-                    </div>`;
+                    <a href="${url}" ${onclick} class="action-card shadow-sm" style="${lockedState}">
+                        <div class="icon-box icon-quiz">
+                            <i class="bi bi-patch-question-fill"></i>
+                        </div>
+                        <div class="card-text">
+                            <div class="card-title">${title}</div>
+                            <div class="card-subtitle">Trắc nghiệm • Có tính điểm</div>
+                        </div>
+                        ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '<i class="bi bi-chevron-right arrow-icon"></i>'}
+                    </a>`;
             });
             quizzesContainer.innerHTML = quizzesHtml;
         } else {

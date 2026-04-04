@@ -94,11 +94,12 @@ public class LearningServiceImpl implements LearningService {
                             CourseLearningInfoDTO.LessonDTO lessDTO = new CourseLearningInfoDTO.LessonDTO();
                             lessDTO.setLessonId(lesson.getLessonId().longValue());
                             lessDTO.setLessonTitle(lesson.getLessonName());
-                            lessDTO.setLessonName(lesson.getLessonName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
+                            lessDTO.setLessonName(lesson.getLessonName());
                             lessDTO.setType(lesson.getType());
                             lessDTO.setDuration(lesson.getDuration());
-                            lessDTO.setVideoUrl(lesson.getVideoUrl());     // 🟢 THÊM DÒNG NÀY: Bổ sung Link gốc
+                            lessDTO.setVideoUrl(lesson.getVideoUrl());
                             lessDTO.setVideoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()));
+                            lessDTO.setAllowDownload(lesson.getAllowDownload() != null ? lesson.getAllowDownload() : true);
                             lessDTO.setCompleted(isCompleted);
                             lessDTO.setLocked(false);
 
@@ -164,6 +165,7 @@ public class LearningServiceImpl implements LearningService {
                     .videoUrl(currentLesson.getVideoUrl())
                     .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(currentLesson.getVideoUrl()))
                     .contentText(currentLesson.getContent_text())
+                    .allowDownload(currentLesson.getAllowDownload() != null ? currentLesson.getAllowDownload() : true)
                     .isCompleted(false)
                     .isLocked(false)
                     .build();

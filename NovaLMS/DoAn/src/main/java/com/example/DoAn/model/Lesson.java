@@ -38,6 +38,9 @@ public class Lesson {
     @Column(name = "order_index")
     private Integer orderIndex;
 
+    @Column(name = "allow_download", columnDefinition = "boolean default true")
+    private Boolean allowDownload = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "module_id")
     @JsonBackReference(value = "module-lessons")
