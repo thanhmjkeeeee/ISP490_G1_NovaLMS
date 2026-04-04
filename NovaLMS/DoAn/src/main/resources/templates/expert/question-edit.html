@@ -49,7 +49,7 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-uppercase">Kỹ năng</label>
-                    <select id="skill" class="form-select border-0 bg-light shadow-none" onchange="onSkillChange()">
+                    <select id="skill" class="form-select border-0 bg-light shadow-none" disabled>
                         <option value="READING">Reading</option>
                         <option value="LISTENING">Listening</option>
                         <option value="WRITING">Writing</option>
@@ -142,11 +142,27 @@ async function loadData() {
     } catch (e) { console.error(e); }
 }
 
+function getFilteredQuestionTypeOptions(skill, currentType) {
+    if (skill === 'WRITING') {
+        return `<option value="WRITING" ${currentType === 'WRITING' ? 'selected' : ''}>Writing (Tự luận)</option>`;
+    } else if (skill === 'SPEAKING') {
+        return `<option value="SPEAKING" ${currentType === 'SPEAKING' ? 'selected' : ''}>Speaking (Nói)</option>`;
+    } else {
+        return `
+            <option value="MULTIPLE_CHOICE_SINGLE" ${currentType === 'MULTIPLE_CHOICE_SINGLE' ? 'selected' : ''}>Multiple Choice Single</option>
+            <option value="MULTIPLE_CHOICE_MULTI" ${currentType === 'MULTIPLE_CHOICE_MULTI' ? 'selected' : ''}>Multiple Choice Multi</option>
+            <option value="FILL_IN_BLANK" ${currentType === 'FILL_IN_BLANK' ? 'selected' : ''}>Fill in the Blank</option>
+            <option value="MATCHING" ${currentType === 'MATCHING' ? 'selected' : ''}>Matching</option>
+        `;
+    }
+}
+
 function renderSingle(q) {
     document.getElementById('skill').value = q.skill;
     document.getElementById('cefrLevel').value = q.cefrLevel;
     document.getElementById('topic').value = q.topic || '';
     document.getElementById('content').value = q.content || '';
+    document.getElementById('questionType').innerHTML = getFilteredQuestionTypeOptions(q.skill, q.questionType);
     document.getElementById('questionType').value = q.questionType;
     document.getElementById('audioUrl').value = q.audioUrl || '';
     document.getElementById('imageUrl').value = q.imageUrl || '';
@@ -180,7 +196,7 @@ function switchToSplitView(groupData) {
             <div class="row g-2 mb-3">
                 <div class="col-6">
                     <label class="form-label small fw-bold text-muted">KỸ NĂNG</label>
-                    <select id="skill" class="form-select border-0 bg-light">
+                    <select id="skill" class="form-select border-0 bg-light" disabled>
                         <option value="READING" ${groupData.skill === 'READING' ? 'selected' : ''}>Reading</option>
                         <option value="LISTENING" ${groupData.skill === 'LISTENING' ? 'selected' : ''}>Listening</option>
                         <option value="WRITING" ${groupData.skill === 'WRITING' ? 'selected' : ''}>Writing</option>
@@ -266,20 +282,16 @@ function renderSubQuestions() {
                 </div>
                 <!-- Selection Type -->
                 <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubType(this, ${id})">
-                    <option value="MULTIPLE_CHOICE_SINGLE" ${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'selected' : ''}>Multiple Choice Single</option>
-                    <option value="MULTIPLE_CHOICE_MULTI" ${q.questionType === 'MULTIPLE_CHOICE_MULTI' ? 'selected' : ''}>Multiple Choice Multi</option>
-                    <option value="FILL_IN_BLANK" ${q.questionType === 'FILL_IN_BLANK' ? 'selected' : ''}>Fill in the Blank</option>
-                    <option value="MATCHING" ${q.questionType === 'MATCHING' ? 'selected' : ''}>Matching</option>
-                    <option value="WRITING" ${q.questionType === 'WRITING' ? 'selected' : ''}>Writing / Tự luận</option>
+                    ${getFilteredQuestionTypeOptions(document.getElementById('skill').value, q.questionType)}
                 </select>
                 <!-- Question Content -->
                 <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nội dung câu hỏi..." value="${q.content || ''}">
                 <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
                 <!-- Options container -->
-                <div class="sub-options-container" ${q.questionType === 'WRITING' ? 'style="display:none;"' : ''}>
+                <div class="sub-options-container" ${(q.questionType === 'WRITING' || q.questionType === 'SPEAKING') ? 'style="display:none;"' : ''}>
                     ${(q.options || []).map(opt => getSubOptionHTML(opt, q.questionType)).join('')}
                 </div>
-                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" ${q.questionType === 'WRITING' ? 'style="display:none;"' : ''} onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
+                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" ${(q.questionType === 'WRITING' || q.questionType === 'SPEAKING') ? 'style="display:none;"' : ''} onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
             </div>
         `;
         container.appendChild(div);
@@ -299,11 +311,7 @@ function addSubQuestion() {
                 <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
             </div>
             <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubType(this, ${id})">
-                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
-                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
-                <option value="FILL_IN_BLANK">Fill in the Blank</option>
-                <option value="MATCHING">Matching</option>
-                <option value="WRITING">Writing / Tự luận</option>
+                ${getFilteredQuestionTypeOptions(document.getElementById('skill').value, 'MULTIPLE_CHOICE_SINGLE')}
             </select>
             <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nội dung câu hỏi con...">
             <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
@@ -326,7 +334,7 @@ function updateSubType(selectEl, qId) {
     const addBtn = document.querySelector(`#sub-q-${qId} .sub-add-btn`);
     
     container.innerHTML = '';
-    if (type === 'WRITING') {
+    if (type === 'WRITING' || type === 'SPEAKING') {
         container.style.display = 'none';
         if(addBtn) addBtn.style.display = 'none';
         return;
@@ -432,7 +440,7 @@ function renderOptions(options = []) {
     const addBtn = document.querySelector('button[onclick="addOption()"]');
     
     container.innerHTML = '';
-    if (type === 'WRITING') {
+    if (type === 'WRITING' || type === 'SPEAKING') {
         container.style.display = 'none';
         if (addBtn) addBtn.style.display = 'none';
         return;
