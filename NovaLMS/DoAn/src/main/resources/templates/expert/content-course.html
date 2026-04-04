@@ -130,10 +130,10 @@
                         <textarea id="lessonContentText" class="form-control" rows="4" placeholder="Nhập mô tả cho tài liệu bài học..."></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Tài liệu đính kèm (.docx) <span class="text-secondary small">(Tùy chọn)</span></label>
+                        <label class="form-label small fw-bold text-secondary">Tài liệu đính kèm (.docx, .pdf) <span class="text-secondary small">(Tùy chọn)</span></label>
                         <div class="input-group">
-                            <input type="file" id="lessonDocFile" class="form-control" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                            <span class="input-group-text bg-light"><i class="bi bi-file-earmark-word"></i></span>
+                            <input type="file" id="lessonDocFile" class="form-control" accept=".docx,.doc,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf">
+                            <span class="input-group-text bg-light"><i class="bi bi-file-earmark-arrow-up"></i></span>
                         </div>
                         <div id="docUploadStatus" class="small mt-1" style="display:none;"></div>
                         <div id="currentDocLink" class="mt-2 small" style="display:none;">
@@ -144,6 +144,15 @@
                         </div>
                         <!-- Hidden input to store uploaded URL -->
                         <input type="hidden" id="uploadedDocUrl">
+                    </div>
+                    <!-- Download Permission -->
+                    <div class="mb-2">
+                        <div class="form-check form-switch bg-light p-2 rounded-3 border border-dashed">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" id="lessonAllowDownload" checked>
+                            <label class="form-check-label small fw-bold text-primary" for="lessonAllowDownload">
+                                <i class="bi bi-cloud-download me-1"></i> Cho phép học viên tải tài liệu này
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div id="lessonError" class="text-danger small" style="display:none;"></div>
@@ -689,6 +698,7 @@ function openLessonModal(moduleId) {
     document.getElementById('lessonDocFile').value = '';
     document.getElementById('docUploadStatus').style.display = 'none';
     document.getElementById('currentDocLink').style.display = 'none';
+    document.getElementById('lessonAllowDownload').checked = true;
     
     onLessonTypeChange();
     lessonModal.show();
@@ -711,6 +721,7 @@ function editLesson(moduleId, lessonId) {
     document.getElementById('uploadedDocUrl').value = docUrl || '';
     document.getElementById('lessonDocFile').value = '';
     document.getElementById('docUploadStatus').style.display = 'none';
+    document.getElementById('lessonAllowDownload').checked = (l.allowDownload !== false); // Default to true if null
     
     if (l.type === 'DOC' && docUrl) {
         document.getElementById('currentDocLink').style.display = 'block';
@@ -776,6 +787,7 @@ async function saveLesson() {
         type: type,
         videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
         contentText: type === 'DOC' ? contentText : null,
+        allowDownload: document.getElementById('lessonAllowDownload').checked,
         orderIndex: orderStr ? parseInt(orderStr) : null
     };
 
