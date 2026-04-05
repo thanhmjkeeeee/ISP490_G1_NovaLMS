@@ -98,6 +98,7 @@
         font-size: 0.85rem;
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         margin-bottom: 4px;
@@ -189,7 +190,7 @@
         <div id="classContentWrapper" class="d-none mt-4">
 
             <div class="row g-4">
-                <div class="col-lg-8">
+                <div class="col-12">
                     <div class="bg-white rounded-4 shadow-sm p-2 mb-4">
                         <ul class="nav nav-pills nav-fill gap-2" id="classTabs" role="tablist">
                             <li class="nav-item" role="presentation">
@@ -213,9 +214,27 @@
                     <div class="tab-content" id="classTabContent">
 
                         <div class="tab-pane fade" id="tab-info" role="tabpanel">
-                            <div class="card p-4 border-0 shadow-sm rounded-4 mb-4">
-                                <h5 class="fw-bold mb-3 text-primary border-bottom pb-2"><i class="bi bi-journal-text me-2"></i>Giới thiệu lớp học</h5>
-                                <div id="infoContent" class="text-muted lh-lg">Đang cập nhật...</div>
+                            <div class="row g-4">
+                                <div class="col-lg-8">
+                                    <div class="card p-4 border-0 shadow-sm rounded-4 h-100">
+                                        <h5 class="fw-bold mb-3 text-primary border-bottom pb-2"><i class="bi bi-journal-text me-2"></i>Giới thiệu lớp học</h5>
+                                        <div id="infoContent" class="text-muted lh-lg">Đang cập nhật...</div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card text-center p-4 border-0 shadow-sm rounded-4 h-100">
+                                        <h6 class="fw-bold border-bottom pb-3 mb-4 text-start text-uppercase small tracking-wider text-muted">Giảng viên phụ trách</h6>
+                                        <div class="position-relative d-inline-block mx-auto mb-3">
+                                            <img id="teacherAvatar" src="/assets/img/default-avatar.png" onerror="this.src='/assets/img/default-avatar.png'" class="rounded-circle border border-4 border-white shadow-sm" width="120" height="120" style="object-fit: cover;">
+                                            <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-2" title="Đang trực tuyến"></span>
+                                        </div>
+                                        <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
+                                        <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
+                                        <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary mt-auto">
+                                            <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -260,22 +279,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4">
-                    <div class="sticky-top" style="top: 100px;">
-                        <div class="card text-center p-4 border-0 shadow-sm rounded-4">
-                            <h6 class="fw-bold border-bottom pb-3 mb-4 text-start text-uppercase small tracking-wider text-muted">Giảng viên phụ trách</h6>
-                            <div class="position-relative d-inline-block mx-auto mb-3">
-                                <img id="teacherAvatar" src="/assets/img/default-avatar.png" onerror="this.src='/assets/img/default-avatar.png'" class="rounded-circle border border-4 border-white shadow-sm" width="120" height="120" style="object-fit: cover;">
-                                <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-2" title="Đang trực tuyến"></span>
-                            </div>
-                            <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
-                            <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
-<!--                            <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary">-->
-<!--                                <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi-->
-<!--                            </button>-->
-                        </div>
-                    </div>
-                </div>
+
 
             </div>
         </div>

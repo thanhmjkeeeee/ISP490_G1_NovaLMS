@@ -37,9 +37,9 @@
             <a th:href="@{/student/quiz}" th:classappend="${activePage == 'quiz'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-question"></i><span>Bài kiểm tra</span>
             </a>
-            <a th:href="@{/student/progress}" th:classappend="${activePage == 'progress'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-bar-chart-line"></i><span>Tiến độ học tập</span>
-            </a>
+<!--            <a th:href="@{/student/progress}" th:classappend="${activePage == 'progress'} ? ' active'" class="dash-nav-item">-->
+<!--                <i class="bi bi-bar-chart-line"></i><span>Tiến độ học tập</span>-->
+<!--            </a>-->
         </div>
 
         <div sec:authorize="hasRole('ROLE_TEACHER')">
