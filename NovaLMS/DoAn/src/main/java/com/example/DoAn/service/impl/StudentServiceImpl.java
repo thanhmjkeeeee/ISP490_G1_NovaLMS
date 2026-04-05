@@ -641,6 +641,11 @@ public class StudentServiceImpl implements StudentService {
                     }
                 }
 
+                // Resolve meetLink: session-level overrides class-level
+                String resolvedMeetLink = (session.getMeetLink() != null && !session.getMeetLink().isBlank())
+                        ? session.getMeetLink()
+                        : clazz.getMeetLink();
+
                 sessionDTOs.add(SessionDetailDTO.builder()
                         .sessionId(session.getSessionId())
                         .sessionNo(session.getSessionNumber())
@@ -651,6 +656,7 @@ public class StudentServiceImpl implements StudentService {
                         .topic(aggregatedTopic)
                         .date(session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "")
                         .status(sessionStatus)
+                        .meetLink(resolvedMeetLink)
                         .materials(materials)
                         .quizzes(quizzes)
                         .build());

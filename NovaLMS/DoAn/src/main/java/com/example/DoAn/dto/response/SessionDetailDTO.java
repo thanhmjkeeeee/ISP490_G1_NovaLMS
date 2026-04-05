@@ -21,6 +21,9 @@ public class SessionDetailDTO {
     private String status; // COMPLETED, LEARNING, UPCOMING
     private String topic;
     private String date;
+    private String meetLink;
+    private String className;
+    private String courseName;
     private List<LessonResponseDTO> materials; // For DOC, VIDEO
     private List<LessonResponseDTO> quizzes;   // For QUIZ
 }

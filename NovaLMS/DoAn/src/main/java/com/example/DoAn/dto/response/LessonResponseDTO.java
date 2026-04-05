@@ -1,5 +1,6 @@
 package com.example.DoAn.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -16,7 +17,11 @@ public class LessonResponseDTO {
     private String contentText;
     private Boolean allowDownload;
     private Integer quizId;
+
+    @JsonProperty("isCompleted")
     private boolean isCompleted;
+
+    @JsonProperty("isLocked")
     private boolean isLocked;
 
     private String title;
