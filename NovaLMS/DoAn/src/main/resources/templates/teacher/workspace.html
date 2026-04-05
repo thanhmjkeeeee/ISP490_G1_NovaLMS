@@ -1020,13 +1020,26 @@
     // Save Meet link
     async function saveMeetLink() {
         const sessionId = document.getElementById('res-sessionId').value;
-        const meetLink = document.getElementById('m-meetLink').value;
+        const meetLink = document.getElementById('m-meetLink').value.trim();
         const btn = document.querySelector('button[onclick="saveMeetLink()"]');
-        
+
+        let successMessage = "";
+
+        // Kiểm tra validation và thiết lập câu thông báo tương ứng
+        if (meetLink === "") {
+            const isConfirm = confirm('Bạn đang để trống Link Meet. Hệ thống sẽ xóa link riêng này và dùng lại link gốc của Lớp học. Bạn có chắc chắn?');
+            if (!isConfirm) {
+                return; // Dừng lại nếu Teacher chọn Hủy
+            }
+            successMessage = "Đã khôi phục về Link Meet gốc của Lớp học thành công!";
+        } else {
+            successMessage = "Đã cập nhật Link Meet riêng cho buổi học thành công!";
+        }
+
         try {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
-            
+
             const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/meet-link`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -1035,7 +1048,14 @@
 
             const json = await res.json();
             if (json.status === 200) {
-                alert('Khôi phục/Cập nhật Link Meet thành công!');
+                alert(successMessage); // Báo thành công
+
+                // --- ĐÓNG POPUP NGAY LẬP TỨC SAU KHI BẤM OK ---
+                const modalElement = document.getElementById('sessionDetailModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
             } else {
                 alert('Lỗi: ' + json.message);
             }
@@ -1043,6 +1063,7 @@
             console.error('Error saving meet link:', err);
             alert('Đã xảy ra lỗi, vui lòng thử lại.');
         } finally {
+            // Phục hồi lại trạng thái nút (Phòng trường hợp lỗi không đóng được popup)
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-save me-1"></i>Lưu link';
         }
