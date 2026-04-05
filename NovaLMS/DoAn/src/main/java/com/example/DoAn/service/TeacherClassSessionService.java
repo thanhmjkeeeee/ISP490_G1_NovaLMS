@@ -642,4 +642,23 @@ public class TeacherClassSessionService {
             return ResponseData.error(500, e.getMessage());
         }
     }
+
+    // ─────────────────────────────────────────────────────────────
+    //  MEET LINK UPDATE (per-session override)
+    // ─────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ResponseData<Void> updateMeetLink(String email, Integer sessionId, String meetLink) {
+        try {
+            ClassSession session = getSessionWithAuth(email, sessionId);
+            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+
+            session.setMeetLink(meetLink != null && !meetLink.isBlank() ? meetLink.trim() : null);
+            classSessionRepository.save(session);
+
+            return ResponseData.success("Đã cập nhật link Meet/Zoom");
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi cập nhật link: " + e.getMessage());
+        }
+    }
 }

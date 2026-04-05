@@ -221,4 +221,24 @@ public class TeacherClassSessionApiController {
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return sessionService.saveMapping(email, classId, mappings);
     }
+
+    // ─────────────────────────────────────────────
+    //  MEET LINK
+    // ─────────────────────────────────────────────
+
+    /**
+     * Cập nhật link Meet/Zoom cho buổi học cụ thể.
+     * PATCH /api/v1/teacher/class-sessions/{sessionId}/meet-link
+     * Body: { "meetLink": "https://..." }
+     */
+    @PatchMapping("/{sessionId}/meet-link")
+    public ResponseData<Void> updateMeetLink(
+            @PathVariable Integer sessionId,
+            @RequestBody Map<String, String> body,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        String meetLink = body.get("meetLink");
+        return sessionService.updateMeetLink(email, sessionId, meetLink);
+    }
 }
