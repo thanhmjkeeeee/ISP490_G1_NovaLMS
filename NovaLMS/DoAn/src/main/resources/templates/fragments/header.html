@@ -9,12 +9,14 @@
         id="header" class="header d-flex align-items-center sticky-top">
     <div class="container-fluid container-xl position-relative d-flex align-items-center">
 
-        <a th:href="@{/}" class="logo d-flex align-items-center me-auto">
-            <h1 class="sitename">Nova LMS</h1>
+        <a th:href="@{/}" class="logo d-flex align-items-center text-decoration-none" style="min-width: 240px;">
+            <img src="https://res.cloudinary.com/decqv3ed0/image/upload/v1775378558/image-Photoroom_a2hwez.png"
+                 alt="Nova LMS Logo"
+                 style="height: 45px; transform: scale(4); transform-origin: left center; pointer-events: none;">
         </a>
 
-        <nav id="navmenu" class="navmenu">
-            <ul>
+        <nav id="navmenu" class="navmenu flex-grow-1">
+            <ul class="d-flex align-items-center w-100">
                 <li><a th:href="@{/}"
                        th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
                 <li class="dropdown">
@@ -31,63 +33,58 @@
                        th:classappend="${currentPage == 'class'} ? 'active'">Lịch khai giảng</a></li>
                 <li><a th:href="@{/courses}"
                        th:classappend="${currentPage == 'courses'} ? 'active'">Khóa học</a></li>
-<!--                <li class="dropdown">-->
-<!--                    <a href="#"><span>Chức năng</span>-->
-<!--                        <i class="bi bi-chevron-down toggle-dropdown"></i></a>-->
-<!--                    <ul>-->
-<!--                        <li><a th:href="@{/contact.html}">Liên hệ</a></li>-->
-<!--                        <li><a th:href="@{/404.html}">Trợ giúp</a></li>-->
-<!--                    </ul>-->
-<!--                </li>-->
 
-                <!-- User menu khi đã đăng nhập -->
-                <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left:15px;">
-                    <a href="#" class="d-flex align-items-center gap-2">
+                <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left: auto !important;">
+                    <a href="#" class="d-flex align-items-center text-decoration-none" style="gap: 8px;">
                         <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-m-2.webp'}"
-                             style="width:30px;height:30px;object-fit:cover;border-radius:50%;"
+                             style="width: 36px; height: 36px; object-fit: cover; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);"
                              alt="Avatar">
-                        <span sec:authentication="name" style="font-weight:600;">User</span>
-                        <i class="bi bi-chevron-down toggle-dropdown"></i>
+                        <span sec:authentication="name" class="fw-bold text-white">User</span>
+                        <i class="bi bi-chevron-down toggle-dropdown text-white" style="font-size: 0.8rem;"></i>
                     </a>
-                    <ul>
-                        <!-- Redirect đến đúng dashboard theo role -->
+
+                    <ul class="custom-user-dropdown shadow-sm">
                         <li sec:authorize="hasRole('ROLE_STUDENT')">
                             <a th:href="@{/student/dashboard}">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                            </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_TEACHER')">
                             <a th:href="@{/teacher/dashboard}">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                            </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_ADMIN')">
                             <a th:href="@{/admin/dashboard}">
-                                <i class="bi bi-speedometer2 me-2"></i>Quản trị hệ thống</a>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Quản trị hệ thống</span>
+                            </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_MANAGER')">
                             <a th:href="@{/manager/dashboard}">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                            </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_EXPERT')">
                             <a th:href="@{/expert/dashboard}">
-                                <i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                            </a>
                         </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <a th:href="@{/profile}"
-                           th:classappend="${activePage == 'profile'} ? ' active'"
-                           class="dash-nav-item">
-                            <i class="bi bi-person-circle"></i><span>Hồ sơ cá nhân</span>
-                        </a>
+
+                        <li><hr class="dropdown-divider mx-2 my-1"></li>
+
                         <li>
-                            <form th:action="@{/logout}" method="post" style="margin:0">
-                                <button type="submit"
-                                        style="background:none;border:none;padding:10px 20px;
-                                           width:100%;text-align:left;font-family:inherit;
-                                           font-size:15px;color:#444;cursor:pointer;">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                            <a th:href="@{/profile}" th:classappend="${activePage == 'profile'} ? 'active'">
+                                <i class="bi bi-person-circle text-muted"></i> <span>Hồ sơ cá nhân</span>
+                            </a>
+                        </li>
+
+                        <li>
+                            <form th:action="@{/logout}" method="post" class="m-0 p-0">
+                                <button type="submit" class="btn-logout">
+                                    <i class="bi bi-box-arrow-right text-muted"></i> <span>Đăng xuất</span>
                                 </button>
                             </form>
                         </li>
-
                     </ul>
                 </li>
             </ul>
@@ -109,11 +106,13 @@
 <header th:fragment="dash-header(pageTitle, breadcrumb)"
         id="header" class="header d-flex align-items-center sticky-top"
         style="z-index:997;">
-    <div class="container-fluid d-flex align-items-center gap-3 px-3">
+    <div class="container-fluid d-flex align-items-center px-3">
 
         <!-- Logo — giữ nguyên như public header -->
-        <a th:href="@{/}" class="logo d-flex align-items-center" style="flex-shrink:0; margin-right:0;">
-            <h1 class="sitename">Nova LMS</h1>
+        <a th:href="@{/}" class="logo d-flex align-items-center text-decoration-none" style="min-width: 240px;">
+            <img src="https://res.cloudinary.com/decqv3ed0/image/upload/v1775378558/image-Photoroom_a2hwez.png"
+                 alt="Nova LMS Logo"
+                 style="height: 45px; transform: scale(4); transform-origin: left center; pointer-events: none;">
         </a>
 
         <!-- Nút toggle sidebar (chỉ có ở dashboard) -->
@@ -142,7 +141,7 @@
 
             <!-- User dropdown -->
             <div class="dash-user-menu">
-                <button class="dash-user-btn" id="userMenuToggle" type="button" onclick="event.stopPropagation(); document.getElementById('userMenuDropdown').classList.toggle('show');">
+                <button class="dash-user-btn" id="userMenuToggle" type="button">
                     <img th:src="${userProfile?.avatarUrl ?: '/assets/img/person/person-m-2.webp'}"
                          alt="Avatar"
                          class="rounded-circle"
