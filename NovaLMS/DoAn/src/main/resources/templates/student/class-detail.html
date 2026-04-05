@@ -230,9 +230,9 @@
                                         </div>
                                         <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
                                         <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
-                                        <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary mt-auto">
-                                            <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi
-                                        </button>
+<!--                                        <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary mt-auto">-->
+<!--                                            <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi-->
+<!--                                        </button>-->
                                     </div>
                                 </div>
                             </div>
@@ -294,6 +294,12 @@
                 <div>
                     <span class="badge bg-primary rounded-pill px-3 py-2 mb-2 shadow-sm" style="font-size: 0.75rem;" id="modalSessionNo">BUỔI 01</span>
                     <h4 class="modal-title fw-bolder text-dark" id="modalTopic">Chủ đề bài học</h4>
+                    <a id="studentMeetLinkBtn" target="_blank" class="btn btn-sm btn-primary mt-2 d-none">
+                        Tham gia lớp học trực tuyến <i class="bi bi-box-arrow-up-right ms-1"></i>
+                    </a>
+                    <span id="studentNoMeetLinkText" class="text-danger small mt-2 d-block d-none">
+                        <i class="bi bi-exclamation-circle me-1"></i>Giảng viên chưa cập nhật link
+                    </span>
                 </div>
                 <button type="button" class="btn-close shadow-none bg-light rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -469,6 +475,19 @@
 
         document.getElementById('modalSessionNo').textContent = `BUỔI ${session.sessionNo < 10 ? '0'+session.sessionNo : session.sessionNo}`;
         document.getElementById('modalTopic').textContent = session.topic || 'Chưa cập nhật chủ đề';
+
+        // Xử lý hiển thị Link Meet
+        const meetBtn = document.getElementById('studentMeetLinkBtn');
+        const noMeetText = document.getElementById('studentNoMeetLinkText');
+        if (session.meetLink && session.meetLink.trim() !== '') {
+            meetBtn.href = session.meetLink;
+            meetBtn.classList.remove('d-none');
+            noMeetText.classList.add('d-none');
+        } else {
+            meetBtn.href = '#';
+            meetBtn.classList.add('d-none');
+            noMeetText.classList.remove('d-none');
+        }
 
         // 1. LẤY TRỰC TIẾP DỮ LIỆU ĐÃ ĐƯỢC BACKEND PHÂN LOẠI
         const materials = session.materials || [];
