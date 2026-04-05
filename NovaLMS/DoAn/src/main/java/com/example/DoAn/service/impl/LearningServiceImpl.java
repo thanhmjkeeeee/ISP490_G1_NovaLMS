@@ -155,6 +155,15 @@ public class LearningServiceImpl implements LearningService {
             Long courseId = currentLesson.getModule().getCourse().getCourseId().longValue();
             ResponseData<CourseLearningInfoDTO> courseInfoResult = getCourseLearningInfo(courseId, email);
 
+            // Check if current lesson is actually completed by this user
+            User currentUser = userRepository.findByEmail(email).orElse(null);
+            boolean lessonCompleted = false;
+            if (currentUser != null) {
+                lessonCompleted = userLessonRepository
+                        .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(
+                                currentUser.getUserId(), currentLesson.getLessonId());
+            }
+
             LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
                     .lessonId(currentLesson.getLessonId())
                     .lessonTitle(currentLesson.getLessonName())
@@ -165,7 +174,7 @@ public class LearningServiceImpl implements LearningService {
                     .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(currentLesson.getVideoUrl()))
                     .contentText(currentLesson.getContent_text())
                     .allowDownload(currentLesson.getAllowDownload() != null ? currentLesson.getAllowDownload() : true)
-                    .isCompleted(false)
+                    .isCompleted(lessonCompleted)
                     .isLocked(false)
                     .build();
 

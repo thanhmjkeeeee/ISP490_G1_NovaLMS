@@ -9437,6 +9437,76 @@ section,
   }
 }
 
+/* Style cho Dropdown User */
+.custom-user-dropdown {
+    border-radius: 12px !important;
+    padding: 8px 0 !important;
+    min-width: 220px !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.custom-user-dropdown li a,
+.custom-user-dropdown li .btn-logout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* ÉP CĂN TRÁI SÁT NHAU */
+    padding: 10px 20px !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    background: transparent;
+    border: none;
+    width: 100%; /* Tràn viền để hover đẹp */
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+/* Fix khoảng cách Icon và Chữ */
+.custom-user-dropdown li a i,
+.custom-user-dropdown li .btn-logout i {
+    font-size: 1.15rem;
+    margin-right: 12px !important; /* Khoảng cách cố định 12px, không bị doác ra */
+    transition: color 0.2s ease;
+}
+
+/* Hiệu ứng Hover chung */
+.custom-user-dropdown li a:hover {
+    background-color: #f1f5f9 !important;
+    color: #0d6efd !important;
+}
+.custom-user-dropdown li a:hover i.text-muted {
+    color: #0d6efd !important;
+}
+
+/* Hiệu ứng Hover riêng cho nút Đăng xuất */
+.custom-user-dropdown li .btn-logout:hover {
+    background-color: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+.custom-user-dropdown li .btn-logout:hover i {
+    color: #dc2626 !important;
+}
+
+.custom-user-dropdown .dropdown-divider {
+    border-color: #e2e8f0;
+}
+
+/* 1. Trạng thái mặc định của Dropdown: Ẩn, mờ và tụt xuống 10px */
+.dash-user-dropdown {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Hiệu ứng gia tốc mượt */
+    display: block !important; /* Bắt buộc dùng block, ẩn bằng opacity */
+}
+
+/* 2. Trạng thái Hover: Khi chuột di vào thẻ cha (.dash-user-menu) thì hiện con lên */
+.dash-user-menu:hover .dash-user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
 /*--------------------------------------------------------------
 # Starter Section Section
 --------------------------------------------------------------*/
