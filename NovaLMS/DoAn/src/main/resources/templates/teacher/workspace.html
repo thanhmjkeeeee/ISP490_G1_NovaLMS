@@ -288,6 +288,13 @@
                             <h6 class="fw-bold text-primary mb-2"><i class="bi bi-bookmark-star me-2"></i>Chủ đề bài học</h6>
                             <div class="p-3 rounded-3 border bg-white shadow-sm" id="m-topic">—</div>
                         </div>
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-camera-video me-2"></i>Link Meet <span class="small text-muted fw-normal">(Chỉ điền nếu muốn dùng link khác với link của Lớp)</span></h6>
+                            <div class="input-group shadow-sm">
+                                <input type="url" class="form-control" id="m-meetLink" placeholder="https://meet.google.com/...">
+                                <button class="btn btn-primary" type="button" onclick="saveMeetLink()"><i class="bi bi-save me-1"></i>Lưu link</button>
+                            </div>
+                        </div>
                         <div>
                             <h6 class="fw-bold text-primary mb-3"><i class="bi bi-collection me-2"></i>Tài liệu & Bài tập</h6>
                             <div class="list-group list-group-flush border rounded-3 overflow-hidden" id="m-contentList"></div>
@@ -922,6 +929,7 @@
             document.getElementById('m-date').textContent = d.date || '—';
             document.getElementById('m-time').textContent = `${d.startTime || ''} - ${d.endTime || ''}`;
             document.getElementById('m-topic').textContent = d.topic || 'Chưa cập nhật';
+            document.getElementById('m-meetLink').value = d.meetLink || '';
 
             // Render Content List (Materials & Quizzes)
             const contentList = document.getElementById('m-contentList');
@@ -1006,6 +1014,58 @@
         } catch (err) {
             console.error("Session Detail Error:", err);
             document.getElementById('m-contentList').innerHTML = '<div class="p-4 text-center text-danger small">Lỗi tải dữ liệu</div>';
+        }
+    }
+
+    // Save Meet link
+    async function saveMeetLink() {
+        const sessionId = document.getElementById('res-sessionId').value;
+        const meetLink = document.getElementById('m-meetLink').value.trim();
+        const btn = document.querySelector('button[onclick="saveMeetLink()"]');
+
+        let successMessage = "";
+
+        // Kiểm tra validation và thiết lập câu thông báo tương ứng
+        if (meetLink === "") {
+            const isConfirm = confirm('Bạn đang để trống Link Meet. Hệ thống sẽ xóa link riêng này và dùng lại link gốc của Lớp học. Bạn có chắc chắn?');
+            if (!isConfirm) {
+                return; // Dừng lại nếu Teacher chọn Hủy
+            }
+            successMessage = "Đã khôi phục về Link Meet gốc của Lớp học thành công!";
+        } else {
+            successMessage = "Đã cập nhật Link Meet riêng cho buổi học thành công!";
+        }
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+
+            const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/meet-link`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meetLink: meetLink })
+            });
+
+            const json = await res.json();
+            if (json.status === 200) {
+                alert(successMessage); // Báo thành công
+
+                // --- ĐÓNG POPUP NGAY LẬP TỨC SAU KHI BẤM OK ---
+                const modalElement = document.getElementById('sessionDetailModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            } else {
+                alert('Lỗi: ' + json.message);
+            }
+        } catch (err) {
+            console.error('Error saving meet link:', err);
+            alert('Đã xảy ra lỗi, vui lòng thử lại.');
+        } finally {
+            // Phục hồi lại trạng thái nút (Phòng trường hợp lỗi không đóng được popup)
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-save me-1"></i>Lưu link';
         }
     }
 

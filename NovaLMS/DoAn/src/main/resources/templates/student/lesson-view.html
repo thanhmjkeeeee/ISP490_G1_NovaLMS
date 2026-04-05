@@ -142,7 +142,8 @@
 
       if(lesson.type !== 'QUIZ') {
           const durationText = lesson.duration ? `<i class="bi bi-clock me-1"></i> ${lesson.duration}` : '';
-          const markBtn = lesson.isCompleted
+          const isLessonDone = lesson.isCompleted || lesson.completed;
+          const markBtn = isLessonDone
               ? `<span id="markCompleteBtn" class="btn btn-success rounded-pill fw-bold px-4" data-completed="true"><i class="bi bi-check-circle me-1"></i> Đã hoàn thành</span>`
               : `<button id="markCompleteBtn" class="btn btn-outline-success rounded-pill fw-bold px-4" data-lesson-id="${lesson.lessonId}" data-lesson-type="${lesson.type}" data-completed="false" onclick="markCompleted(${lesson.lessonId})"><i class="bi bi-check-circle me-1"></i> Đánh dấu hoàn thành</button>`;
           html += `
