@@ -70,6 +70,11 @@
                 </button>
               </li>
               <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#assignment-section" type="button" role="tab">
+                  <i class="bi bi-list-task me-2"></i>Bài tập lớn
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
                 <button class="nav-link rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#liveclass" type="button" role="tab">
                   <i class="bi bi-camera-video me-2"></i>Lớp Live
                 </button>
@@ -84,6 +89,10 @@
 
             <div class="tab-pane fade" id="quiz-section" role="tabpanel">
               <div id="courseQuizContent"></div>
+            </div>
+
+            <div class="tab-pane fade" id="assignment-section" role="tabpanel">
+              <div id="courseAssignmentContent"></div>
             </div>
 
             <div class="tab-pane fade" id="liveclass" role="tabpanel">
@@ -276,14 +285,16 @@
           }).join('');
       }
 
-      // 5. Render Quizzes (Đã dọn dẹp biến thừa)
+      // 5. Render Quizzes (COURSE_QUIZ only)
       const quizContent = document.getElementById('courseQuizContent');
-      const quizzes = course.quizzes || [];
+      const allQuizzes = course.quizzes || [];
+      const regularQuizzes = allQuizzes.filter(q => q.isAssignment !== true);
+      const assignments = allQuizzes.filter(q => q.isAssignment === true);
 
-      if (quizzes.length === 0) {
+      if (regularQuizzes.length === 0) {
           quizContent.innerHTML = '<div class="text-center py-5 bg-white rounded-4 shadow-sm text-muted"><i class="bi bi-clipboard-x" style="font-size: 4rem;"></i><h5 class="fw-bold mt-3">Chưa có bài kiểm tra</h5><p>Khóa học này không yêu cầu làm bài kiểm tra cuối khóa.</p></div>';
       } else {
-          quizContent.innerHTML = quizzes.map(q => {
+          quizContent.innerHTML = regularQuizzes.map(q => {
               const isOpen = q.isOpen === true;
               const attemptCount = q.attemptCount || 0;
               const maxAttempts = q.maxAttempts;
@@ -319,6 +330,85 @@
                                   <span class="text-muted"><i class="bi bi-question-circle me-1"></i>${q.totalQuestions || 0} câu</span>
                                   <span class="text-muted"><i class="bi bi-stopwatch me-1"></i>${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</span>
                                   <span class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Đã làm: ${attemptsText}</span>
+                              </div>
+                          </div>
+                      </div>
+                      <div class="text-end">
+                          ${btnHtml}
+                      </div>
+                  </div>
+              </div>`;
+          }).join('');
+      }
+
+      // 6. Render Assignments (COURSE_ASSIGNMENT)
+      const assignContent = document.getElementById('courseAssignmentContent');
+      if (assignments.length === 0) {
+          assignContent.innerHTML = '<div class="text-center py-5 bg-white rounded-4 shadow-sm text-muted"><i class="bi bi-list-task" style="font-size: 4rem;"></i><h5 class="fw-bold mt-3">Chưa có bài tập lớn</h5><p>Khóa học này chưa có assignment nào.</p></div>';
+      } else {
+          assignContent.innerHTML = assignments.map(q => {
+              const isOpen = q.isOpen === true;
+              const attemptCount = q.attemptCount || 0;
+              const now = new Date();
+              const deadline = q.deadline ? new Date(q.deadline) : null;
+              const isExpired = deadline ? now > deadline : false;
+
+              // Parse closeAt
+              let closeAt = null;
+              if (q.closeAt) {
+                  closeAt = new Date(q.closeAt);
+              }
+
+              // Determine effective open state
+              let effectiveOpen = isOpen;
+              if (effectiveOpen && q.openAt) {
+                  const openTime = new Date(q.openAt);
+                  effectiveOpen = now >= openTime;
+              }
+              if (effectiveOpen && closeAt && now > closeAt) {
+                  effectiveOpen = false;
+              }
+
+              let statusHtml = '';
+              if (isExpired) {
+                  statusHtml = `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-clock me-1"></i>Hết hạn nộp</span>`;
+              } else if (effectiveOpen) {
+                  statusHtml = `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1"><i class="bi bi-unlock-fill me-1"></i>Đang mở</span>`;
+              } else {
+                  statusHtml = `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1"><i class="bi bi-lock-fill me-1"></i>Chưa mở</span>`;
+              }
+
+              // Deadline display
+              let deadlineHtml = '';
+              if (deadline) {
+                  const dlStr = deadline.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  const dlColor = isExpired ? 'text-danger' : 'text-warning';
+                  deadlineHtml = `<span class="${dlColor}"><i class="bi bi-calendar-event me-1"></i>Hạn nộp: <strong>${dlStr}</strong></span>`;
+              }
+
+              let btnHtml = '';
+              if (isExpired) {
+                  btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-x-circle me-2"></i>Đã hết hạn</button>`;
+              } else if (!effectiveOpen) {
+                  btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-lock-fill me-2"></i>Chưa mở</button>`;
+              } else {
+                  const btnLabel = attemptCount > 0 ? 'Làm lại bài' : 'Bắt đầu làm bài';
+                  btnHtml = `<a href="/student/quiz/take/${q.quizId}" class="btn btn-warning rounded-pill fw-bold px-4 shadow-sm text-dark"><i class="bi bi-play-circle-fill me-2"></i>${btnLabel}</a>`;
+              }
+
+              return `
+              <div class="card border-0 shadow-sm rounded-4 p-4 mb-3 transition-all hover-card" style="border-left: 4px solid #f59e0b !important;">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-4">
+                      <div class="d-flex align-items-center gap-3">
+                          <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
+                              <i class="bi bi-list-task fs-3"></i>
+                          </div>
+                          <div>
+                              <h5 class="fw-bold text-dark mb-2">${q.title || 'Bài tập lớn'}</h5>
+                              <div class="d-flex flex-wrap gap-2 small">
+                                  ${statusHtml}
+                                  ${deadlineHtml}
+                                  <span class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Đã làm: ${attemptCount} lần</span>
                               </div>
                           </div>
                       </div>

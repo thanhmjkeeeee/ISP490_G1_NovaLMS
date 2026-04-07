@@ -2,7 +2,46 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:with="isDashboard=true">
-<head th:replace="~{fragments/head :: common-head(pageTitle='Chỉnh sửa Quiz - Expert')}"></head>
+<head>
+    <th:block th:replace="~{fragments/head :: common-head(pageTitle='Chỉnh sửa Quiz - Expert')}"></th:block>
+    <style>
+        .border-2 { border-width: 2px !important; }
+        .card { border-radius: 20px; }
+
+        /* Stepper */
+        .wizard-stepper { display: flex; align-items: center; max-width: 640px; margin: 0 auto 2rem; }
+        .step-item { flex: 1; text-align: center; position: relative; z-index: 2; }
+        .step-circle {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: #e9ecef; color: #6c757d;
+            line-height: 42px; margin: 0 auto 6px;
+            font-weight: 700; font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        .step-label { font-size: 0.82rem; font-weight: 600; color: #6c757d; }
+        .step-line { flex: 1; height: 3px; background: #e9ecef; margin: 0 -4px 22px; z-index: 1; }
+        .step-item.active .step-circle { background: #136ad5; color: #fff; box-shadow: 0 0 0 5px rgba(19,106,213,.2); }
+        .step-item.active .step-label { color: #136ad5; }
+        .step-item.completed .step-circle { background: #10b981; color: #fff; }
+        .step-item.completed .step-label { color: #10b981; }
+
+        /* Skill tabs */
+        .nav-tabs .nav-link { border-radius: 10px 10px 0 0; }
+        .nav-tabs .nav-link.active { background-color: #136ad5; color: #fff; border-color: #136ad5; }
+        .nav-tabs .nav-link { color: #6c757d; font-weight: 600; }
+        .tab-content { background: #f8fafc; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 12px 12px; }
+
+        /* Preview cards */
+        .skill-status-card {
+            border-radius: 14px; border: 2px solid #dee2e6;
+            padding: 14px; text-align: center; min-width: 130px;
+        }
+        .skill-status-card.ready { border-color: #10b981; background: #f0fdf4; }
+        .skill-status-card.missing { border-color: #f59e0b; background: #fffbeb; }
+        .preview-icon-ok { font-size: 2.5rem; color: #10b981; }
+        .preview-icon-warn { font-size: 2.5rem; color: #f59e0b; }
+    </style>
+</head>
 <body class="dashboard-body">
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Chỉnh sửa Quiz', breadcrumb='Expert / Quiz Management')}"></header>
@@ -11,36 +50,58 @@
 
 <main class="dash-main d-flex flex-column" id="dashMain">
 
+    <!-- Page header -->
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Chỉnh sửa Quiz</h3>
-            <p class="text-muted small m-0">Cập nhật cấu hình quiz #<span th:text="${quizId}"></span></p>
+            <h3 class="fw-bold m-0" style="color:#223a58;">Chỉnh sửa Quiz</h3>
+            <p class="text-muted small m-0">Quiz #<span th:text="${quizId}"></span></p>
         </div>
         <a th:href="@{/expert/quiz-management}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
     </div>
 
-    <div id="attemptWarning" class="alert alert-warning d-none">
-        <i class="bi bi-exclamation-triangle me-2"></i> Quiz này đã có học viên làm bài. Một số thay đổi có thể bị hạn chế.
+    <!-- Attempt warning -->
+    <div id="attemptWarning" class="alert alert-warning d-flex align-items-center gap-2 mb-4"
+         style="display:none;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Quiz này đã có học viên làm bài. Một số thay đổi có thể bị hạn chế.
     </div>
 
-    <div class="card border-0 shadow-sm mb-auto">
-        <div class="card-body">
-            <form id="quizForm">
+    <!-- ── STEPPER ───────────────────────────────────────────────────── -->
+    <div class="wizard-stepper mb-4" id="wizardStepper">
+        <div class="step-item active" id="step-1-item">
+            <div class="step-circle" id="step-1-circle">1</div>
+            <div class="step-label">Cấu hình</div>
+        </div>
+        <div class="step-line" id="step-line-1-2"></div>
+        <div class="step-item" id="step-2-item">
+            <div class="step-circle" id="step-2-circle">2</div>
+            <div class="step-label">Câu hỏi</div>
+        </div>
+        <div class="step-line" id="step-line-2-3"></div>
+        <div class="step-item" id="step-3-item">
+            <div class="step-circle" id="step-3-circle">3</div>
+            <div class="step-label">Xem trước</div>
+        </div>
+    </div>
+
+    <!-- ── STEP 1: CONFIG ──────────────────────────────────────────── -->
+    <div id="wizard-step-1" class="wizard-section">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <!-- Category -->
                 <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
-                        <input type="text" id="title" class="form-control" required>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Loại Quiz</label>
                         <select id="quizCategory" class="form-select" disabled>
-                            <option value="ENTRY_TEST">Entry Test</option>
-                            <option value="COURSE_QUIZ">Course Quiz</option>
+                            <option value="ENTRY_TEST">Bài kiểm tra đầu vào (Entry Test)</option>
+                            <option value="COURSE_QUIZ">Bài kiểm tra khóa học (Course Quiz)</option>
+                            <option value="COURSE_ASSIGNMENT">Bài tập lớn khóa học (Course Assignment)</option>
+                            <option value="MODULE_QUIZ">Quiz Chương (Module Quiz)</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-bold">Trạng thái</label>
                         <select id="status" class="form-select">
                             <option value="DRAFT">Draft</option>
@@ -48,29 +109,47 @@
                             <option value="ARCHIVED">Archived</option>
                         </select>
                     </div>
+                    <div class="col-md-4" id="courseSection" style="display:none;">
+                        <label class="form-label fw-bold">Khóa học</label>
+                        <input type="text" id="courseName" class="form-control" readonly placeholder="—">
+                        <select id="courseId" class="form-select mt-2" style="display:none;">
+                            <option value="">-- Chọn khóa học --</option>
+                        </select>
+                    </div>
                 </div>
 
+                <!-- Title + Desc -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
+                        <input type="text" id="title" class="form-control form-control-lg border-2" required>
+                    </div>
+                </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Mô tả</label>
-                    <textarea id="description" class="form-control" rows="3"></textarea>
+                    <textarea id="description" class="form-control border-2" rows="2"></textarea>
                 </div>
 
-                <h6 class="fw-bold mt-4 mb-3" style="color: #223a58;">Cấu hình Quiz</h6>
-                <div class="row g-3 mb-3">
+                <!-- Config -->
+                <h6 class="fw-bold mt-4 mb-3"
+                    style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                    Cấu hình nâng cao
+                </h6>
+                <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Thời gian (phút)</label>
+                        <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
                         <input type="number" id="timeLimitMinutes" class="form-control" min="1">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Điểm đạt (%)</label>
+                        <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
                         <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Số lần làm lại</label>
+                        <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
                         <input type="number" id="maxAttempts" class="form-control" min="1">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-bold">Thứ tự câu hỏi</label>
+                        <label class="form-label fw-bold small text-muted">Thứ tự câu hỏi</label>
                         <select id="questionOrder" class="form-select">
                             <option value="FIXED">Cố định</option>
                             <option value="RANDOM">Ngẫu nhiên</option>
@@ -78,21 +157,196 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit">
-                        <label class="form-check-label fw-bold" for="showAnswerAfterSubmit">Hiển thị đáp án ngay sau khi nộp bài</label>
+                <!-- Per-skill time -->
+                <div id="perSkillTimeSection" style="display:none;">
+                    <h6 class="fw-bold mt-4 mb-3"
+                        style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                        Thời gian từng phần (phút)
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">LISTENING</label>
+                            <input type="number" id="timeLimit_LISTENING" class="form-control" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">READING</label>
+                            <input type="number" id="timeLimit_READING" class="form-control" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">SPEAKING</label>
+                            <input type="number" id="timeLimit_SPEAKING" class="form-control" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">WRITING</label>
+                            <input type="number" id="timeLimit_WRITING" class="form-control" min="1">
+                        </div>
                     </div>
                 </div>
 
-
-                <div class="d-flex justify-content-between mt-4">
-                    <a th:href="@{'/expert/quiz-management/' + ${quizId} + '/questions'}" class="btn btn-outline-info">
-                        <i class="bi bi-list-check me-1"></i> Quản lý câu hỏi
-                    </a>
-                    <button type="button" class="btn text-white" style="background-color: #136ad5;" onclick="updateQuiz()">Lưu thay đổi</button>
+                <div class="mt-3">
+                    <div class="form-check form-switch" style="padding-left:2.5rem !important;">
+                        <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit"
+                               style="width:2.5em; height:1.25em;">
+                        <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">
+                            Cho phép xem đáp án sau khi nộp bài
+                        </label>
+                    </div>
                 </div>
-            </form>
+
+                <!-- Assignment schedule fields (hidden by default) -->
+                <div id="assignmentScheduleSection" class="mt-4 p-3 border border-2 border-warning rounded-4 bg-warning bg-opacity-5" style="display:none;">
+                    <h6 class="fw-bold text-warning mb-3">
+                        <i class="bi bi-calendar-event me-2"></i>Cài đặt thời hạn Assignment
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">Mở bài lúc</label>
+                            <input type="datetime-local" id="openAt" class="form-control" placeholder="Để trống = mở ngay">
+                            <div class="form-text small">Để trống = mở ngay khi teacher bật isOpen</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">Đóng bài lúc</label>
+                            <input type="datetime-local" id="closeAt" class="form-control" placeholder="Không đóng tự động">
+                            <div class="form-text small">Để trống = không đóng tự động</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">Deadline nộp bài <span class="text-danger">*</span></label>
+                            <input type="datetime-local" id="deadline" class="form-control">
+                            <div class="form-text small">Sau deadline không thể nộp bài</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="entryTestWarning" class="alert alert-soft-warning border-0 py-3 px-4 mt-4" style="display:none; background-color: #fff9db; color: #856404; border-radius: 12px;">
+                    <div class="d-flex">
+                        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
+                            <p class="small m-0">Hệ thống chỉ tự động chấm các dạng câu hỏi Trắc nghiệm và Điền từ. Dạng Writing/Speaking sẽ cần chấm bằng tay hoặc bị tính là sai.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1 nav -->
+        <div class="d-flex justify-content-end gap-3">
+            <button type="button" class="btn btn-lg btn-light px-4 fw-bold"
+                    style="border-radius:12px;" onclick="window.history.back()">Hủy</button>
+            <button type="button" class="btn btn-lg text-white px-5 fw-bold"
+                    style="background-color:#136ad5; border-radius:12px;" onclick="goToStep(2)">
+                Tiếp theo: Câu hỏi <i class="bi bi-arrow-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ── STEP 2: BUILD CONTENT ───────────────────────────────────── -->
+    <div id="wizard-step-2" class="wizard-section" style="display:none;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="row g-0" style="min-height: 600px;">
+                    <!-- Left: Current Quiz -->
+                    <div class="col-md-5 border-end p-4">
+                        <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                            <span>Đề thi hiện tại</span>
+                            <span class="badge bg-primary rounded-pill" id="currentCountBadge">0 câu</span>
+                        </h5>
+                        <div id="addedQuestionsList" class="overflow-auto" style="max-height: 500px;">
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Chưa có câu hỏi nào. <br>Chọn từ Ngân hàng để thêm vào.
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: Question Bank Browser -->
+                    <div class="col-md-7 p-0 bg-light bg-opacity-10 d-flex flex-column">
+                        <div class="p-4 border-bottom bg-white">
+                            <h5 class="fw-bold mb-3">Ngân hàng câu hỏi</h5>
+                            <!-- Filters for Bank -->
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <select id="modalSkill" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
+                                        <option value="">-- Tất cả Kỹ năng --</option>
+                                        <option value="LISTENING">Listening</option>
+                                        <option value="READING">Reading</option>
+                                        <option value="WRITING">Writing</option>
+                                        <option value="SPEAKING">Speaking</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select id="modalCefr" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
+                                        <option value="">-- CEFR --</option>
+                                        <option value="A1">A1</option><option value="A2">A2</option>
+                                        <option value="B1">B1</option><option value="B2">B2</option>
+                                        <option value="C1">C1</option><option value="C2">C2</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
+                                </div>
+                                <div class="col-md-1">
+                                    <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i class="bi bi-search"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="bankBrowserSection" class="flex-grow-1 overflow-auto p-0" style="max-height: 500px;">
+                            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="ps-4">Nội dung</th>
+                                        <th>Loại</th>
+                                        <th>CEFR</th>
+                                        <th class="text-end pe-4">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bankQuestionsBody">
+                                    <tr><td colspan="4" class="text-center py-5 text-muted">Đang tải câu hỏi...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-white border-top">
+                            <nav><ul class="pagination pagination-sm justify-content-center mb-0" id="bankPagination"></ul></nav>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
+                    <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i class="bi bi-arrow-left me-1"></i> Quay lại</button>
+                    <div class="small text-muted">Tự động lưu...</div>
+                    <button class="btn btn-primary px-5 fw-bold" onclick="saveAndGoToStep3()">Lưu & Xem trước <i class="bi bi-arrow-right ms-1"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── STEP 3: FINISH ───────────────────────────────────────────── -->
+    <div id="wizard-step-3" class="wizard-section" style="display:none;">
+        <div class="card border-0 shadow-sm text-center py-5 px-4">
+            <div class="py-4">
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                </div>
+                <h3 class="fw-bold" id="previewTitle">Tên Quiz của bạn</h3>
+                <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0%</p>
+                <p class="text-muted small mb-4" id="previewQuestionCount">0 câu hỏi đã thêm</p>
+
+                <!-- Skill status cards -->
+                <div class="d-flex justify-content-center gap-3 flex-wrap mb-4" id="skillStatusCards"></div>
+
+                <!-- Validation message -->
+                <div id="publishValidationMsg" class="alert d-flex align-items-center gap-2 mx-auto mb-4"
+                     style="max-width:500px; display:none;">
+                    <i class="bi fs-5"></i>
+                    <span class="small"></span>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại sửa</button>
+                    <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal" onclick="publishQuiz()">
+                        <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -103,46 +357,430 @@
 
 <script th:inline="javascript">
 const quizId = /*[[${quizId}]]*/ 0;
-let currentCourseId = null;
+let _currentCategory = null;
+let _quizData = null;
 
+// ─── STEPPER ─────────────────────────────────────────────────────────
+async function goToStep(step) {
+    if (step > 1) {
+        const title = document.getElementById('title')?.value?.trim();
+        if (!title) { alert('Vui lòng nhập tên quiz trước.'); return; }
+    }
+
+    document.querySelectorAll('.wizard-section').forEach(s => s.style.display = 'none');
+    document.getElementById('wizard-step-' + step).style.display = 'block';
+    updateStepperUI(step);
+
+    if (step === 2) initStep2();
+    if (step === 3) initPreview();
+}
+
+function updateStepperUI(currentStep) {
+    for (let i = 1; i <= 3; i++) {
+        const item = document.getElementById('step-' + i + '-item');
+        const circle = document.getElementById('step-' + i + '-circle');
+        if (!item) continue;
+        item.classList.remove('active', 'completed');
+        if (i < currentStep) {
+            item.classList.add('completed');
+            circle.innerHTML = '<i class="bi bi-check-lg"></i>';
+        } else if (i === currentStep) {
+            item.classList.add('active');
+            circle.textContent = i;
+        } else {
+            circle.textContent = i;
+        }
+    }
+    const l12 = document.getElementById('step-line-1-2');
+    const l23 = document.getElementById('step-line-2-3');
+    if (l12) l12.style.background = currentStep > 1 ? '#10b981' : '#e9ecef';
+    if (l23) l23.style.background = currentStep > 2 ? '#10b981' : '#e9ecef';
+}
+
+// ─── LOAD QUIZ ───────────────────────────────────────────────────────
 async function loadQuiz() {
     try {
         const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
         const result = await res.json();
-        if (result.status === 200 && result.data) {
-            const q = result.data;
-            document.getElementById('title').value = q.title || '';
-            document.getElementById('quizCategory').value = q.quizCategory;
-            document.getElementById('status').value = q.status;
-            document.getElementById('description').value = q.description || '';
-            document.getElementById('timeLimitMinutes').value = q.timeLimitMinutes || '';
-            document.getElementById('passScore').value = q.passScore || '';
-            document.getElementById('maxAttempts').value = q.maxAttempts || '';
-            document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
-            document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit || false;
-            currentCourseId = q.courseId;
+        if (result.status !== 200) { alert('Không tìm thấy quiz.'); return; }
 
-            if (q.hasAttempts) {
-                document.getElementById('attemptWarning').classList.remove('d-none');
+        const q = result.data;
+        _quizData = q;
+        _currentCategory = q.quizCategory;
+
+        document.getElementById('quizCategory').value = q.quizCategory;
+        document.getElementById('status').value = q.status;
+        document.getElementById('title').value = q.title || '';
+        document.getElementById('description').value = q.description || '';
+        document.getElementById('courseName').value = q.courseName || '—';
+        document.getElementById('timeLimitMinutes').value = q.timeLimitMinutes || '';
+        document.getElementById('passScore').value = q.passScore || '';
+        document.getElementById('maxAttempts').value = q.maxAttempts || '';
+        document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
+        document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit || false;
+
+        if (q.hasAttempts) {
+            document.getElementById('attemptWarning').style.display = 'flex';
+        }
+
+        if (q.quizCategory === 'COURSE_ASSIGNMENT') {
+            document.getElementById('perSkillTimeSection').style.display = 'block';
+            if (q.timeLimitPerSkill) {
+                Object.entries(q.timeLimitPerSkill).forEach(([skill, minutes]) => {
+                    const el = document.getElementById('timeLimit_' + skill);
+                    if (el) el.value = minutes;
+                });
             }
+        }
+
+        // Load assignment schedule fields
+        if (q.quizCategory === 'COURSE_ASSIGNMENT') {
+            document.getElementById('openAt').value = q.openAt || '';
+            document.getElementById('closeAt').value = q.closeAt || '';
+            document.getElementById('deadline').value = q.deadline || '';
+        }
+
+        // Show course section for COURSE_QUIZ / COURSE_ASSIGNMENT
+        if (q.quizCategory === 'COURSE_QUIZ' || q.quizCategory === 'COURSE_ASSIGNMENT') {
+            document.getElementById('courseSection').style.display = 'block';
+        }
+
+        // Show entry test warning
+        if (q.quizCategory === 'ENTRY_TEST') {
+            document.getElementById('entryTestWarning').style.display = 'block';
+        }
+
+        // Load questions
+        await loadQuizQuestions();
+
+    } catch (e) { console.error(e); alert('Lỗi tải quiz.'); }
+}
+
+// ─── STEP 2 LOGIC ────────────────────────────────────────────────────
+let _quizQuestions = [];
+let _currentBankPage = 0;
+
+function initStep2() {
+    loadQuizQuestions();
+    loadBankQuestions(0);
+}
+
+async function loadQuizQuestions() {
+    if (!quizId) return;
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
+        const result = await res.json();
+        if (result.status === 200 && result.data) {
+            _quizQuestions = result.data.questions || [];
+            renderAddedQuestions();
+            renderBankQuestions(_lastBankResult);
         }
     } catch (e) { console.error(e); }
 }
 
-async function updateQuiz() {
-    const body = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value || null,
-        quizCategory: document.getElementById('quizCategory').value,
-        courseId: currentCourseId,
-        timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
-        passScore: parseFloat(document.getElementById('passScore').value) || null,
-        maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
-        questionOrder: document.getElementById('questionOrder').value,
-        showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-        status: document.getElementById('status').value
-    };
+let _expandedGroups = new Set();
 
+function toggleGroup(groupId) {
+    if (_expandedGroups.has(groupId)) _expandedGroups.delete(groupId);
+    else _expandedGroups.add(groupId);
+    renderAddedQuestions();
+}
+
+function renderAddedQuestions() {
+    const container = document.getElementById('addedQuestionsList');
+
+    // Nhóm câu hỏi
+    const groups = new Map();
+    const lones = [];
+    _quizQuestions.forEach(q => {
+        if (q.groupId) {
+            if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
+            groups.get(q.groupId).items.push(q);
+        } else {
+            lones.push(q);
+        }
+    });
+
+    const totalItems = groups.size + lones.length;
+    const badge = document.getElementById('currentCountBadge');
+    if (badge) badge.textContent = `${totalItems} câu`;
+
+    if (totalItems === 0) {
+        container.innerHTML = `<div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có câu hỏi nào.
+        </div>`;
+        return;
+    }
+
+    let html = '';
+
+    // Render Groups (Passages)
+    groups.forEach(g => {
+        const isExpanded = _expandedGroups.has(g.id);
+        html += `
+        <div class="card mb-3 border shadow-sm" style="border-radius: 12px; border-left: 5px solid #0d6efd !important;">
+            <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-start">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-light me-2 rounded-circle p-0" style="width:24px; height:24px;" onclick="toggleGroup(${g.id})">
+                        <i class="bi ${isExpanded ? 'bi-dash' : 'bi-plus'}"></i>
+                    </button>
+                    <div class="small fw-bold text-primary"><i class="bi bi-journal-text me-1"></i> BỘ CÂU HỎI (PASSAGE)</div>
+                </div>
+                <button class="btn btn-sm btn-link text-danger p-0" onclick="removeGroup(${g.id})" title="Gỡ cả bộ">
+                    <i class="bi bi-trash"></i> Gỡ bộ
+                </button>
+            </div>
+            <div class="card-body pt-2">
+                <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
+                <div class="${isExpanded ? '' : 'd-none'}">
+                    ${g.items.map((sq, idx) => `
+                        <div class="d-flex justify-content-between align-items-center mb-2 last-child-mb-0">
+                            <div class="small text-muted">
+                                <span class="badge bg-light text-dark me-1">${idx + 1}</span>
+                                ${sq.questionContent}
+                            </div>
+                            <div class="extra-small text-info">${typeName(sq.questionType)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        `;
+    });
+
+    // Render Lone Questions
+    lones.forEach((q, i) => {
+        html += `
+        <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div style="max-width: 85%;">
+                        <div class="small fw-bold text-success mb-1">CÂU LẺ • ${typeName(q.questionType)}</div>
+                        <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="removeQuestion(${q.questionId})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+async function removeGroup(groupId) {
+    if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}/groups/${groupId}`, { method: 'DELETE' });
+        if (res.ok) loadQuizQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+let _lastBankResult = null;
+async function loadBankQuestions(page) {
+    _currentBankPage = page;
+    const params = new URLSearchParams();
+    const skill = document.getElementById('modalSkill')?.value;
+    const cefr = document.getElementById('modalCefr')?.value;
+    const keyword = document.getElementById('modalKeyword')?.value;
+    if (skill) params.append('skill', skill);
+    if (cefr) params.append('cefrLevel', cefr);
+    if (keyword) params.append('keyword', keyword);
+    params.append('status', 'PUBLISHED');
+    params.append('page', page);
+    params.append('size', 10);
+
+    try {
+        const res = await fetch(`/api/v1/expert/question-bank?${params}`);
+        const result = await res.json();
+        _lastBankResult = result;
+        renderBankQuestions(result);
+    } catch (e) { console.error(e); }
+}
+
+function renderBankQuestions(result) {
+    if (!result) return;
+    const tbody = document.getElementById('bankQuestionsBody');
+    if (result.status === 200 && result.data && result.data.items.length > 0) {
+        const existingIds = new Set(_quizQuestions.map(q => q.questionId));
+        tbody.innerHTML = result.data.items.map(q => {
+            let isAdded = false;
+            if (q.type === 'SINGLE') {
+                isAdded = existingIds.has(q.id);
+            } else if (q.type === 'GROUP' && q.questions) {
+                isAdded = q.questions.some(subQ => existingIds.has(subQ.questionId));
+            }
+
+            return `
+                <tr>
+                    <td class="ps-4">
+                        <div class="text-truncate" style="max-width: 250px;" title="${escHtml(q.content)}">${q.content || '—'}</div>
+                        <div class="extra-small text-muted">${q.skill || '—'}</div>
+                    </td>
+                    <td><span class="badge bg-light text-dark">${typeName(q.questionType)}</span></td>
+                    <td><span class="badge bg-info text-dark">${q.cefrLevel}</span></td>
+                    <td class="text-end pe-4">
+                        ${isAdded
+                            ? '<span class="badge bg-success rounded-pill px-3 py-2 fw-bold"><i class="bi bi-check-lg me-1"></i>Đã thêm</span>'
+                            : `<button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="addToQuiz(${q.id}, '${q.type}')">
+                                <i class="bi bi-plus-lg me-1"></i> Thêm
+                               </button>`
+                        }
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Pagination
+        const pg = document.getElementById('bankPagination');
+        let pgHtml = '';
+        const total = result.data.totalPages;
+        for (let i = 0; i < total; i++) {
+            pgHtml += `<li class="page-item ${i === _currentBankPage ? 'active' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="loadBankQuestions(${i})">${i + 1}</a>
+            </li>`;
+        }
+        if (pg) pg.innerHTML = pgHtml;
+    } else {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Không tìm thấy câu hỏi nào.</td></tr>';
+        const pg = document.getElementById('bankPagination');
+        if (pg) pg.innerHTML = '';
+    }
+}
+
+async function addToQuiz(id, type) {
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                questionId: id,
+                itemType: type,
+                points: 1.0
+            })
+        });
+        if (res.ok) {
+            loadQuizQuestions();
+        } else {
+            const r = await res.json();
+            alert(r.message || 'Không thể thêm.');
+        }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+async function removeQuestion(questionId) {
+    if (!confirm('Gỡ câu hỏi này khỏi đề thi?')) return;
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions/${questionId}`, { method: 'DELETE' });
+        if (res.ok) loadQuizQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+// ─── PREVIEW ────────────────────────────────────────────────────────
+async function initPreview() {
+    await loadQuizQuestions();
+    const title = document.getElementById('title').value || 'Tên Quiz';
+    const time = document.getElementById('timeLimitMinutes').value || '—';
+    const pass = document.getElementById('passScore').value || '0';
+    const cat = _currentCategory || document.getElementById('quizCategory').value;
+
+    document.getElementById('previewTitle').textContent = title;
+    document.getElementById('previewSummary').textContent =
+        `Tóm tắt: ${_quizQuestions.length} câu hỏi | Thời gian ${time} phút | Điểm đạt ${pass}%`;
+    const countEl = document.getElementById('previewQuestionCount');
+    if (countEl) countEl.textContent = `${_quizQuestions.length} câu hỏi đã thêm`;
+
+    renderSkillStatusCards();
+    validateForPublish();
+}
+
+function renderSkillStatusCards() {
+    const container = document.getElementById('skillStatusCards');
+    const cat = _currentCategory || document.getElementById('quizCategory').value;
+
+    if (cat === 'ENTRY_TEST') {
+        container.innerHTML = `
+            <div class="skill-status-card ready mx-auto" style="min-width:200px;">
+                <div class="preview-icon-ok mb-2"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="fw-bold">${_quizQuestions.length} câu hỏi đã thêm</div>
+                <div class="small text-muted">Entry Test — không bắt buộc 4 kỹ năng</div>
+            </div>`;
+        return;
+    }
+
+    const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+    const icons = { LISTENING:'bi-ear', READING:'bi-book', SPEAKING:'bi-mic', WRITING:'bi-pen' };
+    container.innerHTML = skills.map(skill => {
+        const count = _quizQuestions.filter(q => q.skill === skill).length;
+        const isOk = count > 0;
+        const color = isOk ? '#166534' : '#92400e';
+        return `
+            <div class="skill-status-card ${isOk ? 'ready' : 'missing'}">
+                <div class="${isOk ? 'preview-icon-ok' : 'preview-icon-warn'} mb-1">
+                    <i class="bi ${isOk ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>
+                </div>
+                <div class="fw-bold" style="font-size:1.3rem; color:${isOk ? '#10b981' : '#f59e0b'};">${count}</div>
+                <div class="small fw-bold mb-1" style="color:${color};">
+                    <i class="bi ${icons[skill]} me-1"></i>${skill}
+                </div>
+                <div class="small text-muted">${isOk ? 'Đã có câu hỏi' : 'Chưa có câu hỏi'}</div>
+            </div>`;
+    }).join('');
+}
+
+function validateForPublish() {
+    const cat = _currentCategory || document.getElementById('quizCategory').value;
+    const msg = document.getElementById('publishValidationMsg');
+    const btn = document.getElementById('btnPublishFinal');
+    if (!msg || !btn) return;
+
+    let canPublish = true;
+    let msgText = '';
+
+    if (cat === 'ENTRY_TEST') {
+        if (_quizQuestions.length === 0) {
+            canPublish = false;
+            msgText = 'Cần thêm ít nhất 1 câu hỏi để xuất bản.';
+        }
+    } else {
+        const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+        const missing = skills.filter(s => !_quizQuestions.some(q => q.skill === s));
+        if (missing.length > 0) {
+            canPublish = false;
+            msgText = 'Thiếu câu hỏi cho kỹ năng: ' + missing.join(', ');
+        }
+        if (cat === 'COURSE_ASSIGNMENT') {
+            const missingTime = skills.filter(s => !document.getElementById('timeLimit_' + s)?.value);
+            if (missingTime.length > 0) {
+                canPublish = false;
+                msgText = 'Chưa đặt thời gian cho: ' + missingTime.join(', ');
+            }
+        }
+    }
+
+    if (canPublish) {
+        msg.style.display = 'flex';
+        msg.style.background = '#f0fdf4'; msg.style.border = '1px solid #10b981';
+        msg.style.color = '#166134'; msg.style.borderRadius = '12px';
+        msg.innerHTML = '<i class="bi bi-check-circle-fill fs-5 me-2"></i><span class="small">Sẵn sàng xuất bản!</span>';
+    } else {
+        msg.style.display = 'flex';
+        msg.style.background = '#fff1f2'; msg.style.border = '1px solid #f43f5e';
+        msg.style.color = '#9f1239'; msg.style.borderRadius = '12px';
+        msg.innerHTML = `<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i><span class="small">${msgText}</span>`;
+    }
+    btn.disabled = !canPublish;
+}
+
+// ─── SAVE / PUBLISH ─────────────────────────────────────────────────
+
+async function doSaveDraft() {
+    const title = document.getElementById('title')?.value?.trim();
+    if (!title) { alert('Vui lòng nhập tên quiz.'); return; }
+
+    const body = buildUpdateBody();
     try {
         const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
             method: 'PUT',
@@ -150,17 +788,111 @@ async function updateQuiz() {
             body: JSON.stringify(body)
         });
         const result = await res.json();
-        if (res.ok) { 
-            alert('Cập nhật thành công!'); 
+        if (res.ok) {
+            alert('Đã lưu nháp!');
             window.location.href = '/expert/quiz-management';
-        }
-        else { 
-            const result = await res.json();
-            alert(result.message || 'Có lỗi xảy ra.'); 
+        } else {
+            alert(result.message || 'Có lỗi xảy ra.');
         }
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
+async function saveAndGoToStep3() {
+    const title = document.getElementById('title')?.value?.trim();
+    if (!title) { alert('Vui lòng nhập tên quiz trước.'); return; }
+
+    const body = buildUpdateBody();
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (res.ok) {
+            goToStep(3);
+        } else {
+            const r = await res.json();
+            alert(r.message || 'Lỗi khi lưu.');
+        }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+function buildUpdateBody() {
+    const cat = _currentCategory || document.getElementById('quizCategory').value;
+    return {
+        title: document.getElementById('title').value.trim(),
+        description: document.getElementById('description').value || null,
+        quizCategory: cat,
+        timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
+        passScore: parseFloat(document.getElementById('passScore').value) || null,
+        maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
+        questionOrder: document.getElementById('questionOrder').value,
+        showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+        status: document.getElementById('status').value,
+        isSequential: (cat === 'COURSE_ASSIGNMENT'),
+        skillOrder: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT')
+            ? ['LISTENING', 'READING', 'SPEAKING', 'WRITING'] : null,
+        timeLimitPerSkill: buildTimeLimitPerSkill(),
+        openAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('openAt').value || null) : null,
+        closeAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('closeAt').value || null) : null,
+        deadline: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('deadline').value || null) : null
+    };
+}
+
+async function publishQuiz() {
+    if (!confirm('Xác nhận xuất bản quiz này?')) return;
+
+    const body = buildUpdateBody();
+    try {
+        const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+            const r = await res.json();
+            alert(r.message || 'Lỗi khi lưu cấu hình.'); return;
+        }
+
+        const publishRes = await fetch(`/api/v1/expert/quizzes/${quizId}/publish`, { method: 'PATCH' });
+        if (publishRes.ok) {
+            alert('Chúc mừng! Quiz đã được xuất bản thành công.');
+            window.location.href = '/expert/quiz-management';
+        } else {
+            const r = await publishRes.json();
+            alert(r.message || 'Lỗi khi xuất bản.');
+        }
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+function buildTimeLimitPerSkill() {
+    const result = {};
+    ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(s => {
+        const el = document.getElementById('timeLimit_' + s);
+        if (el?.value) result[s] = parseInt(el.value);
+    });
+    return Object.keys(result).length > 0 ? result : null;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────
+function typeName(type) {
+    const map = {
+        MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm (1)',
+        MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm (n)',
+        FILL_IN_BLANK: 'Điền từ',
+        MATCHING: 'Nối đáp án',
+        WRITING: 'Viết',
+        SPEAKING: 'Nói'
+    };
+    return map[type] || type || '—';
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Boot
 loadQuiz();
 </script>
 </body>

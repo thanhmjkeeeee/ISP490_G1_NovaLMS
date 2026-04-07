@@ -33,6 +33,7 @@
         <form id="quizForm" class="mb-5">
           <input type="hidden" id="quizId" th:value="${quiz.quizId}">
           <input type="hidden" id="timeLimitMinutes" th:value="${quiz.timeLimitMinutes}">
+          <input type="hidden" id="speakingTimeLimit" th:value="${quiz.speakingTimeLimitSeconds}">
           <input type="hidden" id="classId" th:value="${classId}">
           <input type="hidden" id="sessionId" th:value="${sessionId}">
           
@@ -78,9 +79,35 @@
                 <input type="text" class="form-control p-3 border-2" th:name="'q_' + ${question.questionId}" placeholder="Nhập câu trả lời...">
               </div>
 
-              <!-- Tự luận (Writing / Speaking) -->
-              <div th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
-                <textarea class="form-control p-3 border-2" th:name="'q_' + ${question.questionId}" rows="5" placeholder="Nhập nội dung bài làm..."></textarea>
+              <!-- WRITING: plain textarea -->
+              <div th:if="${question.questionType == 'WRITING'}">
+                <textarea class="form-control p-3 border-2" th:name="'q_' + ${question.questionId}"
+                          th:id="'answer_' + ${question.questionId}"
+                          rows="6" placeholder="Viết câu trả lời của bạn ở đây..."></textarea>
+              </div>
+
+              <!-- SPEAKING: audio recording UI -->
+              <div th:if="${question.questionType == 'SPEAKING'}" class="mb-3">
+                <label class="form-label fw-bold">Ghi âm câu trả lời của bạn</label>
+                <div class="d-flex gap-2 align-items-center mb-2">
+                  <button type="button" class="btn btn-outline-danger btn-sm" id="recordBtn"
+                          onclick="toggleRecording()">
+                    <i class="bi bi-mic"></i> Ghi âm
+                  </button>
+                  <label class="btn btn-outline-secondary btn-sm mb-0">
+                    <i class="bi bi-upload"></i> Tải lên file
+                    <input type="file" accept="audio/*" class="d-none" id="audioUpload"
+                           onchange="handleAudioUpload(this)">
+                  </label>
+                </div>
+                <div id="audioStatus" class="small text-muted"></div>
+                <div id="speaking-timer-badge" class="fw-bold text-danger small mb-2"></div>
+                <audio id="audioPlayback" controls class="d-none w-100 mt-2"></audio>
+                <input type="hidden"
+                       th:id="'answer_' + ${question.questionId}"
+                       th:attr="data-speaking-question=${question.questionId}"
+                       th:name="'q_' + ${question.questionId}"
+                       value="">
               </div>
 
               <!-- Nối từ (Matching) -->
@@ -129,6 +156,9 @@
 
 <script>
   let timerInterval;
+  let mediaRecorder;
+  let audioChunks = [];
+  let speakingTimerInterval;
 
   document.addEventListener("DOMContentLoaded", () => {
     const timeLimit = parseInt(document.getElementById('timeLimitMinutes').value);
@@ -140,16 +170,16 @@
   function startTimer(durationSeconds) {
     let timer = durationSeconds;
     const timerDisplay = document.getElementById('timerText');
-    
+
     timerInterval = setInterval(() => {
       let minutes = parseInt(timer / 60, 10);
       let seconds = parseInt(timer % 60, 10);
-      
+
       minutes = minutes < 10 ? "0" + minutes : minutes;
       seconds = seconds < 10 ? "0" + seconds : seconds;
-      
+
       if(timerDisplay) timerDisplay.textContent = minutes + ":" + seconds;
-      
+
       if (--timer < 0) {
         clearInterval(timerInterval);
         alert("Hết giờ! Bài làm sẽ tự động được nộp.");
@@ -158,7 +188,109 @@
     }, 1000);
   }
 
+  // ── Speaking Timer ─────────────────────────────────────────────────────────
+  function startSpeakingTimer(seconds) {
+    let remaining = seconds;
+    const badge = document.getElementById('speaking-timer-badge');
+    if (!badge) return;
+    if (speakingTimerInterval) clearInterval(speakingTimerInterval);
+    remaining = seconds;
+    speakingTimerInterval = setInterval(() => {
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      badge.textContent = '⏱ ' + String(mins).padStart(2,'0') + ':' + String(secs).padStart(2,'0');
+      if (remaining <= 0) {
+        clearInterval(speakingTimerInterval);
+        stopAndUploadRecording();
+      }
+      remaining--;
+    }, 1000);
+  }
+
+  // ── MediaRecorder ───────────────────────────────────────────────────────────
+  async function toggleRecording() {
+    const btn = document.getElementById('recordBtn');
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        uploadRecordedAudio();
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mediaRecorder.start();
+      btn.innerHTML = '<i class="bi bi-stop-fill"></i> Dừng';
+      btn.classList.replace('btn-outline-danger', 'btn-danger');
+      document.getElementById('audioStatus').textContent = 'Đang ghi âm...';
+      const speakingLimit = parseInt(document.getElementById('speakingTimeLimit').value || '0');
+      if (speakingLimit > 0) startSpeakingTimer(speakingLimit);
+    } else {
+      stopAndUploadRecording();
+    }
+  }
+
+  function stopAndUploadRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      if (speakingTimerInterval) clearInterval(speakingTimerInterval);
+      mediaRecorder.stop();
+    }
+  }
+
+  function uploadRecordedAudio() {
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
+    uploadAudioFile(file);
+    const btn = document.getElementById('recordBtn');
+    if (btn) {
+      btn.innerHTML = '<i class="bi bi-mic"></i> Ghi âm';
+      btn.classList.replace('btn-danger', 'btn-outline-danger');
+    }
+  }
+
+  async function handleAudioUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    await uploadAudioFile(file);
+  }
+
+  async function uploadAudioFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/v1/student/quiz/audio', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (result.status === 200 && result.audioUrl) {
+        document.getElementById('audioStatus').textContent = '✅ Đã tải lên thành công!';
+        const playback = document.getElementById('audioPlayback');
+        playback.src = result.audioUrl;
+        playback.classList.remove('d-none');
+        const speakingInput = document.querySelector('[data-speaking-question]');
+        if (speakingInput) speakingInput.value = result.audioUrl;
+      } else {
+        alert('Upload thất bại: ' + (result.message || ''));
+      }
+    } catch (e) {
+      alert('Upload thất bại!');
+    }
+  }
+
   async function submitQuiz(autoSubmit = false) {
+    // Validate SPEAKING audio answers
+    const emptyErrors = [];
+    document.querySelectorAll('input[name^="q_"][data-speaking-question]').forEach(function(input) {
+      if (!input.value || input.value.trim() === '') {
+        const card = input.closest('.question-card');
+        const qNum = card ? card.querySelector('.fs-5') : null;
+        const label = qNum ? qNum.textContent.trim() : 'Câu hỏi Nói';
+        emptyErrors.push(label + ': chưa có file ghi âm.');
+      }
+    });
+    if (emptyErrors.length > 0) {
+      alert('Vui lòng hoàn thành các câu sau trước khi nộp bài:\n\n' + emptyErrors.join('\n'));
+      return;
+    }
+
     if (!autoSubmit) {
       if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
     }

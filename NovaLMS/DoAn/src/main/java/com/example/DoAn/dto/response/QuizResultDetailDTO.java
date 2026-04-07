@@ -19,4 +19,6 @@ public class QuizResultDetailDTO {
     private Boolean showAnswer;
     private String passScoreDescription;
     private List<QuestionResultDTO> questions;
+    /** Distinct skills present in this quiz's questions — used for dynamic tab rendering */
+    private List<String> skillsPresent;
 }

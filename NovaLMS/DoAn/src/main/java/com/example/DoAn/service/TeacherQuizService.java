@@ -2,6 +2,7 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
+import com.example.DoAn.dto.response.QuizSkillSummaryDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
@@ -13,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -479,6 +482,34 @@ public class TeacherQuizService {
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
+    }
+
+    /**
+     * Lấy skill summary cho quiz: số câu hỏi đã publish / đang chờ duyệt theo từng kỹ năng.
+     */
+    @Transactional(readOnly = true)
+    public List<QuizSkillSummaryDTO> getSkillSummary(Integer quizId) {
+        List<QuizQuestion> questions = quizQuestionRepository.findByQuizQuizId(quizId);
+        Map<String, QuizSkillSummaryDTO> map = new LinkedHashMap<>();
+
+        for (QuizQuestion qq : questions) {
+            Question q = qq.getQuestion();
+            String skill = q.getSkill() != null ? q.getSkill() : "OTHER";
+            map.computeIfAbsent(skill, s -> new QuizSkillSummaryDTO(s, 0, 0, 0, 0));
+
+            QuizSkillSummaryDTO dto = map.get(skill);
+            dto.setTotalCount(dto.getTotalCount() + 1);
+            if ("PUBLISHED".equals(q.getStatus())) {
+                dto.setPublishedCount(dto.getPublishedCount() + 1);
+            } else if ("PENDING_REVIEW".equals(q.getStatus())) {
+                dto.setPendingCount(dto.getPendingCount() + 1);
+            }
+            if (qq.getPoints() != null) {
+                dto.setTotalPoints(dto.getTotalPoints() + qq.getPoints().intValue());
+            }
+        }
+
+        return new ArrayList<>(map.values());
     }
 
     // ═══════════════════════════════════════════════════════════════════════

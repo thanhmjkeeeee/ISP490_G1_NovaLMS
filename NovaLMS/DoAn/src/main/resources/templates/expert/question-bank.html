@@ -167,6 +167,7 @@
                 <ul class="nav nav-tabs mb-3" role="tablist">
                     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabQuick">Sinh nhanh</button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabModule">Theo Module</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabGroup">Bộ câu hỏi</button></li>
                 </ul>
 
                 <!-- Quick tab -->
@@ -200,10 +201,41 @@
                     </div>
                 </div>
 
-                <div class="text-end mt-3">
-                    <button class="btn btn-primary" onclick="generateAI()">
-                        <i class="bi bi-lightning-charge me-1"></i> Sinh câu hỏi
-                    </button>
+                <!-- Group tab -->
+                <div class="tab-pane fade" id="tabGroup">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Chủ đề <span class="text-danger">*</span></label>
+                            <input type="text" id="groupTopic" class="form-control" placeholder="VD: Climate Change, Technology...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Kỹ năng</label>
+                            <select id="groupSkill" class="form-select">
+                                <option value="READING" selected>Reading</option>
+                                <option value="LISTENING">Listening</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">CEFR</label>
+                            <select id="groupCefr" class="form-select">
+                                <option value="A1">A1</option>
+                                <option value="A2">A2</option>
+                                <option value="B1" selected>B1</option>
+                                <option value="B2">B2</option>
+                                <option value="C1">C1</option>
+                                <option value="C2">C2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Số câu hỏi con (2–20)</label>
+                            <input type="number" id="groupQty" class="form-control" min="2" max="20" value="5">
+                        </div>
+                    </div>
+                    <div class="text-end mt-3">
+                        <button class="btn btn-primary" onclick="generateAIGroup()">
+                            <i class="bi bi-lightning-charge me-1"></i> Sinh bộ câu hỏi
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Loading spinner -->
@@ -227,6 +259,16 @@
                     <div class="text-end mt-3">
                         <button class="btn text-white" style="background-color: #136ad5;" onclick="importSelectedAI()">
                             <i class="bi bi-check-lg me-1"></i> Lưu các câu đã chọn
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Group Preview -->
+                <div id="groupPreview" class="mt-3" style="display:none;">
+                    <div id="groupPreviewContent"></div>
+                    <div class="text-end mt-3">
+                        <button class="btn text-white" style="background-color: #136ad5;" onclick="importAIGroup()">
+                            <i class="bi bi-check-lg me-1"></i> Lưu bộ câu hỏi
                         </button>
                     </div>
                 </div>
@@ -258,6 +300,7 @@
                                 <option value="MATCHING">Matching</option>
                                 <option value="WRITING">Writing</option>
                                 <option value="SPEAKING">Speaking</option>
+                                <option value="QUESTION_GROUP">Bộ câu hỏi (Passage + Sub-questions)</option>
                             </select>
                         </div>
                         <div class="col-md-6 d-flex align-items-end">
@@ -295,8 +338,17 @@
                     <!-- Error rows -->
                     <div id="importErrorRows" class="mb-3"></div>
 
+                    <!-- Question Group preview -->
+                    <div id="importGroupPreview" class="mb-3" style="display:none;"></div>
+
                     <div class="text-end">
-                        <button class="btn text-white" style="background-color: #136ad5;" onclick="confirmImport()">
+                        <button class="btn text-white me-2" style="background-color: #136ad5;" onclick="confirmSingleImport()">
+                            <i class="bi bi-check-lg me-1"></i> Lưu câu hỏi đơn
+                        </button>
+                        <button class="btn btn-success" onclick="confirmGroupImport()">
+                            <i class="bi bi-check-lg me-1"></i> Lưu bộ câu hỏi
+                        </button>
+                    </div>
                             <i class="bi bi-check-lg me-1"></i> Lưu tất cả câu hỏi
                         </button>
                     </div>
@@ -647,14 +699,156 @@ async function importSelectedAI() {
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
+let groupPreview = null;
+let groupSelectedSet = new Set();
+
+async function generateAIGroup() {
+    const topic = document.getElementById('groupTopic').value.trim();
+    const skill = document.getElementById('groupSkill').value;
+    const cefr = document.getElementById('groupCefr').value;
+    const qty = parseInt(document.getElementById('groupQty').value);
+
+    if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
+    if (!qty || qty < 2 || qty > 20) { alert('Số câu hỏi con phải từ 2-20.'); return; }
+
+    const body = { topic, quantity: qty, skill, cefrLevel: cefr };
+
+    document.getElementById('aiLoading').style.display = 'block';
+    document.getElementById('aiPreview').style.display = 'none';
+    document.getElementById('groupPreview').style.display = 'none';
+    document.getElementById('aiWarning').style.display = 'none';
+
+    try {
+        const res = await fetch('/api/v1/expert/questions/ai/generate/group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi sinh bộ câu hỏi.'); return; }
+
+        groupPreview = result.data;
+        if (groupPreview.warning) {
+            const w = document.getElementById('aiWarning');
+            w.textContent = groupPreview.warning;
+            w.style.display = 'block';
+        }
+        // Pre-select all questions
+        groupSelectedSet = new Set((groupPreview.questions || []).map((_, i) => i));
+        renderGroupPreview();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+    finally { document.getElementById('aiLoading').style.display = 'none'; }
+}
+
+function renderGroupPreview() {
+    const container = document.getElementById('groupPreviewContent');
+    const g = groupPreview;
+    if (!g) return;
+
+    const qList = (g.questions || []).map((q, i) => `
+        <div class="list-group-item mb-2" style="border-left: 3px solid #136ad5;">
+            <div class="d-flex align-items-start gap-2">
+                <input type="checkbox" class="form-check-input mt-1" id="gqChk${i}"
+                    ${groupSelectedSet.has(i) ? 'checked' : ''}
+                    onchange="toggleGroupQ(${i})">
+                <div class="flex-grow-1">
+                    <div class="d-flex gap-2 flex-wrap mb-1">
+                        <span class="badge bg-secondary">${q.questionType || 'MC'}</span>
+                        <span class="badge bg-primary">${q.cefrLevel || g.cefrLevel || 'B1'}</span>
+                    </div>
+                    <p class="mb-1 small">${escapeHtml(q.content || '')}</p>
+                    ${q.options && q.options.length > 0 ? `<ul class="mb-1 small">${q.options.map(o =>
+                        `<li class="${o.correct ? 'text-success fw-bold' : ''}">${escapeHtml(o.title)} ${o.correct ? '✓' : ''}</li>`
+                    ).join('')}</ul>` : ''}
+                    ${q.correctAnswer ? `<p class="mb-0 small text-muted">Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="card mb-3 border-primary">
+            <div class="card-header bg-primary text-white small fw-bold">PASSAGE</div>
+            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                <p class="mb-1 small">${escapeHtml(g.passage || '')}</p>
+                <div class="mt-2 d-flex gap-2 flex-wrap">
+                    <span class="badge bg-info text-dark">${g.skill || 'READING'}</span>
+                    <span class="badge bg-primary">${g.cefrLevel || 'B1'}</span>
+                    ${g.topic ? `<span class="badge bg-secondary">${escapeHtml(g.topic)}</span>` : ''}
+                </div>
+                ${g.explanation ? `<p class="mb-0 mt-2 small text-muted fst-italic">${escapeHtml(g.explanation)}</p>` : ''}
+            </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <small class="text-muted">${(g.questions || []).length} câu hỏi con</small>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllGroupQ()">Chọn/Bỏ tất cả</button>
+        </div>
+        <div class="list-group">${qList}</div>
+    `;
+    document.getElementById('groupPreview').style.display = 'block';
+}
+
+function toggleGroupQ(idx) {
+    const chk = document.getElementById('gqChk' + idx);
+    if (chk && chk.checked) groupSelectedSet.add(idx);
+    else groupSelectedSet.delete(idx);
+}
+
+function toggleAllGroupQ() {
+    const allSelected = groupSelectedSet.size === (groupPreview.questions || []).length;
+    groupSelectedSet = allSelected
+        ? new Set()
+        : new Set((groupPreview.questions || []).map((_, i) => i));
+    (groupPreview.questions || []).forEach((_, i) => {
+        const chk = document.getElementById('gqChk' + i);
+        if (chk) chk.checked = !allSelected;
+    });
+}
+
+async function importAIGroup() {
+    if (!groupSelectedSet || groupSelectedSet.size === 0) {
+        alert('Vui lòng chọn ít nhất 1 câu hỏi con.'); return;
+    }
+    const selected = (groupPreview.questions || []).filter((_, i) => groupSelectedSet.has(i));
+    if (selected.length === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi con.'); return; }
+
+    const body = {
+        passage: groupPreview.passage,
+        audioUrl: groupPreview.audioUrl || null,
+        imageUrl: groupPreview.imageUrl || null,
+        skill: groupPreview.skill || 'READING',
+        cefrLevel: groupPreview.cefrLevel || 'B1',
+        topic: groupPreview.topic || '',
+        explanation: groupPreview.explanation || '',
+        status: 'DRAFT',
+        questions: selected
+    };
+
+    try {
+        const res = await fetch('/api/v1/expert/questions/ai/import/group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
+        alert(result.message || 'Đã lưu bộ câu hỏi.');
+        aiModal.hide();
+        loadQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
 // ═══════════════════════════ EXCEL PANEL ═══════════════════════════
 
 let importParseResult = null;
+let importGroupResult = null;
 
 function openImportPanel() {
     importParseResult = null;
+    importGroupResult = null;
     document.getElementById('importStep1').style.display = 'block';
     document.getElementById('importStep2').style.display = 'none';
+    document.getElementById('importGroupPreview').style.display = 'none';
     document.getElementById('importFile').value = '';
     document.getElementById('importType').value = '';
     importModal.show();
@@ -663,7 +857,11 @@ function openImportPanel() {
 function resetImport() {
     document.getElementById('importStep1').style.display = 'block';
     document.getElementById('importStep2').style.display = 'none';
+    document.getElementById('importGroupPreview').style.display = 'none';
+    document.getElementById('importValidRows').style.display = 'block';
+    document.getElementById('importErrorRows').style.display = 'block';
     importParseResult = null;
+    importGroupResult = null;
 }
 
 async function downloadTemplate() {
@@ -681,17 +879,30 @@ async function uploadExcel() {
 
     document.getElementById('importLoading').style.display = 'block';
     try {
-        const formData = new FormData();
-        formData.append('type', type);
-        formData.append('file', file);
-        const res = await fetch('/api/v1/expert/questions/excel/parse', {
-            method: 'POST',
-            body: formData
-        });
-        const result = await res.json();
-        if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
-        importParseResult = result.data;
-        renderImportPreview();
+        if (type === 'QUESTION_GROUP') {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/v1/expert/questions/excel/parse-group', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
+            importGroupResult = result.data;
+            renderImportGroupPreview();
+        } else {
+            const formData = new FormData();
+            formData.append('type', type);
+            formData.append('file', file);
+            const res = await fetch('/api/v1/expert/questions/excel/parse', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
+            importParseResult = result.data;
+            renderImportPreview();
+        }
     } catch (e) { alert('Lỗi: ' + e.message); }
     finally { document.getElementById('importLoading').style.display = 'none'; }
 }
@@ -699,6 +910,7 @@ async function uploadExcel() {
 function renderImportPreview() {
     document.getElementById('importStep1').style.display = 'none';
     document.getElementById('importStep2').style.display = 'block';
+    document.getElementById('importGroupPreview').style.display = 'none';
     const r = importParseResult;
     const validCount = r.valid ? r.valid.length : 0;
     const errorCount = r.errors ? r.errors.length : 0;
@@ -766,7 +978,77 @@ function renderErrorEdit(err, errIdx) {
         </div>`;
 }
 
-async function confirmImport() {
+function renderImportGroupPreview() {
+    const container = document.getElementById('importGroupPreview');
+    const r = importGroupResult;
+    if (!r) return;
+
+    const validCount = r.valid ? r.valid.length : 0;
+    const errorCount = r.errors ? r.errors.length : 0;
+
+    document.getElementById('importStep1').style.display = 'none';
+    document.getElementById('importStep2').style.display = 'block';
+    document.getElementById('importValidRows').style.display = 'none';
+    document.getElementById('importGroupPreview').style.display = 'block';
+
+    const summary = document.getElementById('importSummary');
+    summary.className = `alert ${errorCount > 0 ? 'alert-warning' : 'alert-success'}`;
+    summary.innerHTML = `<strong>${validCount} bộ câu hỏi hợp lệ</strong>${errorCount > 0 ? ` | <strong class="text-danger">${errorCount} bộ bị lỗi</strong>` : ''}`;
+
+    if (validCount > 0) {
+        container.innerHTML = r.valid.map((g, gi) => `
+            <div class="card mb-3 border-primary">
+                <div class="card-header bg-primary text-white small fw-bold">
+                    Bộ câu hỏi ${gi + 1} — ${g.group && g.group.passage ? escapeHtml(g.group.passage.substring(0, 80)) + '...' : ''}
+                </div>
+                <div class="card-body">
+                    <div class="mb-2 d-flex gap-2 flex-wrap">
+                        <span class="badge bg-info text-dark">${g.group?.skill || 'READING'}</span>
+                        <span class="badge bg-primary">${g.group?.cefrLevel || 'B1'}</span>
+                        ${g.group?.topic ? `<span class="badge bg-secondary">${escapeHtml(g.group.topic)}</span>` : ''}
+                        <span class="badge bg-success">${(g.questions || []).length} câu hỏi con</span>
+                    </div>
+                    ${(g.questions || []).map((q, qi) => `
+                        <div class="border rounded p-2 mb-2 bg-light">
+                            <div class="small fw-bold">${qi + 1}. ${escapeHtml(q.content || '')}</div>
+                            <div class="small text-muted">Type: ${q.questionType} | CEFR: ${q.cefrLevel}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = '';
+    }
+
+    if (errorCount > 0) {
+        const errEl = document.getElementById('importErrorRows');
+        errEl.style.display = 'block';
+        errEl.innerHTML = `<h6 class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Lỗi</h6>` +
+            r.errors.map(e => `<div class="alert alert-danger py-2 small">Dòng ${e.rowIndex}: ${escapeHtml(e.message)}</div>`).join('');
+    }
+}
+
+async function confirmGroupImport() {
+    if (!importGroupResult || !importGroupResult.valid || importGroupResult.valid.length === 0) {
+        alert('Không có bộ câu hỏi nào để import.'); return;
+    }
+    const body = { group: importGroupResult.valid[0].group };
+    try {
+        const res = await fetch('/api/v1/expert/questions/excel/import-group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await res.json();
+        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
+        alert(result.message || 'Import thành công.');
+        importModal.hide();
+        loadQuestions();
+    } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+async function confirmSingleImport() {
     const validRows = Array.from(document.querySelectorAll('.valid-chk:checked'))
         .map(el => {
             const idx = parseInt(el.dataset.idx);

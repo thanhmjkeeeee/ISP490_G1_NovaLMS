@@ -66,35 +66,95 @@
         
         <div th:each="question, stat : ${result.questions}" class="card shadow-sm border-0 mb-4 rounded-4">
           <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span> <span class="badge ms-2" th:classappend="${question.isCorrect == true ? 'bg-success' : (question.isCorrect == false ? 'bg-danger' : 'bg-warning')}" th:text="${question.isCorrect == true ? '+ ' + question.points + ' Điểm' : (question.isCorrect == false ? '0 Điểm' : 'Chờ chấm')}"></span></h5>
+            <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span>
+              <!-- SPEAKING/WRITING AI status badges -->
+              <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
+                <span th:if="${question.aiGradingStatus == 'PENDING'}" class="badge bg-warning text-dark ms-2">
+                  <i class="bi bi-hourglass-split"></i> Đang AI chấm...
+                </span>
+                <span th:if="${question.aiGradingStatus == 'COMPLETED'}" class="badge bg-success ms-2">
+                  <i class="bi bi-robot"></i> AI đã chấm
+                </span>
+                <span th:if="${question.aiGradingStatus == 'REVIEWED'}" class="badge bg-primary ms-2">
+                  <i class="bi bi-check-circle"></i> Đã duyệt
+                </span>
+              </th:block>
+              <span class="badge ms-2" th:classappend="${question.isCorrect == true ? 'bg-success' : (question.isCorrect == false ? 'bg-danger' : 'bg-warning')}"
+                    th:text="${question.isCorrect == true ? '+ ' + question.points + ' Điểm' : (question.isCorrect == false ? '0 Điểm' : 'Chờ chấm')}"></span>
+            </h5>
           </div>
           <div class="card-body p-4">
             <div class="mb-4">
               <p class="fs-5 mb-3" th:utext="${question.content}"></p>
-              
+
               <div th:if="${question.imageUrl != null and !question.imageUrl.isEmpty()}" class="mb-3">
                 <img th:src="${question.imageUrl}" class="img-fluid rounded border shadow-sm" style="max-height: 250px;">
               </div>
-              
+
               <div th:if="${question.audioUrl != null and !question.audioUrl.isEmpty()}" class="mb-3">
                 <audio controls class="w-100" style="height: 35px;">
                   <source th:src="${question.audioUrl}" type="audio/mpeg">
                 </audio>
               </div>
             </div>
-            
-            <!-- User Answer -->
-            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;">
-               <p class="fw-bold mb-1 small text-muted">Câu trả lời của bạn:</p>
-               <div th:if="${question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
-                  <p class="mb-0 text-dark" th:text="${question.userAnswerDisplay}"></p>
-               </div>
-               <div th:if="${question.userAnswerDisplay == null or question.userAnswerDisplay == ''}">
-                  <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>
-               </div>
+
+            <!-- User Answer (WRITING text) -->
+            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
+                 th:if="${question.questionType == 'WRITING' and question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
+               <p class="fw-bold mb-1 small text-muted">📝 Câu trả lời:</p>
+               <p class="mb-0 text-dark" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}"></p>
             </div>
 
-            <!-- Correct Answer (Only if showAnswer is true) -->
+            <!-- User Answer (other types) -->
+            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
+                 th:if="${question.questionType != 'WRITING' and question.questionType != 'SPEAKING' and question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
+               <p class="fw-bold mb-1 small text-muted">Câu trả lời của bạn:</p>
+               <p class="mb-0 text-dark" th:text="${question.userAnswerDisplay}"></p>
+            </div>
+            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
+                 th:if="${question.questionType != 'WRITING' and question.questionType != 'SPEAKING' and (question.userAnswerDisplay == null or question.userAnswerDisplay == '')}">
+               <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>
+            </div>
+
+            <!-- AI Grading Result for WRITING/SPEAKING -->
+            <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
+              <!-- PENDING -->
+              <div th:if="${question.aiGradingStatus == 'PENDING'}" class="alert alert-warning py-2 d-flex align-items-center gap-2">
+                <span class="spinner-border spinner-border-sm"></span>
+                <span>Đang chờ AI chấm điểm... Trang sẽ tự cập nhật khi có kết quả.</span>
+              </div>
+              <!-- COMPLETED -->
+              <div th:if="${question.aiGradingStatus == 'COMPLETED'}" class="mt-3 p-3 rounded border border-success bg-success bg-opacity-5">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary"><i class="bi bi-robot"></i> IELTS</span>
+                  <span class="fs-5 fw-bold text-success">
+                    <th:block th:text="${question.teacherOverrideScore != null ? question.teacherOverrideScore : (question.aiScore != null ? question.aiScore : '?')}">8/10</th:block>
+                    / <th:block th:text="${question.points}">10</th:block>
+                  </span>
+                  <th:block th:if="${question.teacherOverrideScore != null}">
+                    <span class="badge bg-primary"><i class="bi bi-pencil-square"></i> Override</span>
+                  </th:block>
+                </div>
+                <p class="text-muted mb-2 small" th:if="${question.aiFeedback != null}" th:text="${question.aiFeedback}"></p>
+                <!-- Rubric Breakdown (structured display) -->
+                <th:block th:if="${question.aiRubricJson != null}">
+                  <button class="btn btn-link btn-sm p-0 text-decoration-none" type="button"
+                          data-bs-toggle="collapse"
+                          th:attr="data-bs-target='#rubric-' + ${question.questionId}">
+                    <i class="bi bi-chevron-expand"></i> Xem chi tiết rubric (IELTS)
+                  </button>
+                  <div class="collapse mt-2" th:id="'rubric-' + ${question.questionId}">
+                    <div class="rubric-breakdown"
+                         th:attr="data-rubric=${question.aiRubricJson},
+                                   data-qtype=${question.questionType},
+                                   data-is-teacher='false'">
+                    </div>
+                  </div>
+                </th:block>
+              </div>
+            </th:block>
+
+            <!-- Correct Answer -->
             <div th:if="${result.showAnswer and question.correctAnswerDisplay != null}" class="mb-3 p-3 rounded bg-success bg-opacity-10 border border-success border-opacity-25">
                <p class="fw-bold mb-1 small text-success">Đáp án đúng:</p>
                <p class="mb-0 text-dark fw-medium" th:text="${question.correctAnswerDisplay}"></p>
@@ -111,6 +171,123 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+(function() {
+    // ── Band label color map ──────────────────────────────────────────────────
+    function bandColor(score) {
+        if (score <= 4)   return '#dc3545'; // red
+        if (score <= 6)   return '#ffc107'; // yellow
+        return '#198754';                    // green
+    }
+
+    function bandColorCss(score) {
+        if (score <= 4)   return 'bg-danger';
+        if (score <= 6)   return 'bg-warning text-dark';
+        return 'bg-success';
+    }
+
+    // ── Criterion label i18n ─────────────────────────────────────────────────
+    var CRITERION_LABELS = {
+        // WRITING
+        'task_achievement':   '📝 Task Achievement',
+        'lexical_resource':  '📖 Lexical Resource',
+        'grammatical_range': '🔤 Grammatical Range & Accuracy',
+        'coherence_cohesion':'🔗 Coherence & Cohesion',
+        // SPEAKING
+        'fluency_cohesion':  '🎤 Fluency & Coherence',
+        'pronunciation':     '🔊 Pronunciation'
+    };
+
+    // ── Main render ─────────────────────────────────────────────────────────
+    function renderRubric(container, isTeacher) {
+        var rubricJson = container.getAttribute('data-rubric');
+        if (!rubricJson) return;
+
+        try {
+            var rubric = JSON.parse(rubricJson);
+        } catch(e) {
+            // Fallback: old format → show raw JSON
+            container.innerHTML = '<pre class="small text-muted">' + rubricJson + '</pre>';
+            return;
+        }
+
+        // Check if new format (has rubric.criterion.score) vs old (just numbers)
+        var isNewFormat = rubric && typeof rubric === 'object' &&
+            Object.values(rubric).some(function(v) { return v && typeof v === 'object' && v.score !== undefined; });
+
+        if (!isNewFormat) {
+            container.innerHTML = '<pre class="small text-muted">' + rubricJson + '</pre>';
+            return;
+        }
+
+        var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
+        html += '<thead><tr class="small text-muted">' +
+            '<th style="width:35%">Tiêu chí</th>' +
+            '<th style="width:15%">Band</th>' +
+            '<th style="width:40%">Progress</th>' +
+            '<th style="width:10%">Điểm</th></tr></thead><tbody>';
+
+        for (var key in rubric) {
+            var c = rubric[key];
+            if (!c || typeof c.score === 'undefined') continue;
+
+            var label    = CRITERION_LABELS[key] || key;
+            var pct      = Math.round((c.score / c.max) * 100);
+            var color    = bandColor(c.score);
+            var colorCls = bandColorCss(c.score);
+            var bandDisp = c.bandLabel || (c.score % 1 === 0 ? String(c.score) : c.score.toFixed(1));
+
+            html += '<tr>' +
+                '<td><span class="small fw-semibold">' + label + '</span><br>' +
+                '<span class="text-muted" style="font-size:0.7rem;font-style:italic">' +
+                (c.bandDescription || '') + '</span></td>' +
+                '<td><span class="badge ' + colorCls + '">' + bandDisp + '</span></td>' +
+                '<td><div class="progress" style="height:10px">' +
+                '<div class="progress-bar" role="progressbar" style="width:' + pct + '%;background-color:' + color + '"></div></div></td>' +
+                '<td><span class="small fw-bold">' + c.score + '/' + c.max + '</span></td></tr>';
+        }
+        html += '</tbody></table></div>';
+
+        // AI reasoning — teacher only
+        if (isTeacher) {
+            for (var key in rubric) {
+                var c = rubric[key];
+                if (!c || !c.aiReasoning) continue;
+                var label = CRITERION_LABELS[key] || key;
+                html += '<div class="mt-2 p-2 bg-light rounded small text-secondary">' +
+                    '<strong>💡 ' + label + ':</strong> ' + c.aiReasoning + '</div>';
+            }
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ── Bootstrap auto-init ──────────────────────────────────────────────────
+    document.querySelectorAll('.rubric-breakdown').forEach(function(el) {
+        var isTeacher = el.getAttribute('data-is-teacher') === 'true';
+        renderRubric(el, isTeacher);
+    });
+
+    // ── AI polling ──────────────────────────────────────────────────────────
+    var resultId = /*[[${resultId}]]*/ 0;
+    var pendingBadge = document.querySelector('.bg-warning.text-dark');
+    if (!pendingBadge) return;
+
+    setInterval(function() {
+        fetch('/api/v1/student/quiz/result/' + resultId + '/ai-status')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status !== 200) return;
+                var allDone = data.data.every(function(q) {
+                    return q.aiGradingStatus !== 'PENDING';
+                });
+                if (allDone) location.reload();
+            })
+            .catch(function() {});
+    }, 15000);
+})();
+</script>
 
 </body>
 </html>

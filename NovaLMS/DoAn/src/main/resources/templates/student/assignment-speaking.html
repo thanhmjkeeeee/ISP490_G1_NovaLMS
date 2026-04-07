@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Phần Nói')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Speaking', breadcrumb='Bài kiểm tra lớn / Speaking')}"></header>
+
+<main id="dashMain" style="margin-left:0">
+
+<div class="container-fluid py-4" style="max-width:900px;margin:0 auto">
+
+    <!-- Top bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <span class="badge bg-success fs-6">🎤 Speaking</span>
+        </div>
+        <div class="d-flex gap-3 align-items-center">
+            <div class="small text-muted">Thời gian phần nói</div>
+            <div class="text-danger fw-bold fs-5" id="speakingTimer">--:--</div>
+        </div>
+    </div>
+
+    <!-- Section progress steps -->
+    <div class="d-flex mb-4 gap-2" id="skillSteps">
+        <div th:each="s : ${skillOrder}"
+             class="flex-fill text-center rounded py-2 fw-bold small"
+             style="cursor:default"
+             th:id="${'step-' + s}"
+             th:text="${s == 'LISTENING'} ? '🎧 L' :
+                      (${s == 'READING'} ? '📖 Đ' :
+                      (${s == 'SPEAKING'} ? '🎤 N' : '✍️ V'))">STEP</div>
+    </div>
+
+    <!-- Questions container -->
+    <div id="questionsContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <p class="text-muted mt-2 mb-0">Đang tải…</p>
+        </div>
+    </div>
+
+    <!-- Recording card -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4" style="border:2px solid #dc3545 !important">
+        <div class="card-body text-center py-4">
+
+            <!-- Recording status badge -->
+            <div id="recordingStatusBadge" class="mb-3" style="display:none">
+                <span class="badge bg-danger fs-6 px-3 py-2">
+                    🔴 Đang ghi âm… <span id="recordingSeconds">0:00</span>
+                </span>
+            </div>
+
+            <!-- Start / Stop controls -->
+            <div id="recordControls">
+                <button class="btn btn-danger btn-lg px-5" onclick="startRecording()">
+                    <i class="bi bi-mic-fill me-2"></i> Bắt đầu ghi âm
+                </button>
+            </div>
+            <div id="stopControls" style="display:none">
+                <button class="btn btn-secondary btn-lg px-5" onclick="stopRecording()">
+                    <i class="bi bi-stop-fill me-2"></i> Dừng ghi âm
+                </button>
+            </div>
+
+            <!-- Playback + re-record -->
+            <div id="playbackArea" class="mt-3" style="display:none">
+                <audio id="playbackAudio" controls class="w-100 mb-3" style="max-height:60px"></audio>
+                <div>
+                    <button class="btn btn-outline-danger" onclick="reRecord()">
+                        <i class="bi bi-arrow-repeat me-1"></i> Ghi âm lại
+                    </button>
+                    <button class="btn btn-primary px-4" id="submitSectionBtn" onclick="submitSection()" disabled>
+                        <i class="bi bi-check-lg me-1"></i> Nộp phần Speaking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload indicator -->
+            <div id="uploadingIndicator" class="mt-3 text-muted" style="display:none">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                Đang tải file lên…
+            </div>
+
+            <!-- Upload error -->
+            <div id="uploadError" class="alert alert-danger mt-3" style="display:none">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Không thể tải file lên. Vui lòng thử lại.
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Timer warning -->
+    <div class="alert alert-warning mt-3">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Ghi âm sẽ <strong>tự động nộp</strong> khi hết thời gian. Bạn có thể ghi âm lại nhiều lần.
+    </div>
+
+    <!-- Navigation -->
+    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+        <a id="prevBtn" class="btn btn-outline-secondary px-4" href="#">
+            <i class="bi bi-arrow-left me-1"></i> Phần trước
+        </a>
+        <div class="text-muted small align-self-center" id="savedIndicator" style="display:none">
+            <i class="bi bi-check-circle text-success me-1"></i> Đã lưu
+        </div>
+    </div>
+
+</div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+const sessionId = /*[[${sessionId}]]*/ 0;
+let mediaRecorder = null;
+let audioChunks = [];
+let currentRecordingUrl = null;
+let currentQuestionIds = [];
+let speakingSeconds = 0;
+let speakingTimerInterval = null;
+let sectionLoaded = false;
+
+// Bootstrap helpers
+let saveToast;
+document.addEventListener('DOMContentLoaded', () => {
+    loadSection();
+});
+
+async function loadSection() {
+    try {
+        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING`);
+        const result = await resp.json();
+        if (result.status !== 200) {
+            document.getElementById('questionsContainer').innerHTML =
+                `<div class="alert alert-danger">Lỗi: ${result.message}</div>`;
+            return;
+        }
+        const section = result.data;
+        currentQuestionIds = (section.questions || []).map(q => q.questionId);
+
+        // Speaking timer
+        speakingSeconds = section.speakingTimerSeconds || 120;
+        updateSpeakingTimerDisplay();
+
+        renderProgressSteps(section);
+        renderQuestions(section.questions || []);
+
+        if (section.previousSkill) {
+            document.getElementById('prevBtn').href =
+                `/student/assignment/session/${sessionId}/section/${section.previousSkill}`;
+        } else {
+            document.getElementById('prevBtn').style.visibility = 'hidden';
+        }
+
+        // Auto-save every 30s
+        setInterval(saveDraft, 30000);
+
+        sectionLoaded = true;
+    } catch (e) {
+        document.getElementById('questionsContainer').innerHTML =
+            `<div class="alert alert-danger">Lỗi kết nối: ${e.message}</div>`;
+    }
+}
+
+function renderProgressSteps(section) {
+    const SEQUENTIAL_SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+    const currentIdx = 2; // SPEAKING
+    const statuses = section.sectionStatuses || {};
+    SEQUENTIAL_SKILLS.forEach((s, i) => {
+        const el = document.getElementById('step-' + s);
+        if (!el) return;
+        const status = statuses[s];
+        if (status === 'COMPLETED') {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-success text-white';
+        } else if (i === currentIdx) {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-success text-white';
+        } else if (i > currentIdx) {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-light text-muted border';
+        } else {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-secondary text-white';
+        }
+    });
+}
+
+function renderQuestions(questions) {
+    const container = document.getElementById('questionsContainer');
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Không có câu hỏi cho phần này.</div>';
+        return;
+    }
+    container.innerHTML = questions.map((q, i) => `
+        <div class="card mb-3 border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0">Câu <span>${i+1}</span> <span class="text-muted fw-normal">/ ${q.points || 1} điểm</span></h5>
+                </div>
+                ${q.imageUrl ? `<img src="${q.imageUrl}" class="img-fluid rounded mb-3" style="max-height:200px">` : ''}
+                <p class="fs-5 mb-3" style="line-height:1.6">${q.content}</p>
+                ${q.audioUrl ? `
+                <div class="alert alert-secondary py-2 mb-0">
+                    <div class="small text-muted mb-1"><i class="bi bi-volume-up me-1"></i> Nghe đề bài</div>
+                    <audio controls class="w-100" style="height:40px">
+                        <source src="${q.audioUrl}" type="audio/mpeg">
+                    </audio>
+                </div>` : ''}
+                <input type="hidden" id="answer_${q.questionId}" value="">
+            </div>
+        </div>`).join('');
+}
+
+async function saveDraft() {
+    if (!currentRecordingUrl) return;
+    try {
+        const answers = {};
+        currentQuestionIds.forEach(id => { answers[id] = currentRecordingUrl; });
+        await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers })
+        });
+    } catch (e) { /* silent */ }
+}
+
+// ─── Recording ─────────────────────────────────────────────────────────
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = uploadRecording;
+
+            mediaRecorder.start();
+
+            document.getElementById('recordingStatusBadge').style.display = 'block';
+            document.getElementById('recordControls').style.display = 'none';
+            document.getElementById('stopControls').style.display = 'block';
+
+            // Start countdown
+            speakingTimerInterval = setInterval(() => {
+                speakingSeconds--;
+                updateSpeakingTimerDisplay();
+                updateRecordingSeconds();
+                if (speakingSeconds <= 0) {
+                    clearInterval(speakingTimerInterval);
+                    stopRecording();
+                    setTimeout(autoSubmitAndUpload, 500);
+                }
+            }, 1000);
+        })
+        .catch(err => {
+            alert('Không thể truy cập microphone: ' + err.message);
+        });
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        clearInterval(speakingTimerInterval);
+        document.getElementById('recordingStatusBadge').style.display = 'none';
+        document.getElementById('stopControls').style.display = 'none';
+    }
+}
+
+function updateSpeakingTimerDisplay() {
+    const el = document.getElementById('speakingTimer');
+    if (!el) return;
+    const m = Math.floor(speakingSeconds / 60);
+    const s = speakingSeconds % 60;
+    el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    if (speakingSeconds <= 30) el.classList.add('text-danger', 'fw-bold');
+}
+
+function updateRecordingSeconds() {
+    const total = speakingTimerInterval ? (120 - speakingSeconds) : 0;
+    const el = document.getElementById('recordingSeconds');
+    if (el) {
+        const m = Math.floor(total / 60);
+        const s = total % 60;
+        el.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    }
+}
+
+async function uploadRecording() {
+    document.getElementById('uploadingIndicator').style.display = 'block';
+    document.getElementById('uploadError').style.display = 'none';
+
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('file', blob, 'speaking_answer.webm');
+
+    try {
+        const resp = await fetch('/api/v1/upload/audio', { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (!data.url) throw new Error('No URL returned');
+
+        currentRecordingUrl = data.url;
+
+        // Update all hidden inputs + playback
+        const audio = document.getElementById('playbackAudio');
+        audio.src = currentRecordingUrl;
+        document.getElementById('playbackArea').style.display = 'block';
+        document.getElementById('submitSectionBtn').disabled = false;
+
+    } catch (e) {
+        document.getElementById('uploadError').style.display = 'block';
+    } finally {
+        document.getElementById('uploadingIndicator').style.display = 'none';
+    }
+}
+
+function reRecord() {
+    currentRecordingUrl = null;
+    document.getElementById('playbackArea').style.display = 'none';
+    document.getElementById('submitSectionBtn').disabled = true;
+    document.getElementById('recordControls').style.display = 'block';
+    // Reset timer to full
+    speakingSeconds = 120;
+    updateSpeakingTimerDisplay();
+    startRecording();
+}
+
+async function autoSubmitAndUpload() {
+    if (!currentRecordingUrl) {
+        await uploadRecording();
+    }
+    if (currentRecordingUrl) {
+        await submitSection();
+    }
+}
+
+async function submitSection() {
+    if (!currentRecordingUrl) {
+        alert('Vui lòng ghi âm trước khi nộp.');
+        return;
+    }
+    clearInterval(speakingTimerInterval);
+
+    const btn = document.getElementById('submitSectionBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang nộp…`;
+
+    const answers = {};
+    currentQuestionIds.forEach(id => { answers[id] = currentRecordingUrl; });
+
+    try {
+        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(answers)
+        });
+        const result = await resp.json();
+        if (result.status === 200) {
+            window.location.href = `/student/assignment/session/${sessionId}/section/WRITING`;
+        } else {
+            alert('Lỗi: ' + (result.message || 'Không thể nộp'));
+            btn.disabled = false;
+            btn.innerHTML = `<i class="bi bi-check-lg me-1"></i> Nộp phần Speaking`;
+        }
+    } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check-lg me-1"></i> Nộp phần Speaking`;
+    }
+}
+</script>
+
+</body>
+</html>

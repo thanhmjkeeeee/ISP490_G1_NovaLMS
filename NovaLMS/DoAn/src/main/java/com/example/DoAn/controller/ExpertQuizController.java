@@ -1,11 +1,15 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.request.AssignmentQuestionRequestDTO;
 import com.example.DoAn.dto.request.QuizQuestionRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
+import com.example.DoAn.dto.response.AssignmentPreviewDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.QuizResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.dto.response.SkillSectionSummaryDTO;
 import com.example.DoAn.service.IExpertQuizService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -59,7 +63,7 @@ public class ExpertQuizController {
     @Operation(summary = "Tạo Quiz mới")
     @PostMapping
     public ResponseData<QuizResponseDTO> createQuiz(
-            @Valid @RequestBody QuizRequestDTO request, Principal principal) {
+            @Valid @RequestBody QuizRequestDTO request, Principal principal) throws JsonProcessingException {
         return new ResponseData<>(HttpStatus.CREATED.value(), "Quiz đã được tạo.",
                 quizService.createQuiz(request, getEmail(principal)));
     }
@@ -140,5 +144,48 @@ public class ExpertQuizController {
             Principal principal) {
         return ResponseData.success("Thứ tự câu hỏi đã được cập nhật.",
                 quizService.reorderQuestions(quizId, orderedList, getEmail(principal)));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  ASSIGNMENT OPERATIONS (4-skill sequential)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Operation(summary = "Lấy số câu hỏi theo từng kỹ năng của assignment")
+    @GetMapping("/{quizId}/skills")
+    public ResponseData<Map<String, SkillSectionSummaryDTO>> getSkillSummaries(
+            @PathVariable Integer quizId) {
+        return ResponseData.success(quizService.getSkillSummaries(quizId));
+    }
+
+    @Operation(summary = "Thêm câu hỏi vào phần kỹ năng (assignment)")
+    @PostMapping("/{quizId}/section/questions")
+    public ResponseData<Void> addQuestionsToSection(
+            @PathVariable Integer quizId,
+            @RequestBody AssignmentQuestionRequestDTO dto,
+            Principal principal) {
+        quizService.addQuestionsToSection(quizId, dto, getEmail(principal));
+        return ResponseData.success(null);
+    }
+
+    @Operation(summary = "Gỡ câu hỏi khỏi assignment")
+    @DeleteMapping("/{quizId}/section/questions/{questionId}")
+    public ResponseData<Void> removeQuestionFromSection(
+            @PathVariable Integer quizId,
+            @PathVariable Integer questionId,
+            Principal principal) {
+        quizService.removeQuestion(quizId, questionId);
+        return ResponseData.success(null);
+    }
+
+    @Operation(summary = "Xem preview assignment trước khi publish")
+    @GetMapping("/{quizId}/preview")
+    public ResponseData<AssignmentPreviewDTO> getPreview(@PathVariable Integer quizId) {
+        return ResponseData.success(quizService.getAssignmentPreview(quizId));
+    }
+
+    @Operation(summary = "Xuất bản assignment (yêu cầu đủ câu ở cả 4 kỹ năng)")
+    @PatchMapping("/{quizId}/publish")
+    public ResponseData<QuizResponseDTO> publishAssignment(@PathVariable Integer quizId) {
+        return ResponseData.success(quizService.publishAssignment(quizId));
     }
 }

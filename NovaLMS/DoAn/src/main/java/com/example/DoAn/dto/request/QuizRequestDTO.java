@@ -3,6 +3,7 @@ package com.example.DoAn.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -32,4 +33,13 @@ public class QuizRequestDTO {
     private String targetSkill;  // nullable — Grammar|Vocabulary|Listening|Reading|Writing|Speaking
 
     private String status;           // DRAFT | PUBLISHED | ARCHIVED
+
+    private Boolean isSequential; // true for COURSE_ASSIGNMENT / MODULE_ASSIGNMENT
+    private java.util.List<String> skillOrder; // ["LISTENING","READING","SPEAKING","WRITING"]
+    private java.util.Map<String, Integer> timeLimitPerSkill; // {"SPEAKING": 2, "WRITING": 30}
+
+    // Schedule fields for COURSE_ASSIGNMENT
+    private LocalDateTime openAt;    // null = mở ngay khi isOpen=true
+    private LocalDateTime closeAt;   // null = không đóng tự động
+    private LocalDateTime deadline; // bắt buộc cho assignment
 }

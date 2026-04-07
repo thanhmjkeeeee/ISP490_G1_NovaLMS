@@ -29,4 +29,37 @@ public class QuizAnswer {
 
     @Column(name = "is_correct")
     private Boolean isCorrect;
+
+    @lombok.Builder.Default
+    @Column(name = "pending_ai_review")
+    private Boolean pendingAiReview = false;
+
+    @Column(name = "ai_score")
+    private String aiScore; // e.g. "8/10"
+
+    @Column(name = "ai_feedback", columnDefinition = "TEXT")
+    private String aiFeedback;
+
+    @Column(name = "ai_rubric_json", columnDefinition = "TEXT")
+    private String aiRubricJson;
+
+    // Teacher-assigned score for manual/SPEAKING/WRITING grading
+    @Column(name = "points_awarded", precision = 5, scale = 2)
+    private java.math.BigDecimal pointsAwarded;
+
+    // Teacher's per-question note
+    @Column(name = "teacher_note", columnDefinition = "TEXT")
+    private String teacherNote;
+
+    // Cloudinary URL for SPEAKING audio answer
+    @Column(name = "audio_url")
+    private String audioUrl;
+
+    // AI grading status: PENDING | COMPLETED | REVIEWED
+    @Column(name = "ai_grading_status", length = 20)
+    private String aiGradingStatus;
+
+    // Teacher override score — if non-null, used instead of AI score
+    @Column(name = "teacher_override_score", length = 20)
+    private String teacherOverrideScore;
 }

@@ -39,6 +39,13 @@ public class QuizResult {
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    @Column(name = "assignment_session_id")
+    private Long assignmentSessionId;
+
+    // JSON: {"LISTENING": 8.0, "READING": 7.5, "SPEAKING": null, "WRITING": null}
+    @Column(name = "section_scores", columnDefinition = "JSON")
+    private String sectionScores;
+
     @OneToMany(mappedBy = "quizResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<QuizAnswer> quizAnswers;
 }

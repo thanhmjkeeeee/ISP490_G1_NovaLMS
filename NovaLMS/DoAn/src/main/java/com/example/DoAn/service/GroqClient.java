@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -14,7 +13,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -98,6 +96,7 @@ public class GroqClient {
                     .timeout(Duration.ofSeconds(30))
                     .block();
 
+            log.info("[GROQ] Whisper transcription response: {}", responseBody);
             JsonNode node = mapper.readTree(responseBody);
             return node.path("text").asText("");
 
@@ -109,7 +108,7 @@ public class GroqClient {
 
     /**
      * Grade WRITING or SPEAKING answer via LLaMA 3.3 70B Versatile.
-     * Returns JSON: {"totalScore": 8, "maxScore": 10, "feedback": "...", "rubric": {...}}
+     * Returns JSON with IELTS 9-band rubric breakdown.
      */
     public GradingResponse gradeWritingOrSpeaking(
             String questionPrompt,
@@ -119,8 +118,8 @@ public class GroqClient {
             String questionType,
             int maxPoints
     ) {
-        String rubricJson = buildRubricJson(questionType, maxPoints);
-        String systemPrompt = buildSystemPrompt(questionType, rubricJson, maxPoints);
+        String rubricJson = buildRubricJson(questionType);
+        String systemPrompt = buildSystemPrompt(questionType, rubricJson);
         String userPrompt = buildUserPrompt(questionPrompt, skill, cefrLevel, studentAnswer);
 
         try {
@@ -143,6 +142,7 @@ public class GroqClient {
                     .timeout(Duration.ofSeconds(60))
                     .block();
 
+            log.info("[GROQ] LLaMA grading response: {}", response);
             String content = response.path("choices").get(0)
                     .path("message").path("content").asText();
             content = content.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
@@ -154,69 +154,194 @@ public class GroqClient {
         }
     }
 
-    // ─── Private helpers ───────────────────────────────────────────
+    // ─── Private helpers ───────────────────────────────────────────────────────
 
-    private String buildRubricJson(String questionType, int maxPoints) {
-        int perCriterion = maxPoints / 4;
+    private String buildRubricJson(String questionType) {
         if ("WRITING".equals(questionType)) {
-            return String.format("""
-                {
-                  "task_achievement": {"max": %d, "desc": "Hoàn thành đúng yêu cầu đề bài, đủ độ dài"},
-                  "lexical_resource": {"max": %d, "desc": "Vốn từ vựng phong phú, phù hợp CEFR"},
-                  "grammar": {"max": %d, "desc": "Độ chính xác ngữ pháp, cấu trúc câu"},
-                  "coherence_cohesion": {"max": %d, "desc": "Liên kết câu/đoạn mạch lạc, từ nối"}
+            return """
+            {
+              "task_achievement": {
+                "max": 9,
+                "bands": {
+                  "0": "Content is irrelevant or does not communicate the message",
+                  "1": "Barely communicates with occasional comprehensible sections",
+                  "2": "Partially addresses the task; content may be largely irrelevant",
+                  "3": "Task not fully achieved; coverage is inadequate",
+                  "4": "Presents a position but development is insufficient or repetitive",
+                  "5": "Presents some relevant ideas but development is limited",
+                  "6": "Addresses the task adequately; relevant ideas with some development",
+                  "7": "Covers all requirements; well-developed with clear progression",
+                  "8": "Satisfies all requirements; very good development and cohesion",
+                  "9": "Fully addresses all requirements with complete clarity and precision"
                 }
-                """, perCriterion, perCriterion, perCriterion, perCriterion);
+              },
+              "lexical_resource": {
+                "max": 9,
+                "bands": {
+                  "0": "No appropriate lexical resource",
+                  "1": "Rarely used appropriate vocabulary; comprehension is severely limited",
+                  "2": "Limited vocabulary; frequent errors of word choice",
+                  "3": "Limited vocabulary; inaccuracies impede meaning",
+                  "4": "Adequate vocabulary; some inaccuracies but meaning largely clear",
+                  "5": "Sufficient range; some vocabulary errors but meaning clear",
+                  "6": "Wide enough vocabulary; occasional lexical errors",
+                  "7": "Wide range; minor errors; effective communication",
+                  "8": "Wide range; very few lexical errors; communicates flexibly",
+                  "9": "Full flexibility and precision; sophisticated vocabulary"
+                }
+              },
+              "grammatical_range": {
+                "max": 9,
+                "bands": {
+                  "0": "No grammatical structures",
+                  "1": "Rarely produces grammatical structures",
+                  "2": "Few sentence structures; accuracy only in simplest forms",
+                  "3": "Limited control; errors impede communication",
+                  "4": "Some accuracy; limited range of structures",
+                  "5": "Fair range; frequent errors but clear communication",
+                  "6": "Good range; reasonable accuracy; complex structures attempted",
+                  "7": "Wide range; good accuracy; minor errors",
+                  "8": "Wide range; very good accuracy; rare errors",
+                  "9": "Full range; high accuracy; sophisticated structures"
+                }
+              },
+              "coherence_cohesion": {
+                "max": 9,
+                "bands": {
+                  "0": "No organization or cohesion",
+                  "1": "Unconnected ideas; minimal cohesion",
+                  "2": "Lacks cohesion; organization unclear",
+                  "3": "Cohesion inadequate; organization hard to follow",
+                  "4": "Cohesion developed; organization sometimes unclear",
+                  "5": "Uses some cohesive devices; organization generally clear",
+                  "6": "Logically organized; appropriate cohesive devices",
+                  "7": "Well-organized; clear progression; effective cohesion",
+                  "8": "Very well organized; seamless cohesion",
+                  "9": "Fluent and sophisticated; perfect cohesion and progression"
+                }
+              }
+            }
+            """;
         } else {
-            return String.format("""
-                {
-                  "task_achievement": {"max": %d, "desc": "Trả lời đúng câu hỏi, đủ ý"},
-                  "lexical_resource": {"max": %d, "desc": "Từ vựng phong phú, phù hợp CEFR"},
-                  "pronunciation": {"max": %d, "desc": "Phát âm rõ ràng, đúng trọng âm"},
-                  "fluency": {"max": %d, "desc": "Lưu loát, tự nhiên, tốc độ phù hợp"}
+            // SPEAKING
+            return """
+            {
+              "fluency_cohesion": {
+                "max": 9,
+                "bands": {
+                  "0": "Cannot communicate",
+                  "1": "Difficult to produce connected speech",
+                  "2": "Long pauses; hesitant; communication is stilted",
+                  "3": "Usually hesitant; some connected speech",
+                  "4": "Shows hesitation; limited connected speech",
+                  "5": "Able to sustain speech; some hesitation",
+                  "6": "Speaks at reasonable speed; occasional repetition",
+                  "7": "Speaks fluently with occasional self-correction",
+                  "8": "Speaks fluently with rare hesitation or repetition",
+                  "9": "Speaks with complete fluency like a native speaker"
                 }
-                """, perCriterion, perCriterion, perCriterion, perCriterion);
+              },
+              "lexical_resource": {
+                "max": 9,
+                "bands": {
+                  "0": "No appropriate lexical resource",
+                  "1": "Barely communicates; no evidence of lexical control",
+                  "2": "Limited vocabulary; frequent word-searching",
+                  "3": "Limited vocabulary; comprehension often breaks down",
+                  "4": "Limited range; occasional word-finding difficulty",
+                  "5": "Sufficient range; some word choice errors",
+                  "6": "Wide enough vocabulary; occasional errors",
+                  "7": "Wide range; minor lexical gaps; communicates effectively",
+                  "8": "Wide range; very few lexical errors",
+                  "9": "Full lexical sophistication; precise word choice"
+                }
+              },
+              "grammatical_range": {
+                "max": 9,
+                "bands": {
+                  "0": "No grammatical structures",
+                  "1": "Rarely produces grammatical structures",
+                  "2": "Few structures; frequent errors",
+                  "3": "Limited control; frequent errors impede meaning",
+                  "4": "Some accuracy in simple sentences; complex forms rare",
+                  "5": "Fair range; frequent grammatical errors",
+                  "6": "Good range; reasonable accuracy; complex structures attempted",
+                  "7": "Wide range; good accuracy; minor errors",
+                  "8": "Wide range; very good accuracy; rare errors",
+                  "9": "Full range; sophisticated structures; high accuracy"
+                }
+              },
+              "pronunciation": {
+                "max": 9,
+                "bands": {
+                  "0": "No intelligible pronunciation",
+                  "1": "Barely intelligible; constant breakdowns",
+                  "2": "Severe pronunciation difficulties; frequent breakdowns",
+                  "3": "Heavy accent; frequent mispronunciation; meaning obscured",
+                  "4": "Pronunciation errors require listener effort",
+                  "5": "Acceptable but with occasional mispronunciation",
+                  "6": "Generally intelligible; some errors but clear",
+                  "7": "Clear and intelligible; minor pronunciation slips",
+                  "8": "Very clear; rare pronunciation errors",
+                  "9": "Equivalent to an educated native speaker"
+                }
+              }
+            }
+            """;
         }
     }
 
-    private String buildSystemPrompt(String questionType, String rubricJson, int maxPoints) {
-        int perCriterion = maxPoints / 4;
+    private String buildSystemPrompt(String questionType, String rubricJson) {
         if ("WRITING".equals(questionType)) {
             return String.format("""
-                Bạn là giáo viên tiếng Anh chấm bài WRITING theo rubric CEFR.
-                Rubric: %s
-                Hãy chấm bài dựa trên 4 tiêu chí trên.
-                Trả về DUY NHẤT JSON, không có markdown nào khác:
-                {
-                  "totalScore": <tổng điểm>,
-                  "maxScore": <tổng điểm tối đa>,
-                  "feedback": "<nhận xét ngắn 2-3 câu bằng tiếng Việt>",
-                  "rubric": {
-                    "task_achievement": <điểm 0-%d>,
-                    "lexical_resource": <điểm 0-%d>,
-                    "grammar": <điểm 0-%d>,
-                    "coherence_cohesion": <điểm 0-%d>
-                  }
-                }
-                """, rubricJson, perCriterion, perCriterion, perCriterion, perCriterion);
+            Bạn là giáo viên tiếng Anh chuyên IELTS, chấm bài WRITING theo thang điểm IELTS 9-band.
+            Rubric (mỗi tiêu chí 0-9 điểm):
+            %s
+
+            Hãy đọc câu trả lời và CHẤM theo rubric trên.
+            Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
+            {
+              "overallBand": <(task_achievement + lexical_resource + grammatical_range + coherence_cohesion) / 4>,
+              "displayScore": <overallBand * 2.5>,
+              "maxScore": 10,
+              "feedback": "<nhận xét tổng 2-3 câu bằng tiếng Việt, gợi ý cải thiện>",
+              "overallBandDescriptor": "<VD: 'Good User (7.0)'>",
+              "rubric": {
+                "task_achievement": {
+                  "score": <điểm 0-9>,
+                  "max": 9,
+                  "bandLabel": "<VD: 'Band 7.0' hoặc '7.5'>",
+                  "bandDescription": "<lấy mô tả band tương ứng từ rubric ở trên>",
+                  "aiReasoning": "<giải thích 1-2 câu bằng tiếng Việt tại sao đạt mức này>"
+                },
+                "lexical_resource": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                "grammatical_range": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                "coherence_cohesion": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." }
+              }
+            }
+            """, rubricJson);
         } else {
             return String.format("""
-                Bạn là giáo viên tiếng Anh chấm bài SPEAKING theo rubric CEFR.
-                Rubric: %s
-                Hãy chấm bài dựa trên 4 tiêu chí trên.
-                Trả về DUY NHẤT JSON, không có markdown nào khác:
-                {
-                  "totalScore": <tổng điểm>,
-                  "maxScore": <tổng điểm tối đa>,
-                  "feedback": "<nhận xét ngắn 2-3 câu bằng tiếng Việt>",
-                  "rubric": {
-                    "task_achievement": <điểm 0-%d>,
-                    "lexical_resource": <điểm 0-%d>,
-                    "pronunciation": <điểm 0-%d>,
-                    "fluency": <điểm 0-%d>
-                  }
-                }
-                """, rubricJson, perCriterion, perCriterion, perCriterion, perCriterion);
+            Bạn là giáo viên tiếng Anh chuyên IELTS, chấm bài SPEAKING theo thang điểm IELTS 9-band.
+            Rubric (mỗi tiêu chí 0-9 điểm):
+            %s
+
+            Hãy nghe/nhìn câu trả lời và CHẤM theo rubric trên.
+            Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
+            {
+              "overallBand": <(fluency_cohesion + lexical_resource + grammatical_range + pronunciation) / 4>,
+              "displayScore": <overallBand * 2.5>,
+              "maxScore": 10,
+              "feedback": "<nhận xét tổng 2-3 câu bằng tiếng Việt, gợi ý cải thiện>",
+              "overallBandDescriptor": "<VD: 'Good User (7.0)'>",
+              "rubric": {
+                "fluency_cohesion": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                "lexical_resource": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                "grammatical_range": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                "pronunciation": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." }
+              }
+            }
+            """, rubricJson);
         }
     }
 

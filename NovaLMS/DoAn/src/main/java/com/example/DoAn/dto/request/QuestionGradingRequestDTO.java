@@ -11,4 +11,5 @@ import java.math.BigDecimal;
 public class QuestionGradingRequestDTO {
     private Integer questionId;
     private BigDecimal pointsAwarded;
+    private String teacherNote;
 }

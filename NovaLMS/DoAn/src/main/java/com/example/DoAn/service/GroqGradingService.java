@@ -15,4 +15,23 @@ public interface GroqGradingService {
      * @param questionType      "WRITING" or "SPEAKING"
      */
     void fireAndForget(Integer placementResultId, Integer questionId, String questionType);
+
+    /**
+     * Fire-and-forget: grade a QuizAnswer (Lesson Quiz or Assignment)
+     * for SPEAKING/WRITING asynchronously.
+     *
+     * @param quizResultId the QuizResult ID
+     * @param questionId   the Question ID
+     */
+    void fireAndForgetForQuizAnswer(Integer quizResultId, Integer questionId);
+
+    /**
+     * Synchronous grading — caller manages the transaction via TransactionTemplate.
+     * Used by StudentAssignmentServiceImpl which already wraps in its own tx.
+     *
+     * @param quizResultId         the QuizResult ID
+     * @param questionId           the Question ID
+     * @param questionTypeOverride null = auto-detect from question
+     */
+    void gradeSync(Integer quizResultId, Integer questionId, String questionTypeOverride);
 }

@@ -119,6 +119,16 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    //  QUESTION APPROVAL QUEUE (SPEC 003)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/question-approval")
+    public String questionApprovalPage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/question-approval";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     //  QUIZ MANAGEMENT
     // ══════════════════════════════════════════════════════════════════════
 
@@ -133,9 +143,13 @@ public class ExpertViewController {
     }
 
     @GetMapping("/quiz-management/create")
-    public String quizCreatePage(@RequestParam(required = false) Integer moduleId, Model model) {
+    public String quizCreatePage(
+            @RequestParam(required = false) Integer moduleId,
+            @RequestParam(required = false) Integer quizId,
+            Model model) {
         model.addAttribute("isDashboard", true);
         model.addAttribute("moduleId", moduleId);
+        model.addAttribute("quizId", quizId);
         return "expert/quiz-create";
     }
 
@@ -151,5 +165,14 @@ public class ExpertViewController {
         model.addAttribute("isDashboard", true);
         model.addAttribute("quizId", quizId);
         return "expert/quiz-questions";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  ASSIGNMENT MANAGEMENT (redirect to unified quiz list)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/assignment-management")
+    public String redirectAssignmentManagement() {
+        return "redirect:/expert/quiz-management";
     }
 }

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hybrid Quiz/Assignment Wizard — UI Mockup</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  :root {
+    --nova-blue: #136ad5;
+    --nova-dark: #223a58;
+    --nova-green: #10b981;
+    --nova-warning: #f59e0b;
+    --nova-danger: #ef4444;
+    --nova-light: #f8fafc;
+    --nova-border: #e9ecef;
+  }
+  body { font-family: 'Segoe UI', sans-serif; background: #f1f3f5; }
+  .mock-header { background: white; border-bottom: 1px solid var(--nova-border); padding: 12px 24px; }
+  .mock-nav { font-size: 0.8rem; color: #6c757d; }
+  .mock-title { color: var(--nova-dark); font-weight: 700; }
+
+  /* Stepper */
+  .stepper-wrap { max-width: 860px; margin: 0 auto; }
+  .stepper { display: flex; position: relative; align-items: flex-start; }
+  .stepper-line { position: absolute; top: 20px; left: 5%; right: 5%; height: 2px; background: var(--nova-border); z-index: 0; }
+  .step-item { flex: 1; text-align: center; position: relative; z-index: 1; }
+  .step-circle { width: 40px; height: 40px; border-radius: 50%; background: var(--nova-border); color: #6c757d; line-height: 40px; margin: 0 auto 8px; font-weight: 700; font-size: 0.9rem; transition: all 0.3s; display: flex; align-items: center; justify-content: center; }
+  .step-label { font-size: 0.72rem; font-weight: 600; color: #6c757d; white-space: nowrap; }
+  .step-item.active .step-circle { background: var(--nova-blue); color: white; box-shadow: 0 0 0 5px rgba(19,106,213,0.2); }
+  .step-item.active .step-label { color: var(--nova-blue); }
+  .step-item.completed .step-circle { background: var(--nova-green); color: white; }
+  .step-item.completed .step-label { color: var(--nova-green); }
+  .step-item.warning .step-circle { background: var(--nova-warning); color: white; }
+  .step-item.warning .step-label { color: var(--nova-warning); }
+
+  /* Cards */
+  .mock-card { background: white; border-radius: 16px; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .section-label { color: var(--nova-dark); font-weight: 700; font-size: 0.85rem; border-left: 4px solid var(--nova-blue); padding-left: 10px; }
+
+  /* Nav tabs */
+  .skill-tab { border-radius: 10px; font-weight: 600; font-size: 0.85rem; }
+  .skill-tab.active { background: var(--nova-blue); color: white; }
+  .skill-tab:not(.active) { background: var(--nova-light); color: var(--nova-dark); }
+
+  /* Question list */
+  .q-card { border-radius: 12px; border: 1px solid var(--nova-border); padding: 10px 14px; margin-bottom: 8px; }
+  .q-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; }
+  .q-badge-l { background: #dbeafe; color: #1d4ed8; }
+  .q-badge-r { background: #fce7f3; color: #be185d; }
+  .q-badge-s { background: #fef9c3; color: #854d0e; }
+  .q-badge-w { background: #f0fdf4; color: #166534; }
+
+  /* Skill sections */
+  .skill-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
+  .sk-listening { background: #dbeafe; color: #1d4ed8; }
+  .sk-reading  { background: #fce7f3; color: #be185d; }
+  .sk-speaking { background: #fef9c3; color: #854d0e; }
+  .sk-writing  { background: #f0fdf4; color: #166534; }
+
+  /* Preview summary */
+  .preview-skill { border-radius: 12px; border: 1px solid var(--nova-border); padding: 14px; text-align: center; min-width: 120px; }
+  .preview-skill.ok { border-color: var(--nova-green); background: #f0fdf4; }
+  .preview-skill.missing { border-color: var(--nova-warning); background: #fffbeb; }
+
+  /* Divider */
+  .mock-divider { border-top: 1px solid var(--nova-border); margin: 16px 0; }
+
+  /* Section header */
+  .section-header { background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* Tabs inside skill section */
+  .inner-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .inner-tab { padding: 6px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; }
+  .inner-tab.active { background: var(--nova-blue); color: white; }
+  .inner-tab:not(.active) { background: var(--nova-light); color: var(--nova-dark); }
+
+  /* Filter row */
+  .filter-row { background: white; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+  .filter-select { font-size: 0.8rem; border-radius: 8px; }
+
+  /* Question table */
+  .q-table { background: white; border-radius: 10px; overflow: hidden; font-size: 0.82rem; }
+  .q-table th { background: var(--nova-light); font-size: 0.75rem; font-weight: 600; color: #6c757d; padding: 8px 12px; }
+  .q-table td { padding: 8px 12px; vertical-align: middle; }
+  .q-table tr:hover td { background: #f8faff; }
+
+  /* Scenario nav */
+  .scenario-nav { position: sticky; top: 0; z-index: 100; background: var(--nova-dark); padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto; }
+  .scenario-btn { padding: 4px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; color: rgba(255,255,255,0.7); background: transparent; white-space: nowrap; }
+  .scenario-btn:hover { color: white; }
+  .scenario-btn.active { border-color: white; color: white; background: rgba(255,255,255,0.15); }
+</style>
+</head>
+<body>
+
+<!-- ===================== SCENARIO NAVIGATOR ===================== -->
+<div class="scenario-nav">
+  <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem; font-weight: 600; margin-right: 8px; align-self: center;">XEM:</span>
+  <button class="scenario-btn active" onclick="showScenario('s1')">Step 1 — Config</button>
+  <button class="scenario-btn" onclick="showScenario('s2')">Step 2 — Listening</button>
+  <button class="scenario-btn" onclick="showScenario('s3')">Step 3 — Reading</button>
+  <button class="scenario-btn" onclick="showScenario('s4')">Step 4 — Speaking</button>
+  <button class="scenario-btn" onclick="showScenario('s5')">Step 5 — Writing</button>
+  <button class="scenario-btn" onclick="showScenario('s6')">Step 6 — Preview</button>
+</div>
+
+<!-- ===================== SCENARIO 1: STEP 1 CONFIG ===================== -->
+<div id="scenario-s1" class="scenario-content">
+
+  <!-- Page Header -->
+  <div style="max-width: 900px; margin: 20px auto 0; padding: 0 16px;">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+      <div>
+        <h4 class="fw-bold m-0" style="color: var(--nova-dark);">Tạo đề kiểm tra</h4>
+        <p class="text-muted small m-0">Quy trình tạo đề thi thông minh.</p>
+      </div>
+      <a href="#" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="font-size: 0.8rem;">
+        <i class="bi bi-x-lg me-1"></i> Hủy và thoát
+      </a>
+    </div>
+
+    <!-- STEPPER — 6 steps for Assignment mode -->
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line" style="background: var(--nova-blue);"></div>
+
+        <!-- Step 1: Config -->
+        <div class="step-item active">
+          <div class="step-circle">1</div>
+          <div class="step-label">Cấu hình</div>
+        </div>
+
+        <!-- Steps 2-5: Skills (shown when ASSIGNMENT selected) -->
+        <div class="step-item" style="opacity:0.6">
+          <div class="step-circle" style="width:34px;height:34px;line-height:34px;font-size:0.75rem;">2</div>
+          <div class="step-label">LISTENING</div>
+        </div>
+        <div class="step-item" style="opacity:0.6">
+          <div class="step-circle" style="width:34px;height:34px;line-height:34px;font-size:0.75rem;">3</div>
+          <div class="step-label">READING</div>
+        </div>
+        <div class="step-item" style="opacity:0.6">
+          <div class="step-circle" style="width:34px;height:34px;line-height:34px;font-size:0.75rem;">4</div>
+          <div class="step-label">SPEAKING</div>
+        </div>
+        <div class="step-item" style="opacity:0.6">
+          <div class="step-circle" style="width:34px;height:34px;line-height:34px;font-size:0.75rem;">5</div>
+          <div class="step-label">WRITING</div>
+        </div>
+
+        <!-- Step 6: Preview -->
+        <div class="step-item" style="opacity:0.6">
+          <div class="step-circle">6</div>
+          <div class="step-label">Hoàn thiện</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="mock-card p-4">
+      <!-- Mode notice -->
+      <div class="alert d-flex align-items-center gap-2 mb-3" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;color:#1e40af;font-size:0.82rem;padding:8px 14px;">
+        <i class="bi bi-info-circle-fill"></i>
+        <span><strong>Chế độ:</strong> Course Assignment — 4 kỹ năng tuần tự (LISTENING → READING → SPEAKING → WRITING)</span>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold" style="font-size:0.85rem;">Tên Quiz <span class="text-danger">*</span></label>
+          <input class="form-control form-control-lg border-2" style="border-radius:12px;font-size:0.9rem;" value="IELTS Band 5.5 Target — Unit 1" placeholder="VD: Entry Test IELTS A1">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold" style="font-size:0.85rem;">Loại Quiz <span class="text-danger">*</span></label>
+          <select class="form-select form-select-lg border-2" style="border-radius:12px;font-size:0.9rem;">
+            <option>COURSE_ASSIGNMENT</option>
+            <option>ENTRY_TEST</option>
+            <option>COURSE_QUIZ</option>
+            <option>MODULE_QUIZ</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold" style="font-size:0.85rem;">Khóa học <span class="text-danger">*</span></label>
+          <select class="form-select form-select-lg border-2" style="border-radius:12px;font-size:0.9rem;">
+            <option>IELTS 5.5 Intensive (A202)</option>
+            <option>TOEIC 650 Target (B101)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold" style="font-size:0.85rem;">Mô tả</label>
+        <textarea class="form-control border-2" rows="2" style="border-radius:12px;font-size:0.85rem;">Bài kiểm tra tổng hợp 4 kỹ năng, đánh giá năng lực đầu vào của học viên khóa IELTS 5.5.</textarea>
+      </div>
+
+      <!-- Per-skill time limits -->
+      <div class="section-label mt-4 mb-3">Thời gian từng phần (phút)</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted">LISTENING</label>
+          <input type="number" class="form-control" value="30" placeholder="Không giới hạn" min="1" style="border-radius:10px;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted">READING</label>
+          <input type="number" class="form-control" value="60" placeholder="Không giới hạn" min="1" style="border-radius:10px;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted">SPEAKING</label>
+          <input type="number" class="form-control" value="11" placeholder="Không giới hạn" min="1" style="border-radius:10px;">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold small text-muted">WRITING</label>
+          <input type="number" class="form-control" value="60" placeholder="Không giới hạn" min="1" style="border-radius:10px;">
+        </div>
+      </div>
+
+      <!-- Other settings -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
+          <input type="number" class="form-control" value="50" placeholder="VD: 70" min="0" max="100" style="border-radius:10px;">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
+          <input type="number" class="form-control" value="1" placeholder="Không giới hạn" min="1" style="border-radius:10px;">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <div class="form-check form-switch" style="padding-left:2.5rem;">
+            <input class="form-check-input" type="checkbox" checked style="width:2.2em;height:1.2em;">
+            <label class="form-check-label fw-bold" style="font-size:0.82rem;">Cho phép xem đáp án sau khi nộp</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notice -->
+      <div class="alert d-flex align-items-start gap-2" style="background:#fff9db;border:1px solid #fde68a;border-radius:10px;color:#92400e;font-size:0.8rem;padding:10px 14px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div>
+          <strong>Lưu ý:</strong> Mỗi kỹ năng (LISTENING, READING, SPEAKING, WRITING) phải có ít nhất 1 câu hỏi trước khi xuất bản. Bài kiểm tra tuần tự — học viên phải hoàn thành từng phần trước khi sang phần kế tiếp.
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+        <button class="btn btn-lg btn-light px-4 fw-bold" style="border-radius:12px;font-size:0.85rem;">Hủy</button>
+        <button class="btn btn-lg text-white px-5 fw-bold" style="background-color:var(--nova-blue);border-radius:12px;font-size:0.85rem;">
+          Tiếp theo: LISTENING <i class="bi bi-arrow-right ms-2"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENARIO 2: STEP 2 LISTENING ===================== -->
+<div id="scenario-s2" class="scenario-content" style="display:none">
+  <div style="max-width: 1100px; margin: 20px auto 0; padding: 0 16px;">
+
+    <!-- Stepper -->
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line"></div>
+        <div class="step-item completed">
+          <div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div>
+          <div class="step-label">Cấu hình</div>
+        </div>
+        <div class="step-item active">
+          <div class="step-circle">2</div>
+          <div class="step-label">LISTENING</div>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">3</div>
+          <div class="step-label">READING</div>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">4</div>
+          <div class="step-label">SPEAKING</div>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">5</div>
+          <div class="step-label">WRITING</div>
+        </div>
+        <div class="step-item">
+          <div class="step-circle">6</div>
+          <div class="step-label">Hoàn thiện</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Split Pane -->
+    <div class="mock-card" style="border-radius:16px;overflow:hidden;">
+      <div class="row g-0" style="min-height:520px;">
+
+        <!-- LEFT PANEL: Questions added to LISTENING -->
+        <div class="col-md-5 border-end">
+          <div class="p-3 border-bottom bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="fw-bold mb-0" style="color:var(--nova-dark);">
+                <i class="bi bi-ear me-1"></i> LISTENING
+              </h6>
+              <span class="badge rounded-pill" style="background:var(--nova-blue);font-size:0.75rem;">3 câu</span>
+            </div>
+          </div>
+          <div class="p-3 overflow-auto" style="max-height:460px;">
+
+            <!-- Question cards -->
+            <div class="q-card" style="border-left:4px solid #1d4ed8;">
+              <div class="d-flex justify-content-between align-items-start">
+                <div style="flex:1;">
+                  <span class="q-badge q-badge-l me-1">CÂU LẺ</span>
+                  <span class="q-badge" style="background:#e0e7ff;color:#3730a3;">Trắc nghiệm (1)</span>
+                  <div class="mt-1" style="font-size:0.8rem;">What does the speaker say about the deadline for submitting the report?</div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger border-0" style="font-size:0.75rem;"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+
+            <div class="q-card" style="border-left:4px solid #7c3aed;">
+              <div class="d-flex justify-content-between align-items-start mb-1">
+                <span class="q-badge" style="background:#ede9fe;color:#6d28d9;">PASSAGE</span>
+                <button class="btn btn-sm btn-link text-danger p-0" style="font-size:0.7rem;"><i class="bi bi-trash"></i> Gỡ bộ</button>
+              </div>
+              <div style="font-size:0.78rem;font-style:italic;color:#6b7280;border-bottom:1px solid #f3f4f6;padding-bottom:6px;margin-bottom:6px;">
+                "You will now hear a conversation between a student and a librarian about..."
+              </div>
+              <div style="font-size:0.75rem;color:#374151;">1. What time does the library close on Fridays? &nbsp;<span class="badge bg-light text-dark" style="font-size:0.65rem;">Trắc nghiệm</span></div>
+              <div style="font-size:0.75rem;color:#374151;">2. Which book did the student ask for? &nbsp;<span class="badge bg-light text-dark" style="font-size:0.65rem;">Trắc nghiệm</span></div>
+              <div style="font-size:0.75rem;color:#374151;">3. How much is the overdue fine? &nbsp;<span class="badge bg-light text-dark" style="font-size:0.65rem;">Điền từ</span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: Bank + Create -->
+        <div class="col-md-7" style="background:#f8fafc;">
+          <div class="p-3 border-bottom bg-white">
+            <h6 class="fw-bold mb-0" style="color:var(--nova-dark);">Ngân hàng câu hỏi</h6>
+          </div>
+
+          <!-- Inner Tabs -->
+          <div class="inner-tabs p-2 bg-white border-bottom">
+            <button class="inner-tab active" onclick="switchTab(this,'bank-panel-s2')">📚 Ngân hàng</button>
+            <button class="inner-tab" onclick="switchTab(this,'create-panel-s2')">✏️ Tạo mới</button>
+          </div>
+
+          <!-- Filter row -->
+          <div class="filter-row mx-2 mt-2">
+            <div class="row g-2">
+              <div class="col-md-4">
+                <select class="form-select form-select-sm filter-select" style="border-radius:8px;">
+                  <option selected>LISTENING</option>
+                  <option>READING</option>
+                  <option>SPEAKING</option>
+                  <option>WRITING</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select form-select-sm filter-select" style="border-radius:8px;">
+                  <option value="">-- CEFR --</option>
+                  <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <input type="text" class="form-control form-control-sm" placeholder="Tìm kiếm..." style="border-radius:8px;font-size:0.8rem;">
+              </div>
+              <div class="col-md-1">
+                <button class="btn btn-sm btn-primary w-100"><i class="bi bi-search"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bank panel content -->
+          <div id="bank-panel-s2" class="px-2">
+            <div class="q-table">
+              <table class="table table-hover align-middle mb-0" style="font-size:0.8rem;">
+                <thead>
+                  <tr>
+                    <th style="padding:6px 10px;">Nội dung</th>
+                    <th style="padding:6px 10px;">Loại</th>
+                    <th style="padding:6px 10px;">CEFR</th>
+                    <th style="padding:6px 10px;text-align:end;">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:6px 10px;">
+                      <div class="text-truncate" style="max-width:200px;font-size:0.78rem;">Cambridge 16 Test 1 — Section 1</div>
+                      <div class="extra-small text-muted">LISTENING</div>
+                    </td>
+                    <td style="padding:6px 10px;"><span class="badge bg-light text-dark" style="font-size:0.7rem;">Passage</span></td>
+                    <td style="padding:6px 10px;"><span class="badge bg-info text-dark" style="font-size:0.7rem;">B2</span></td>
+                    <td style="padding:6px 10px;text-align:end;">
+                      <button class="btn btn-sm btn-primary rounded-pill px-3" style="font-size:0.72rem;font-weight:600;">
+                        <i class="bi bi-plus-lg me-1"></i>Thêm
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 10px;">
+                      <div class="text-truncate" style="max-width:200px;font-size:0.78rem;">Where is the nearest train station from the campus?</div>
+                      <div class="extra-small text-muted">LISTENING</div>
+                    </td>
+                    <td style="padding:6px 10px;"><span class="badge bg-light text-dark" style="font-size:0.7rem;">Trắc nghiệm</span></td>
+                    <td style="padding:6px 10px;"><span class="badge bg-info text-dark" style="font-size:0.7rem;">A2</span></td>
+                    <td style="padding:6px 10px;text-align:end;">
+                      <span class="badge bg-success rounded-pill px-3 py-2 fw-bold" style="font-size:0.7rem;">
+                        <i class="bi bi-check-lg me-1"></i>Đã thêm
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 10px;">
+                      <div class="text-truncate" style="max-width:200px;font-size:0.78rem;">IELTS Listening: Hotel Reservation Conversation</div>
+                      <div class="extra-small text-muted">LISTENING</div>
+                    </td>
+                    <td style="padding:6px 10px;"><span class="badge bg-light text-dark" style="font-size:0.7rem;">Trắc nghiệm</span></td>
+                    <td style="padding:6px 10px;"><span class="badge bg-info text-dark" style="font-size:0.7rem;">B1</span></td>
+                    <td style="padding:6px 10px;text-align:end;">
+                      <button class="btn btn-sm btn-primary rounded-pill px-3" style="font-size:0.72rem;font-weight:600;">
+                        <i class="bi bi-plus-lg me-1"></i>Thêm
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination -->
+            <div class="text-center py-2">
+              <nav><ul class="pagination pagination-sm justify-content-center mb-0" style="font-size:0.75rem;">
+                <li class="page-item disabled"><a class="page-link" href="#">‹</a></li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">›</a></li>
+              </ul></nav>
+            </div>
+          </div>
+
+          <!-- Create panel (hidden by default) -->
+          <div id="create-panel-s2" class="px-2" style="display:none">
+            <div class="p-2">
+              <div class="alert d-flex gap-2 align-items-start" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:0.78rem;color:#1e40af;padding:10px;">
+                <i class="bi bi-lightbulb-fill"></i>
+                <div>Câu hỏi tạo mới sẽ được lưu vào ngân hàng của Expert và tự động thêm vào Assignment này.</div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label fw-bold small">Loại câu hỏi</label>
+                <select class="form-select form-select-sm" style="border-radius:8px;font-size:0.8rem;">
+                  <option>Trắc nghiệm (1 đáp án)</option>
+                  <option>Trắc nghiệm (nhiều đáp án)</option>
+                  <option>Điền từ</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label fw-bold small">Nội dung câu hỏi</label>
+                <textarea class="form-control form-control-sm" rows="2" style="border-radius:8px;font-size:0.8rem;" placeholder="Nhập nội dung câu hỏi..."></textarea>
+              </div>
+              <div class="mb-2">
+                <label class="form-label fw-bold small">Audio (tùy chọn)</label>
+                <input type="file" class="form-control form-control-sm" accept="audio/*" style="border-radius:8px;font-size:0.78rem;">
+              </div>
+              <div class="mb-2">
+                <label class="form-label fw-bold small">Đáp án</label>
+                <div class="d-flex gap-2 mb-1">
+                  <div class="form-check" style="font-size:0.75rem;">
+                    <input class="form-check-input" type="radio" name="correct" checked style="width:14px;height:14px;">
+                    <input type="text" class="form-control form-control-sm" value="A. The library" style="border-radius:8px;width:120px;font-size:0.75rem;">
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mb-1">
+                  <div class="form-check" style="font-size:0.75rem;">
+                    <input class="form-check-input" type="radio" name="correct" style="width:14px;height:14px;">
+                    <input type="text" class="form-control form-control-sm" placeholder="B. ..." style="border-radius:8px;width:120px;font-size:0.75rem;">
+                  </div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" style="font-size:0.72rem;border-radius:8px;">+ Thêm đáp án</button>
+              </div>
+              <button class="btn btn-sm btn-primary w-100 mt-2" style="border-radius:10px;font-size:0.82rem;font-weight:600;">
+                <i class="bi bi-check-lg me-1"></i> Lưu & Thêm vào Assignment
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom nav -->
+      <div class="p-3 border-top d-flex justify-content-between align-items-center bg-white">
+        <button class="btn btn-outline-secondary px-4" style="border-radius:12px;font-size:0.82rem;">
+          <i class="bi bi-arrow-left me-1"></i> Quay lại: Cấu hình
+        </button>
+        <div style="font-size:0.78rem;color:#6b7280;">Tự động lưu ✓</div>
+        <button class="btn btn-primary px-5 fw-bold" style="border-radius:12px;font-size:0.82rem;">
+          Tiếp theo: READING <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENARIO 3: STEP 3 READING (abbreviated) ===================== -->
+<div id="scenario-s3" class="scenario-content" style="display:none">
+  <div style="max-width: 1100px; margin: 20px auto 0; padding: 0 16px;">
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line"></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">Cấu hình</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">LISTENING</div></div>
+        <div class="step-item active"><div class="step-circle" style="background:var(--nova-blue);color:white;">3</div><div class="step-label">READING</div></div>
+        <div class="step-item"><div class="step-circle">4</div><div class="step-label">SPEAKING</div></div>
+        <div class="step-item"><div class="step-circle">5</div><div class="step-label">WRITING</div></div>
+        <div class="step-item"><div class="step-circle">6</div><div class="step-label">Hoàn thiện</div></div>
+      </div>
+    </div>
+
+    <!-- Preview: Reading section -->
+    <div class="mock-card p-4" style="border-radius:16px;">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="skill-badge sk-reading"><i class="bi bi-book me-1"></i>READING</span>
+        <h5 class="fw-bold mb-0" style="color:var(--nova-dark);">Bước 3 / 5 — READING</h5>
+        <span class="badge bg-success rounded-pill ms-auto" style="font-size:0.8rem;">✓ 5 câu đã thêm</span>
+      </div>
+      <div class="alert d-flex gap-2 align-items-center" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.8rem;color:#166534;padding:10px 14px;">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Skill này đã có đủ câu hỏi. Bạn có thể tiếp tục hoặc thêm câu hỏi bổ sung.</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="p-3 border rounded-3" style="background:#f8fafc;">
+            <div class="fw-bold small text-muted mb-1">Đã thêm</div>
+            <div class="fw-bold" style="color:var(--nova-green);font-size:1.5rem;">5 câu</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 border rounded-3" style="background:#f8fafc;">
+            <div class="fw-bold small text-muted mb-1">Loại câu hỏi</div>
+            <div class="d-flex gap-1 flex-wrap">
+              <span class="badge bg-primary">Trắc nghiệm</span>
+              <span class="badge bg-warning text-dark">Điền từ</span>
+              <span class="badge bg-danger">Nối đáp án</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 border rounded-3" style="background:#f8fafc;">
+            <div class="fw-bold small text-muted mb-1">Thao tác</div>
+            <button class="btn btn-sm btn-outline-primary w-100" style="border-radius:8px;font-size:0.8rem;">
+              <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa nội dung
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENARIO 4: STEP 4 SPEAKING ===================== -->
+<div id="scenario-s4" class="scenario-content" style="display:none">
+  <div style="max-width: 1100px; margin: 20px auto 0; padding: 0 16px;">
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line"></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">Cấu hình</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">LISTENING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">READING</div></div>
+        <div class="step-item active warning"><div class="step-circle" style="background:var(--nova-warning);color:white;">4</div><div class="step-label" style="color:var(--nova-warning);">SPEAKING ⚠</div></div>
+        <div class="step-item"><div class="step-circle">5</div><div class="step-label">WRITING</div></div>
+        <div class="step-item"><div class="step-circle">6</div><div class="step-label">Hoàn thiện</div></div>
+      </div>
+    </div>
+
+    <div class="mock-card p-4" style="border-radius:16px;">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="skill-badge sk-speaking"><i class="bi bi-mic me-1"></i>SPEAKING</span>
+        <h5 class="fw-bold mb-0" style="color:var(--nova-dark);">Bước 4 / 5 — SPEAKING</h5>
+        <span class="badge bg-warning rounded-pill ms-auto" style="font-size:0.8rem;">⚠ Chưa có câu hỏi</span>
+      </div>
+      <div class="alert d-flex gap-2 align-items-start" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;font-size:0.82rem;color:#92400e;padding:12px 14px;">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div>
+          <strong>Cảnh báo:</strong> Bạn cần thêm ít nhất <strong>1 câu hỏi SPEAKING</strong> để có thể chuyển sang bước tiếp theo.<br>
+          Loại câu hỏi cho phép: <span class="badge bg-warning text-dark" style="font-size:0.7rem;">SPEAKING (Nói)</span>
+        </div>
+      </div>
+      <div class="p-4 border rounded-3 text-center" style="background:#fefce8;border-color:#fde68a;">
+        <i class="bi bi-mic" style="font-size:3rem;color:#f59e0b;"></i>
+        <p class="mt-2 mb-1 fw-bold" style="color:#92400e;">Chưa có câu hỏi SPEAKING nào</p>
+        <p class="small text-muted mb-3">Thêm từ ngân hàng hoặc tạo mới ở panel bên phải</p>
+        <button class="btn btn-primary rounded-pill px-4" style="font-size:0.82rem;">
+          <i class="bi bi-plus-lg me-1"></i> Tạo câu hỏi SPEAKING
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENARIO 5: STEP 5 WRITING ===================== -->
+<div id="scenario-s5" class="scenario-content" style="display:none">
+  <div style="max-width: 1100px; margin: 20px auto 0; padding: 0 16px;">
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line"></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">Cấu hình</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">LISTENING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">READING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">SPEAKING</div></div>
+        <div class="step-item active"><div class="step-circle" style="background:var(--nova-blue);color:white;">5</div><div class="step-label">WRITING</div></div>
+        <div class="step-item"><div class="step-circle">6</div><div class="step-label">Hoàn thiện</div></div>
+      </div>
+    </div>
+    <div class="mock-card p-4" style="border-radius:16px;">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="skill-badge sk-writing"><i class="bi bi-pen me-1"></i>WRITING</span>
+        <h5 class="fw-bold mb-0" style="color:var(--nova-dark);">Bước 5 / 5 — WRITING</h5>
+        <span class="badge bg-success rounded-pill ms-auto" style="font-size:0.8rem;">✓ 2 câu đã thêm</span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="q-card" style="border-left:4px solid #166534;">
+            <span class="q-badge q-badge-w me-1">CÂU LẺ</span>
+            <span class="q-badge" style="background:#fef9c3;color:#854d0e;">WRITING</span>
+            <div class="mt-1" style="font-size:0.8rem;">Task 1: You should spend about 20 minutes on this task. Write at least 150 words. The chart below shows...</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="q-card" style="border-left:4px solid #166534;">
+            <span class="q-badge q-badge-w me-1">CÂU LẺ</span>
+            <span class="q-badge" style="background:#fef9c3;color:#854d0e;">WRITING</span>
+            <div class="mt-1" style="font-size:0.8rem;">Task 2: Discuss both views and give your own opinion. Some people believe that...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCENARIO 6: STEP 6 PREVIEW ===================== -->
+<div id="scenario-s6" class="scenario-content" style="display:none">
+  <div style="max-width: 900px; margin: 20px auto 0; padding: 0 16px;">
+
+    <div class="stepper-wrap mb-3">
+      <div class="stepper">
+        <div class="stepper-line"></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">Cấu hình</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">LISTENING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">READING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">SPEAKING</div></div>
+        <div class="step-item completed"><div class="step-circle"><i class="bi bi-check" style="font-size:0.9rem;"></i></div><div class="step-label">WRITING</div></div>
+        <div class="step-item active"><div class="step-circle" style="background:var(--nova-blue);color:white;">6</div><div class="step-label">Hoàn thiện</div></div>
+      </div>
+    </div>
+
+    <!-- Success card -->
+    <div class="mock-card text-center py-5 px-4" style="border-radius:20px;">
+      <div class="mb-3">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:4.5rem;"></i>
+      </div>
+      <h4 class="fw-bold" style="color:var(--nova-dark);">IELTS Band 5.5 Target — Unit 1</h4>
+      <p class="text-muted mb-4" style="font-size:0.85rem;">Bài kiểm tra 4 kỹ năng — Khóa IELTS 5.5 Intensive</p>
+
+      <!-- Per-skill summary -->
+      <div class="d-flex justify-content-center gap-3 flex-wrap mb-4">
+        <div class="preview-skill ok">
+          <div class="skill-badge sk-listening mb-2 mx-auto" style="display:inline-block;">LISTENING</div>
+          <div class="fw-bold" style="font-size:1.2rem;color:var(--nova-green);">3 câu</div>
+          <div class="small text-muted">30 phút</div>
+          <div><i class="bi bi-check-circle-fill text-success"></i></div>
+        </div>
+        <div class="preview-skill ok">
+          <div class="skill-badge sk-reading mb-2 mx-auto" style="display:inline-block;">READING</div>
+          <div class="fw-bold" style="font-size:1.2rem;color:var(--nova-green);">5 câu</div>
+          <div class="small text-muted">60 phút</div>
+          <div><i class="bi bi-check-circle-fill text-success"></i></div>
+        </div>
+        <div class="preview-skill ok">
+          <div class="skill-badge sk-speaking mb-2 mx-auto" style="display:inline-block;">SPEAKING</div>
+          <div class="fw-bold" style="font-size:1.2rem;color:var(--nova-green);">2 câu</div>
+          <div class="small text-muted">11 phút</div>
+          <div><i class="bi bi-check-circle-fill text-success"></i></div>
+        </div>
+        <div class="preview-skill ok">
+          <div class="skill-badge sk-writing mb-2 mx-auto" style="display:inline-block;">WRITING</div>
+          <div class="fw-bold" style="font-size:1.2rem;color:var(--nova-green);">2 câu</div>
+          <div class="small text-muted">60 phút</div>
+          <div><i class="bi bi-check-circle-fill text-success"></i></div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="row g-3 mb-4" style="max-width:500px;margin:0 auto;">
+        <div class="col-4">
+          <div class="border rounded-3 p-2">
+            <div class="fw-bold" style="color:var(--nova-dark);">12</div>
+            <div class="small text-muted">Tổng câu hỏi</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="border rounded-3 p-2">
+            <div class="fw-bold" style="color:var(--nova-dark);">161 phút</div>
+            <div class="small text-muted">Tổng thời gian</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="border rounded-3 p-2">
+            <div class="fw-bold" style="color:var(--nova-dark);">50%</div>
+            <div class="small text-muted">Điểm đạt</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-center gap-3">
+        <button class="btn btn-lg btn-outline-secondary px-5" style="border-radius:12px;font-size:0.85rem;">
+          <i class="bi bi-arrow-left me-1"></i> Quay lại sửa
+        </button>
+        <button class="btn btn-lg btn-success px-5 fw-bold" style="border-radius:12px;font-size:0.85rem;">
+          <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScenario(id) {
+  document.querySelectorAll('.scenario-content').forEach(s => s.style.display = 'none');
+  document.getElementById('scenario-' + id).style.display = 'block';
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.scenario-btn[onclick="showScenario(\'' + id + '\')"]').classList.add('active');
+}
+
+function switchTab(btn, panelId) {
+  // Update tabs
+  btn.parentElement.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Update panels
+  document.querySelectorAll('[id$="-panel-s2"]').forEach(p => p.style.display = 'none');
+  document.getElementById(panelId).style.display = 'block';
+}
+</script>
+</body>
+</html>

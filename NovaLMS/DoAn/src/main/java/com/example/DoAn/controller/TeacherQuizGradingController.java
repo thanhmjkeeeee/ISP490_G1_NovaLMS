@@ -33,6 +33,11 @@ public class TeacherQuizGradingController {
         return "teacher/quiz-grading-list";
     }
 
+    @GetMapping("/graded")
+    public String gradedList() {
+        return "teacher/quiz-graded-list";
+    }
+
     @GetMapping("/grading/{resultId}")
     public String gradingDetail(@PathVariable Integer resultId, Model model, Principal principal, RedirectAttributes redirectAttributes) {
         String email = getEmailFromPrincipal(principal);

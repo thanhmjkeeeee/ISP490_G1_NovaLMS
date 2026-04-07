@@ -48,6 +48,10 @@ public class ResponseData<T> implements Serializable {
         return new ResponseData<>(200, message);
     }
 
+    public static <T> ResponseData<T> success(T data) {
+        return new ResponseData<>(200, "OK", data);
+    }
+
     public static <T> ResponseData<T> error(int status, String message) {
         return new ResponseData<>(status, message);
     }

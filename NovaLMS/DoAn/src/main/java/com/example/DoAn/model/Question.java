@@ -85,6 +85,15 @@ public class Question {
     @Column(name = "created_method", length = 20)
     private String createdMethod;
 
+    @Column(name = "reviewer_id")
+    private Long reviewerId;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "review_note", length = 500)
+    private String reviewNote;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();

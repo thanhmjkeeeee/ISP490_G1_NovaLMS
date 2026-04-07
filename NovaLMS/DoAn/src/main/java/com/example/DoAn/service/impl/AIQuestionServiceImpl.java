@@ -1,6 +1,8 @@
 package com.example.DoAn.service.impl;
 
+import com.example.DoAn.dto.request.AIGenerateGroupRequestDTO;
 import com.example.DoAn.dto.request.AIGenerateRequestDTO;
+import com.example.DoAn.dto.response.AIGenerateGroupResponseDTO;
 import com.example.DoAn.dto.response.AIGenerateResponseDTO;
 import com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO;
 import com.example.DoAn.model.Lesson;
@@ -63,7 +65,9 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
 
         String warning = null;
-        if (questions.size() < request.getQuantity()) {
+        if (questions.isEmpty()) {
+            warning = "AI không sinh được câu hỏi nào. Kiểm tra server logs để biết chi tiết.";
+        } else if (questions.size() < request.getQuantity()) {
             warning = String.format("AI chỉ sinh được %d/%d câu hỏi.", questions.size(), request.getQuantity());
         }
 
@@ -71,6 +75,85 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 .questions(questions)
                 .warning(warning)
                 .build();
+    }
+
+    @Override
+    public AIGenerateGroupResponseDTO generateGroup(AIGenerateGroupRequestDTO request, String userEmail) {
+        if (!rateLimitStore.isAllowed(userEmail)) {
+            throw new RateLimitExceededException(
+                    "Bạn đã vượt giới hạn 10 yêu cầu/phút. Vui lòng chờ một chút.");
+        }
+
+        String topic = request.hasTopic() ? request.getTopic()
+                : (request.hasModuleId() ? "Module-based content" : "");
+        String skill = request.getSkill() != null ? request.getSkill() : "READING";
+        String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "B1";
+        int qty = request.getQuantity() != null ? request.getQuantity() : 5;
+
+        String prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes());
+        String rawJson = callGroq(prompt);
+
+        AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
+                .skill(skill)
+                .cefrLevel(cefr)
+                .topic(topic);
+
+        try {
+            Map<String, Object> parsed = objectMapper.readValue(rawJson.trim(), new TypeReference<>() {});
+            if (parsed.get("passage") != null) builder.passage((String) parsed.get("passage"));
+            if (parsed.get("audioUrl") != null) builder.audioUrl((String) parsed.get("audioUrl"));
+            if (parsed.get("imageUrl") != null) builder.imageUrl((String) parsed.get("imageUrl"));
+            if (parsed.get("explanation") != null) builder.explanation((String) parsed.get("explanation"));
+            if (parsed.get("skill") != null) builder.skill((String) parsed.get("skill"));
+            if (parsed.get("cefrLevel") != null) builder.cefrLevel((String) parsed.get("cefrLevel"));
+            if (parsed.get("topic") != null) builder.topic((String) parsed.get("topic"));
+
+            List<AIGenerateResponseDTO.QuestionDTO> questions = new ArrayList<>();
+            List<?> rawQuestions = (List<?>) parsed.get("questions");
+            if (rawQuestions != null) {
+                for (Object raw : rawQuestions) {
+                    if (raw instanceof Map<?, ?> m) {
+                        Map<String, Object> m2 = new HashMap<>();
+                        for (Map.Entry<?, ?> e : m.entrySet()) {
+                            if (e.getKey() != null) m2.put(e.getKey().toString(), e.getValue());
+                        }
+                        // Inject context-level fields into each question so isValid() can pass
+                        if (!m2.containsKey("skill") || m2.get("skill") == null) m2.put("skill", skill);
+                        if (!m2.containsKey("cefrLevel") || m2.get("cefrLevel") == null) m2.put("cefrLevel", cefr);
+                        if (!m2.containsKey("topic") || m2.get("topic") == null) m2.put("topic", topic);
+                        AIGenerateResponseDTO.QuestionDTO dto = toQuestionDTO(m2);
+                        log.warn("[GROUP] content={}, type={}, options={}, valid={}, rejection={}",
+                                dto != null ? dto.getContent() : null,
+                                dto != null ? dto.getQuestionType() : null,
+                                dto != null && dto.getOptions() != null ? dto.getOptions().size() : null,
+                                dto != null ? isValid(dto) : false,
+                                dto != null ? getGroupRejectionReason(m2, dto) : "dto=null");
+                        if (dto != null && isValid(dto)) {
+                            if (dto.getSkill() == null) dto.setSkill(skill);
+                            if (dto.getCefrLevel() == null) dto.setCefrLevel(cefr);
+                            if (dto.getTopic() == null) dto.setTopic(topic);
+                            questions.add(dto);
+                        }
+                    }
+                }
+            }
+            builder.questions(questions);
+            if (questions.isEmpty()) {
+                // Log raw JSON for debugging
+                log.warn("[GROUP] No valid questions parsed. Raw JSON length={}: {}",
+                        rawJson.length(), rawJson.substring(0, Math.min(500, rawJson.length())));
+                builder.warning("AI trả về định dạng không hợp lệ hoặc không sinh được câu hỏi. Vui lòng thử lại.");
+            } else if (questions.size() < qty) {
+                builder.warning(String.format("AI chỉ sinh được %d/%d câu hỏi.", questions.size(), qty));
+            }
+        } catch (Exception e) {
+            log.error("[GROUP] Failed to parse JSON: {}. Raw: {}", e.getMessage(),
+                    rawJson.substring(0, Math.min(300, rawJson.length())));
+            builder.questions(new ArrayList<>());
+            builder.warning("AI trả về định dạng không hợp lệ. Vui lòng thử lại.");
+        }
+
+        return builder.build();
     }
 
     private String buildPrompt(AIGenerateRequestDTO request) {
@@ -112,7 +195,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", groqModel);
         body.put("temperature", 0.7);
-        body.put("max_tokens", 4096);
+        body.put("max_tokens", 8192);
 
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "user", "content", prompt)
@@ -207,15 +290,57 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             List<QuestionDTO> valid = new ArrayList<>();
             for (Map<String, Object> raw : rawList) {
                 QuestionDTO dto = toQuestionDTO(raw);
+                String reason = getRejectionReason(raw, dto);
                 if (dto != null && isValid(dto)) {
                     valid.add(dto);
+                } else {
+                    log.warn("[AI] Question rejected: {}", reason);
                 }
+            }
+            if (valid.isEmpty()) {
+                log.warn("[AI] All {} questions rejected. Sample: {}",
+                        rawList.size(),
+                        rawJson.length() > 500 ? rawJson.substring(0, 500) : rawJson);
             }
             return valid;
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI JSON: {}", cleaned.substring(0, Math.min(200, cleaned.length())));
             throw new AIException("AI trả về định dạng không hợp lệ.", e);
         }
+    }
+
+    private String getRejectionReason(Map<String, Object> raw, QuestionDTO dto) {
+        if (dto == null) return "toQuestionDTO returned null: " + raw;
+        String content = (String) raw.get("content");
+        String qt = (String) raw.get("questionType");
+        String skill = (String) raw.get("skill");
+        String cefr = (String) raw.get("cefrLevel");
+        Object opts = raw.get("options");
+        String ca = (String) raw.get("correctAnswer");
+        return String.format(
+            "content=%s, type=%s (valid=%s), skill=%s (valid=%s), cefr=%s (valid=%s), " +
+            "options=%s, correctAnswer=%s, matchLeft=%s, matchRight=%s, correctPairs=%s",
+            content, qt, promptBuilder.isValidQuestionType(qt),
+            skill, promptBuilder.isValidSkill(skill),
+            cefr, promptBuilder.isValidCefr(cefr),
+            opts, ca,
+            raw.get("matchLeft"), raw.get("matchRight"), raw.get("correctPairs"));
+    }
+
+    // Uses raw m2 map directly (DTO setters for skill/cefrLevel/topic may not have run yet)
+    private String getGroupRejectionReason(Map<String, Object> raw, AIGenerateResponseDTO.QuestionDTO dto) {
+        String qt = (String) raw.get("questionType");
+        String skill = (String) raw.get("skill");
+        String cefr = (String) raw.get("cefrLevel");
+        Object opts = raw.get("options");
+        return String.format(
+            "type=%s(valid=%s) skill=%s(valid=%s) cefr=%s(valid=%s) options=%s ca=%s matchL=%s matchR=%s pairs=%s",
+            qt, promptBuilder.isValidQuestionType(qt),
+            skill, promptBuilder.isValidSkill(skill),
+            cefr, promptBuilder.isValidCefr(cefr),
+            opts,
+            raw.get("correctAnswer"),
+            raw.get("matchLeft"), raw.get("matchRight"), raw.get("correctPairs"));
     }
 
     private QuestionDTO toQuestionDTO(Map<String, Object> raw) {

@@ -1,0 +1,61 @@
+<th:block th:fragment="question-bank-browser(mode)"
+          th:with="skillFilter=${skillFilter ?: null}">
+
+<!-- Filter row -->
+<div class="bank-filters row g-2 mb-3">
+    <!-- Skill filter: only shown in assignment mode when no pre-filter -->
+    <div class="col-md-4" th:if="${mode == 'assignment' and skillFilter == null}">
+        <select id="bankSkill" class="form-select form-select-sm" onchange="bankLoad(0)">
+            <option value="">-- Tất cả Kỹ năng --</option>
+            <option value="LISTENING">Listening</option>
+            <option value="READING">Reading</option>
+            <option value="WRITING">Writing</option>
+            <option value="SPEAKING">Speaking</option>
+        </select>
+    </div>
+    <!-- Hidden input for pre-filtered mode (per-skill tab) -->
+    <input type="hidden" id="bankSkill" th:value="${skillFilter}"
+           th:if="${mode == 'assignment' and skillFilter != null}">
+
+    <div class="col-md-3">
+        <select id="bankCefr" class="form-select form-select-sm" onchange="bankLoad(0)">
+            <option value="">-- CEFR --</option>
+            <option value="A1">A1</option><option value="A2">A2</option>
+            <option value="B1">B1</option><option value="B2">B2</option>
+            <option value="C1">C1</option><option value="C2">C2</option>
+        </select>
+    </div>
+    <div class="col-md-5">
+        <input type="text" id="bankKeyword" class="form-control form-control-sm"
+               placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') bankLoad(0)">
+    </div>
+    <div class="col-md-1">
+        <button class="btn btn-sm btn-primary w-100" onclick="bankLoad(0)">
+            <i class="bi bi-search"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Question list table -->
+<div class="border rounded bg-white" style="max-height:340px;overflow-y:auto;">
+    <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+        <thead class="table-light position-sticky top-0">
+            <tr>
+                <th style="width:50%">Nội dung</th>
+                <th>Loại</th>
+                <th>CEFR</th>
+                <th class="text-end pe-3">Hành động</th>
+            </tr>
+        </thead>
+        <tbody id="bankQuestionsBody">
+            <tr><td colspan="4" class="text-center py-5 text-muted">Đang tải...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<nav class="mt-2">
+    <ul class="pagination pagination-sm justify-content-center mb-0" id="bankPagination"></ul>
+</nav>
+
+</th:block>

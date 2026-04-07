@@ -1,6 +1,7 @@
 package com.example.DoAn.service;
 
 import com.example.DoAn.dto.request.AIImportRequestDTO;
+import com.example.DoAn.dto.request.AIImportGroupRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
 import com.example.DoAn.dto.request.QuestionGroupRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
@@ -13,6 +14,7 @@ public interface IExpertQuestionService {
     QuestionResponseDTO updateQuestion(Integer questionId, QuestionRequestDTO request, String email);
     void deleteQuestion(Integer questionId, String email);
     int saveAIQuestions(AIImportRequestDTO request, String email);
+    int saveAIQuestionGroup(AIImportGroupRequestDTO request, String email);
 
     // Question Group Methods
     QuestionGroupResponseDTO createQuestionGroup(QuestionGroupRequestDTO request, String email);

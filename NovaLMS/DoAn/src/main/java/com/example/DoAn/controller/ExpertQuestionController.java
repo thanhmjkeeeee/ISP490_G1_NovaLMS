@@ -1,12 +1,17 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.AIGenerateRequestDTO;
+import com.example.DoAn.dto.request.AIGenerateGroupRequestDTO;
 import com.example.DoAn.dto.request.AIImportRequestDTO;
+import com.example.DoAn.dto.request.AIImportGroupRequestDTO;
+import com.example.DoAn.dto.request.ExcelImportGroupRequestDTO;
 import com.example.DoAn.dto.request.ExcelImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
 import com.example.DoAn.dto.request.QuestionGroupRequestDTO;
 import com.example.DoAn.dto.response.AIGenerateResponseDTO;
+import com.example.DoAn.dto.response.AIGenerateGroupResponseDTO;
 import com.example.DoAn.dto.response.ExcelParseResultDTO;
+import com.example.DoAn.dto.response.ExcelParseGroupResultDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
 import com.example.DoAn.dto.response.QuestionGroupResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
@@ -142,6 +147,26 @@ public class ExpertQuestionController {
                 "Đã lưu " + saved + " câu hỏi.", null);
     }
 
+    @Operation(summary = "Generate a passage-based question group using AI")
+    @PostMapping("/ai/generate/group")
+    public ResponseData<AIGenerateGroupResponseDTO> generateQuestionGroup(
+            @Valid @RequestBody AIGenerateGroupRequestDTO request, Principal principal) {
+        if (!request.isValid()) {
+            return ResponseData.error(400, "Phải nhập topic hoặc chọn module.");
+        }
+        AIGenerateGroupResponseDTO result = aiQuestionService.generateGroup(request, getEmail(principal));
+        return ResponseData.success("Sinh bộ câu hỏi thành công", result);
+    }
+
+    @Operation(summary = "Save selected AI-generated question group to DB")
+    @PostMapping("/ai/import/group")
+    public ResponseData<Void> importAIQuestionGroup(
+            @Valid @RequestBody AIImportGroupRequestDTO request, Principal principal) {
+        int saved = questionService.saveAIQuestionGroup(request, getEmail(principal));
+        return new ResponseData<>(HttpStatus.CREATED.value(),
+                "Đã lưu bộ câu hỏi với " + saved + " câu con.", null);
+    }
+
     // ── Excel Import ───────────────────────────────────────────────────────────
 
     @Operation(summary = "Download Excel template for a question type")
@@ -193,6 +218,39 @@ public class ExpertQuestionController {
             int saved = excelService.importQuestions(request, getEmail(principal));
             return new ResponseData<>(HttpStatus.CREATED.value(),
                     "Đã import " + saved + " câu hỏi.", null);
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi khi lưu: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Parse uploaded Excel file for Question Group")
+    @PostMapping(value = "/excel/parse-group", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseData<ExcelParseGroupResultDTO> parseGroupExcel(
+            @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) return ResponseData.error(400, "Vui lòng chọn file Excel.");
+            String filename = file.getOriginalFilename();
+            if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
+                return ResponseData.error(400, "Chỉ chấp nhận file .xlsx");
+            }
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseData.error(413, "File không được vượt quá 5MB.");
+            }
+            ExcelParseGroupResultDTO result = excelService.parseGroupFile(file);
+            return ResponseData.success("Đã phân tích file", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi khi đọc file: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Import validated Question Groups from Excel")
+    @PostMapping("/excel/import-group")
+    public ResponseData<Void> importGroupExcel(
+            @Valid @RequestBody ExcelImportGroupRequestDTO request, Principal principal) {
+        try {
+            int saved = excelService.importQuestionGroups(request, getEmail(principal));
+            return new ResponseData<>(HttpStatus.CREATED.value(),
+                    "Đã import bộ câu hỏi với " + saved + " câu con.", null);
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi khi lưu: " + e.getMessage());
         }

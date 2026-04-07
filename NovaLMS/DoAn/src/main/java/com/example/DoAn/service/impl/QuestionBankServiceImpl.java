@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -62,6 +63,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         User expert = findExpert(email);
         validateMetadata(request);
         validateAnswerOptions(request);
+        checkDuplicate(request.getContent(), request.getSkill(), request.getCefrLevel());
 
         Question question = Question.builder()
                 .content(request.getContent())
@@ -120,6 +122,11 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
         validateMetadata(request);
         validateAnswerOptions(request);
+
+        // Block duplicate on content change (exclude self)
+        if (request.getContent() != null && !request.getContent().equals(question.getContent())) {
+            checkDuplicateOnUpdate(question, request.getContent(), request.getSkill(), request.getCefrLevel());
+        }
 
         question.setContent(request.getContent());
         question.setQuestionType(request.getQuestionType());
@@ -335,6 +342,34 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         if (request.getStatus() != null && !VALID_STATUSES.contains(request.getStatus())) {
             throw new InvalidDataException("Trạng thái không hợp lệ: " + request.getStatus());
         }
+    }
+
+    /** Block duplicate: same content + skill + CEFR level. */
+    private void checkDuplicate(String content, String skill, String cefrLevel) {
+        if (questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel)) {
+            throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+        }
+    }
+
+    /** Same check but excludes the current question being updated. */
+    private void checkDuplicateOnUpdate(Question current, String content, String skill, String cefrLevel) {
+        boolean exists = questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel);
+        if (exists) {
+            List<Question> found = questionRepository.findAll().stream()
+                    .filter(q -> q.getQuestionId().equals(current.getQuestionId())
+                            && q.getContent().equalsIgnoreCase(content)
+                            && Objects.equals(q.getSkill(), skill)
+                            && Objects.equals(q.getCefrLevel(), cefrLevel))
+                    .toList();
+            if (found.isEmpty()) {
+                throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+            }
+        }
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 
     private void validateAnswerOptions(QuestionBankRequestDTO request) {

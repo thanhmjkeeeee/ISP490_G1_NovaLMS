@@ -73,7 +73,8 @@
                             <select id="quizCategory" class="form-select form-select-lg border-2" required onchange="onCategoryChange()">
                                 <option value="">-- Chọn --</option>
                                 <option value="ENTRY_TEST">Entry Test</option>
-                                <option value="COURSE_QUIZ">Course Quiz</option>
+                                <option value="COURSE_QUIZ">Bài kiểm tra</option>
+                                <option value="COURSE_ASSIGNMENT">Bài tập lớn (Assignment)</option>
                             </select>
                         </div>
                         <div class="col-md-3" id="courseSection" style="display:none">
@@ -116,6 +117,30 @@
                         <div class="form-check form-switch p-0" style="padding-left: 2.5rem !important;">
                             <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit" style="width: 2.5em; height: 1.25em;">
                             <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">Cho phép xem đáp án sau khi nộp bài</label>
+                        </div>
+                    </div>
+
+                    <!-- Assignment schedule fields (hidden by default) -->
+                    <div id="assignmentScheduleSection" class="mb-4 p-3 border border-2 border-warning rounded-4 bg-warning bg-opacity-5" style="display:none;">
+                        <h6 class="fw-bold text-warning mb-3">
+                            <i class="bi bi-calendar-event me-2"></i>Cài đặt thời hạn Assignment
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Mở bài lúc</label>
+                                <input type="datetime-local" id="openAt" class="form-control" placeholder="Để trống = mở ngay">
+                                <div class="form-text small">Để trống = mở ngay khi teacher bật isOpen</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Đóng bài lúc</label>
+                                <input type="datetime-local" id="closeAt" class="form-control" placeholder="Không đóng tự động">
+                                <div class="form-text small">Để trống = không đóng tự động</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-muted">Deadline nộp bài <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="deadline" class="form-control" required>
+                                <div class="form-text small">Sau deadline không thể nộp bài</div>
+                            </div>
                         </div>
                     </div>
 
@@ -256,9 +281,15 @@
 function onCategoryChange() {
     const cat = document.getElementById('quizCategory').value;
     const courseSection = document.getElementById('courseSection');
-    
+    const assignSection = document.getElementById('assignmentScheduleSection');
+
     if (courseSection) {
-        courseSection.style.display = (cat === 'COURSE_QUIZ') ? 'block' : 'none';
+        courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
+    }
+
+    // Hiện phần cài đặt thời hạn khi chọn ASSIGNMENT
+    if (assignSection) {
+        assignSection.style.display = (cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
     }
 
     if (cat === 'ENTRY_TEST') {
@@ -279,7 +310,7 @@ function onCategoryChange() {
         document.getElementById('entryTestWarning').style.display = 'none';
     }
 
-    if (cat === 'COURSE_QUIZ') {
+    if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') {
         const btnNext = document.getElementById('btnNextStep');
         if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
         loadCourses();
@@ -338,13 +369,16 @@ async function submitQuiz(status) {
         title: document.getElementById('title').value,
         description: document.getElementById('description').value || null,
         quizCategory: cat,
-        courseId: cat === 'COURSE_QUIZ' ? parseInt(document.getElementById('courseId').value) || null : null,
+        courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? parseInt(document.getElementById('courseId').value) || null : null,
         moduleId: moduleId || null,
         timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
         passScore: parseFloat(document.getElementById('passScore').value) || null,
         maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
         questionOrder: document.getElementById('questionOrder').value,
         showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+        openAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('openAt').value || null) : null,
+        closeAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('closeAt').value || null) : null,
+        deadline: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('deadline').value || null) : null,
         status: status
     };
 

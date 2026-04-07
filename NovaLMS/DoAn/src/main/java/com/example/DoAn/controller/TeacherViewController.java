@@ -51,7 +51,7 @@ public class TeacherViewController {
 
     @GetMapping("/my-classes")
     public String myClassesPage() {
-        return "redirect:/teacher/workspace";
+        return "teacher/my-classes";
     }
 
     @GetMapping("/workspace")
@@ -62,6 +62,40 @@ public class TeacherViewController {
     @GetMapping("/quiz-bank")
     public String quizBankPage() {
         return "redirect:/teacher/workspace";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  MY GRADING (SPEC 006 — Teacher grading dashboard)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/my-grading")
+    public String myGradingPage() {
+        return "teacher/my-grading";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  MY QUESTIONS (SPEC 003 — Teacher views their submitted questions)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/my-questions")
+    public String myQuestionsPage() {
+        return "teacher/my-questions";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  LESSON QUIZ WIZARD (3-Step: Config → Build → Finish)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/quiz/{quizId}/build")
+    public String quizBuildPage(@PathVariable Integer quizId, org.springframework.ui.Model model) {
+        model.addAttribute("quizId", quizId);
+        return "teacher/quiz-build";
+    }
+
+    @GetMapping("/quiz/{quizId}/finish")
+    public String quizFinishPage(@PathVariable Integer quizId, org.springframework.ui.Model model) {
+        model.addAttribute("quizId", quizId);
+        return "teacher/quiz-finish";
     }
 
     @GetMapping("/sessions")
@@ -369,6 +403,50 @@ public class TeacherViewController {
                 request.getReason(),
                 email
         );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  DASHBOARD STATS
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/api/dashboard-stats")
+    @ResponseBody
+    public ResponseData<Map<String, Object>> dashboardStats(Principal principal) {
+        Integer teacherId = getTeacherId(principal);
+        if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+
+        List<ClassSession> sessions = classSessionRepository.findByTeacherAndDateRange(
+            teacherId,
+            LocalDate.now().minusDays(30).atStartOfDay(),
+            LocalDate.now().plusDays(60).atStartOfDay()
+        );
+        Set<Integer> classIds = sessions.stream()
+            .map(s -> s.getClazz().getClassId())
+            .collect(java.util.stream.Collectors.toSet());
+
+        long studentCount = entityManager.createQuery(
+            "SELECT COUNT(r) FROM Registration r WHERE r.clazz.classId IN :classIds AND r.status = 'APPROVED'",
+            Long.class)
+            .setParameter("classIds", classIds)
+            .getSingleResult();
+
+        long courseCount = entityManager.createQuery(
+            "SELECT COUNT(DISTINCT c.course.courseId) FROM Clazz c WHERE c.teacher.userId = :teacherId",
+            Long.class)
+            .setParameter("teacherId", teacherId)
+            .getSingleResult();
+
+        long pendingQuestionCount = entityManager.createQuery(
+            "SELECT COUNT(q) FROM Question q WHERE q.user.userId = :teacherId AND q.source = 'TEACHER_PRIVATE' AND q.status = 'PENDING_REVIEW'",
+            Long.class)
+            .setParameter("teacherId", teacherId)
+            .getSingleResult();
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("studentCount", studentCount);
+        stats.put("courseCount", courseCount);
+        stats.put("pendingQuestionCount", pendingQuestionCount);
+        return ResponseData.success(stats);
     }
 
     private int getSlotIndex(String startTime) {

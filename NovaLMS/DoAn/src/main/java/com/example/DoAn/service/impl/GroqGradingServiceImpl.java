@@ -39,12 +39,60 @@ public class GroqGradingServiceImpl implements GroqGradingService {
     private final PlacementTestResultRepository resultRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final TransactionTemplate transactionTemplate;
+    private final QuizAnswerRepository quizAnswerRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final QuizResultRepository quizResultRepository;
 
     @Override
     @Async
     public void fireAndForget(Integer placementResultId, Integer questionId, String questionType) {
-        CompletableFuture.runAsync(() -> grade(placementResultId, questionId, questionType));
+        log.info("[AI-GRADE] fireAndForget (placement) → resultId={}, questionId={}, type={}",
+                placementResultId, questionId, questionType);
+        transactionTemplate.executeWithoutResult(status -> {
+            try {
+                doGrade(placementResultId, questionId, questionType);
+                log.info("[AI-GRADE] fireAndForget (placement) done → resultId={}, questionId={}",
+                        placementResultId, questionId);
+            } catch (Exception e) {
+                log.error("[AI-GRADE] fireAndForget (placement) FAILED → resultId={}, questionId={}: {}",
+                        placementResultId, questionId, e.getMessage(), e);
+            }
+        });
+    }
+
+    /**
+     * Fire-and-forget AI grading for a QuizAnswer (SPEAKING/WRITING).
+     * Spawns a background thread and calls gradeQuizAnswerInNewTx() with a fresh transaction.
+     */
+    @Override
+    @Async
+    public void fireAndForgetForQuizAnswer(Integer quizResultId, Integer questionId) {
+        log.info("[AI-GRADE] fireAndForget started → resultId={}, questionId={}", quizResultId, questionId);
+        try {
+            gradeQuizAnswerInNewTx(quizResultId, questionId, null);
+            log.info("[AI-GRADE] fireAndForget completed → resultId={}, questionId={}", quizResultId, questionId);
+        } catch (Exception e) {
+            log.error("[AI-GRADE] fireAndForget FAILED → resultId={}, questionId={}: {}",
+                    quizResultId, questionId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Synchronous version — called from StudentAssignmentServiceImpl which wraps
+     * this call in its own TransactionTemplate tx (no @Transactional here needed).
+     */
+    @Override
+    public void gradeSync(Integer quizResultId, Integer questionId, String questionTypeOverride) {
+        log.info("[AI-GRADE-SYNC] Starting sync grade → resultId={}, questionId={}, type={}",
+                quizResultId, questionId, questionTypeOverride);
+        try {
+            doGradeQuizAnswer(quizResultId, questionId, questionTypeOverride);
+            log.info("[AI-GRADE-SYNC] Done → resultId={}, questionId={}", quizResultId, questionId);
+        } catch (Exception e) {
+            log.error("[AI-GRADE-SYNC] FAILED → resultId={}, questionId={}: {}",
+                    quizResultId, questionId, e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -98,19 +146,23 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                 maxPoints
             );
 
+            // Compute int score for placement recalculateResult (expects Integer)
+            int intScore = (int) Math.round(grading.getOverallBand() * 2.5);
+            int intMax = maxPoints;
+
             // Update answer
             answer.setPendingAiReview(false);
-            answer.setAiScore(grading.getTotalScore());
+            answer.setAiScore(intScore);  // Integer field — used by recalculateResult
             answer.setAiFeedback(grading.getFeedback());
             answer.setAiRubricJson(objectMapper.writeValueAsString(grading.getRubric()));
-            answer.setIsCorrect(grading.getTotalScore() >= grading.getMaxScore() * 0.5);
+            answer.setIsCorrect(grading.getOverallBand() >= 5.0);
             answerRepository.save(answer);
 
             // Recalculate result
             recalculateResult(result, quiz.getQuizId());
 
-            log.info("AI grading done for answer={}, score={}/{}",
-                answer.getId(), grading.getTotalScore(), grading.getMaxScore());
+            log.info("AI grading done for answer={}, band={}, score={}/{}",
+                answer.getId(), grading.getOverallBand(), intScore, intMax);
 
         } catch (Exception e) {
             log.error("AI grading failed for answer={}: {}", answer.getId(), e.getMessage());
@@ -138,7 +190,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
 
             if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
                 if (a.getAiScore() != null) {
-                    totalScore += a.getAiScore();
+                    totalScore += a.getAiScore();  // Integer field — intScore from IELTS band
                     maxScore += pts;
                 }
             } else {
@@ -168,5 +220,132 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         if (rate <= 75) return "B2";
         if (rate <= 90) return "C1";
         return "C2";
+    }
+
+    /**
+     * Wrapped inside @Async task — spawns a fresh transaction for JPA access safety.
+     */
+    private void gradeQuizAnswerInNewTx(Integer quizResultId, Integer questionId, String questionTypeOverride) {
+        log.info("[AI-GRADE] Starting new tx → resultId={}, questionId={}", quizResultId, questionId);
+        transactionTemplate.executeWithoutResult(status -> {
+            try {
+                doGradeQuizAnswer(quizResultId, questionId, questionTypeOverride);
+            } catch (Exception e) {
+                log.error("[AI-GRADE] doGradeQuizAnswer error → resultId={}, questionId={}: {}",
+                        quizResultId, questionId, e.getMessage(), e);
+                throw new RuntimeException(e); // re-throw to mark tx as rollback
+            }
+        });
+        log.info("[AI-GRADE] Tx committed → resultId={}, questionId={}", quizResultId, questionId);
+    }
+
+    /**
+     * Actual grading logic — runs INSIDE a TransactionTemplate tx (caller's responsibility).
+     * NOTE: called from same class, so @Transactional has no effect — transaction is
+     * managed by TransactionTemplate in gradeQuizAnswerInNewTx().
+     */
+    private void doGradeQuizAnswer(Integer quizResultId, Integer questionId, String questionTypeOverride) {
+        QuizAnswer answer = quizAnswerRepository
+                .findByQuizResultResultIdAndQuestionQuestionId(quizResultId, questionId);
+
+        if (answer == null) {
+            log.warn("QuizAnswer not found: resultId={}, questionId={}", quizResultId, questionId);
+            return;
+        }
+
+        Question q = answer.getQuestion();
+        String questionType = questionTypeOverride != null ? questionTypeOverride : q.getQuestionType();
+        String userAnswer = answer.getAnsweredOptions();
+
+        try {
+            if ("SPEAKING".equals(questionType)) {
+                log.info("Transcribing SPEAKING audio for answerId={}", answer.getAnswerId());
+                userAnswer = groqClient.transcribe(userAnswer);
+            }
+
+            GradingResponse grading = groqClient.gradeWritingOrSpeaking(
+                    q.getContent(),
+                    q.getSkill(),
+                    q.getCefrLevel() != null ? q.getCefrLevel() : "B1",
+                    userAnswer != null ? userAnswer : "",
+                    questionType,
+                    10 // default maxPoints for SPEAKING/WRITING
+            );
+
+            // aiScore format: "8.13/10" = displayScore/maxScore
+            String displayScoreStr = String.format("%.2f", grading.getDisplayScore());
+            answer.setAiScore(displayScoreStr + "/" + (int) grading.getMaxScore());
+            answer.setAiFeedback(grading.getFeedback());
+            answer.setAiRubricJson(objectMapper.writeValueAsString(grading.getRubric()));
+            answer.setPendingAiReview(false);
+            answer.setAiGradingStatus("COMPLETED");
+            answer.setIsCorrect(grading.getOverallBand() >= 5.0);
+            quizAnswerRepository.save(answer);
+
+            // Update QuizResult section_scores
+            recalculateQuizResult(quizResultId);
+
+            log.info("AI grading done for answerId={}, band={}, displayScore={}/{}",
+                    answer.getAnswerId(), grading.getOverallBand(),
+                    displayScoreStr, (int) grading.getMaxScore());
+
+        } catch (Exception e) {
+            log.error("AI grading failed for answerId={}: {}", answer.getAnswerId(), e.getMessage());
+            answer.setPendingAiReview(false);
+            answer.setAiGradingStatus("COMPLETED");
+            answer.setAiFeedback("AI grading unavailable. Please contact support.");
+            answer.setIsCorrect(false);
+            quizAnswerRepository.save(answer);
+        }
+    }
+
+    private void recalculateQuizResult(Integer resultId) {
+        QuizResult result = quizResultRepository.findById(resultId).orElse(null);
+        if (result == null) return;
+
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+
+        double totalScore = 0;
+        double maxScore = 0;
+
+        for (QuizAnswer a : answers) {
+            Question q = a.getQuestion();
+            String qType = q.getQuestionType();
+            Integer qId = q.getQuestionId();
+
+            Integer pts = quizQuestionRepository
+                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), qId)
+                    .map(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                    .orElse(1);
+
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
+                if (a.getAiScore() != null && a.getAiRubricJson() != null) {
+                    try {
+                        // Parse new format: "8.13/10" or fallback "8/10"
+                        String scoreStr = a.getAiScore();
+                        if (scoreStr.contains("/")) {
+                            double scoreVal = Double.parseDouble(scoreStr.split("/")[0].trim());
+                            int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
+                            totalScore += scoreVal;
+                            maxScore += maxVal;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                    totalScore += pts;
+                }
+                maxScore += pts;
+            }
+        }
+
+        if (maxScore > 0) {
+            BigDecimal rate = BigDecimal.valueOf(totalScore)
+                    .divide(BigDecimal.valueOf(maxScore), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+            result.setCorrectRate(rate);
+            result.setScore((int) Math.round(totalScore));
+        }
+        quizResultRepository.save(result);
     }
 }

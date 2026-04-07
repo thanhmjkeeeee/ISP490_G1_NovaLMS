@@ -38,6 +38,7 @@ public class QuizResultController {
         try {
             QuizResultDetailDTO result = quizResultService.getQuizResult(resultId, email);
             model.addAttribute("result", result);
+            model.addAttribute("resultId", resultId);
             model.addAttribute("classId", classId);
             model.addAttribute("sessionId", sessionId);
             return "student/quiz-result";

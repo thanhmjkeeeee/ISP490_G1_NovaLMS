@@ -32,6 +32,10 @@ public class QuizQuestion {
     @Column(name = "order_index")
     private Integer orderIndex;
 
+    // LISTENING | READING | SPEAKING | WRITING — set for sequential assignments
+    @Column(name = "skill", length = 20)
+    private String skill;
+
     // Điểm cho câu hỏi này trong quiz
     @Column(name = "points", precision = 5, scale = 2)
     private BigDecimal points;

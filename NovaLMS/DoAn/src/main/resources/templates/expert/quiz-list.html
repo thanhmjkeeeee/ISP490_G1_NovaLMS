@@ -13,11 +13,11 @@
 
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý Quiz</h3>
-            <p class="text-muted small m-0">Tạo và quản lý Quiz cho Entry Test và Course.</p>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý Quiz & Bài tập lớn</h3>
+            <p class="text-muted small m-0">Tạo và quản lý tất cả loại đề kiểm tra.</p>
         </div>
         <a th:href="@{/expert/quiz-management/create}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
-            <i class="bi bi-plus-lg me-1"></i> Tạo Quiz
+            <i class="bi bi-plus-lg me-1"></i> Tạo Quiz / Bài tập lớn
         </a>
     </div>
 
@@ -35,9 +35,13 @@
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Loại Quiz</label>
                     <select id="filterCategory" class="form-select form-select-sm" onchange="loadQuizzes()">
-                        <option value="">Tất cả</option>
+                        <option value="">Tất cả loại</option>
                         <option value="ENTRY_TEST">Entry Test</option>
-                        <option value="COURSE_QUIZ">Course Quiz</option>
+                        <option value="COURSE_QUIZ">Bài KT Khóa học</option>
+                        <option value="MODULE_QUIZ">Bài KT Module</option>
+                        <option value="LESSON_QUIZ">Bài KT Bài học</option>
+                        <option value="COURSE_ASSIGNMENT">BTL Khóa học</option>
+                        <option value="MODULE_ASSIGNMENT">BTL Module</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -71,14 +75,14 @@
                         <th>Tên Quiz</th>
                         <th>Loại</th>
                         <th>Khóa học</th>
+                        <th>Phạm vi</th>
                         <th>Câu hỏi</th>
-                        <th>Thời gian</th>
                         <th>Trạng thái</th>
                         <th class="text-end px-4">Hành động</th>
                     </tr>
                     </thead>
                     <tbody id="quizTableBody">
-                    <tr><td colspan="7" class="text-center text-muted py-4">Đang tải...</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">Đang tải...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -102,8 +106,23 @@ const statusBadge = (s) => {
 };
 
 const categoryBadge = (c) => {
-    const map = { ENTRY_TEST: 'bg-info text-dark', COURSE_QUIZ: 'bg-primary' };
-    return `<span class="badge ${map[c] || 'bg-light'}">${c === 'ENTRY_TEST' ? 'Entry Test' : 'Course Quiz'}</span>`;
+    const map = {
+        ENTRY_TEST:'bg-info text-dark',
+        COURSE_QUIZ:'bg-primary',
+        MODULE_QUIZ:'bg-secondary',
+        LESSON_QUIZ:'bg-dark',
+        COURSE_ASSIGNMENT:'bg-warning text-dark',
+        MODULE_ASSIGNMENT:'bg-success'
+    };
+    const labels = {
+        ENTRY_TEST:'Entry Test',
+        COURSE_QUIZ:'Bài KT Khóa học',
+        MODULE_QUIZ:'Bài KT Module',
+        LESSON_QUIZ:'Bài KT Bài học',
+        COURSE_ASSIGNMENT:'BTL Khóa học',
+        MODULE_ASSIGNMENT:'BTL Module'
+    };
+    return `<span class="badge ${map[c] || 'bg-light'}">${labels[c] || c}</span>`;
 };
 
 window.onload = () => {
@@ -137,8 +156,8 @@ async function loadQuizzes(page = 0) {
                     <td class="fw-medium">${q.title || '—'}</td>
                     <td>${categoryBadge(q.quizCategory)}</td>
                     <td>${q.courseName || '—'}</td>
+                    <td><span class="small text-muted">${q.moduleName || q.lessonName || '—'}</span></td>
                     <td><span class="badge bg-light text-dark">${q.totalQuestions} câu</span></td>
-                    <td>${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</td>
                     <td>${statusBadge(q.status)}</td>
                     <td class="text-end px-4">
                         <a href="/expert/quiz-management/${q.quizId}/questions" class="btn btn-sm btn-outline-info me-1" title="Quản lý câu hỏi"><i class="bi bi-list-check"></i></a>
@@ -149,7 +168,7 @@ async function loadQuizzes(page = 0) {
             `).join('');
             renderPagination(result.data);
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Không tìm thấy quiz nào.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không tìm thấy quiz nào.</td></tr>';
             document.getElementById('pagination').innerHTML = '';
         }
     } catch (e) { console.error(e); }

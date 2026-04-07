@@ -1,13 +1,19 @@
 package com.example.DoAn.service.impl;
 
+import com.example.DoAn.dto.request.ExcelImportGroupRequestDTO;
+import com.example.DoAn.dto.request.ExcelQuestionGroupDTO;
 import com.example.DoAn.dto.request.ExcelImportRequestDTO;
+import com.example.DoAn.dto.response.ExcelParseGroupResultDTO;
 import com.example.DoAn.dto.response.ExcelParseResultDTO;
 import com.example.DoAn.dto.response.ExcelParseResultDTO.ErrorRowDTO;
 import com.example.DoAn.dto.response.ExcelParseResultDTO.ValidRowDTO;
+import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.model.AnswerOption;
 import com.example.DoAn.model.Question;
+import com.example.DoAn.model.QuestionGroup;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.AnswerOptionRepository;
+import com.example.DoAn.repository.QuestionGroupRepository;
 import com.example.DoAn.repository.QuestionRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.ExcelQuestionImportService;
@@ -31,6 +37,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
     private final QuestionRepository questionRepository;
     private final AnswerOptionRepository answerOptionRepository;
     private final UserRepository userRepository;
+    private final QuestionGroupRepository questionGroupRepository;
     private final AIQuestionPromptBuilder promptBuilder;
 
     @Override
@@ -84,7 +91,11 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
 
         int saved = 0;
         for (ExcelImportRequestDTO.ExcelQuestionDTO qdto : request.getQuestions()) {
-            Question question = buildQuestion(qdto, user);
+            String skill = qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : "READING";
+            String cefr = qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : "B1";
+            checkDuplicate(qdto.getContent(), skill, cefr);
+
+            Question question = buildQuestion(qdto, user, skill, cefr);
             question = questionRepository.save(question);
 
             if (qdto.getOptions() != null && !qdto.getOptions().isEmpty()) {
@@ -302,12 +313,12 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
         builder.matchLeft(left).matchRight(right).correctPairs(pairs);
     }
 
-    private Question buildQuestion(ExcelImportRequestDTO.ExcelQuestionDTO dto, User user) {
+    private Question buildQuestion(ExcelImportRequestDTO.ExcelQuestionDTO dto, User user, String skill, String cefr) {
         return Question.builder()
                 .content(dto.getContent())
                 .questionType(dto.getQuestionType() != null ? dto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
-                .skill(dto.getSkill() != null ? dto.getSkill().toUpperCase() : "READING")
-                .cefrLevel(dto.getCefrLevel() != null ? dto.getCefrLevel().toUpperCase() : "B1")
+                .skill(skill)
+                .cefrLevel(cefr)
                 .topic(dto.getTopic())
                 .explanation(dto.getExplanation())
                 .audioUrl(dto.getAudioUrl())
@@ -399,11 +410,333 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
         return sb.toString();
     }
 
+    private String detectQuestionType(String val, String fallback) {
+        if (val == null || val.isBlank()) return fallback;
+        return switch (val.toUpperCase().replace(" ", "_").replace("-", "_")) {
+            case "MULTIPLE_CHOICE_SINGLE", "MC_SINGLE", "MC" -> "MULTIPLE_CHOICE_SINGLE";
+            case "MULTIPLE_CHOICE_MULTI", "MC_MULTI" -> "MULTIPLE_CHOICE_MULTI";
+            case "FILL_IN_BLANK", "FILL", "FIB" -> "FILL_IN_BLANK";
+            case "MATCHING", "MATCH" -> "MATCHING";
+            case "WRITING" -> "WRITING";
+            case "SPEAKING" -> "SPEAKING";
+            default -> fallback;
+        };
+    }
+
+    @Override
+    public ExcelParseGroupResultDTO parseGroupFile(MultipartFile file) throws Exception {
+        List<ExcelParseGroupResultDTO.ValidGroupRowDTO> valid = new ArrayList<>();
+        List<ExcelParseGroupResultDTO.ErrorRowDTO> errors = new ArrayList<>();
+
+        try (Workbook wb = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+
+            Row groupHeaderRow = sheet.getRow(0);
+            Row groupDataRow = sheet.getRow(2);
+
+            log.info("[PARSE-GROUP] sheet.getRow(0)={}, sheet.getRow(1)={}, sheet.getRow(2)={}, lastRowNum={}",
+                    groupHeaderRow != null ? "exists" : "NULL",
+                    sheet.getRow(1) != null ? "exists" : "NULL",
+                    groupDataRow != null ? "exists" : "NULL",
+                    sheet.getLastRowNum());
+            if (groupHeaderRow == null || groupDataRow == null) {
+                throw new IllegalArgumentException(
+                        "File Excel không đúng format. Cần có Row 1 (group header) và Row 3 (group data - dòng điền passage). " +
+                        "lastRowNum=" + sheet.getLastRowNum());
+            }
+
+            // Parse group metadata
+            String passage = trim(getCell(groupDataRow, 0));
+            if (passage == null || passage.isBlank()) {
+                errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
+                        .rowIndex(2)
+                        .message("Passage không được trống.")
+                        .rawData(Map.of("passage", passage != null ? passage : ""))
+                        .build());
+                return ExcelParseGroupResultDTO.builder()
+                        .valid(valid).errors(errors).totalRows(0).build();
+            }
+
+            String skill = trim(getCell(groupDataRow, 1));
+            String cefr = trim(getCell(groupDataRow, 2));
+            String topic = trim(getCell(groupDataRow, 3));
+            String audioUrl = trim(getCell(groupDataRow, 4));
+            String imageUrl = trim(getCell(groupDataRow, 5));
+            String explanation = trim(getCell(groupDataRow, 6));
+
+            List<String> validationErrors = new ArrayList<>();
+            if (skill != null && !promptBuilder.isValidSkill(skill)) {
+                validationErrors.add("Skill '" + skill + "' không hợp lệ.");
+            }
+            if (cefr != null && !promptBuilder.isValidCefr(cefr)) {
+                validationErrors.add("CEFR '" + cefr + "' không hợp lệ (A1-C2).");
+            }
+            if (!validationErrors.isEmpty()) {
+                errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
+                        .rowIndex(2)
+                        .message(String.join("; ", validationErrors))
+                        .rawData(Map.of("skill", skill != null ? skill : "", "cefr", cefr != null ? cefr : ""))
+                        .build());
+            }
+
+            // Parse child questions from Sheet 2
+            List<ExcelParseResultDTO.ValidRowDTO> childQuestions = new ArrayList<>();
+            Sheet childSheet = wb.getSheetAt(1); // Sheet index 1 = "Child Questions"
+            if (childSheet == null) {
+                errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
+                        .rowIndex(1)
+                        .message("Thiếu Sheet 'Child Questions' (Sheet 2). Vui lòng dùng template chuẩn.")
+                        .rawData(Map.of())
+                        .build());
+                return ExcelParseGroupResultDTO.builder()
+                        .valid(valid).errors(errors).totalRows(0).build();
+            }
+            for (int i = 1; i <= childSheet.getLastRowNum(); i++) {
+                Row row = childSheet.getRow(i);
+                if (row == null || isEmptyRow(row)) continue;
+
+                String content = trim(getCell(row, 0));
+                if (content == null || content.isBlank()) continue;
+
+                int rowIdx = i + 1;
+                try {
+                    String typeStr = trim(getCell(row, 1));
+                    String questionType = detectQuestionType(typeStr, "MULTIPLE_CHOICE_SINGLE");
+                    String childSkill = trim(getCell(row, 10));
+                    String childCefr = trim(getCell(row, 11));
+                    String childTopic = trim(getCell(row, 12));
+                    String childExplanation = trim(getCell(row, 13));
+
+                    if (childSkill != null && !promptBuilder.isValidSkill(childSkill)) {
+                        throw new ValidationException("Skill '" + childSkill + "' không hợp lệ.");
+                    }
+                    if (childCefr != null && !promptBuilder.isValidCefr(childCefr)) {
+                        throw new ValidationException("CEFR '" + childCefr + "' không hợp lệ.");
+                    }
+
+                    ExcelParseResultDTO.ValidRowDTO.ValidRowDTOBuilder childBuilder =
+                            ExcelParseResultDTO.ValidRowDTO.builder()
+                                    .rowIndex(rowIdx)
+                                    .content(content)
+                                    .questionType(questionType)
+                                    .skill(childSkill != null ? childSkill.toUpperCase()
+                                            : (skill != null ? skill.toUpperCase() : "READING"))
+                                    .cefrLevel(childCefr != null ? childCefr.toUpperCase()
+                                            : (cefr != null ? cefr.toUpperCase() : "B1"))
+                                    .topic(childTopic != null ? childTopic : topic)
+                                    .explanation(childExplanation != null ? childExplanation : explanation)
+                                    .selected(true);
+
+                    switch (questionType) {
+                        case "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI" -> {
+                            String optA = trim(getCell(row, 2));
+                            String optB = trim(getCell(row, 3));
+                            String optC = trim(getCell(row, 4));
+                            String optD = trim(getCell(row, 5));
+                            String correct = trim(getCell(row, 6));
+                            if ((optA == null && optB == null && optC == null && optD == null) ||
+                                    correct == null || correct.isBlank()) {
+                                throw new ValidationException("Thiếu đáp án hoặc đáp án đúng.");
+                            }
+                            List<ExcelParseResultDTO.OptionDTO> opts = new ArrayList<>();
+                            int idx = 0;
+                            for (String label : List.of("A", "B", "C", "D")) {
+                                String val = idx == 0 ? optA : idx == 1 ? optB : idx == 2 ? optC : optD;
+                                if (val != null && !val.isBlank()) {
+                                    opts.add(ExcelParseResultDTO.OptionDTO.builder()
+                                            .title(val)
+                                            .correct(correct.toUpperCase().contains(label.toUpperCase()))
+                                            .build());
+                                }
+                                idx++;
+                            }
+                            childBuilder.options(opts).correctAnswer(correct);
+                        }
+                        case "FILL_IN_BLANK" -> {
+                            String answer = trim(getCell(row, 6));
+                            if (answer == null || answer.isBlank()) {
+                                throw new ValidationException("Thiếu đáp án cho FILL_IN_BLANK.");
+                            }
+                            childBuilder.correctAnswer(answer);
+                        }
+                        case "MATCHING" -> {
+                            String leftStr = trim(getCell(row, 7));
+                            String rightStr = trim(getCell(row, 8));
+                            String pairsStr = trim(getCell(row, 9));
+                            if (leftStr == null || rightStr == null || pairsStr == null) {
+                                throw new ValidationException("Thiếu cột ghép nối cho MATCHING.");
+                            }
+                            List<String> left = split(leftStr, "|");
+                            List<String> right = split(rightStr, "|");
+                            List<Integer> pairs = parsePairs(pairsStr);
+                            if (left.size() != right.size()) {
+                                throw new ValidationException("Số cặp ghép không khớp.");
+                            }
+                            if (pairs.size() != left.size()) {
+                                throw new ValidationException("CorrectPairs phải có đúng " + left.size() + " số.");
+                            }
+                            childBuilder.matchLeft(left).matchRight(right).correctPairs(pairs);
+                        }
+                        default -> {
+                            // WRITING, SPEAKING: no extra columns needed
+                        }
+                    }
+
+                    childQuestions.add(childBuilder.build());
+                } catch (ValidationException ve) {
+                    Map<String, String> raw = new LinkedHashMap<>();
+                    for (int c = 0; c < 14; c++) raw.put("col" + c, getCell(row, c));
+                    errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
+                            .rowIndex(rowIdx).message(ve.getMessage()).rawData(raw).build());
+                }
+            }
+
+            if (childQuestions.isEmpty() && validationErrors.isEmpty()) {
+                errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
+                        .rowIndex(5)
+                        .message("Không tìm thấy câu hỏi con nào trong file.")
+                        .rawData(Map.of("passage", passage))
+                        .build());
+            }
+
+            if (!childQuestions.isEmpty()) {
+                List<ExcelImportRequestDTO.ExcelQuestionDTO> excelQuestions = childQuestions.stream()
+                        .map(q -> ExcelImportRequestDTO.ExcelQuestionDTO.builder()
+                                .content(q.getContent())
+                                .questionType(q.getQuestionType())
+                                .skill(q.getSkill())
+                                .cefrLevel(q.getCefrLevel())
+                                .topic(q.getTopic())
+                                .explanation(q.getExplanation())
+                                .options(q.getOptions() != null ? q.getOptions().stream()
+                                        .map(o -> ExcelImportRequestDTO.OptionDTO.builder()
+                                                .title(o.getTitle())
+                                                .correct(o.getCorrect())
+                                                .build())
+                                        .toList() : null)
+                                .correctAnswer(q.getCorrectAnswer())
+                                .matchLeft(q.getMatchLeft())
+                                .matchRight(q.getMatchRight())
+                                .correctPairs(q.getCorrectPairs())
+                                .build())
+                        .toList();
+
+                valid.add(ExcelParseGroupResultDTO.ValidGroupRowDTO.builder()
+                        .rowIndex(2)
+                        .group(ExcelQuestionGroupDTO.builder()
+                                .passage(passage)
+                                .skill(skill != null ? skill.toUpperCase() : "READING")
+                                .cefrLevel(cefr != null ? cefr.toUpperCase() : "B1")
+                                .topic(topic)
+                                .audioUrl(audioUrl)
+                                .imageUrl(imageUrl)
+                                .explanation(explanation)
+                                .questions(excelQuestions)
+                                .build())
+                        .questions(childQuestions)
+                        .build());
+            }
+        }
+
+        return ExcelParseGroupResultDTO.builder()
+                .valid(valid)
+                .errors(errors)
+                .totalRows(valid.size() + errors.size())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public int importQuestionGroups(ExcelImportGroupRequestDTO request, String userEmail) throws Exception {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User không tồn tại: " + userEmail));
+
+        ExcelQuestionGroupDTO groupDto = request.getGroup();
+        if (groupDto.getQuestions() == null || groupDto.getQuestions().isEmpty()) {
+            throw new IllegalArgumentException("Bộ câu hỏi phải có ít nhất 1 câu hỏi con.");
+        }
+
+        QuestionGroup group = QuestionGroup.builder()
+                .groupContent(groupDto.getPassage())
+                .audioUrl(groupDto.getAudioUrl())
+                .imageUrl(groupDto.getImageUrl())
+                .skill(groupDto.getSkill() != null ? groupDto.getSkill().toUpperCase() : "READING")
+                .cefrLevel(groupDto.getCefrLevel() != null ? groupDto.getCefrLevel().toUpperCase() : "B1")
+                .topic(groupDto.getTopic())
+                .explanation(groupDto.getExplanation())
+                .status("DRAFT")
+                .user(user)
+                .build();
+        questionGroupRepository.save(group);
+
+        int saved = 0;
+        for (ExcelImportRequestDTO.ExcelQuestionDTO qdto : groupDto.getQuestions()) {
+            String skill = qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : group.getSkill();
+            String cefr = qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : group.getCefrLevel();
+            checkDuplicate(qdto.getContent(), skill, cefr);
+
+            Question question = Question.builder()
+                    .questionGroup(group)
+                    .user(user)
+                    .content(qdto.getContent())
+                    .questionType(qdto.getQuestionType() != null ? qdto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
+                    .skill(qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : group.getSkill())
+                    .cefrLevel(qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : group.getCefrLevel())
+                    .topic(qdto.getTopic() != null ? qdto.getTopic() : group.getTopic())
+                    .explanation(qdto.getExplanation())
+                    .status("DRAFT")
+                    .source("EXPERT_BANK")
+                    .createdMethod("EXCEL_IMPORTED")
+                    .build();
+            questionRepository.save(question);
+
+            if (qdto.getOptions() != null && !qdto.getOptions().isEmpty()) {
+                int idx = 0;
+                for (ExcelImportRequestDTO.OptionDTO opt : qdto.getOptions()) {
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(opt.getTitle())
+                            .correctAnswer(opt.getCorrect())
+                            .orderIndex(idx++)
+                            .build());
+                }
+            } else if (qdto.getMatchLeft() != null && qdto.getMatchRight() != null
+                    && qdto.getCorrectPairs() != null) {
+                List<String> left = qdto.getMatchLeft();
+                List<String> right = qdto.getMatchRight();
+                List<Integer> pairs = qdto.getCorrectPairs();
+                for (int i = 0; i < left.size(); i++) {
+                    int rightIdx = pairs.get(i) - 1;
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question).title(left.get(i)).correctAnswer(false)
+                            .orderIndex(i).matchTarget(right.get(rightIdx)).build());
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question).title(right.get(rightIdx)).correctAnswer(false)
+                            .orderIndex(left.size() + i).build());
+                }
+            }
+            saved++;
+        }
+        return saved;
+    }
+
     private String trim(String s) {
         return s != null ? s.trim() : null;
     }
 
     private static class ValidationException extends Exception {
         ValidationException(String msg) { super(msg); }
+    }
+
+    /** Block duplicate: same content + skill + CEFR level. */
+    private void checkDuplicate(String content, String skill, String cefrLevel) {
+        if (questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel)) {
+            throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+        }
+    }
+
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 }

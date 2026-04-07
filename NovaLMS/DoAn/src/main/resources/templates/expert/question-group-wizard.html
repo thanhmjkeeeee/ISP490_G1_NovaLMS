@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Question Group Wizard - NovaLMS Expert')}">
+</head>
+<body class="dashboard-body">
+
+<!-- Top navigation bar -->
+<nav class="navbar navbar-expand-lg sticky-top" style="background:#111827;z-index:1050;">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand text-white fw-bold d-flex align-items-center gap-2" th:href="@{/expert/dashboard}">
+      <i class="bi bi-robot text-primary"></i> NovaLMS
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <a th:href="@{/expert/question-bank}" class="text-white-50 text-decoration-none small">
+        <i class="bi bi-arrow-left me-1"></i> Question Bank
+      </a>
+      <button id="btnLeaveWizard" class="btn btn-sm btn-outline-light rounded-pill px-3">
+        <i class="bi bi-x-circle me-1"></i> Leave Wizard
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Page body -->
+<div class="container py-4" style="max-width:960px;">
+
+  <!-- Step Indicator -->
+  <div class="d-flex align-items-center justify-content-center mb-5" id="stepIndicator">
+    <div class="d-flex align-items-center">
+      <!-- Step 1 -->
+      <div class="step-bubble active" id="stepbubble1" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-label">Group Setup</span>
+      </div>
+      <div class="step-line" id="stepline1-2"></div>
+      <!-- Step 2 -->
+      <div class="step-bubble" id="stepbubble2" data-step="2">
+        <span class="step-num">2</span>
+        <span class="step-label">Add Questions</span>
+      </div>
+      <div class="step-line" id="stepline2-3"></div>
+      <!-- Step 3 -->
+      <div class="step-bubble" id="stepbubble3" data-step="3">
+        <span class="step-num">3</span>
+        <span class="step-label">Preview &amp; Validate</span>
+      </div>
+      <div class="step-line" id="stepline3-4"></div>
+      <!-- Step 4 -->
+      <div class="step-bubble" id="stepbubble4" data-step="4">
+        <span class="step-num">4</span>
+        <span class="step-label">Save &amp; Publish</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ STEP 1 ═══════════════════════════════ -->
+  <div id="wizard-step1" class="wizard-step active">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold" style="color:#223a58;">
+          <i class="bi bi-sliders me-2 text-primary"></i>Step 1 — Group Setup
+        </h5>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Group Type -->
+        <div class="mb-4">
+          <label class="form-label fw-bold small text-uppercase text-muted mb-2">Group Type <span class="text-danger">*</span></label>
+          <div class="d-flex gap-3">
+            <div class="mode-card flex-fill text-center p-3 rounded-3 border selected" id="cardPassage" onclick="selectGroupType('PASSAGE_BASED', this)">
+              <i class="bi bi-file-earmark-text fs-3 d-block mb-2 text-primary"></i>
+              <input class="form-check-input d-none" type="radio" name="groupType" value="PASSAGE_BASED" id="rdoPassage" checked>
+              <label class="form-check-label fw-semibold" for="rdoPassage">Passage-based</label>
+              <p class="small text-muted mb-0 mt-1">Câu hỏi đi kèm bài đọc / nghe</p>
+            </div>
+            <div class="mode-card flex-fill text-center p-3 rounded-3 border" id="cardTopic" onclick="selectGroupType('TOPIC_BASED', this)">
+              <i class="bi bi-tags fs-3 d-block mb-2 text-info"></i>
+              <input class="form-check-input d-none" type="radio" name="groupType" value="TOPIC_BASED" id="rdoTopic">
+              <label class="form-check-label fw-semibold" for="rdoTopic">Topic-based</label>
+              <p class="small text-muted mb-0 mt-1">Câu hỏi theo chủ đề chung</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passage Section -->
+        <div id="passageSection">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">Passage Content <span class="text-danger">*</span></label>
+            <textarea id="passageContent" class="form-control" rows="6"
+              placeholder="Paste or type the reading/listening passage here..."></textarea>
+            <small class="text-muted">For Reading passages. The passage will be associated with all questions in this group.</small>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold small text-uppercase text-muted">Audio URL <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="url" id="audioUrl" class="form-control" placeholder="https://...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold small text-uppercase text-muted">Image URL <span class="text-muted fw-normal">(optional)</span></label>
+              <input type="url" id="imageUrl" class="form-control" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Topic Section -->
+        <div id="topicSection" style="display:none;">
+          <div class="mb-3">
+            <label class="form-label fw-bold small text-uppercase text-muted">Topic Name <span class="text-danger">*</span></label>
+            <input type="text" id="topicName" class="form-control"
+              placeholder="e.g. Environmental Protection, Workplace Communication">
+          </div>
+        </div>
+
+        <!-- Skill & CEFR -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label fw-bold small text-uppercase text-muted">Skill <span class="text-danger">*</span></label>
+            <select id="s1Skill" class="form-select form-select-lg">
+              <option value="READING">Reading / Đọc hiểu</option>
+              <option value="LISTENING">Listening / Nghe hiểu</option>
+              <option value="WRITING">Writing / Viết</option>
+              <option value="SPEAKING">Speaking / Nói</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold small text-uppercase text-muted">CEFR Level <span class="text-danger">*</span></label>
+            <select id="s1Cefr" class="form-select form-select-lg">
+              <option value="A1">A1 — Beginner</option>
+              <option value="A2">A2 — Elementary</option>
+              <option value="B1" selected>B1 — Intermediate</option>
+              <option value="B2">B2 — Upper-Intermediate</option>
+              <option value="C1">C1 — Advanced</option>
+              <option value="C2">C2 — Proficient</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tags input -->
+        <div class="mb-4">
+          <label class="form-label fw-bold small text-uppercase text-muted">
+            Tags <span class="text-muted fw-normal">(press Enter or comma to add, max 10)</span>
+          </label>
+          <div id="tagsContainer" class="tags-input-container border rounded-3 p-2 d-flex flex-wrap gap-1 bg-white">
+            <input type="text" id="tagInput" class="tags-text-input border-0 flex-grow-1 outline-none bg-transparent" placeholder="Add a tag...">
+          </div>
+          <small class="text-muted">Tags help categorize and search for this question group later.</small>
+        </div>
+
+        <div id="s1Error" class="alert alert-danger" style="display:none;"></div>
+
+        <div class="text-end">
+          <button class="btn text-white px-5 rounded-pill" style="background:#136ad5;" onclick="submitStep1()">
+            Next <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ STEP 2 ═══════════════════════════════ -->
+  <div id="wizard-step2" class="wizard-step" style="display:none;">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" style="color:#223a58;">
+          <i class="bi bi-list-check me-2 text-primary"></i>Step 2 — Add Questions
+        </h5>
+        <span class="badge rounded-pill bg-light text-dark border" id="s2QuestionCount">0 questions</span>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Source Tabs -->
+        <ul class="nav nav-tabs mb-4" id="s2Tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tabAI" data-bs-toggle="tab" data-bs-target="#paneAI" type="button">
+              <i class="bi bi-robot me-1"></i> AI Generate
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabExcel" data-bs-toggle="tab" data-bs-target="#paneExcel" type="button">
+              <i class="bi bi-file-earmark-arrow-up me-1"></i> Import Excel
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabManual" data-bs-toggle="tab" data-bs-target="#paneManual" type="button">
+              <i class="bi bi-pencil me-1"></i> Manual Add
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="s2TabContent">
+
+          <!-- AI Generate Pane -->
+          <div class="tab-pane fade show active" id="paneAI" role="tabpanel">
+            <div class="row g-3 mb-3">
+              <div class="col-md-8">
+                <label class="form-label fw-bold small">Topic / Context <span class="text-danger">*</span></label>
+                <input type="text" id="aiTopic" class="form-control" placeholder="e.g. Environmental protection">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-bold small">Quantity <span class="text-danger">*</span></label>
+                <input type="number" id="aiQty" class="form-control" min="1" max="50" value="5">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">Question Types</label>
+              <div class="d-flex flex-wrap gap-2" id="aiTypeCheckboxes">
+                <!-- Populated by JS based on skill -->
+              </div>
+            </div>
+            <div id="aiStep2Error" class="alert alert-danger" style="display:none;"></div>
+            <div id="aiStep2Loading" class="text-center py-3" style="display:none;">
+              <div class="spinner-border text-primary mb-2"></div>
+              <p class="text-muted small mb-0">AI is generating questions, please wait...</p>
+            </div>
+            <div id="aiStep2Results" class="mb-3" style="display:none;"></div>
+            <div class="text-end">
+              <button class="btn btn-primary" onclick="step2GenerateAI()">
+                <i class="bi bi-lightning-charge me-1"></i> Generate
+              </button>
+            </div>
+          </div>
+
+          <!-- Import Excel Pane -->
+          <div class="tab-pane fade" id="paneExcel" role="tabpanel">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold small">Question Type <span class="text-danger">*</span></label>
+                <select id="excelType" class="form-select">
+                  <option value="">-- Select type --</option>
+                  <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Single)</option>
+                  <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Multi)</option>
+                  <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                  <option value="MATCHING">Matching</option>
+                  <option value="WRITING">Writing</option>
+                  <option value="SPEAKING">Speaking</option>
+                </select>
+              </div>
+              <div class="col-md-6 d-flex align-items-end">
+                <button class="btn btn-outline-primary" onclick="step2DownloadTemplate()">
+                  <i class="bi bi-download me-1"></i> Download Template
+                </button>
+              </div>
+            </div>
+            <div class="border border-2 border-dashed rounded-3 p-5 text-center bg-light" id="excelDropZone">
+              <i class="bi bi-cloud-arrow-up fs-1 text-muted mb-3 d-block"></i>
+              <p class="fw-semibold mb-1">Drag &amp; drop your Excel file here</p>
+              <p class="small text-muted mb-3">or click to browse (.xlsx, max 5MB)</p>
+              <input type="file" id="excelFile" class="form-control w-auto mx-auto" accept=".xlsx">
+              <div id="excelFileName" class="mt-2 small text-muted"></div>
+            </div>
+            <div id="excelStep2Error" class="alert alert-danger mt-3" style="display:none;"></div>
+            <div id="excelStep2Loading" class="text-center py-3" style="display:none;">
+              <div class="spinner-border text-success mb-2"></div>
+              <p class="text-muted small mb-0">Parsing Excel file...</p>
+            </div>
+            <div id="excelStep2Preview" class="mt-3" style="display:none;"></div>
+            <div class="text-end mt-3">
+              <button class="btn btn-success" onclick="step2UploadExcel()">
+                <i class="bi bi-upload me-1"></i> Upload &amp; Import
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual Add Pane -->
+          <div class="tab-pane fade" id="paneManual" role="tabpanel">
+            <button class="btn btn-outline-primary mb-3" onclick="showManualForm()">
+              <i class="bi bi-plus-lg me-1"></i> Add Question
+            </button>
+
+            <!-- Inline manual question form -->
+            <div id="manualForm" class="card border-primary shadow-sm mb-3" style="display:none;">
+              <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-pencil-square me-1"></i> New Question</span>
+                <button type="button" class="btn-close btn-close-white" onclick="hideManualForm()"></button>
+              </div>
+              <div class="card-body p-3">
+                <div class="mb-2">
+                  <label class="form-label fw-bold small">Question Type <span class="text-danger">*</span></label>
+                  <select id="mType" class="form-select form-select-sm" onchange="onManualTypeChange()">
+                    <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Single)</option>
+                    <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Multi)</option>
+                    <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                    <option value="MATCHING">Matching</option>
+                    <option value="WRITING">Writing</option>
+                    <option value="SPEAKING">Speaking</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label fw-bold small">Question Content <span class="text-danger">*</span></label>
+                  <textarea id="mContent" class="form-control form-control-sm" rows="2" placeholder="Enter the question..."></textarea>
+                </div>
+                <div class="mb-2" id="mCorrectAnswerRow">
+                  <label class="form-label fw-bold small">Correct Answer <span class="text-danger">*</span></label>
+                  <input type="text" id="mCorrectAnswer" class="form-control form-control-sm" placeholder="e.g. A or the correct text">
+                </div>
+                <!-- MC Options -->
+                <div id="mOptionsSection" class="mb-2">
+                  <label class="form-label fw-bold small">Answer Options <span class="text-muted fw-normal">(check correct)</span></label>
+                  <div id="mOptionsList">
+                    <div class="input-group input-group-sm mb-1">
+                      <div class="input-group-text"><input type="checkbox" class="form-check-input option-cb" onclick="syncOptionCorrect(this)"></div>
+                      <input type="text" class="form-control option-text" placeholder="Option A">
+                      <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeOption(this)"><i class="bi bi-x"></i></button>
+                    </div>
+                    <div class="input-group input-group-sm mb-1">
+                      <div class="input-group-text"><input type="checkbox" class="form-check-input option-cb" onclick="syncOptionCorrect(this)"></div>
+                      <input type="text" class="form-control option-text" placeholder="Option B">
+                      <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeOption(this)"><i class="bi bi-x"></i></button>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addManualOption()">
+                    <i class="bi bi-plus"></i> Add Option
+                  </button>
+                </div>
+                <!-- Matching pairs -->
+                <div id="mMatchingSection" class="mb-2" style="display:none;">
+                  <label class="form-label fw-bold small">Matching Pairs</label>
+                  <div id="mMatchingPairs"></div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addMatchingPair()">
+                    <i class="bi bi-plus"></i> Add Pair
+                  </button>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label fw-bold small">Explanation <span class="text-muted fw-normal">(optional)</span></label>
+                  <textarea id="mExplanation" class="form-control form-control-sm" rows="2" placeholder="Explain why this answer is correct..."></textarea>
+                </div>
+                <div class="text-end">
+                  <button class="btn btn-primary btn-sm" onclick="submitManualQuestion()">
+                    <i class="bi bi-check-lg me-1"></i> Add to List
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="hideManualForm()">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual questions list -->
+            <div id="manualQuestionsList" class="list-group mb-3"></div>
+          </div>
+        </div>
+
+        <!-- Accumulated question list -->
+        <hr class="my-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0 fw-bold" style="color:#223a58;">
+            <i class="bi bi-list-ol me-1"></i> Questions Added
+            <span class="badge bg-primary ms-2" id="totalAddedCount">0</span>
+          </h6>
+        </div>
+        <div id="step2AccumulatedList" class="list-group">
+          <div class="text-center text-muted py-4 border rounded bg-light">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+            No questions added yet. Use the tabs above to add questions.
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <button class="btn btn-outline-secondary rounded-pill" onclick="goToStep(1)">
+            <i class="bi bi-arrow-left me-1"></i> Back
+          </button>
+          <button class="btn text-white px-4 rounded-pill" style="background:#136ad5;" onclick="submitStep2()">
+            Continue to Preview <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ STEP 3 ═══════════════════════════════ -->
+  <div id="wizard-step3" class="wizard-step" style="display:none;">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold" style="color:#223a58;">
+          <i class="bi bi-search me-2 text-primary"></i>Step 3 — Preview &amp; Validate
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" onclick="validateStep3()">
+          <i class="bi bi-arrow-repeat me-1"></i> Re-validate
+        </button>
+      </div>
+      <div class="card-body p-4">
+        <div id="step3ValidationArea"></div>
+        <div id="step3QuestionList" class="mb-4"></div>
+        <div class="d-flex justify-content-between mt-4">
+          <button class="btn btn-outline-secondary rounded-pill" onclick="goToStep(2)">
+            <i class="bi bi-arrow-left me-1"></i> Back to Step 2
+          </button>
+          <button class="btn text-white px-4 rounded-pill" style="background:#136ad5;" id="btnContinueStep4" onclick="goToStep(4)">
+            Continue to Step 4 <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ STEP 4 ═══════════════════════════════ -->
+  <div id="wizard-step4" class="wizard-step" style="display:none;">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold" style="color:#223a58;">
+          <i class="bi bi-cloud-upload me-2 text-primary"></i>Step 4 — Save &amp; Publish
+        </h5>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Publish mode -->
+        <div class="mb-4">
+          <label class="form-label fw-bold small text-uppercase text-muted mb-2">Save Mode</label>
+          <div class="d-flex gap-3">
+            <div class="mode-card selected flex-fill text-center p-3 rounded-3 border" id="cardDraft" onclick="selectSaveMode('DRAFT', this)">
+              <i class="bi bi-pencil-square fs-3 d-block mb-2 text-warning"></i>
+              <input class="form-check-input d-none" type="radio" name="saveMode" value="DRAFT" id="rdoDraft" checked>
+              <label class="form-check-label fw-semibold" for="rdoDraft">Save as Draft</label>
+              <p class="small text-muted mb-0 mt-1">Not visible to others yet</p>
+            </div>
+            <div class="mode-card flex-fill text-center p-3 rounded-3 border" id="cardPublish" onclick="selectSaveMode('PUBLISHED', this)">
+              <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
+              <input class="form-check-input d-none" type="radio" name="saveMode" value="PUBLISHED" id="rdoPublish">
+              <label class="form-check-label fw-semibold" for="rdoPublish">Publish</label>
+              <p class="small text-muted mb-0 mt-1">Immediately visible in the bank</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visibility -->
+        <div class="mb-4">
+          <label class="form-label fw-bold small text-uppercase text-muted mb-2">Visibility</label>
+          <div class="d-flex gap-3">
+            <div class="mode-card selected flex-fill text-center p-3 rounded-3 border" id="cardExpertBank" onclick="selectVisibility('EXPERT_BANK', this)">
+              <i class="bi bi-people fs-3 d-block mb-2 text-primary"></i>
+              <input class="form-check-input d-none" type="radio" name="visibility" value="EXPERT_BANK" id="rdoExpertBank" checked>
+              <label class="form-check-label fw-semibold" for="rdoExpertBank">Expert Bank</label>
+              <p class="small text-muted mb-0 mt-1">Shared with all experts</p>
+            </div>
+            <div class="mode-card flex-fill text-center p-3 rounded-3 border" id="cardPrivate" onclick="selectVisibility('TEACHER_PRIVATE', this)">
+              <i class="bi bi-lock fs-3 d-block mb-2 text-secondary"></i>
+              <input class="form-check-input d-none" type="radio" name="visibility" value="TEACHER_PRIVATE" id="rdoPrivate">
+              <label class="form-check-label fw-semibold" for="rdoPrivate">Private</label>
+              <p class="small text-muted mb-0 mt-1">Only visible to me</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary panel -->
+        <div class="alert bg-light border rounded-3 p-3 mb-4" id="step4Summary">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="small text-muted text-uppercase">Topic</div>
+              <div class="fw-semibold" id="summaryTopic">—</div>
+            </div>
+            <div class="col-md-4">
+              <div class="small text-muted text-uppercase">Skill</div>
+              <div class="fw-semibold" id="summarySkill">—</div>
+            </div>
+            <div class="col-md-4">
+              <div class="small text-muted text-uppercase">CEFR Level</div>
+              <div class="fw-semibold" id="summaryCefr">—</div>
+            </div>
+            <div class="col-12">
+              <div class="small text-muted text-uppercase">Tags</div>
+              <div id="summaryTags" class="d-flex flex-wrap gap-1 mt-1"></div>
+            </div>
+            <div class="col-12">
+              <div class="small text-muted text-uppercase">Questions</div>
+              <div class="fw-semibold text-primary" id="summaryQuestionCount">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="step4Error" class="alert alert-danger" style="display:none;"></div>
+        <div id="step4Loading" class="text-center py-3" style="display:none;">
+          <div class="spinner-border text-primary mb-2"></div>
+          <p class="text-muted small mb-0">Saving your question group...</p>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+          <button class="btn btn-outline-secondary rounded-pill" onclick="goToStep(3)">
+            <i class="bi bi-arrow-left me-1"></i> Back to Step 3
+          </button>
+          <button class="btn text-white px-5 rounded-pill" style="background:#136ad5;" id="btnSaveFinish" onclick="submitStep4()">
+            <i class="bi bi-check-lg me-1"></i> Save &amp; Finish
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Step indicator CSS -->
+<style>
+  .step-bubble { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:default; }
+  .step-num { width:36px; height:36px; border-radius:50%; font-weight:700; font-size:0.875rem; display:flex; align-items:center; justify-content:center; background:#e5e7eb; color:#9ca3af; transition:all 0.3s; }
+  .step-bubble.active .step-num { background:#136ad5; color:#fff; box-shadow:0 0 0 4px rgba(19,106,213,0.2); }
+  .step-bubble.completed .step-num { background:#16a34a; color:#fff; }
+  .step-bubble.active { transform:scale(1.1); }
+  .step-label { font-size:0.72rem; font-weight:600; color:#6b7280; white-space:nowrap; }
+  .step-bubble.active .step-label { color:#136ad5; }
+  .step-bubble.completed .step-label { color:#16a34a; }
+  .step-line { width:48px; height:2px; background:#e5e7eb; transition:background 0.3s; margin-bottom:22px; }
+  .step-line.active { background:#136ad5; }
+  .step-line.completed { background:#16a34a; }
+  .mode-card { transition:all 0.2s; cursor:pointer; }
+  .mode-card:hover { border-color:#136ad5 !important; }
+  .mode-card.selected { border-color:#136ad5 !important; background:#f0f7ff; }
+  .tags-input-container:focus-within { border-color:#136ad5; box-shadow:0 0 0 3px rgba(19,106,213,0.12); }
+  .tag-chip { display:inline-flex; align-items:center; gap:4px; background:#e0e7ff; color:#3730a3; font-size:0.8rem; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .tag-chip .tag-remove { cursor:pointer; line-height:1; opacity:0.7; }
+  .tag-chip .tag-remove:hover { opacity:1; }
+  .q-type-badge { font-size:0.75rem; padding:2px 7px; border-radius:20px; font-weight:600; }
+  .q-type-MULTIPLE_CHOICE_SINGLE { background:#dbeafe; color:#1d4ed8; }
+  .q-type-MULTIPLE_CHOICE_MULTI { background:#dcfce7; color:#15803d; }
+  .q-type-FILL_IN_BLANK { background:#fef9c3; color:#a16207; }
+  .q-type-MATCHING { background:#f3e8ff; color:#7e22ce; }
+  .q-type-WRITING { background:#ffe4e6; color:#be123c; }
+  .q-type-SPEAKING { background:#fff7ed; color:#c2410c; }
+  .q-skill-badge { background:#f1f5f9; color:#475569; font-size:0.75rem; padding:2px 7px; border-radius:20px; }
+  .q-preview-card { border-left:4px solid #136ad5; }
+  .border-dashed { border-style:dashed !important; }
+  .wizard-step { animation:fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+</style>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-wizard.js}"></script>
+</body>
+</html>
