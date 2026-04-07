@@ -47,12 +47,24 @@
             <a th:href="@{/teacher/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
-            <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
+            <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'workspace'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-grid-1x2"></i><span>Workspace</span>
+            </a>
+            <a th:href="@{/teacher/my-classes}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-people"></i><span>Lớp của tôi</span>
             </a>
 
             <a th:href="@{/teacher/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
+            </a>
+            <a th:href="@{/teacher/my-questions}" th:classappend="${activePage == 'my-questions'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-list-task"></i><span>Câu hỏi của tôi</span>
+            </a>
+            <a th:href="@{/teacher/my-grading}" th:classappend="${activePage == 'my-grading'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-mortarboard"></i><span>Chấm bài</span>
+            </a>
+            <a th:href="@{/teacher/quiz/graded}" th:classappend="${activePage == 'grading-results'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-clipboard-check"></i><span>Kết quả đã chấm</span>
             </a>
         </div>
 
@@ -97,6 +109,12 @@
             </a>
             <a th:href="@{/expert/quiz-management}" th:classappend="${activePage == 'quiz-management'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-question"></i><span>Quản lý bộ đề</span>
+            </a>
+            <a th:href="@{/expert/assignment-management}" th:classappend="${activePage == 'assignment-management'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-journal-text"></i><span>Bài kiểm tra lớn</span>
+            </a>
+            <a th:href="@{/expert/question-approval}" th:classappend="${activePage == 'question-approval'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-patch-check"></i><span>Phê duyệt câu hỏi</span>
             </a>
             <a sec:authorize="hasRole('ROLE_ADMIN')" th:href="@{/admin/settings}" th:classappend="${activePage == 'settings'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-gear-fill"></i><span>Cài đặt hệ thống</span>

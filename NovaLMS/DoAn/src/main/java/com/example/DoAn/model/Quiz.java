@@ -96,9 +96,37 @@ public class Quiz {
     @Column(name = "target_skill", length = 20)
     private String targetSkill;
 
+    // Sequential assignment: always true for COURSE_ASSIGNMENT / MODULE_ASSIGNMENT
+    @Column(name = "is_sequential")
+    private Boolean isSequential = false;
+
+    // JSON array, e.g. ["LISTENING","READING","SPEAKING","WRITING"]
+    @Column(name = "skill_order", columnDefinition = "JSON")
+    private String skillOrder;
+
+    // JSON object, e.g. {"SPEAKING": 2, "WRITING": 30}
+    @Column(name = "time_limit_per_skill", columnDefinition = "JSON")
+    private String timeLimitPerSkill;
+
+    // Thời gian giới hạn ghi âm cho MỖI câu speaking (giây), ví dụ: 120 = 2 phút/câu. null = không giới hạn.
+    @Column(name = "speaking_time_limit_seconds")
+    private Integer speakingTimeLimitSeconds;
+
     // Teacher/Giáo viên mở/đóng quiz cho học sinh làm — độc lập với status DRAFT/PUBLISHED/ARCHIVED
     @Column(name = "is_open")
     private Boolean isOpen = false;
+
+    // Thời điểm bắt đầu mở quiz — null = mở ngay khi publish + isOpen=true
+    @Column(name = "open_at")
+    private LocalDateTime openAt;
+
+    // Thời điểm đóng quiz — null = không đóng tự động (chỉ teacher toggle isOpen)
+    @Column(name = "close_at")
+    private LocalDateTime closeAt;
+
+    // Deadline cho assignment — sau thời điểm này không thể nộp bài
+    @Column(name = "deadline")
+    private LocalDateTime deadline;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -123,5 +151,17 @@ public class Quiz {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public QuizCategory getQuizCategoryEnum() {
+        return QuizCategory.fromValue(this.quizCategory);
+    }
+
+    public Integer getSpeakingTimeLimitSeconds() {
+        return speakingTimeLimitSeconds;
+    }
+
+    public void setSpeakingTimeLimitSeconds(Integer speakingTimeLimitSeconds) {
+        this.speakingTimeLimitSeconds = speakingTimeLimitSeconds;
     }
 }

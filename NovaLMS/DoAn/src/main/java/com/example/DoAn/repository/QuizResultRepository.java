@@ -42,6 +42,20 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "ORDER BY qr.submittedAt ASC")
     Page<QuizResult> findPendingGradingForTeacher(@org.springframework.data.repository.query.Param("email") String email, Pageable pageable);
 
+    // Kết quả đã chấm xong (passed IS NOT NULL), teacher có quyền xem
+    @Query("SELECT qr FROM QuizResult qr " +
+           "JOIN FETCH qr.quiz q " +
+           "LEFT JOIN FETCH qr.user stu " +
+           "LEFT JOIN FETCH q.course " +
+           "LEFT JOIN FETCH q.clazz c " +
+           "LEFT JOIN FETCH c.teacher " +
+           "WHERE qr.passed IS NOT NULL " +
+           "AND (q.user.email = :email " +
+           "     OR c.teacher.email = :email " +
+           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
+           "ORDER BY qr.submittedAt DESC")
+    Page<QuizResult> findGradedForTeacher(@org.springframework.data.repository.query.Param("email") String email, Pageable pageable);
+
     Page<QuizResult> findByUserEmailOrderBySubmittedAtDesc(String email, Pageable pageable);
 
     List<QuizResult> findByUser_Email(String email);
@@ -58,6 +72,33 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             @org.springframework.data.repository.query.Param("email") String email,
             @org.springframework.data.repository.query.Param("category") String category,
             @org.springframework.data.repository.query.Param("keyword") String keyword,
+            Pageable pageable
+    );
+
+    // ─── Assignment Grading Queue ─────────────────────────────────────────────
+    // Returns all QuizResults for assignment-type quizzes (COURSE_ASSIGNMENT /
+    // MODULE_ASSIGNMENT) where the teacher is enrolled in the student's class.
+    @Query(value = """
+        SELECT qr FROM QuizResult qr
+        JOIN FETCH qr.quiz q
+        LEFT JOIN FETCH qr.user stu
+        LEFT JOIN FETCH q.course
+        LEFT JOIN FETCH q.clazz c
+        LEFT JOIN FETCH c.teacher t
+        WHERE qr.assignmentSessionId IS NOT NULL
+          AND q.quizCategory IN ('COURSE_ASSIGNMENT', 'MODULE_ASSIGNMENT')
+          AND (t.email = :teacherEmail
+               OR EXISTS (SELECT 1 FROM Clazz tc
+                          WHERE tc.course = q.course
+                            AND tc.teacher.email = :teacherEmail))
+          AND (:quizId IS NULL OR q.quizId = :quizId)
+          AND (:classId IS NULL OR c.classId = :classId)
+        ORDER BY qr.submittedAt DESC
+        """)
+    Page<QuizResult> findAssignmentResultsForTeacher(
+            @org.springframework.data.repository.query.Param("teacherEmail") String teacherEmail,
+            @org.springframework.data.repository.query.Param("quizId") Integer quizId,
+            @org.springframework.data.repository.query.Param("classId") Integer classId,
             Pageable pageable
     );
 }

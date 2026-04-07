@@ -114,6 +114,67 @@ public class AIQuestionPromptBuilder {
                 """.formatted(moduleName, truncated, quantity, types, moduleName);
     }
 
+    /**
+     * Builds prompt for generating a passage-based question group.
+     * Groq returns flat JSON: { passage, audioUrl, imageUrl, skill, cefrLevel, topic,
+     *                             explanation, questions: [{content, questionType, options, ...}] }
+     */
+    public String buildGroupPrompt(String topic, String skill, String cefrLevel,
+                                  int questionCount, List<String> questionTypes) {
+        String types = buildTypesClause(questionTypes);
+        String cefr = cefrLevel != null ? cefrLevel : "B1";
+        String topicVal = topic != null ? topic : "General English";
+        String skillVal = skill != null ? skill : "READING";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("You are an expert English language test designer.\n\n");
+        sb.append("Generate a passage-based question group in JSON format. ");
+        sb.append("The passage must be in English and should be interesting, educational, and appropriate for CEFR level ").append(cefr).append(".\n\n");
+        sb.append("Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):\n");
+        sb.append("{\n");
+        sb.append("  \"passage\": \"<English passage text, 150-400 words>\",\n");
+        sb.append("  \"audioUrl\": null,\n");
+        sb.append("  \"imageUrl\": null,\n");
+        sb.append("  \"skill\": \"").append(skillVal).append("\",\n");
+        sb.append("  \"cefrLevel\": \"").append(cefr).append("\",\n");
+        sb.append("  \"topic\": \"").append(topicVal).append("\",\n");
+        sb.append("  \"explanation\": \"<brief explanation of the passage>\",\n");
+        sb.append("  \"questions\": [\n");
+        sb.append("    {\n");
+        sb.append("      \"content\": \"<question text in English>\",\n");
+        sb.append("      \"questionType\": \"<MULTIPLE_CHOICE_SINGLE or MULTIPLE_CHOICE_MULTI or FILL_IN_BLANK or MATCHING>\",\n");
+        sb.append("      \"options\": [{ \"title\": \"<option text in English>\", \"correct\": <true or false> }, ...],\n");
+        sb.append("      \"correctAnswer\": <null or answer text for FILL_IN_BLANK>,\n");
+        sb.append("      \"matchLeft\": <null or [\"word1\",\"word2\"]>,\n");
+        sb.append("      \"matchRight\": <null or [\"meaning1\",\"meaning2\"]>,\n");
+        sb.append("      \"correctPairs\": <null or [1,2] where numbers are 1-based indices into matchRight>,\n");
+        sb.append("      \"cefrLevel\": \"").append(cefr).append("\",\n");
+        sb.append("      \"topic\": \"").append(topicVal).append("\",\n");
+        sb.append("      \"explanation\": \"<explanation for this specific question>\"\n");
+        sb.append("    }\n");
+        sb.append("  ]\n");
+        sb.append("}\n\n");
+
+        sb.append("Rules:\n");
+        sb.append("- Generate exactly ").append(questionCount).append(" questions.\n");
+        sb.append("- Question types allowed: ").append(types).append(".\n");
+        sb.append("- MULTIPLE_CHOICE_SINGLE: exactly 1 correct answer, at least 3 distractors, all options in English.\n");
+        sb.append("- MULTIPLE_CHOICE_MULTI: 2 or more correct answers (but not all).\n");
+        sb.append("- FILL_IN_BLANK: must have a correctAnswer field.\n");
+        sb.append("- MATCHING: matchLeft (words/phrases) and matchRight (definitions/meanings) must have the same size (3-5 items each).\n");
+        sb.append("  CRITICAL - correctPairs format: a JSON array of 1-based INTEGER indices into the matchRight array.\n");
+        sb.append("  The Nth value in correctPairs is the 1-based index in matchRight that matches the Nth item in matchLeft.\n");
+        sb.append("  Example: matchLeft=[\"Libraries\",\"Laboratories\"] matchRight=[\"books\",\"experiments\"]\n");
+        sb.append("    If Libraries→books (position 1) and Laboratories→experiments (position 2): correctPairs=[1,2]\n");
+        sb.append("    If Libraries→experiments (position 2) and Laboratories→books (position 1): correctPairs=[2,1]\n");
+        sb.append("  IMPORTANT: The passage MUST explicitly state each pair. If the passage only mentions 'Libraries provide books' then Libraries→books is valid. Do NOT guess pairs that are not clearly stated in the passage.\n");
+        sb.append("- All content, options, explanations MUST be in English only. No Vietnamese.\n");
+        sb.append("- Every 'title' must be real English text, not null, empty, or just a number.\n");
+        sb.append("- Return ONLY the JSON object, no markdown fences, no commentary.\n");
+
+        return sb.toString();
+    }
+
     private String buildTypesClause(List<String> questionTypes) {
         if (questionTypes == null || questionTypes.isEmpty()) {
             return "MIXED: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING, WRITING, SPEAKING";

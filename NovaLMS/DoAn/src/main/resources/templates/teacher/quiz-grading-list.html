@@ -14,6 +14,19 @@
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
             <h5 class="fw-bold mb-2">Danh sách bài nộp chờ chấm điểm</h5>
             <p class="text-muted">Lưu ý: Chỉ những bài quiz có câu hỏi Writing/Speaking mới rơi vào trạng thái cần review.</p>
+            <!-- Quiz Type Filter Tabs -->
+            <ul class="nav nav-tabs mt-3" id="quizTypeTabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" data-type="LESSON_QUIZ">
+                        📝 Bài tập nhỏ (Quiz)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-type="ASSIGNMENT">
+                        📋 Bài kiểm tra lớn
+                    </a>
+                </li>
+            </ul>
         </div>
         <div class="card-body px-4 pb-4">
             
@@ -53,20 +66,36 @@
 
 <script>
 let currentPage = 0;
+let currentQuizType = 'LESSON_QUIZ';
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Tab click handlers
+    document.querySelectorAll('#quizTypeTabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('#quizTypeTabs .nav-link').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentQuizType = tab.dataset.type;
+            loadPendingList(0);
+        });
+    });
+
     loadPendingList(currentPage);
 });
 
 async function loadPendingList(page) {
+    currentPage = page;
     try {
-        const res = await fetch(`/api/v1/teacher/quiz-results/pending?page=${page}&size=10`);
+        const res = await fetch(`/api/v1/teacher/quiz-results/pending?page=${page}&size=10&quizType=${currentQuizType}`);
         const result = await res.json();
-        
+
         let html = '';
         if(result.status === 200 && result.data && result.data.items.length > 0) {
             result.data.items.forEach((item, index) => {
                 const date = new Date(item.submittedAt).toLocaleString('vi-VN');
+                const gradeUrl = currentQuizType === 'ASSIGNMENT'
+                    ? `/teacher/assignment/grading/${item.resultId}`
+                    : `/teacher/quiz/grading/${item.resultId}`;
                 html += `
                     <tr>
                         <td>${page * 10 + index + 1}</td>
@@ -79,17 +108,17 @@ async function loadPendingList(page) {
                             </div>
                         </td>
                         <td><span class="small text-muted"><i class="bi bi-clock me-1"></i>${date}</span></td>
-                        <td><a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-primary rounded-pill px-3">Chấm Định Tính <i class="bi bi-arrow-right"></i></a></td>
+                        <td><a href="${gradeUrl}" class="btn btn-sm btn-primary rounded-pill px-3">Chấm Định Tính <i class="bi bi-arrow-right"></i></a></td>
                     </tr>
                 `;
             });
             renderPagination(result.data.totalPages, page);
         } else {
-            html = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-cup fs-1 d-block mb-3"></i> Tạm thời không có bài quiz nào cần chấm.</td></tr>`;
+            html = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-cup fs-1 d-block mb-3"></i> Tạm thời không có bài nào cần chấm.</td></tr>`;
             document.getElementById('gradingPagination').style.display = 'none';
         }
         document.getElementById('gradingTableBody').innerHTML = html;
-        
+
     } catch(e) {
         document.getElementById('gradingTableBody').innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Lỗi kết nối khi tải dữ liệu.</td></tr>`;
     }

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle=${skill})}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle=${skill}, breadcrumb='Bài kiểm tra lớn / ' + ${skill})}"></header>
+
+<!-- No sidebar on quiz pages -->
+<main id="dashMain" style="margin-left:0">
+
+<div class="container-fluid py-4" style="max-width:900px;margin:0 auto">
+
+    <!-- Top bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <span class="badge fs-6"
+                  th:classappend="${skill == 'LISTENING'} ? 'bg-primary' :
+                                   (${skill == 'READING'} ? 'bg-info' :
+                                   (${skill == 'WRITING'} ? 'bg-warning text-dark' : 'bg-secondary'))"
+                  th:text="${skill == 'LISTENING'} ? '🎧 Listening' :
+                            (${skill == 'READING'} ? '📖 Reading' :
+                            (${skill == 'WRITING'} ? '✍️ Writing' : ${skill}))">SKILL</span>
+        </div>
+        <div class="text-danger fw-bold fs-5" id="quizTimer">--:--</div>
+    </div>
+
+    <!-- Section progress steps -->
+    <div class="d-flex mb-4 gap-2" id="skillSteps">
+        <div th:each="s, stat : ${skillOrder}"
+             class="flex-fill text-center rounded py-2 fw-bold small"
+             style="cursor:default"
+             th:id="${'step-' + s}"
+             th:text="${s == 'LISTENING'} ? '🎧 L' :
+                      (${s == 'READING'} ? '📖 Đ' :
+                      (${s == 'SPEAKING'} ? '🎤 N' : '✍️ V'))">STEP</div>
+    </div>
+
+    <!-- Question list -->
+    <div id="questionsContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2 mb-0">Đang tải câu hỏi…</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1050">
+        <div id="saveToast" class="toast align-items-center text-bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">Đã lưu</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom navigation -->
+    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+        <a id="prevBtn" class="btn btn-outline-secondary px-4" href="#">
+            <i class="bi bi-arrow-left me-1"></i> Phần trước
+        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary px-4" onclick="saveDraft()">
+                <i class="bi bi-save me-1"></i> Lưu tạm
+            </button>
+            <button class="btn btn-primary px-4" id="submitBtn" onclick="submitSection()">
+                Nộp phần này <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+const sessionId = /*[[${sessionId}]]*/ 0;
+const skill = /*[[${skill}]]*/ 'LISTENING';
+let currentAnswers = {};
+let autoSaveTimer = null;
+let quizTimerInterval = null;
+let quizSeconds = 0;
+let isWriting = skill === 'WRITING';
+let isSpeaking = skill === 'SPEAKING';
+const SEQUENTIAL_SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+
+// Bootstrap toast
+let saveToast;
+document.addEventListener('DOMContentLoaded', () => {
+    saveToast = new bootstrap.Toast(document.getElementById('saveToast'), { delay: 2000 });
+    loadSection();
+});
+
+async function loadSection() {
+    try {
+        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}`);
+        const result = await resp.json();
+        if (result.status !== 200) {
+            document.getElementById('questionsContainer').innerHTML =
+                `<div class="alert alert-danger">Lỗi: ${result.message}</div>`;
+            return;
+        }
+        const section = result.data;
+        currentAnswers = section.savedAnswers || {};
+
+        renderProgressSteps(section);
+        renderQuestions(section.questions || []);
+
+        if (section.previousSkill) {
+            document.getElementById('prevBtn').href =
+                `/student/assignment/session/${sessionId}/section/${section.previousSkill}`;
+        } else {
+            document.getElementById('prevBtn').style.visibility = 'hidden';
+        }
+
+        if (section.isLastSection) {
+            document.getElementById('submitBtn').innerHTML =
+                'Nộp bài &amp; Kết thúc <i class="bi bi-flag-fill ms-1"></i>';
+        }
+
+        // Start quiz-level timer
+        if (section.timerSeconds && section.timerSeconds > 0) {
+            startQuizTimer(section.timerSeconds);
+        }
+
+        // Auto-save every 30s
+        autoSaveTimer = setInterval(saveDraft, 30000);
+
+    } catch (e) {
+        document.getElementById('questionsContainer').innerHTML =
+            `<div class="alert alert-danger">Lỗi kết nối: ${e.message}</div>`;
+    }
+}
+
+function renderProgressSteps(section) {
+    const currentIdx = SEQUENTIAL_SKILLS.indexOf(skill);
+    const statuses = section.sectionStatuses || {};
+    SEQUENTIAL_SKILLS.forEach((s, i) => {
+        const el = document.getElementById('step-' + s);
+        if (!el) return;
+        const status = statuses[s];
+        if (status === 'COMPLETED') {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-success text-white';
+        } else if (i === currentIdx) {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-primary text-white';
+        } else if (i > currentIdx) {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-light text-muted border';
+        } else {
+            el.className = 'flex-fill text-center rounded py-2 fw-bold small bg-secondary text-white';
+        }
+    });
+}
+
+function renderQuestions(questions) {
+    const container = document.getElementById('questionsContainer');
+    if (!questions || questions.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Không có câu hỏi cho phần này.</div>';
+        return;
+    }
+    container.innerHTML = questions.map((q, i) => buildQuestionHTML(q, i)).join('');
+}
+
+function buildQuestionHTML(q, index) {
+    const qNum = index + 1;
+    const saved = currentAnswers[q.questionId];
+
+    let inputHTML = '';
+    if (q.questionType === 'MULTIPLE_CHOICE_SINGLE') {
+        inputHTML = (q.options || []).map((opt, j) => `
+            <div class="form-check mb-2 p-2 rounded ${saved == opt.answerOptionId ? 'bg-primary bg-opacity-10 border border-primary' : ''}">
+                <input class="form-check-input" type="radio"
+                       name="q_${q.questionId}"
+                       id="opt_${q.questionId}_${j}"
+                       value="${opt.answerOptionId}"
+                       onchange="onAnswerChange(${q.questionId}, this.value)"
+                       ${saved == opt.answerOptionId ? 'checked' : ''}>
+                <label class="form-check-label w-100" for="opt_${q.questionId}_${j}">${opt.title}</label>
+            </div>`).join('');
+    } else if (q.questionType === 'MULTIPLE_CHOICE_MULTI') {
+        const savedList = Array.isArray(saved) ? saved : [];
+        inputHTML = (q.options || []).map((opt, j) => `
+            <div class="form-check mb-2 p-2 rounded">
+                <input class="form-check-input" type="checkbox"
+                       name="q_${q.questionId}"
+                       id="opt_${q.questionId}_${j}"
+                       value="${opt.answerOptionId}"
+                       onchange="onMultiChange(${q.questionId})"
+                       ${savedList.includes(opt.answerOptionId) ? 'checked' : ''}>
+                <label class="form-check-label w-100" for="opt_${q.questionId}_${j}">${opt.title}</label>
+            </div>`).join('');
+    } else if (q.questionType === 'FILL_IN_BLANK') {
+        inputHTML = `
+            <div class="mt-2">
+                <input type="text" class="form-control form-control-lg"
+                       id="fill_${q.questionId}"
+                       placeholder="Nhập đáp án…"
+                       value="${saved || ''}"
+                       oninput="onAnswerChange(${q.questionId}, this.value)">
+            </div>`;
+    } else if (q.questionType === 'WRITING') {
+        const charCount = saved ? saved.length : 0;
+        inputHTML = `
+            <div class="mt-2">
+                <textarea class="form-control"
+                          id="writing_${q.questionId}"
+                          rows="8"
+                          placeholder="Nhập bài viết của bạn tại đây…"
+                          oninput="onAnswerChange(${q.questionId}, this.value)">${saved || ''}</textarea>
+                <div class="form-text text-end"><span id="charCount_${q.questionId}">${charCount}</span> ký tự</div>
+            </div>`;
+    }
+
+    const audioHTML = q.audioUrl
+        ? `<div class="mb-3"><audio controls class="w-100" style="height:44px">
+             <source src="${q.audioUrl}" type="audio/mpeg">
+           </audio></div>` : '';
+    const imageHTML = q.imageUrl
+        ? `<div class="mb-3"><img src="${q.imageUrl}" alt="question image"
+             style="max-width:100%;max-height:280px;border-radius:8px"></div>` : '';
+
+    return `
+    <div class="card mb-4 shadow-sm border-0" id="q-card-${q.questionId}">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between mb-3">
+                <h5 class="fw-bold mb-0">Câu <span>${qNum}</span>
+                    <span class="text-muted fw-normal">/ ${q.points || 1} điểm</span>
+                </h5>
+            </div>
+            ${imageHTML}
+            <p class="fs-5 mb-3" style="line-height:1.6">${q.content}</p>
+            ${audioHTML}
+            <div id="options_${q.questionId}">${inputHTML}</div>
+        </div>
+    </div>`;
+}
+
+function onAnswerChange(questionId, value) {
+    currentAnswers[questionId] = value;
+    // Highlight selected option for MC
+    document.querySelectorAll(`[name=q_${questionId}]`).forEach(el => {
+        const label = el.nextElementSibling;
+        if (el.type === 'radio') {
+            el.closest('.form-check').className =
+                el.checked ? 'form-check mb-2 p-2 rounded bg-primary bg-opacity-10 border border-primary'
+                           : 'form-check mb-2 p-2 rounded';
+        }
+    });
+    if (document.getElementById(`charCount_${questionId}`)) {
+        document.getElementById(`charCount_${questionId}`).textContent = (value || '').length;
+    }
+}
+
+function onMultiChange(questionId) {
+    const selected = [...document.querySelectorAll(`[name=q_${questionId}]:checked`)]
+        .map(el => parseInt(el.value));
+    currentAnswers[questionId] = selected;
+}
+
+async function saveDraft() {
+    try {
+        await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers: currentAnswers })
+        });
+        saveToast.show();
+    } catch (e) {
+        console.warn('Auto-save failed:', e);
+    }
+}
+
+async function submitSection() {
+    clearInterval(autoSaveTimer);
+    clearInterval(quizTimerInterval);
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang nộp…`;
+
+    try {
+        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers: currentAnswers })
+        });
+        const result = await resp.json();
+        if (result.status !== 200) {
+            alert('Lỗi: ' + (result.message || 'Không thể nộp bài'));
+            btn.disabled = false;
+            btn.innerHTML = 'Nộp phần này <i class="bi bi-arrow-right ms-1"></i>';
+            autoSaveTimer = setInterval(saveDraft, 30000);
+            return;
+        }
+        const data = result.data;
+        if (data.completed && data.resultId) {
+            window.location.href = `/student/assignment/complete/${data.resultId}`;
+        } else if (data.nextSkill) {
+            window.location.href = `/student/assignment/session/${sessionId}/section/${data.nextSkill}`;
+        }
+    } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Nộp phần này <i class="bi bi-arrow-right ms-1"></i>';
+        autoSaveTimer = setInterval(saveDraft, 30000);
+    }
+}
+
+function startQuizTimer(seconds) {
+    quizSeconds = seconds;
+    updateTimerDisplay();
+    quizTimerInterval = setInterval(() => {
+        quizSeconds--;
+        updateTimerDisplay();
+        if (quizSeconds <= 0) {
+            clearInterval(quizTimerInterval);
+            clearInterval(autoSaveTimer);
+            // Auto-submit
+            fetch(`/api/v1/student/assignment/session/${sessionId}/auto-submit`, { method: 'POST' });
+            window.location.href = `/student/assignment/complete/${sessionId}`;
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const el = document.getElementById('quizTimer');
+    if (!el) return;
+    const h = Math.floor(quizSeconds / 3600);
+    const m = Math.floor((quizSeconds % 3600) / 60);
+    const s = quizSeconds % 60;
+    el.textContent = h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (quizSeconds <= 60) el.classList.add('text-danger');
+}
+</script>
+
+</body>
+</html>

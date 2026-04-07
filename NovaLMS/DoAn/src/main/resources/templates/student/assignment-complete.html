@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Hoàn thành bài kiểm tra')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Hoàn thành', breadcrumb='Bài kiểm tra lớn')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-assignments')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main" id="dashMain">
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-6 text-center">
+            <div class="card border-0 shadow-sm rounded-4 py-5">
+                <div class="card-body px-5">
+                    <div class="display-1 mb-4">✅</div>
+                    <h2 class="fw-bold mb-3" style="color:#223a58;">Bạn đã hoàn thành bài kiểm tra!</h2>
+                    <hr class="my-4">
+
+                    <div class="alert alert-info text-start">
+                        <p class="mb-1"><i class="bi bi-info-circle me-1"></i>
+                            <strong>Phần Nghe và Đọc</strong> đã được chấm tự động.</p>
+                        <p class="mb-1"><i class="bi bi-robot me-1"></i>
+                            <strong>Phần Nói và Viết</strong> đang được chấm điểm tự động (AI).</p>
+                        <p class="mb-0"><i class="bi bi-clock-history me-1"></i>
+                            <strong>Kết quả cuối cùng</strong> sẽ được công bố sau khi Giáo viên duyệt.</p>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
+                        <a th:href="@{/student/my-assignments}"
+                           class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Danh sách bài kiểm tra
+                        </a>
+                        <a th:href="@{'/student/quiz/result/' + ${resultId}}"
+                           class="btn btn-primary px-4">
+                            <i class="bi bi-bar-chart me-1"></i> Xem kết quả tạm thời
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chấm Điểm Bài KT Lớn')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm Bài KT Lớn')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <!-- ── Student / Quiz Info Header ─────────────────────────────────── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="fw-bold mb-1" id="studentName">Đang tải...</h4>
+                    <div class="text-muted small">
+                        <span>Bài: <strong id="quizTitle">—</strong></span>
+                        <span class="mx-2">·</span>
+                        <span>Lớp: <strong id="className">—</strong></span>
+                        <span class="mx-2">·</span>
+                        <span>Ngày nộp: <strong id="submittedAt">—</strong></span>
+                    </div>
+                </div>
+                <a href="/teacher/assignment/grading" class="btn btn-outline-secondary rounded-pill">
+                    <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                </a>
+            </div>
+
+            <!-- Auto-score summary bar -->
+            <div class="alert alert-info mb-0 py-2 px-3">
+                <i class="bi bi-lightning-charge me-1"></i>
+                Điểm tự động (LISTENING + READING):
+                <strong id="autoScore">—</strong>
+                &nbsp;|&nbsp;
+                Tổng điểm sau chấm:
+                <strong id="totalScore">—</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Skill Tabs ──────────────────────────────────────────────────── -->
+    <ul class="nav nav-tabs mb-0" id="skillTabs">
+        <!-- Tabs injected by JS -->
+    </ul>
+
+    <!-- ── Tab Content ─────────────────────────────────────────────────── -->
+    <div class="tab-content" id="tabContent">
+        <!-- Section content injected by JS -->
+    </div>
+
+    <!-- ── Submit ──────────────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Điểm LISTENING / READING đã được chấm tự động.
+                    Vui lòng nhập điểm cho SPEAKING / WRITING, sau đó nhấn <strong>Lưu điểm chấm</strong>.
+                </div>
+                <button class="btn btn-success btn-lg px-5" id="submitGradeBtn" onclick="submitGrade()">
+                    <i class="bi bi-check-circle me-1"></i> Lưu điểm chấm
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ── Load data ────────────────────────────────────────────────────────────────
+const resultId = /*[[${resultId}]]*/ 0;
+let gradingData = null;
+
+async function loadDetail() {
+    try {
+        const resp = await fetch(`/api/v1/teacher/assignment-results/${resultId}`);
+        const json = await resp.json();
+        if (json.status !== 200) {
+            alert('Lỗi: ' + json.message);
+            return;
+        }
+        gradingData = json.data;
+        populateHeader(gradingData);
+        renderTabs(gradingData.sections);
+        renderTabContent(gradingData.sections);
+    } catch (e) {
+        alert('Không thể tải chi tiết bài nộp.');
+    }
+}
+
+function populateHeader(d) {
+    document.getElementById('studentName').textContent  = d.studentName  || 'N/A';
+    document.getElementById('quizTitle').textContent     = d.quizTitle    || 'N/A';
+    document.getElementById('className').textContent     = d.className    || '—';
+    document.getElementById('submittedAt').textContent   = d.submittedAt
+        ? new Date(d.submittedAt).toLocaleDateString('vi-VN')
+        : '—';
+    document.getElementById('autoScore').textContent    = d.autoScore ?? 0;
+    document.getElementById('totalScore').textContent   = d.totalScore   || '—';
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+const SKILL_ICONS = { LISTENING:'🎧', READING:'📖', SPEAKING:'🎤', WRITING:'✍️' };
+
+function renderTabs(sections) {
+    const nav = document.getElementById('skillTabs');
+    nav.innerHTML = sections.map((s, i) => {
+        const active = i === 0 ? 'active' : '';
+        const icon   = SKILL_ICONS[s.skill] || '📝';
+        const badge  = s.gradingStatus === 'GRADED'     ? '✅' :
+                       s.gradingStatus === 'AI_READY'   ? '🎤' :
+                       s.gradingStatus === 'AI_PENDING'  ? '⏳'  : '';
+        return `<li class="nav-item">
+            <button class="nav-link ${active}" data-bs-toggle="tab"
+                    data-bs-target="#skill-${s.skill}" type="button">
+                ${icon} ${s.skill} ${badge}
+            </button>
+        </li>`;
+    }).join('');
+}
+
+function renderTabContent(sections) {
+    document.getElementById('tabContent').innerHTML = sections.map((s, i) => {
+        const show = i === 0 ? 'show active' : '';
+        return `<div class="tab-pane fade ${show}" id="skill-${s.skill}">
+            ${renderSection(s)}
+        </div>`;
+    }).join('');
+}
+
+// ── Section renderer ─────────────────────────────────────────────────────────
+function renderSection(section) {
+    const isAuto   = section.gradingStatus === 'AUTO';
+    const hasAi    = section.gradingStatus === 'AI_READY' || section.gradingStatus === 'GRADED';
+
+    let statusBadge;
+    if (isAuto) {
+        statusBadge = '<span class="badge bg-dark">✅ Tự động</span>';
+    } else if (section.gradingStatus === 'GRADED') {
+        statusBadge = '<span class="badge bg-success">✅ Đã chấm</span>';
+    } else if (section.gradingStatus === 'AI_READY') {
+        statusBadge = '<span class="badge bg-warning text-dark">🎤 AI sẵn sàng</span>';
+    } else {
+        statusBadge = '<span class="badge bg-secondary">⏳ Chờ AI</span>';
+    }
+
+    // Build AI info block
+    let aiBlock = '';
+    if (hasAi && section.aiScore) {
+        aiBlock = `
+        <div class="alert alert-secondary mb-3">
+            <strong>🤖 Điểm AI:</strong> ${section.aiScore}
+            ${section.aiFeedback ? `<br><small class="text-muted">${section.aiFeedback}</small>` : ''}
+            ${section.aiRubricJson ? `<br><small class="text-muted">Rubric: ${section.aiRubricJson}</small>` : ''}
+        </div>`;
+    }
+
+    return `
+    <div class="card border-0 shadow-sm rounded-4 mt-3">
+        <div class="card-header bg-white border-bottom-0 pt-3 pb-0 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">
+                    ${SKILL_ICONS[section.skill] || '📝'} ${section.skill}
+                </h5>
+                ${statusBadge}
+            </div>
+        </div>
+        <div class="card-body p-4">
+            ${aiBlock}
+
+            <!-- Question list -->
+            <div class="d-flex flex-column gap-3">
+                ${section.questions.map((q, qi) => renderQuestion(q, qi, isAuto)).join('')}
+            </div>
+
+            <!-- Section subtotal (for manual sections) -->
+            ${!isAuto ? `
+            <div class="mt-3 p-3 bg-light rounded-3 text-end">
+                <strong>Tổng điểm phần này:
+                    <span id="subtotal-${section.skill}">0</span> / ${section.maxScore ?? '?'}
+                </strong>
+            </div>` : ''}
+        </div>
+    </div>`;
+}
+
+// ── Question renderer ────────────────────────────────────────────────────────
+function renderQuestion(q, qi, isAutoGraded) {
+    const isCorrect = q.isCorrect;
+    const correctIcon = isCorrect === true  ? '<span class="badge bg-success">✅ Đúng</span>'
+                      : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
+                      : '';
+
+    const scoreVal = q.teacherScore ?? 0;
+    const noteVal  = q.teacherNote  || '';
+
+    let answerBlock = '';
+
+    // SPEAKING audio
+    if (q.questionType === 'SPEAKING' && q.audioUrl) {
+        answerBlock += `
+        <div class="mb-2">
+            <label class="form-label small fw-semibold text-muted">🎤 File ghi âm:</label>
+            <audio controls src="${q.audioUrl}" class="w-100"></audio>
+        </div>`;
+    }
+
+    // Student answer text
+    if (q.studentAnswer) {
+        answerBlock += `
+        <div class="alert alert-light mb-0">
+            <strong>📝 Câu trả lời:</strong>
+            <span class="text-dark">${q.studentAnswer}</span>
+        </div>`;
+    }
+
+    // Input fields
+    let inputBlock;
+    if (isAutoGraded) {
+        inputBlock = `
+        <div class="mt-2">
+            <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">
+                Điểm: ${scoreVal} / ${q.maxPoints}
+            </span>
+        </div>`;
+    } else {
+        inputBlock = `
+        <div class="row g-3 mt-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold">Điểm giáo viên</label>
+                <input type="number" step="0.5" min="0"
+                       max="${q.maxPoints}"
+                       class="form-control teacher-score"
+                       data-question-id="${q.questionId}"
+                       data-max="${q.maxPoints}"
+                       value="${scoreVal}">
+            </div>
+            <div class="col-md-9">
+                <label class="form-label small fw-semibold">Ghi chú</label>
+                <input type="text" class="form-control teacher-note"
+                       data-question-id="${q.questionId}"
+                       value="${noteVal}"
+                       placeholder="Nhận xét cho câu trả lời này...">
+            </div>
+        </div>`;
+    }
+
+    return `
+    <div class="border rounded-3 p-3">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0">
+                <span class="text-primary me-1">Câu ${qi + 1}</span>
+                <span class="badge bg-light text-dark border">${q.maxPoints} điểm</span>
+            </h6>
+            ${correctIcon}
+        </div>
+        <p class="mb-2"><strong>Câu hỏi:</strong> ${q.content || '—'}</p>
+        ${answerBlock}
+        ${inputBlock}
+    </div>`;
+}
+
+// ── Submit ───────────────────────────────────────────────────────────────────
+function submitGrade() {
+    const gradingItems  = [];
+    const sectionScores = { LISTENING: 0, READING: 0, SPEAKING: 0, WRITING: 0 };
+
+    document.querySelectorAll('.teacher-score').forEach(input => {
+        const qId   = parseInt(input.dataset.questionId);
+        const score = parseFloat(input.value) || 0;
+        const note  = document.querySelector(`.teacher-note[data-question-id="${qId}"]`)?.value || '';
+        gradingItems.push({ questionId: qId, pointsAwarded: score, teacherNote: note });
+
+        // Map question to skill
+        const q = gradingData.sections
+            .flatMap(s => s.questions)
+            .find(q => q.questionId === qId);
+        if (q) sectionScores[q.questionType === 'SPEAKING' ? 'SPEAKING' :
+                           q.questionType === 'WRITING'  ? 'WRITING'  :
+                           'LISTENING'] += score;
+    });
+
+    // Include auto-graded section totals
+    gradingData.sections.forEach(s => {
+        if (s.gradingStatus === 'AUTO') {
+            const sum = s.questions.reduce((acc, q) => acc + (parseFloat(q.teacherScore) || 0), 0);
+            sectionScores[s.skill] = sum;
+        }
+    });
+
+    document.getElementById('submitGradeBtn').disabled = true;
+
+    fetch(`/api/v1/teacher/assignment-results/${resultId}/grade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sectionScores,
+            gradingItems,
+            overallNote: ''
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.status === 200) {
+            alert('Đã lưu điểm chấm thành công!');
+            window.location.href = '/teacher/assignment/grading';
+        } else {
+            alert('Lỗi: ' + (data.message || 'Không rõ nguyên nhân.'));
+            document.getElementById('submitGradeBtn').disabled = false;
+        }
+    }).catch(() => {
+        alert('Lỗi kết nối. Vui lòng thử lại.');
+        document.getElementById('submitGradeBtn').disabled = false;
+    });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadDetail();
+</script>
+</body>
+</html>

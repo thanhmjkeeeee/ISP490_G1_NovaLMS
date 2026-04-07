@@ -2,13 +2,16 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.Question;
+import com.example.DoAn.model.User;
 import com.example.DoAn.repository.QuestionRepository;
 import com.example.DoAn.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +19,7 @@ public class ExpertReviewService {
 
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
+    private final INotificationService notificationService;
 
     /**
      * Lấy danh sách câu hỏi TEACHER_PRIVATE đang chờ duyệt.
@@ -26,28 +30,24 @@ public class ExpertReviewService {
             List<Question> questions = questionRepository.findAll().stream()
                     .filter(q -> "PENDING_REVIEW".equals(q.getStatus())
                             && "TEACHER_PRIVATE".equals(q.getSource()))
-                    .toList();
+                    .collect(Collectors.toList());
 
-            List<PendingQuestionDTO> dtos = questions.stream().map(q ->
-                    PendingQuestionDTO.builder()
-                            .questionId(q.getQuestionId())
-                            .content(q.getContent())
-                            .questionType(q.getQuestionType())
-                            .skill(q.getSkill())
-                            .cefrLevel(q.getCefrLevel())
-                            .topic(q.getTopic())
-                            .tags(q.getTags())
-                            .explanation(q.getExplanation())
-                            .audioUrl(q.getAudioUrl())
-                            .imageUrl(q.getImageUrl())
-                            .source(q.getSource())
-                            .createdByName(q.getUser() != null ? q.getUser().getFullName() : null)
-                            .createdByEmail(q.getUser() != null ? q.getUser().getEmail() : null)
-                            .createdAt(q.getCreatedAt())
-                            .build()
-            ).toList();
-
+            List<PendingQuestionDTO> dtos = questions.stream().map(this::toDTO).collect(Collectors.toList());
             return ResponseData.success("Danh sách câu hỏi chờ duyệt", dtos);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    /**
+     * Lấy chi tiết một câu hỏi.
+     */
+    @Transactional(readOnly = true)
+    public ResponseData<PendingQuestionDTO> getQuestionById(Integer questionId) {
+        try {
+            Question q = questionRepository.findById(questionId).orElse(null);
+            if (q == null) return ResponseData.error(404, "Không tìm thấy câu hỏi");
+            return ResponseData.success(toDTO(q));
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -57,7 +57,7 @@ public class ExpertReviewService {
      * Expert duyệt câu hỏi: PENDING_REVIEW -> PUBLISHED
      */
     @Transactional
-    public ResponseData<PendingQuestionDTO> approveQuestion(Integer questionId, String email) {
+    public ResponseData<PendingQuestionDTO> approveQuestion(Integer questionId, String email, String reviewNote) {
         try {
             Question question = questionRepository.findById(questionId).orElse(null);
             if (question == null) {
@@ -71,9 +71,23 @@ public class ExpertReviewService {
                 return ResponseData.error(400, "Chỉ câu hỏi từ giáo viên mới cần duyệt");
             }
 
+            User expert = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Expert not found"));
+
             question.setStatus("PUBLISHED");
-            // source giữ nguyên TEACHER_PRIVATE để biết nguồn gốc
+            question.setReviewerId(Long.valueOf(expert.getUserId()));
+            question.setReviewedAt(LocalDateTime.now());
+            question.setReviewNote(reviewNote);
             questionRepository.save(question);
+
+            // Fire notification to teacher
+            if (question.getUser() != null) {
+                notificationService.sendQuestionApproved(
+                        Long.valueOf(question.getUser().getUserId()),
+                        question.getContent(),
+                        null
+                );
+            }
 
             return ResponseData.success("Đã duyệt câu hỏi", toDTO(question));
         } catch (Exception e) {
@@ -85,7 +99,7 @@ public class ExpertReviewService {
      * Expert từ chối: PENDING_REVIEW -> DRAFT (hoặc xóa)
      */
     @Transactional
-    public ResponseData<Void> rejectQuestion(Integer questionId, String email, boolean deleteQuestion) {
+    public ResponseData<Void> rejectQuestion(Integer questionId, String email, boolean deleteQuestion, String reviewNote) {
         try {
             Question question = questionRepository.findById(questionId).orElse(null);
             if (question == null) {
@@ -96,12 +110,29 @@ public class ExpertReviewService {
                 return ResponseData.error(400, "Câu hỏi không ở trạng thái chờ duyệt");
             }
 
+            User expert = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Expert not found"));
+
+            question.setReviewerId(Long.valueOf(expert.getUserId()));
+            question.setReviewedAt(LocalDateTime.now());
+            question.setReviewNote(reviewNote);
+
             if (deleteQuestion) {
+                notificationService.sendQuestionRejected(
+                        Long.valueOf(question.getUser().getUserId()),
+                        question.getContent(),
+                        reviewNote
+                );
                 questionRepository.delete(question);
                 return ResponseData.success("Đã xóa câu hỏi");
             } else {
                 question.setStatus("DRAFT");
                 questionRepository.save(question);
+                notificationService.sendQuestionRejected(
+                        Long.valueOf(question.getUser().getUserId()),
+                        question.getContent(),
+                        reviewNote
+                );
                 return ResponseData.success("Đã trả lại câu hỏi về bản nháp");
             }
         } catch (Exception e) {
@@ -123,6 +154,9 @@ public class ExpertReviewService {
                 .imageUrl(q.getImageUrl())
                 .source(q.getSource())
                 .status(q.getStatus())
+                .reviewerId(q.getReviewerId())
+                .reviewedAt(q.getReviewedAt())
+                .reviewNote(q.getReviewNote())
                 .createdByName(q.getUser() != null ? q.getUser().getFullName() : null)
                 .createdByEmail(q.getUser() != null ? q.getUser().getEmail() : null)
                 .createdAt(q.getCreatedAt())
@@ -146,6 +180,9 @@ public class ExpertReviewService {
         private String imageUrl;
         private String source;
         private String status;
+        private Long reviewerId;
+        private java.time.LocalDateTime reviewedAt;
+        private String reviewNote;
         private String createdByName;
         private String createdByEmail;
         private java.time.LocalDateTime createdAt;

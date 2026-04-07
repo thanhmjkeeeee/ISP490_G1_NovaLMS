@@ -25,6 +25,7 @@ public class ExcelTemplateGenerator {
             case "MATCHING" -> createMatchingTemplate(sheet, headerStyle, noteStyle);
             case "WRITING" -> createWritingTemplate(sheet, headerStyle, noteStyle);
             case "SPEAKING" -> createSpeakingTemplate(sheet, headerStyle, noteStyle);
+            case "QUESTION_GROUP" -> createGroupTemplate(wb, headerStyle, noteStyle);
             default -> throw new IllegalArgumentException("Loại câu hỏi không hợp lệ: " + questionType);
         }
 
@@ -204,6 +205,88 @@ public class ExcelTemplateGenerator {
         style.setFont(italic);
         style.setWrapText(true);
         return style;
+    }
+
+    private void createGroupTemplate(Workbook wb, CellStyle header, CellStyle note) {
+        // Sheet 1: Group Info
+        Sheet groupSheet = wb.createSheet("Group Info");
+        String[] groupHeaders = {"PASSAGE *", "SKILL", "CEFR", "TOPIC", "AUDIO_URL", "IMAGE_URL", "EXPLANATION"};
+        int[] groupWidths = {15000, 3000, 2000, 3000, 5000, 5000, 6000};
+
+        Row gh0 = groupSheet.createRow(0);
+        for (int i = 0; i < groupHeaders.length; i++) {
+            Cell cell = gh0.createCell(i);
+            cell.setCellValue(groupHeaders[i]);
+            cell.setCellStyle(header);
+            groupSheet.setColumnWidth(i, groupWidths[i]);
+        }
+
+        // Row 1: NOTE — passage metadata must be entered in Row 2 (index 1 = Excel row 2)
+        Row gh1 = groupSheet.createRow(1);
+        gh1.createCell(0).setCellValue("--- HƯỚNG DẪN: Điền PASSAGE ở Row 2 (dòng này) | Điền câu hỏi con ở Sheet 2 ---");
+        gh1.getCell(0).setCellStyle(note);
+        gh1.createCell(1).setCellValue("--- Câu hỏi con: xem Sheet 2 bắt đầu từ Row 2 ---");
+        gh1.getCell(1).setCellStyle(note);
+        groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 1));
+        gh1.createCell(2).setCellValue("Row 1=Header, Row 2=NOTE, Row 3=PASSAGE data, Row 4+=optional");
+        gh1.getCell(2).setCellStyle(note);
+        groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 2, 6));
+
+        // Row 2: blank (user fills in their passage data)
+        groupSheet.createRow(2);
+
+        // Sheet 2: Child Questions
+        Sheet childSheet = wb.createSheet("Child Questions");
+        String[] childHeaders = {"CONTENT *", "TYPE", "OPTA", "OPTB", "OPTC", "OPTD",
+                "CORRECT/ANSWER", "MATCH_LEFT(|sep)", "MATCH_RIGHT(|sep)", "PAIRS(,sep)",
+                "SUB_SKILL", "SUB_CEFR", "SUB_TOPIC", "SUB_EXPLANATION"};
+        int[] childWidths = {8000, 3000, 3000, 3000, 3000, 3000, 3000, 4000, 4000, 3000, 3000, 2000, 3000, 6000};
+
+        Row ch0 = childSheet.createRow(0);
+        for (int i = 0; i < childHeaders.length; i++) {
+            Cell cell = ch0.createCell(i);
+            cell.setCellValue(childHeaders[i]);
+            cell.setCellStyle(header);
+            childSheet.setColumnWidth(i, childWidths[i]);
+        }
+
+        // Row 1: blank (user fills in their first child question, data starts at index 1 = Excel row 2)
+        // Sample data from index 2 onwards
+        Row ch2 = childSheet.createRow(2);
+        ch2.createCell(0).setCellValue("What is the main idea of the passage?");
+        ch2.createCell(1).setCellValue("MULTIPLE_CHOICE_SINGLE");
+        ch2.createCell(2).setCellValue("Option A text");
+        ch2.createCell(3).setCellValue("Option B text");
+        ch2.createCell(4).setCellValue("Option C text");
+        ch2.createCell(5).setCellValue("Option D text");
+        ch2.createCell(6).setCellValue("A");
+
+        Row ch3 = childSheet.createRow(3);
+        ch3.createCell(0).setCellValue("Complete the sentence: The author believes that ____.");
+        ch3.createCell(1).setCellValue("FILL_IN_BLANK");
+        ch3.createCell(6).setCellValue("education is essential");
+
+        Row ch4 = childSheet.createRow(4);
+        ch4.createCell(0).setCellValue("Match the words with their meanings.");
+        ch4.createCell(1).setCellValue("MATCHING");
+        ch4.createCell(7).setCellValue("abundant|evidence|climate");
+        ch4.createCell(8).setCellValue("plentiful|proof|weather");
+        ch4.createCell(9).setCellValue("1,2,3");
+
+        Row ch5 = childSheet.createRow(5);
+        ch5.createCell(0).setCellValue("Which of the following is TRUE according to the passage?");
+        ch5.createCell(1).setCellValue("MULTIPLE_CHOICE_MULTI");
+        ch5.createCell(2).setCellValue("All students passed the exam");
+        ch5.createCell(3).setCellValue("Some students improved");
+        ch5.createCell(4).setCellValue("The teacher was absent");
+        ch5.createCell(5).setCellValue("The school closed");
+        ch5.createCell(6).setCellValue("B");
+
+        Row ch6 = childSheet.createRow(6);
+        ch6.createCell(0).setCellValue("Summarize the author's opinion in 3 sentences.");
+        ch6.createCell(1).setCellValue("WRITING");
+        ch6.createCell(10).setCellValue("WRITING");
+        ch6.createCell(11).setCellValue("B1");
     }
 
 }

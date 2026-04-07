@@ -3,7 +3,7 @@
 <head th:replace="~{fragments/head :: common-head(pageTitle='Không gian làm việc Giảng viên')}"></head>
 <body class="dashboard-body">
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Workspace', breadcrumb='Không gian làm việc')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <style>
@@ -1078,6 +1078,10 @@
                     <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
                     <td class="text-center">${statusBadge}${openBadge}</td>
                     <td class="text-end">
+                        ${q.status === 'DRAFT' ? `
+                        <a href="/teacher/quiz/${q.quizId}/finish" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Hoàn thiện quiz">
+                            <i class="bi bi-check2-square"></i>
+                        </a>` : ''}
                         <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${openLabel} quiz">
                             <i class="bi ${openIcon}"></i>
                         </button>

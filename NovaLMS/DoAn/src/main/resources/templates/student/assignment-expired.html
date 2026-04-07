@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Hết lượt làm bài')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Hết lượt làm bài', breadcrumb='Bài kiểm tra lớn')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-assignments')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main" id="dashMain">
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-5 text-center">
+            <div class="card border-0 shadow-sm rounded-4 py-5">
+                <div class="card-body px-5">
+                    <div class="display-1 mb-4">⏳</div>
+                    <h2 class="fw-bold mb-3" style="color:#223a58;">Bạn đã hết lượt làm bài</h2>
+                    <p class="text-muted">
+                        Bạn đã sử dụng hết số lượt làm bài cho bài kiểm tra này.
+                    </p>
+                    <th:block th:if="${info != null and info.attemptsUsed > 0}">
+                        <div class="alert alert-light border mb-4">
+                            <div class="small text-muted mb-1">Số lượt đã sử dụng</div>
+                            <div class="fw-bold fs-5"
+                                 th:text="${info.attemptsUsed} + ' / ' + ${info.maxAttempts}">2 / 2">2 / 2</div>
+                        </div>
+                    </th:block>
+                    <a th:href="@{/student/my-assignments}"
+                       class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+</body>
+</html>

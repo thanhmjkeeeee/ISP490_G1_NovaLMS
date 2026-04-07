@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Quản Lý Chấm Điểm')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Quản Lý Chấm Điểm')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="row g-4">
+
+        <!-- ── Summary Cards ──────────────────────────────────────── -->
+        <div class="col-md-6">
+            <a href="/teacher/quiz/grading" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+                    <div class="card-body p-4 text-center">
+                        <div class="fs-1 mb-2">📝</div>
+                        <h3 class="mb-1" id="pendingQuizCount">—</h3>
+                        <p class="text-muted mb-0">Bài tập nhỏ (Lesson Quiz) chờ chấm</p>
+                        <small class="text-primary">Nhấn để xem danh sách →</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6">
+            <a href="/teacher/assignment/grading" class="text-decoration-none">
+                <div class="card border-0 shadow-sm rounded-4 h-100 hover-lift">
+                    <div class="card-body p-4 text-center">
+                        <div class="fs-1 mb-2">📋</div>
+                        <h3 class="mb-1" id="pendingAssignCount">—</h3>
+                        <p class="text-muted mb-0">Bài kiểm tra lớn chờ chấm</p>
+                        <small class="text-success">Nhấn để xem danh sách →</small>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    <!-- ── Info Cards ─────────────────────────────────────────────── -->
+    <div class="row g-4 mt-1">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">🎧 LISTENING / 📖 READING</h6>
+                    <p class="text-muted small mb-0">
+                        Được chấm <strong>tự động</strong> ngay khi học sinh nộp bài.
+                        Giáo viên có thể xem lại và override nếu cần.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">🎤 SPEAKING / ✍️ WRITING</h6>
+                    <p class="text-muted small mb-0">
+                        AI (LLaMA 3.3) chấm trước, kết quả hiển thị trong form chấm điểm.
+                        Giáo viên xác nhận hoặc điều chỉnh điểm cuối cùng.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">📋 Bài KT Lớn</h6>
+                    <p class="text-muted small mb-0">
+                        4 kỹ năng (LISTENING → READING → SPEAKING → WRITING).
+                        Chờ cả 4 phần nộp xong mới xuất hiện trong hàng đợi.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+.hover-lift { transition: transform 0.15s ease; }
+.hover-lift:hover { transform: translateY(-4px); }
+</style>
+
+<script>
+(async function loadCounts() {
+    try {
+        // Quiz pending count
+        const quizResp = await fetch('/api/v1/teacher/quiz-results/pending?size=1');
+        const quizData = await quizResp.json();
+        document.getElementById('pendingQuizCount').textContent =
+            (quizData.data && quizData.data.totalElements) || 0;
+    } catch (e) {
+        document.getElementById('pendingQuizCount').textContent = '?';
+    }
+
+    try {
+        // Assignment pending count
+        const assignResp = await fetch('/api/v1/teacher/assignment-results?size=1');
+        const assignData = await assignResp.json();
+        document.getElementById('pendingAssignCount').textContent =
+            (assignData.data && assignData.data.totalElements) || 0;
+    } catch (e) {
+        document.getElementById('pendingAssignCount').textContent = '?';
+    }
+})();
+</script>
+</body>
+</html>

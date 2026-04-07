@@ -11,6 +11,7 @@ public class QuizTakingDTO {
     private String title;
     private String description;
     private Integer timeLimitMinutes;
+    private Integer speakingTimeLimitSeconds;
     private Integer totalQuestions;
     private String questionOrder;
     private List<QuizQuestionPayloadDTO> questions;

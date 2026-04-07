@@ -8,6 +8,7 @@ import com.example.DoAn.model.QuizAssignment;
 import com.example.DoAn.repository.QuizAssignmentRepository;
 import com.example.DoAn.service.IExpertQuizService;
 import com.example.DoAn.service.LessonQuizService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,7 @@ public class ExpertModuleQuizController {
     public ResponseData<?> createModuleQuiz(
             @PathVariable Integer moduleId,
             @RequestBody QuizRequestDTO request,
-            Principal principal) {
+            Principal principal) throws JsonProcessingException {
         request.setModuleId(moduleId);
         request.setQuizCategory("MODULE_QUIZ");
         QuizResponseDTO created = quizService.createQuiz(request, getEmail(principal));

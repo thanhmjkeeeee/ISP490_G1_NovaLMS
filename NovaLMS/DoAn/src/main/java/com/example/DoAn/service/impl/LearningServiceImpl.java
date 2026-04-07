@@ -129,11 +129,16 @@ public class LearningServiceImpl implements LearningService {
                 quizList.add(CourseLearningInfoDTO.QuizInfoDTO.builder()
                         .quizId(quiz.getQuizId())
                         .title(quiz.getTitle())
+                        .quizCategory(quiz.getQuizCategory())
+                        .isAssignment("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory()))
                         .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
                         .timeLimitMinutes(quiz.getTimeLimitMinutes())
                         .maxAttempts(quiz.getMaxAttempts())
                         .attemptCount((int) attemptCount)
                         .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
+                        .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null)
+                        .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null)
+                        .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
                         .build());
             }
             courseInfo.setQuizzes(quizList);

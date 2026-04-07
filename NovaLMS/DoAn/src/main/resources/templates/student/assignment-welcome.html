@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Bài kiểm tra lớn')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Bài kiểm tra lớn', breadcrumb='Bài kiểm tra lớn')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-assignments')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="row justify-content-center mt-4">
+        <div class="col-lg-8">
+
+            <!-- Assignment header -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div>
+                            <span class="badge bg-primary mb-2">Bài kiểm tra lớn</span>
+                            <h2 class="fw-bold mb-1" style="color:#223a58;"
+                                th:text="${info.title}">Bài kiểm tra 4 kỹ năng</h2>
+                            <p class="text-muted mb-0" th:text="${info.description}">Mô tả bài kiểm tra…</p>
+                        </div>
+                    </div>
+
+                    <!-- Time info -->
+                    <div class="row g-3 mt-2" th:if="${info.quizLevelTimeLimit != null or info.timeLimitPerSkill != null}">
+                        <div class="col-auto" th:if="${info.quizLevelTimeLimit != null}">
+                            <div class="bg-light rounded-3 px-3 py-2 text-center">
+                                <div class="small text-muted">Tổng thời gian</div>
+                                <div class="fw-bold" th:text="${info.quizLevelTimeLimit + ' phút'}">120 phút</div>
+                            </div>
+                        </div>
+                        <div class="col-auto"
+                             th:if="${info.timeLimitPerSkill != null and info.timeLimitPerSkill.containsKey('SPEAKING')}">
+                            <div class="bg-light rounded-3 px-3 py-2 text-center">
+                                <div class="small text-muted">Phần Speaking</div>
+                                <div class="fw-bold"
+                                     th:text="${info.timeLimitPerSkill.get('SPEAKING') + ' phút'}">2 phút</div>
+                            </div>
+                        </div>
+                        <div class="col-auto"
+                             th:if="${info.timeLimitPerSkill != null and info.timeLimitPerSkill.containsKey('WRITING')}">
+                            <div class="bg-light rounded-3 px-3 py-2 text-center">
+                                <div class="small text-muted">Phần Writing</div>
+                                <div class="fw-bold"
+                                     th:text="${info.timeLimitPerSkill.get('WRITING') + ' phút'}">30 phút</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill sections -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0" style="color:#223a58;">4 Phần thi</h5>
+                    <p class="text-muted small mb-0">Làm lần lượt theo thứ tự. Không thể bỏ qua phần trước.</p>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center gap-3 py-3"
+                             th:each="skill, stat : ${info.skillOrder}"
+                             th:with="statuses=${info.sectionStatuses},
+                                      idx=${stat.index},
+                                      isCompleted=${statuses != null and 'COMPLETED'.equals(statuses.get(skill))},
+                                      isCurrent=${idx == info.currentSkillIndex},
+                                      isLocked=${idx > info.currentSkillIndex}">
+                            <!-- Step number -->
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                 style="width:36px;height:36px;min-width:36px"
+                                 th:classappend="${isCompleted} ? 'bg-success text-white' :
+                                                  (isCurrent ? 'bg-primary text-white' : 'bg-light text-muted')"
+                                 th:text="${isCompleted} ? '✓' : (isCurrent ? ${idx + 1} : ${idx + 1})">1</div>
+                            <!-- Skill info -->
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold"
+                                     th:text="${skill == 'LISTENING' ? '🎧 Nghe (Listening)' :
+                                               skill == 'READING' ? '📖 Đọc (Reading)' :
+                                               skill == 'SPEAKING' ? '🎤 Nói (Speaking)' :
+                                               '✍️ Viết (Writing)'}">Skill</div>
+                                <div class="small text-muted"
+                                     th:text="${skill == 'LISTENING' ? 'Nghe và trả lời câu hỏi' :
+                                               skill == 'READING' ? 'Đọc hiểu và trả lời câu hỏi' :
+                                               skill == 'SPEAKING' ? 'Ghi âm trả lời bằng lời' :
+                                               'Viết bài luận theo chủ đề'}">Mô tả</div>
+                            </div>
+                            <!-- Status badge -->
+                            <div>
+                                <span class="badge bg-success"
+                                      th:if="${isCompleted}">Hoàn thành</span>
+                                <span class="badge bg-primary"
+                                      th:if="${isCurrent and !isCompleted}">Đang làm</span>
+                                <span class="badge bg-secondary"
+                                      th:if="${isLocked}">🔒 Chưa mở</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attempts info -->
+            <div class="alert alert-warning" th:if="${info.maxAttempts != null}">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Bạn đã làm <strong th:text="${info.attemptsUsed}">1</strong> /
+                <strong th:text="${info.maxAttempts}">2</strong> lượt.
+            </div>
+
+            <!-- Actions -->
+            <div class="text-center">
+                <a th:if="${info.canStart}"
+                   th:href="@{'/student/assignment/session/' + ${info.sessionId} + '/section/LISTENING'}"
+                   class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-play-fill me-1"></i> Bắt đầu làm bài
+                </a>
+                <a th:if="${info.canResume}"
+                   th:href="@{'/student/assignment/session/' + ${info.sessionId} + '/section/' + ${info.skillOrder.get(info.currentSkillIndex)}}"
+                   class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-arrow-repeat me-1"></i> Tiếp tục làm bài
+                </a>
+                <a th:href="@{/student/my-assignments}" class="btn btn-outline-secondary ms-2">
+                    ← Quay lại
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+</body>
+</html>

@@ -68,10 +68,15 @@ public class CourseLearningInfoDTO {
     public static class QuizInfoDTO {
         private Integer quizId;
         private String title;
+        private String quizCategory;   // COURSE_QUIZ | COURSE_ASSIGNMENT
+        private Boolean isAssignment;  // true = Assignment, false = Quiz
         private Integer totalQuestions;
         private Integer timeLimitMinutes;
         private Integer maxAttempts;   // null = không giới hạn
         private Integer attemptCount;  // số lần đã làm
         private Boolean isOpen;        // teacher mở/đóng quiz
+        private String openAt;        // ISO datetime string, null = mở ngay
+        private String closeAt;        // ISO datetime string, null = không đóng auto
+        private String deadline;       // ISO datetime string, null = không có deadline
     }
 }

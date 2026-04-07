@@ -1,0 +1,613 @@
+package com.example.DoAn.service.impl;
+
+import com.example.DoAn.dto.response.*;
+import com.example.DoAn.exception.InvalidDataException;
+import com.example.DoAn.exception.ResourceNotFoundException;
+import com.example.DoAn.model.*;
+import com.example.DoAn.repository.*;
+import com.example.DoAn.service.IStudentAssignmentService;
+import com.example.DoAn.service.GroqGradingService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
+
+    private final QuizRepository quizRepository;
+    private final AssignmentSessionRepository sessionRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizResultRepository quizResultRepository;
+    private final QuizAnswerRepository quizAnswerRepository;
+    private final UserRepository userRepository;
+    private final RegistrationRepository registrationRepository;
+    private final GroqGradingService groqGradingService;
+    private final TransactionTemplate transactionTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final List<String> SEQUENTIAL_SKILLS = Arrays.asList(
+        "LISTENING", "READING", "SPEAKING", "WRITING"
+    );
+
+    // ─── getAssignmentInfo ───────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssignmentInfoDTO getAssignmentInfo(Integer quizId, String userEmail) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Validate sequential assignment
+        if (quiz.getIsSequential() == null || !quiz.getIsSequential()) {
+            throw new InvalidDataException("This is not a sequential assignment");
+        }
+
+        // Validate published + open
+        if (!"PUBLISHED".equals(quiz.getStatus()) || quiz.getIsOpen() == null || !quiz.getIsOpen()) {
+            throw new InvalidDataException("Assignment is not available");
+        }
+
+        // Validate enrollment
+        if (quiz.getClazz() == null) {
+            throw new InvalidDataException("Assignment is not linked to a class");
+        }
+        boolean enrolled = registrationRepository
+                .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                        user.getUserId(), quiz.getClazz().getClassId());
+        if (!enrolled) {
+            throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+        }
+
+        // Check attempts
+        long attemptsUsed = sessionRepository.countByQuizAndUser(quizId, user.getUserId().longValue());
+        Long maxAttempts = quiz.getMaxAttempts() != null ? quiz.getMaxAttempts().longValue() : null;
+
+        // Find or create session
+        Optional<AssignmentSession> existing = sessionRepository
+                .findByQuizQuizIdAndUserUserId(quizId, user.getUserId().longValue());
+
+        AssignmentSession session = null;
+        if (existing.isPresent()) {
+            session = existing.get();
+        } else {
+            if (maxAttempts != null && attemptsUsed >= maxAttempts) {
+                AssignmentInfoDTO dto = new AssignmentInfoDTO();
+                dto.setAttemptsExceeded(true);
+                dto.setAttemptsUsed(attemptsUsed);
+                dto.setMaxAttempts(maxAttempts);
+                return dto;
+            }
+            session = createNewSession(quiz, user);
+            session = sessionRepository.save(session);
+        }
+
+        return buildInfoDTO(quiz, session, attemptsUsed, maxAttempts, existing.isEmpty());
+    }
+
+    private AssignmentSession createNewSession(Quiz quiz, User user) {
+        AssignmentSession session = new AssignmentSession();
+        session.setQuiz(quiz);
+        session.setUser(user);
+        session.setStatus("IN_PROGRESS");
+        session.setCurrentSkillIndex(0);
+        Map<String, String> statuses = new LinkedHashMap<>();
+        for (int i = 0; i < SEQUENTIAL_SKILLS.size(); i++) {
+            statuses.put(SEQUENTIAL_SKILLS.get(i),
+                    i == 0 ? "IN_PROGRESS" : "LOCKED");
+        }
+        try {
+            session.setSectionStatuses(objectMapper.writeValueAsString(statuses));
+            session.setSectionAnswers("{}");
+        } catch (Exception ignored) {}
+        session.setStartedAt(LocalDateTime.now());
+        if (quiz.getTimeLimitMinutes() != null) {
+            session.setExpiresAt(LocalDateTime.now().plusMinutes(quiz.getTimeLimitMinutes()));
+        }
+        return session;
+    }
+
+    private AssignmentInfoDTO buildInfoDTO(Quiz quiz, AssignmentSession session,
+            long attemptsUsed, Long maxAttempts, boolean isNewSession) {
+        AssignmentInfoDTO dto = new AssignmentInfoDTO();
+        dto.setQuizId(quiz.getQuizId());
+        dto.setTitle(quiz.getTitle());
+        dto.setDescription(quiz.getDescription());
+        dto.setQuizCategory(quiz.getQuizCategory());
+        dto.setSkillOrder(SEQUENTIAL_SKILLS);
+        if (quiz.getTimeLimitPerSkill() != null) {
+            try {
+                dto.setTimeLimitPerSkill(objectMapper.readValue(
+                        quiz.getTimeLimitPerSkill(), new TypeReference<Map<String, Integer>>() {}));
+            } catch (Exception ignored) {}
+        }
+        dto.setQuizLevelTimeLimit(quiz.getTimeLimitMinutes());
+        dto.setSessionId(session.getId());
+        dto.setSessionStatus(session.getStatus());
+        dto.setCurrentSkillIndex(session.getCurrentSkillIndex());
+        if (session.getSectionStatuses() != null) {
+            try {
+                dto.setSectionStatuses(objectMapper.readValue(
+                        session.getSectionStatuses(), new TypeReference<Map<String, String>>() {}));
+            } catch (Exception ignored) {}
+        }
+        dto.setCanStart(isNewSession);
+        dto.setCanResume("IN_PROGRESS".equals(session.getStatus()));
+        dto.setIsCompleted("COMPLETED".equals(session.getStatus()));
+        dto.setAttemptsUsed(attemptsUsed);
+        dto.setMaxAttempts(maxAttempts);
+        dto.setAttemptsExceeded(maxAttempts != null && attemptsUsed >= maxAttempts);
+        return dto;
+    }
+
+    // ─── getSection ────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssignmentSectionDTO getSection(Long sessionId, String skill, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        int skillIdx = SEQUENTIAL_SKILLS.indexOf(skill);
+        if (skillIdx < 0) {
+            throw new InvalidDataException("Invalid skill: " + skill);
+        }
+
+        // Cannot access future sections
+        if (skillIdx > session.getCurrentSkillIndex()) {
+            throw new InvalidDataException("Phần này chưa được mở");
+        }
+
+        // Load questions for this skill
+        List<QuizQuestion> qqList = quizQuestionRepository
+                .findByQuizQuizIdAndSkill(session.getQuiz().getQuizId(), skill);
+
+        // Load saved answers
+        Map<Integer, Object> savedAnswers = new HashMap<>();
+        if (session.getSectionAnswers() != null) {
+            try {
+                Map<String, Map<String, Object>> allAnswers = objectMapper.readValue(
+                        session.getSectionAnswers(),
+                        new TypeReference<Map<String, Map<String, Object>>>() {});
+                Map<String, Object> skillAnswers = allAnswers.get(skill);
+                if (skillAnswers != null) {
+                    for (Map.Entry<String, Object> e : skillAnswers.entrySet()) {
+                        savedAnswers.put(Integer.parseInt(e.getKey()), e.getValue());
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Build section DTO
+        AssignmentSectionDTO dto = new AssignmentSectionDTO();
+        dto.setSessionId(sessionId);
+        dto.setSkill(skill);
+        dto.setSectionIndex(skillIdx);
+        dto.setCurrentSkillIndex(session.getCurrentSkillIndex());
+        dto.setQuestions(mapToPayload(qqList));
+        dto.setSavedAnswers(savedAnswers);
+        dto.setIsSpeaking("SPEAKING".equals(skill));
+        dto.setIsWriting("WRITING".equals(skill));
+        dto.setIsLastSection(skillIdx == SEQUENTIAL_SKILLS.size() - 1);
+        dto.setIsLocked(skillIdx > session.getCurrentSkillIndex());
+
+        if (skillIdx > 0) {
+            dto.setPreviousSkill(SEQUENTIAL_SKILLS.get(skillIdx - 1));
+        }
+        if (skillIdx < SEQUENTIAL_SKILLS.size() - 1) {
+            dto.setNextSkill(SEQUENTIAL_SKILLS.get(skillIdx + 1));
+            dto.setNextSkillIndex(skillIdx + 1);
+        }
+
+        if (session.getSectionStatuses() != null) {
+            try {
+                dto.setSectionStatuses(objectMapper.readValue(
+                        session.getSectionStatuses(),
+                        new TypeReference<Map<String, String>>() {}));
+            } catch (Exception ignored) {}
+        }
+
+        // Quiz-level timer (remaining seconds)
+        if (session.getExpiresAt() != null) {
+            long remaining = java.time.Duration.between(
+                    LocalDateTime.now(), session.getExpiresAt()).getSeconds();
+            dto.setTimerSeconds(Math.max(0, remaining));
+        }
+
+        // Per-skill timer for SPEAKING/WRITING
+        if (session.getQuiz().getTimeLimitPerSkill() != null) {
+            try {
+                Map<String, Integer> limits = objectMapper.readValue(
+                        session.getQuiz().getTimeLimitPerSkill(),
+                        new TypeReference<Map<String, Integer>>() {});
+                if ("SPEAKING".equals(skill)) {
+                    Integer speakingMins = limits.get("SPEAKING");
+                    if (speakingMins != null) {
+                        dto.setSpeakingTimerSeconds(speakingMins * 60L);
+                        dto.setSpeakingExpiry(
+                                LocalDateTime.now().plusMinutes(speakingMins).toString());
+                    }
+                }
+                if ("WRITING".equals(skill)) {
+                    Integer writingMins = limits.get("WRITING");
+                    if (writingMins != null) {
+                        dto.setWritingTimerSeconds(writingMins * 60L);
+                        dto.setWritingExpiry(
+                                LocalDateTime.now().plusMinutes(writingMins).toString());
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return dto;
+    }
+
+    // ─── saveAnswers ─────────────────────────────────────────────────────
+
+    @Override
+    public void saveAnswers(Long sessionId, String skill,
+            Map<Integer, Object> answers, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        Map<String, Map<String, Object>> allAnswers = new HashMap<>();
+        if (session.getSectionAnswers() != null) {
+            try {
+                allAnswers = objectMapper.readValue(session.getSectionAnswers(),
+                        new TypeReference<Map<String, Map<String, Object>>>() {});
+            } catch (Exception ignored) {}
+        }
+        Map<String, Object> stringKeyAnswers = new HashMap<>();
+        answers.forEach((qId, val) -> stringKeyAnswers.put(String.valueOf(qId), val));
+        allAnswers.put(skill, stringKeyAnswers);
+        try {
+            session.setSectionAnswers(objectMapper.writeValueAsString(allAnswers));
+        } catch (Exception ignored) {}
+        sessionRepository.save(session);
+    }
+
+    // ─── submitSection ──────────────────────────────────────────────────
+
+    @Override
+    public Map<String, Object> submitSection(Long sessionId, String skill,
+            Map<Integer, Object> answers, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        int skillIdx = SEQUENTIAL_SKILLS.indexOf(skill);
+
+        // Guard: already completed
+        if ("COMPLETED".equals(session.getStatus())) {
+            throw new InvalidDataException("Assignment already completed");
+        }
+
+        // Guard: section already submitted
+        if (session.getSectionStatuses() != null) {
+            try {
+                Map<String, String> statuses = objectMapper.readValue(
+                        session.getSectionStatuses(), new TypeReference<Map<String, String>>() {});
+                if ("COMPLETED".equals(statuses.get(skill))) {
+                    throw new InvalidDataException("Section already submitted");
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Save answers
+        saveAnswers(sessionId, skill, answers, userEmail);
+
+        // Grade MC/FILL/MATCH answers
+        gradeMultipleChoiceSection(session, skill, answers);
+
+        // Update statuses
+        Map<String, String> statuses;
+        try {
+            statuses = session.getSectionStatuses() != null
+                    ? objectMapper.readValue(session.getSectionStatuses(),
+                            new TypeReference<Map<String, String>>() {})
+                    : new LinkedHashMap<>();
+        } catch (Exception e) {
+            statuses = new LinkedHashMap<>();
+        }
+        statuses.put(skill, "COMPLETED");
+
+        if (skillIdx < SEQUENTIAL_SKILLS.size() - 1) {
+            // Advance to next section
+            String nextSkill = SEQUENTIAL_SKILLS.get(skillIdx + 1);
+            session.setCurrentSkillIndex(skillIdx + 1);
+            statuses.put(nextSkill, "IN_PROGRESS");
+            session.setSectionStatuses(objectMapper.valueToTree(statuses).asText());
+            sessionRepository.save(session);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("nextSkill", nextSkill);
+            result.put("nextSkillIndex", skillIdx + 1);
+            result.put("sectionCompleted", true);
+            return result;
+        } else {
+            // Last section — complete
+            Map<String, Object> result = completeAndReturn(session);
+            result.put("sectionCompleted", true);
+            return result;
+        }
+    }
+
+    @Override
+    public Map<String, Object> submitSpeakingSection(Long sessionId,
+            Map<Integer, String> audioUrls, String userEmail) {
+        Map<Integer, Object> answers = new HashMap<>(audioUrls);
+        return submitSection(sessionId, "SPEAKING", answers, userEmail);
+    }
+
+    // ─── completeAssignment ─────────────────────────────────────────────
+
+    @Override
+    public Integer completeAssignment(Long sessionId, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        Map<String, Object> result = completeAndReturn(session);
+        return (Integer) result.get("resultId");
+    }
+
+    // ─── autoSubmit ─────────────────────────────────────────────────────
+
+    @Override
+    public void autoSubmit(Long sessionId, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        if (!"IN_PROGRESS".equals(session.getStatus())) return;
+
+        Map<String, String> statuses;
+        try {
+            statuses = session.getSectionStatuses() != null
+                    ? objectMapper.readValue(session.getSectionStatuses(),
+                            new TypeReference<Map<String, String>>() {})
+                    : new LinkedHashMap<>();
+        } catch (Exception e) {
+            statuses = new LinkedHashMap<>();
+        }
+
+        for (String skill : SEQUENTIAL_SKILLS) {
+            if (!"COMPLETED".equals(statuses.get(skill))) {
+                statuses.put(skill, "EXPIRED");
+            }
+        }
+        try {
+            session.setSectionStatuses(objectMapper.writeValueAsString(statuses));
+        } catch (Exception ignored) {}
+        session.setStatus("COMPLETED");
+        session.setCompletedAt(LocalDateTime.now());
+        sessionRepository.save(session);
+
+        createQuizResult(session);
+    }
+
+    // ─── Private helpers ────────────────────────────────────────────────
+
+    private AssignmentSession getSessionForUser(Long sessionId, String userEmail) {
+        AssignmentSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+        if (!session.getUser().getEmail().equals(userEmail)) {
+            throw new InvalidDataException("Access denied");
+        }
+        return session;
+    }
+
+    private void gradeMultipleChoiceSection(AssignmentSession session,
+            String skill, Map<Integer, Object> answers) {
+        if ("SPEAKING".equals(skill) || "WRITING".equals(skill)) {
+            return; // AI-graded, skip
+        }
+        List<QuizQuestion> qqList = quizQuestionRepository
+                .findByQuizQuizIdAndSkill(session.getQuiz().getQuizId(), skill);
+        for (QuizQuestion qq : qqList) {
+            Question q = qq.getQuestion();
+            Object rawAnswer = answers.get(q.getQuestionId());
+            if (rawAnswer == null) continue;
+            boolean correct = checkAnswer(q, rawAnswer);
+            // Store grade result in the answers map for createQuizResult
+            answers.put(q.getQuestionId(), Map.of("value", rawAnswer, "correct", correct));
+        }
+    }
+
+    private boolean checkAnswer(Question q, Object answer) {
+        String type = q.getQuestionType();
+        if ("MULTIPLE_CHOICE_SINGLE".equals(type) || "MULTIPLE_CHOICE_MULTI".equals(type)) {
+            List<AnswerOption> options = q.getAnswerOptions();
+            if (options == null) return false;
+            if ("MULTIPLE_CHOICE_SINGLE".equals(type)) {
+                // answer is Integer (answerOptionId)
+                return options.stream()
+                        .filter(AnswerOption::getCorrectAnswer)
+                        .anyMatch(c -> c.getAnswerOptionId().equals(answer));
+            } else {
+                // MULTI: answer is List<Integer>
+                if (!(answer instanceof List)) return false;
+                @SuppressWarnings("unchecked")
+                List<Integer> selected = (List<Integer>) answer;
+                List<Integer> correctIds = options.stream()
+                        .filter(AnswerOption::getCorrectAnswer)
+                        .map(AnswerOption::getAnswerOptionId)
+                        .toList();
+                return new HashSet<>(selected).equals(new HashSet<>(correctIds));
+            }
+        } else if ("FILL_IN_BLANK".equals(type)) {
+            List<AnswerOption> options = q.getAnswerOptions();
+            if (options == null || options.isEmpty()) return false;
+            return options.get(0).getTitle().trim()
+                    .equalsIgnoreCase(String.valueOf(answer).trim());
+        }
+        return false;
+    }
+
+    private List<QuizQuestionPayloadDTO> mapToPayload(List<QuizQuestion> qqList) {
+        return qqList.stream().map(qq -> {
+            Question q = qq.getQuestion();
+            List<AnswerOption> opts = q.getAnswerOptions();
+            List<AnswerOptionPayloadDTO> optionPayloads = (opts == null) ? List.of()
+                    : opts.stream().map(o -> AnswerOptionPayloadDTO.builder()
+                            .answerOptionId(o.getAnswerOptionId())
+                            .title(o.getTitle())
+                            .matchTarget(o.getMatchTarget())
+                            .build())
+                    .toList();
+            return QuizQuestionPayloadDTO.builder()
+                    .questionId(q.getQuestionId())
+                    .content(q.getContent())
+                    .questionType(q.getQuestionType())
+                    .skill(q.getSkill())
+                    .cefrLevel(q.getCefrLevel())
+                    .points(qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                    .audioUrl(q.getAudioUrl())
+                    .imageUrl(q.getImageUrl())
+                    .options(optionPayloads)
+                    .build();
+        }).toList();
+    }
+
+    private Map<String, Object> completeAndReturn(AssignmentSession session) {
+        session.setStatus("COMPLETED");
+        session.setCompletedAt(LocalDateTime.now());
+        sessionRepository.save(session);
+
+        Integer resultId = createQuizResult(session);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("resultId", resultId);
+        result.put("completed", true);
+        return result;
+    }
+
+    private Integer createQuizResult(AssignmentSession session) {
+        QuizResult result = new QuizResult();
+        result.setQuiz(session.getQuiz());
+        result.setUser(session.getUser());
+        result.setSubmittedAt(LocalDateTime.now());
+        result.setAssignmentSessionId(session.getId());
+        result.setSectionScores("{}");
+
+        // Load all answers
+        Map<String, Map<String, Object>> allAnswers = new HashMap<>();
+        if (session.getSectionAnswers() != null) {
+            try {
+                allAnswers = objectMapper.readValue(session.getSectionAnswers(),
+                        new TypeReference<Map<String, Map<String, Object>>>() {});
+            } catch (Exception ignored) {}
+        }
+
+        // Auto-grade LISTENING/READING
+        int totalScore = 0;
+        int maxScore = 0;
+        Map<String, Double> sectionScores = new LinkedHashMap<>();
+
+        for (String skill : Arrays.asList("LISTENING", "READING")) {
+            Map<String, Object> answers = allAnswers.get(skill);
+            List<QuizQuestion> qqList = quizQuestionRepository
+                    .findByQuizQuizIdAndSkill(session.getQuiz().getQuizId(), skill);
+            int sectionScore = 0;
+            for (QuizQuestion qq : qqList) {
+                int pts = qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+                maxScore += pts;
+                Object rawAnswer = answers != null ? answers.get(String.valueOf(qq.getQuestion().getQuestionId())) : null;
+                boolean correct = false;
+                if (rawAnswer instanceof Map) {
+                    correct = Boolean.TRUE.equals(((Map<?, ?>) rawAnswer).get("correct"));
+                }
+                if (correct) totalScore += pts;
+                sectionScore += correct ? pts : 0;
+            }
+            sectionScores.put(skill, (double) sectionScore);
+        }
+
+        BigDecimal rate = maxScore > 0
+                ? BigDecimal.valueOf(totalScore).divide(BigDecimal.valueOf(maxScore), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                : BigDecimal.ZERO;
+
+        result.setScore(totalScore);
+        result.setCorrectRate(rate);
+        result.setPassed(rate.compareTo(BigDecimal.valueOf(50)) >= 0);
+        result.setSectionScores(toJson(sectionScores));
+
+        QuizResult saved = quizResultRepository.save(result);
+
+        // Save MC answers into QuizAnswer table
+        for (String skill : Arrays.asList("LISTENING", "READING")) {
+            Map<String, Object> answers = allAnswers.get(skill);
+            if (answers == null) continue;
+            List<QuizQuestion> qqList = quizQuestionRepository
+                    .findByQuizQuizIdAndSkill(session.getQuiz().getQuizId(), skill);
+            for (QuizQuestion qq : qqList) {
+                Object rawAnswer = answers.get(String.valueOf(qq.getQuestion().getQuestionId()));
+                if (rawAnswer == null) continue;
+                boolean correct = false;
+                Object value = rawAnswer;
+                if (rawAnswer instanceof Map) {
+                    value = ((Map<?, ?>) rawAnswer).get("value");
+                    correct = Boolean.TRUE.equals(((Map<?, ?>) rawAnswer).get("correct"));
+                }
+                saveQuizAnswer(saved, qq.getQuestion(),
+                        String.valueOf(value), correct, null);
+            }
+        }
+
+        // Fire AI grading for SPEAKING/WRITING
+        for (String skill : Arrays.asList("SPEAKING", "WRITING")) {
+            Map<String, Object> answers = allAnswers.get(skill);
+            if (answers == null) continue;
+            List<QuizQuestion> qqList = quizQuestionRepository
+                    .findByQuizQuizIdAndSkill(session.getQuiz().getQuizId(), skill);
+            for (QuizQuestion qq : qqList) {
+                Object rawAnswer = answers.get(String.valueOf(qq.getQuestion().getQuestionId()));
+                if (rawAnswer == null) continue;
+                String answeredValue = rawAnswer instanceof Map
+                        ? String.valueOf(((Map<?, ?>) rawAnswer).get("value"))
+                        : String.valueOf(rawAnswer);
+                QuizAnswer qa = saveQuizAnswer(saved, qq.getQuestion(),
+                        answeredValue, null, true);
+                // Fire async AI grading via GroqGradingServiceImpl directly
+                fireAiGrading(saved.getResultId(), qq.getQuestion().getQuestionId(),
+                        qq.getQuestion().getQuestionType());
+            }
+        }
+
+        return saved.getResultId();
+    }
+
+    private void fireAiGrading(Integer resultId, Integer questionId, String questionType) {
+        // Caller wraps in transactionTemplate — gradeSync runs JPA logic inside that tx
+        transactionTemplate.executeWithoutResult(status -> {
+            try {
+                groqGradingService.gradeSync(resultId, questionId, questionType);
+            } catch (Exception e) {
+                log.error("AI grading failed for resultId={}, questionId={}: {}",
+                        resultId, questionId, e.getMessage());
+            }
+        });
+    }
+
+    private QuizAnswer saveQuizAnswer(QuizResult result, Question question,
+            String answeredOptions, Boolean isCorrect, Boolean hasPendingReview) {
+        QuizAnswer qa = new QuizAnswer();
+        qa.setQuizResult(result);
+        qa.setQuestion(question);
+        qa.setAnsweredOptions(answeredOptions);
+        qa.setIsCorrect(isCorrect);
+        if (hasPendingReview != null) qa.setPendingAiReview(hasPendingReview);
+        return quizAnswerRepository.save(qa);
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+}

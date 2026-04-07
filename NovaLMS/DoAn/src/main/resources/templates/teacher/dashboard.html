@@ -67,5 +67,37 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
+<script>
+async function loadDashboardStats() {
+    try {
+        const res = await fetch('/teacher/api/dashboard-stats');
+        const json = await res.json();
+        if (json.status !== 200 || !json.data) return;
+        const s = json.data;
+
+        // Student count
+        const studentEl = document.querySelector('.col-xl-4.col-md-6:nth-child(1) h3');
+        if (studentEl) studentEl.textContent = s.studentCount ?? 0;
+
+        // Course count
+        const courseEl = document.querySelector('.col-xl-4.col-md-6:nth-child(2) h3');
+        if (courseEl) courseEl.textContent = s.courseCount ?? 0;
+
+        // Pending questions badge
+        const pendingCount = s.pendingQuestionCount ?? 0;
+        const badgeEl = document.querySelector('.col-xl-4.col-md-6:nth-child(3)');
+        if (badgeEl) {
+            const h3 = badgeEl.querySelector('h3');
+            if (pendingCount > 0) {
+                h3.innerHTML = `${pendingCount} <span class="badge bg-warning text-dark ms-1 align-middle" style="font-size:0.6em">chờ duyệt</span>`;
+            } else {
+                h3.textContent = pendingCount;
+            }
+        }
+    } catch (e) { /* silently fail - keep placeholders */ }
+}
+document.addEventListener('DOMContentLoaded', loadDashboardStats);
+</script>
+
 </body>
 </html>

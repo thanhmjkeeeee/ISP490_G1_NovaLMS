@@ -1,7 +1,9 @@
 package com.example.DoAn.service.impl;
 
+import com.example.DoAn.dto.request.AIImportGroupRequestDTO;
 import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionRequestDTO;
+import com.example.DoAn.dto.response.AIGenerateResponseDTO;
 import com.example.DoAn.dto.request.QuestionGroupRequestDTO;
 import com.example.DoAn.dto.response.QuestionResponseDTO;
 import com.example.DoAn.dto.response.QuestionGroupResponseDTO;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,6 +56,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         }
         User expert = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        checkDuplicate(request.getContent(), request.getSkill(), request.getCefrLevel());
 
         Question question = Question.builder()
                 .module(module)
@@ -130,6 +135,9 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
         }
 
         if (request.getContent() != null) question.setContent(request.getContent());
+        if (request.getContent() != null) {
+            checkDuplicateOnUpdate(question, request.getContent(), request.getSkill(), request.getCefrLevel());
+        }
         if (request.getQuestionType() != null) question.setQuestionType(request.getQuestionType());
         if (request.getSkill() != null) question.setSkill(request.getSkill());
         if (request.getCefrLevel() != null) question.setCefrLevel(request.getCefrLevel());
@@ -215,6 +223,21 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .filter(o -> Boolean.TRUE.equals(o.getCorrectAnswer()))
                 .count();
 
+        // For MATCHING questions: split into left (with matchTarget) and right (without matchTarget) options
+        List<QuestionResponseDTO.AnswerOptionResponseDTO> matchRightOpts = null;
+        List<QuestionResponseDTO.AnswerOptionResponseDTO> leftOpts = null;
+        if ("MATCHING".equals(question.getQuestionType())) {
+            leftOpts = new java.util.ArrayList<>();
+            matchRightOpts = new java.util.ArrayList<>();
+            for (QuestionResponseDTO.AnswerOptionResponseDTO o : optDTOs) {
+                if (o.getMatchTarget() != null) {
+                    leftOpts.add(o);
+                } else {
+                    matchRightOpts.add(o);
+                }
+            }
+        }
+
         return QuestionResponseDTO.builder()
                 .questionId(question.getQuestionId())
                 .moduleId(module != null ? module.getModuleId() : null)
@@ -226,7 +249,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .status(question.getStatus())
                 .optionCount(opts.size())
                 .correctOptionCount(correctCount)
-                .options(optDTOs)
+                .options(leftOpts != null ? leftOpts : optDTOs)
+                .matchRightOptions(matchRightOpts)
                 .build();
     }
 
@@ -250,6 +274,10 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
 
         int saved = 0;
         for (AIImportRequestDTO.AIQuestionDTO qdto : request.getQuestions()) {
+            String skill = qdto.getSkill() != null ? qdto.getSkill().toUpperCase() : "READING";
+            String cefr = qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase() : "B1";
+            checkDuplicate(qdto.getContent(), skill, cefr);
+
             Question question = Question.builder()
                     .content(qdto.getContent())
                     .questionType(qdto.getQuestionType() != null ? qdto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
@@ -276,6 +304,91 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                             .orderIndex(idx++)
                             .build();
                     answerOptionRepository.save(ao);
+                }
+            } else if (qdto.getMatchLeft() != null && qdto.getMatchRight() != null
+                    && qdto.getCorrectPairs() != null) {
+                List<String> left = qdto.getMatchLeft();
+                List<String> right = qdto.getMatchRight();
+                List<Integer> pairs = qdto.getCorrectPairs();
+                for (int i = 0; i < left.size(); i++) {
+                    int rightIdx = pairs.get(i) - 1;
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(left.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(right.get(rightIdx))
+                            .build());
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(right.get(rightIdx))
+                            .correctAnswer(false)
+                            .orderIndex(left.size() + i)
+                            .build());
+                }
+            }
+            saved++;
+        }
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public int saveAIQuestionGroup(AIImportGroupRequestDTO request, String email) {
+        User expert = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+
+        if (request.getQuestions() == null || request.getQuestions().isEmpty()) {
+            throw new InvalidDataException("Bộ câu hỏi phải có ít nhất 1 câu hỏi con.");
+        }
+
+        QuestionGroup group = QuestionGroup.builder()
+                .groupContent(request.getPassage())
+                .audioUrl(request.getAudioUrl())
+                .imageUrl(request.getImageUrl())
+                .skill(request.getSkill() != null ? request.getSkill().toUpperCase() : "READING")
+                .cefrLevel(request.getCefrLevel() != null ? request.getCefrLevel().toUpperCase() : "B1")
+                .topic(request.getTopic())
+                .explanation(request.getExplanation())
+                .status(request.getStatus() != null ? request.getStatus() : "DRAFT")
+                .user(expert)
+                .build();
+        questionGroupRepository.save(group);
+
+        int saved = 0;
+        for (AIGenerateResponseDTO.QuestionDTO qdto : request.getQuestions()) {
+            String skill = qdto.getSkill() != null ? qdto.getSkill().toUpperCase()
+                    : (group.getSkill() != null ? group.getSkill() : "READING");
+            String cefr = qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase()
+                    : (group.getCefrLevel() != null ? group.getCefrLevel() : "B1");
+            checkDuplicate(qdto.getContent(), skill, cefr);
+
+            Question question = Question.builder()
+                    .questionGroup(group)
+                    .user(expert)
+                    .content(qdto.getContent())
+                    .questionType(qdto.getQuestionType() != null ? qdto.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
+                    .skill(qdto.getSkill() != null ? qdto.getSkill().toUpperCase()
+                            : (group.getSkill() != null ? group.getSkill() : "READING"))
+                    .cefrLevel(qdto.getCefrLevel() != null ? qdto.getCefrLevel().toUpperCase()
+                            : (group.getCefrLevel() != null ? group.getCefrLevel() : "B1"))
+                    .topic(qdto.getTopic() != null ? qdto.getTopic() : group.getTopic())
+                    .explanation(qdto.getExplanation())
+                    .status("PUBLISHED")
+                    .source("EXPERT_BANK")
+                    .createdMethod("AI_GENERATED")
+                    .build();
+            questionRepository.save(question);
+
+            if (qdto.getOptions() != null && !qdto.getOptions().isEmpty()) {
+                int idx = 0;
+                for (AIGenerateResponseDTO.OptionDTO opt : qdto.getOptions()) {
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(opt.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(opt.getCorrect()))
+                            .orderIndex(idx++)
+                            .build());
                 }
             } else if (qdto.getMatchLeft() != null && qdto.getMatchRight() != null
                     && qdto.getCorrectPairs() != null) {
@@ -466,6 +579,10 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
     }
 
     private Question saveChildQuestion(QuestionGroup group, QuestionRequestDTO qReq, User expert) {
+        String skill = group.getSkill() != null ? group.getSkill() : "READING";
+        String cefr = group.getCefrLevel() != null ? group.getCefrLevel() : "B1";
+        checkDuplicate(qReq.getContent(), skill, cefr);
+
         Question q = Question.builder()
                 .questionGroup(group)
                 .user(expert)
@@ -523,5 +640,35 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 || !course.getExpert().getUserId().equals(expert.getUserId())) {
             throw new ResourceNotFoundException("Bạn không có quyền quản lý câu hỏi trong chương này.");
         }
+    }
+
+    /** Block duplicate: same content + skill + CEFR level. */
+    private void checkDuplicate(String content, String skill, String cefrLevel) {
+        if (questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel)) {
+            throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+        }
+    }
+
+    /** Same check but excludes the current question being updated. */
+    private void checkDuplicateOnUpdate(Question current, String content, String skill, String cefrLevel) {
+        boolean exists = questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel);
+        if (exists) {
+            // Exclude self — same question edited in place
+            List<Question> found = questionRepository.findAll().stream()
+                    .filter(q -> q.getQuestionId().equals(current.getQuestionId())
+                            && q.getContent().equalsIgnoreCase(content)
+                            && Objects.equals(q.getSkill(), skill)
+                            && Objects.equals(q.getCefrLevel(), cefrLevel))
+                    .toList();
+            if (found.isEmpty()) {
+                throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+            }
+        }
+    }
+
+    /** Truncate string for error message readability. */
+    private String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 }

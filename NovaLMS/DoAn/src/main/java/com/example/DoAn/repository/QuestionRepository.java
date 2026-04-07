@@ -12,6 +12,12 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
 
     List<Question> findByModuleModuleId(Integer moduleId);
 
+    /**
+     * Check if a question with the same content (case-insensitive), skill, and CEFR level already exists.
+     * Used for duplicate detection before AI generation import or manual creation.
+     */
+    boolean existsByContentIgnoreCaseAndSkillAndCefrLevel(String content, String skill, String cefrLevel);
+
     @Query("SELECT COUNT(qq) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
     long countQuizUsage(@Param("questionId") Integer questionId);
 
@@ -19,6 +25,8 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
     long countByModule_Course_CourseId(@Param("courseId") Integer courseId);
 
     long countByUser_UserId(Integer userId);
+
+    long countByUser_UserIdAndSourceAndStatus(Integer userId, String source, String status);
 
     @Query("SELECT q FROM Question q WHERE " +
            "(:skill IS NULL OR q.skill = :skill) AND " +

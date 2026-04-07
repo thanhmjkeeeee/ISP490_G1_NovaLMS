@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Quản lý Bài Kiểm Tra Lớn - Expert')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý Bài Kiểm Tra Lớn', breadcrumb='Expert')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='assignment-management')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="d-flex justify-content-between align-items-end mb-4 px-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color:#223a58;">Bài Kiểm Tra Lớn</h3>
+            <p class="text-muted small m-0">Tạo và quản lý bài kiểm tra 4 kỹ năng (IELTS Pre / TOEIC Pre)</p>
+        </div>
+        <div>
+            <a th:href="@{/expert/assignment/create(category='COURSE_ASSIGNMENT')}"
+               class="btn btn-sm fw-bold shadow-sm rounded-pill px-3 me-2"
+               style="background-color:#e67e22; color:white">
+                <i class="bi bi-plus-lg me-1"></i> Bài KT Khóa học
+            </a>
+            <a th:href="@{/expert/assignment/create(category='MODULE_ASSIGNMENT')}"
+               class="btn btn-sm fw-bold shadow-sm rounded-pill px-3 text-white"
+               style="background-color:#136ad5;">
+                <i class="bi bi-plus-lg me-1"></i> Bài KT Module
+            </a>
+        </div>
+    </div>
+
+    <!-- Status filter tabs -->
+    <div class="px-4 mb-3">
+        <ul class="nav nav-pills small" id="statusTabs">
+            <li class="nav-item me-2">
+                <button class="nav-link active" onclick="filterByStatus('ALL', this)">Tất cả</button>
+            </li>
+            <li class="nav-item me-2">
+                <button class="nav-link" onclick="filterByStatus('DRAFT', this)">Nháp</button>
+            </li>
+            <li class="nav-item me-2">
+                <button class="nav-link" onclick="filterByStatus('PUBLISHED', this)">Đã xuất bản</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="filterByStatus('ARCHIVED', this)">Lưu trữ</button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Table -->
+    <div class="px-4 pb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Tên bài kiểm tra</th>
+                                <th>Loại</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày tạo</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentTable">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Đang tải...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script th:inline="javascript">
+let allAssignments = [];
+let currentFilter = 'ALL';
+
+async function loadAssignments() {
+    const resp = await fetch('/api/v1/expert/assignments');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    allAssignments = data.data || [];
+    renderTable();
+}
+
+function renderTable() {
+    const tbody = document.getElementById('assignmentTable');
+    const filtered = currentFilter === 'ALL'
+        ? allAssignments
+        : allAssignments.filter(a => a.status === currentFilter);
+
+    if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Không có bài kiểm tra nào</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(a => `
+        <tr>
+            <td class="ps-3">
+                <div class="fw-bold">${a.title || '—'}</div>
+                <div class="small text-muted">${a.description || ''}</div>
+            </td>
+            <td>
+                <span class="badge ${a.quizCategory === 'COURSE_ASSIGNMENT' ? 'bg-warning text-dark' : 'bg-info'}">
+                    ${a.quizCategory === 'COURSE_ASSIGNMENT' ? 'Khóa học' : 'Module'}
+                </span>
+            </td>
+            <td>
+                <span class="badge ${statusBadge(a.status)}">${statusLabel(a.status)}</span>
+            </td>
+            <td class="small text-muted">${a.createdAt ? new Date(a.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
+            <td class="text-center">
+                <div class="btn-group btn-group-sm">
+                    ${a.status === 'DRAFT' ? `
+                        <a href="/expert/assignment/${a.quizId}/preview" class="btn btn-outline-primary" title="Tiếp tục tạo">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    ` : `
+                        <a href="/expert/assignment/${a.quizId}/preview" class="btn btn-outline-secondary" title="Xem">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    `}
+                    <button class="btn btn-outline-danger" title="Xóa"
+                            onclick="deleteAssignment(${a.quizId}, '${a.title.replace(/'/g,"\\'")}')"
+                            ${a.status === 'PUBLISHED' ? 'disabled' : ''}>
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function statusBadge(s) {
+    return { DRAFT:'bg-secondary', PUBLISHED:'bg-success', ARCHIVED:'bg-dark' }[s] || 'bg-secondary';
+}
+function statusLabel(s) {
+    return { DRAFT:'Nháp', PUBLISHED:'Đã xuất bản', ARCHIVED:'Lưu trữ' }[s] || s;
+}
+
+function filterByStatus(status, btn) {
+    currentFilter = status;
+    document.querySelectorAll('#statusTabs .nav-link').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+}
+
+async function deleteAssignment(quizId, title) {
+    if (!confirm(`Xóa bài kiểm tra "${title}"?`)) return;
+    const resp = await fetch(`/api/v1/expert/assignments/${quizId}`, { method: 'DELETE' });
+    if (resp.ok) {
+        loadAssignments();
+    } else {
+        alert('Không thể xóa bài kiểm tra này');
+    }
+}
+
+loadAssignments();
+</script>
+
+</body>
+</html>

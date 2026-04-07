@@ -4,6 +4,7 @@ import com.example.DoAn.dto.request.AIGenerateRequestDTO;
 import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
+import com.example.DoAn.dto.response.QuizSkillSummaryDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.AIQuestionService;
 import com.example.DoAn.service.TeacherQuizService;
@@ -183,6 +184,23 @@ public class TeacherQuizApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return teacherQuizService.removeQuestionFromQuiz(quizId, questionId, email);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  SKILL SUMMARY
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Lấy skill summary: question count per skill, broken down by PUBLISHED vs PENDING_REVIEW.
+     * GET /api/v1/teacher/quizzes/{quizId}/skill-summary
+     */
+    @GetMapping("/{quizId}/skill-summary")
+    public ResponseData<List<QuizSkillSummaryDTO>> getSkillSummary(
+            @PathVariable Integer quizId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return ResponseData.success(teacherQuizService.getSkillSummary(quizId));
     }
 
     // ═══════════════════════════════════════════════════════════════════════

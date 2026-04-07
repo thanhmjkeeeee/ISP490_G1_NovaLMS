@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chấm Điểm Bài Kiểm Tra Lớn')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm Bài KT Lớn')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+            <h5 class="fw-bold mb-2">📋 Danh sách bài nộp — Bài kiểm tra lớn</h5>
+            <p class="text-muted small">Chỉ hiển thị bài kiểm tra có đủ 4 kỹ năng (LISTENING · READING · SPEAKING · WRITING). Điểm LISTENING/READING được chấm tự động. SPEAKING/WRITING chờ AI hoặc giáo viên chấm thủ công.</p>
+        </div>
+        <div class="card-body px-4 pb-4">
+
+            <div th:if="${errorMsg != null}" class="alert alert-danger" th:text="${errorMsg}"></div>
+
+            <!-- Filters -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Tìm kiếm</label>
+                    <input type="text" id="filterSearch" class="form-control"
+                           placeholder="Tên hoặc email học viên...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">Trạng thái</label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="PENDING_SPEAKING">Chờ chấm Nói</option>
+                        <option value="PENDING_WRITING">Chờ chấm Viết</option>
+                        <option value="PENDING_BOTH">Chờ chấm cả hai</option>
+                        <option value="ALL_GRADED">Đã chấm xong</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="loadQueue(0)">
+                        <i class="bi bi-filter"></i> Lọc
+                    </button>
+                </div>
+            </div>
+
+            <!-- Queue Table -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Học viên</th>
+                            <th>Bài kiểm tra</th>
+                            <th>Lớp</th>
+                            <th>Ngày nộp</th>
+                            <th class="text-center">🎧 LIST</th>
+                            <th class="text-center">📖 READ</th>
+                            <th class="text-center">🎤 SPK</th>
+                            <th class="text-center">✍️ WRT</th>
+                            <th class="text-center">Auto Pts</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queueBody">
+                        <tr><td colspan="11" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav id="paginationNav" class="mt-4" style="display: none;">
+                <ul class="pagination justify-content-center" id="paginationList"></ul>
+            </nav>
+        </div>
+    </div>
+</main>
+
+<!-- Status badge tooltip helper (hidden) -->
+<div style="display:none" id="badgeHelp">
+    <span class="badge bg-success">✅</span> Đã chấm &nbsp;
+    <span class="badge bg-warning text-dark">🎤</span> AI sẵn sàng &nbsp;
+    <span class="badge bg-secondary">⏳</span> Chờ AI &nbsp;
+    <span class="badge bg-dark">✅ Auto</span> Tự động
+</div>
+
+<script>
+let currentPage = 0;
+
+const STATUS_ICONS = {
+    'AUTO':      '✅',
+    'AI_READY':  '🎤',
+    'AI_PENDING':'⏳',
+    'GRADED':    '✅'
+};
+
+function skillBadge(status) {
+    return STATUS_ICONS[status] || '❓';
+}
+
+async function loadQueue(page = 0) {
+    currentPage = page;
+    const search = document.getElementById('filterSearch').value.trim();
+    const status = document.getElementById('filterStatus').value;
+
+    let url = `/api/v1/teacher/assignment-results?page=${page}&size=20`;
+    if (search)  url += `&search=${encodeURIComponent(search)}`;
+    if (status)  url += `&status=${encodeURIComponent(status)}`;
+
+    try {
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (json.status !== 200) {
+            document.getElementById('queueBody').innerHTML =
+                `<tr><td colspan="11" class="text-center text-danger py-4">Lỗi: ${json.message}</td></tr>`;
+            return;
+        }
+        renderQueue(json.data);
+        renderPagination(json.data);
+    } catch (e) {
+        document.getElementById('queueBody').innerHTML =
+            `<tr><td colspan="11" class="text-center text-danger py-4">Không thể tải dữ liệu.</td></tr>`;
+    }
+}
+
+function renderQueue(page) {
+    const tbody = document.getElementById('queueBody');
+    const content = page.content || [];
+
+    if (!content.length) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-5">
+            Không có bài nào cần chấm.</td></tr>`;
+        document.getElementById('paginationNav').style.display = 'none';
+        return;
+    }
+
+    tbody.innerHTML = content.map((item, idx) => {
+        const spk = item.speaking;
+        const wrt = item.writing;
+        const spkStatus = spk ? spk.gradingStatus : null;
+        const wrtStatus = wrt ? wrt.gradingStatus : null;
+
+        return `
+        <tr>
+            <td class="text-muted small">${page.number * page.size + idx + 1}</td>
+            <td>
+                <strong>${item.studentName || 'N/A'}</strong><br>
+                <small class="text-muted">${item.studentEmail || ''}</small>
+            </td>
+            <td>${item.quizTitle || 'N/A'}</td>
+            <td>${item.className || '—'}</td>
+            <td>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</td>
+            <td class="text-center" title="LISTENING: ${item.listening?.gradingStatus || 'N/A'}">
+                <span class="badge bg-dark">✅</span>
+            </td>
+            <td class="text-center" title="READING: ${item.reading?.gradingStatus || 'N/A'}">
+                <span class="badge bg-dark">✅</span>
+            </td>
+            <td class="text-center" title="SPEAKING: ${spkStatus || 'N/A'}">
+                ${spkStatus === 'GRADED'     ? '<span class="badge bg-success">✅</span>' :
+                  spkStatus === 'AI_READY'   ? '<span class="badge bg-warning text-dark">🎤</span>' :
+                  spkStatus === 'AI_PENDING' ? '<span class="badge bg-secondary">⏳</span>' :
+                                               '<span class="badge bg-light text-dark">❓</span>'}
+            </td>
+            <td class="text-center" title="WRITING: ${wrtStatus || 'N/A'}">
+                ${wrtStatus === 'GRADED'     ? '<span class="badge bg-success">✅</span>' :
+                  wrtStatus === 'AI_READY'   ? '<span class="badge bg-warning text-dark">✍️</span>' :
+                  wrtStatus === 'AI_PENDING' ? '<span class="badge bg-secondary">⏳</span>' :
+                                               '<span class="badge bg-light text-dark">❓</span>'}
+            </td>
+            <td class="text-center">
+                <span class="badge bg-info text-dark">${item.autoScore ?? 0}</span>
+            </td>
+            <td>
+                ${item.isGraded
+                    ? `<span class="badge bg-success mb-1">Đã chấm</span><br>
+                       <a href="/teacher/assignment/grading/${item.resultId}"
+                          class="btn btn-outline-secondary btn-sm">Xem lại</a>`
+                    : `<a href="/teacher/assignment/grading/${item.resultId}"
+                           class="btn btn-primary btn-sm">Chấm điểm →</a>`
+                }
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function renderPagination(page) {
+    const nav = document.getElementById('paginationNav');
+    const list = document.getElementById('paginationList');
+    if (!page.totalPages || page.totalPages <= 1) {
+        nav.style.display = 'none';
+        return;
+    }
+    nav.style.display = 'block';
+    list.innerHTML = '';
+
+    const prevDisabled = page.first ? 'disabled' : '';
+    const nextDisabled = page.last  ? 'disabled' : '';
+
+    list.innerHTML += `<li class="page-item ${prevDisabled}">
+        <a class="page-link" href="#" onclick="loadQueue(${page.number - 1});return false">‹</a></li>`;
+
+    for (let i = 0; i < page.totalPages; i++) {
+        const active = (i === page.number) ? 'active' : '';
+        list.innerHTML += `<li class="page-item ${active}">
+            <a class="page-link" href="#" onclick="loadQueue(${i});return false">${i + 1}</a></li>`;
+    }
+
+    list.innerHTML += `<li class="page-item ${nextDisabled}">
+        <a class="page-link" href="#" onclick="loadQueue(${page.number + 1});return false">›</a></li>`;
+}
+
+loadQueue(0);
+</script>
+</body>
+</html>

@@ -1,12 +1,14 @@
 package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.request.QuestionGradingRequestDTO;
+import com.example.DoAn.dto.request.QuizGradingRequestDTO;
 import com.example.DoAn.dto.response.*;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.LearningService;
 import com.example.DoAn.service.QuizResultService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,6 +27,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuizResultServiceImpl implements QuizResultService {
@@ -38,6 +43,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final ObjectMapper objectMapper;
     private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
     private final com.example.DoAn.service.LessonQuizService lessonQuizService;
+    private final com.example.DoAn.service.GroqGradingService groqGradingService;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -87,6 +94,33 @@ public class QuizResultServiceImpl implements QuizResultService {
             if (!quizOpen) {
                 throw new RuntimeException("Quiz hiện đang đóng. Vui lòng liên hệ giáo viên để mở quiz.");
             }
+        }
+
+        // Kiểm tra thời điểm mở/đóng tự động theo lịch (openAt / closeAt)
+        LocalDateTime now = LocalDateTime.now();
+        if (quiz.getOpenAt() != null && now.isBefore(quiz.getOpenAt())) {
+            throw new RuntimeException("Quiz chưa đến thời điểm mở bài. Vui lòng quay lại sau.");
+        }
+        if (quiz.getCloseAt() != null && now.isAfter(quiz.getCloseAt())) {
+            throw new RuntimeException("Quiz đã đóng. Vui lòng liên hệ giáo viên.");
+        }
+
+        // Kiểm tra deadline cho ASSIGNMENT
+        if ("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory())) {
+            if (quiz.getDeadline() != null && now.isAfter(quiz.getDeadline())) {
+                throw new RuntimeException("Đã hết hạn nộp bài. Deadline: " + quiz.getDeadline());
+            }
+            // Kiểm tra enrollment
+            boolean enrolled = false;
+            if (quiz.getClazz() != null) {
+                enrolled = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                        user.getUserId(), quiz.getClazz().getClassId());
+            }
+            if (!enrolled && quiz.getCourse() != null) {
+                enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                        user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
+            }
+            if (!enrolled) throw new RuntimeException("User is not enrolled in this course");
         }
 
         if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
@@ -178,6 +212,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .title(quiz.getTitle())
                 .description(quiz.getDescription())
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
+                .speakingTimeLimitSeconds(quiz.getSpeakingTimeLimitSeconds())
                 .totalQuestions(quizQuestions.size())
                 .questionOrder(quiz.getQuestionOrder())
                 .questions(questionsDTO)
@@ -282,8 +317,43 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .question(q)
                     .answeredOptions(answeredOptionsJson)
                     .isCorrect(isCorrect)
+                    .pendingAiReview(
+                            "WRITING".equals(qType) || "SPEAKING".equals(qType)
+                                    ? true : false)
+                    .aiGradingStatus(
+                            "WRITING".equals(qType) || "SPEAKING".equals(qType)
+                                    ? "PENDING" : null)
+                    .audioUrl(
+                            "SPEAKING".equals(qType)
+                                    ? extractRawString(answeredOptionsJson)
+                                    : null)
                     .build();
-            quizAnswerRepository.save(qa);
+            qa = quizAnswerRepository.save(qa);
+
+            // Fire async AI grading for SPEAKING/WRITING questions
+            // Use TransactionSynchronization to ensure the QuizAnswer is committed to DB
+            // before the async task tries to find it (prevents race condition where
+            // @Async thread starts before HTTP transaction commits).
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
+                final Integer capturedResultId = quizResult.getResultId();
+                final Integer capturedQuestionId = q.getQuestionId();
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            log.info("[SUBMIT] Scheduling AI grading → resultId={}, questionId={}, type={}",
+                                    capturedResultId, capturedQuestionId, qType);
+                            groqGradingService.fireAndForgetForQuizAnswer(capturedResultId, capturedQuestionId);
+                            log.info("[SUBMIT] AI grading scheduled OK → resultId={}, questionId={}",
+                                    capturedResultId, capturedQuestionId);
+                        } catch (Exception e) {
+                            // Non-critical: AI grading failure should not block submission
+                            log.warn("Failed to fire AI grading for question {} in result {}: {}",
+                                    capturedQuestionId, capturedResultId, e.getMessage());
+                        }
+                    }
+                });
+            }
         }
 
         BigDecimal correctRate = totalGradedQuestions > 0 ? BigDecimal.valueOf(100.0 * score / maxScoreAvailable) : BigDecimal.ZERO;
@@ -439,8 +509,25 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .imageUrl(q.getImageUrl())
                     .audioUrl(q.getAudioUrl())
                     .options(optDTOs)
+                    .answerId(userAns != null ? userAns.getAnswerId() : null)
+                    .pointsAwarded(userAns != null ? userAns.getPointsAwarded() != null
+                            ? userAns.getPointsAwarded().intValue() : null : null)
+                    .teacherNote(userAns != null ? userAns.getTeacherNote() : null)
+                    .aiScore(userAns != null ? userAns.getAiScore() : null)
+                    .aiFeedback(userAns != null ? userAns.getAiFeedback() : null)
+                    .aiRubricJson(userAns != null ? userAns.getAiRubricJson() : null)
+                    .studentAudioUrl(userAns != null ? userAns.getAudioUrl() : null)
+                    .aiGradingStatus(userAns != null ? userAns.getAiGradingStatus() : null)
+                    .teacherOverrideScore(userAns != null ? userAns.getTeacherOverrideScore() : null)
                     .build());
         }
+
+        // Compute distinct skills present in this quiz's questions
+        List<String> skillsPresent = quiz.getQuizQuestions().stream()
+                .map(qq -> qq.getQuestion().getSkill())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
 
         return QuizResultDetailDTO.builder()
                 .quizId(quiz.getQuizId())
@@ -454,6 +541,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .showAnswer(showAnswer)
                 .passScoreDescription(quiz.getPassScore() != null ? "Passing score: " + quiz.getPassScore().toString() + "%" : "No passing score")
                 .questions(questionsRes)
+                .skillsPresent(skillsPresent)
                 .build();
     }
 
@@ -474,6 +562,57 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .build()).collect(Collectors.toList());
 
         return PageResponse.<QuizResultPendingDTO>builder()
+                .items(dtoList)
+                .pageNo(resultPage.getNumber())
+                .pageSize(resultPage.getSize())
+                .totalPages(resultPage.getTotalPages())
+                .totalElements(resultPage.getTotalElements())
+                .last(resultPage.isLast())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<QuizResultGradedDTO> getGradedResults(String email, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<QuizResult> resultPage = quizResultRepository.findGradedForTeacher(email, pageable);
+
+        List<QuizResultGradedDTO> dtoList = resultPage.getContent().stream().map(qr -> {
+            int maxScore = 0;
+            if (qr.getQuiz() != null && qr.getQuiz().getQuizQuestions() != null) {
+                for (QuizQuestion qq : qr.getQuiz().getQuizQuestions()) {
+                    maxScore += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+                }
+            }
+            int score = qr.getScore() != null ? qr.getScore() : 0;
+            double percentage = maxScore > 0 ? (double) score / maxScore * 100 : 0;
+
+            String quizType = "LESSON_QUIZ";
+            if (qr.getQuiz() != null) {
+                String cat = qr.getQuiz().getQuizCategory();
+                if ("COURSE_ASSIGNMENT".equals(cat) || "MODULE_ASSIGNMENT".equals(cat)) {
+                    quizType = "ASSIGNMENT";
+                }
+            }
+
+            return QuizResultGradedDTO.builder()
+                    .resultId(qr.getResultId())
+                    .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
+                    .quizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "—")
+                    .studentName(qr.getUser() != null ? qr.getUser().getFullName() : "—")
+                    .studentEmail(qr.getUser() != null ? qr.getUser().getEmail() : "—")
+                    .submittedAt(qr.getSubmittedAt())
+                    .courseName(qr.getQuiz() != null && qr.getQuiz().getCourse() != null
+                            ? qr.getQuiz().getCourse().getTitle() : null)
+                    .quizType(quizType)
+                    .score(score)
+                    .maxScore(maxScore)
+                    .percentage(Math.round(percentage * 10.0) / 10.0)
+                    .passed(qr.getPassed())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return PageResponse.<QuizResultGradedDTO>builder()
                 .items(dtoList)
                 .pageNo(resultPage.getNumber())
                 .pageSize(resultPage.getSize())
@@ -552,13 +691,22 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .collect(Collectors.toMap(QuestionGradingRequestDTO::getQuestionId, QuestionGradingRequestDTO::getPointsAwarded));
 
         int newScore = qr.getScore() != null ? qr.getScore() : 0;
-        
+
         for (QuizAnswer ans : qr.getQuizAnswers()) {
             if ("WRITING".equals(ans.getQuestion().getQuestionType()) || "SPEAKING".equals(ans.getQuestion().getQuestionType())) {
                 Integer qId = ans.getQuestion().getQuestionId();
                 if (gradeMap.containsKey(qId)) {
                     BigDecimal awarded = gradeMap.get(qId);
                     ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
+                    // Also save teacherNote if available in gradingItems
+                    gradingItems.stream()
+                            .filter(i -> i.getQuestionId().equals(qId))
+                            .findFirst()
+                            .ifPresent(item -> {
+                                if (item.getTeacherNote() != null) {
+                                    ans.setTeacherNote(item.getTeacherNote());
+                                }
+                            });
                     newScore += awarded.intValue();
                     quizAnswerRepository.save(ans);
                 }
@@ -600,5 +748,135 @@ public class QuizResultServiceImpl implements QuizResultService {
                 // Non-critical
             }
         }
+    }
+
+    /**
+     * Extended grading: saves per-question points + teacherNote,
+     * skillScores JSON, and overallNote.
+     */
+    @Override
+    @Transactional
+    public void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email) {
+        QuizResult qr = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Result not found"));
+        Quiz quiz = qr.getQuiz();
+
+        // Authorization check (same as legacy method)
+        boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
+        boolean isAssignedTeacher = quiz.getClazz() != null
+                && quiz.getClazz().getTeacher() != null
+                && quiz.getClazz().getTeacher().getEmail().equals(email);
+        boolean isCourseTeacher = false;
+        if (quiz.getCourse() != null && !isAssignedTeacher) {
+            User teacher = userRepository.findByEmail(email).orElse(null);
+            if (teacher != null) {
+                List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
+                isCourseTeacher = teacherClasses.stream()
+                        .anyMatch(c -> c.getCourse() != null
+                                && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+            }
+        }
+        if (!isCreator && !isAssignedTeacher && !isCourseTeacher) {
+            throw new RuntimeException("Unauthorized: Bạn không có quyền chấm bài Quiz này");
+        }
+
+        List<QuestionGradingRequestDTO> gradingItems = request.getGradingItems();
+
+        // Build a map of questionId → item
+        Map<Integer, QuestionGradingRequestDTO> gradeMap = gradingItems != null
+                ? gradingItems.stream().collect(Collectors.toMap(
+                        QuestionGradingRequestDTO::getQuestionId, Function.identity()))
+                : Collections.emptyMap();
+
+        int newScore = qr.getScore() != null ? qr.getScore() : 0;
+
+        for (QuizAnswer ans : qr.getQuizAnswers()) {
+            Integer qId = ans.getQuestion().getQuestionId();
+            QuestionGradingRequestDTO item = gradeMap.get(qId);
+            String qType = ans.getQuestion().getQuestionType();
+
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
+                if (item != null) {
+                    ans.setPointsAwarded(item.getPointsAwarded());
+                    ans.setTeacherNote(item.getTeacherNote());
+                    ans.setIsCorrect(item.getPointsAwarded() != null
+                            && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                    newScore += item.getPointsAwarded().intValue();
+                }
+            } else {
+                // MC/FILL/MATCH — teacher can override
+                if (item != null && item.getPointsAwarded() != null) {
+                    ans.setPointsAwarded(item.getPointsAwarded());
+                    ans.setTeacherNote(item.getTeacherNote());
+                    ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                    // Recalculate: subtract old score contribution then add new
+                    int oldPts = ans.getPointsAwarded() != null
+                            ? ans.getPointsAwarded().intValue()
+                            : (Boolean.TRUE.equals(ans.getIsCorrect())
+                                    ? (quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
+                                            quiz.getQuizId(), qId)
+                                            .map(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                                            .orElse(1)) : 0);
+                    newScore = newScore - oldPts + item.getPointsAwarded().intValue();
+                }
+            }
+            ans.setPendingAiReview(false);
+            quizAnswerRepository.save(ans);
+        }
+
+        // Save skillScores and overallNote
+        if (request.getSkillScores() != null) {
+            try {
+                qr.setSectionScores(objectMapper.writeValueAsString(request.getSkillScores()));
+            } catch (JsonProcessingException e) {
+                // Ignore
+            }
+        }
+
+        // Recalculate total
+        int maxScoreAvailable = quiz.getQuizQuestions().stream()
+                .mapToInt(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                .sum();
+
+        BigDecimal correctRate = maxScoreAvailable > 0
+                ? BigDecimal.valueOf(100.0 * newScore / maxScoreAvailable)
+                : BigDecimal.ZERO;
+
+        Boolean passed = quiz.getPassScore() != null
+                ? correctRate.compareTo(quiz.getPassScore()) >= 0
+                : true;
+
+        qr.setScore(newScore);
+        qr.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
+        qr.setPassed(passed);
+        quizResultRepository.save(qr);
+
+        if (Boolean.TRUE.equals(passed)) {
+            lessonRepository.findByQuizId(quiz.getQuizId())
+                    .ifPresent(l -> learningService.markLessonCompleted(l.getLessonId(), qr.getUser().getEmail()));
+        }
+
+        if (quiz.getLesson() != null) {
+            try {
+                double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
+                lessonQuizService.updateProgressAfterSubmit(
+                        quiz.getLesson().getLessonId(), quiz.getQuizId(), qr.getUser().getUserId(),
+                        scorePercent, Boolean.TRUE.equals(passed));
+            } catch (Exception e) {
+                // Non-critical
+            }
+        }
+    }
+
+    /** Strip JSON quotes from a JSON-encoded string like "\"https://...\"" */
+    private String extractRawString(String json) {
+        if (json == null) return null;
+        json = json.trim();
+        if (json.startsWith("\"") && json.endsWith("\"")) {
+            return json.substring(1, json.length() - 1)
+                    .replace("\\\"", "\"")
+                    .replace("\\\\", "\\");
+        }
+        return json;
     }
 }
