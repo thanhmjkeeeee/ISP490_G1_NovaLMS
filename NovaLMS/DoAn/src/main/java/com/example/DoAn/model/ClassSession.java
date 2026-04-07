@@ -59,6 +59,9 @@ public class ClassSession {
     @OrderBy("orderIndex ASC")
     private java.util.List<SessionLesson> sessionLessons = new java.util.ArrayList<>();
 
+    @Column(name = "meet_link")
+    private String meetLink;
+
     @PrePersist
     protected void onCreate() {
         if (sessionNumber == null) sessionNumber = 1;

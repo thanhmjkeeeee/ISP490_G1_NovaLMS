@@ -225,16 +225,43 @@
     let subQuestionCounter = 0;
 
     // --- STEP NAVIGATION ---
+    function updateSkillDropdownByMode(mode) {
+        const skillSelect = document.getElementById('skill');
+        const currentSkill = skillSelect.value;
+        
+        let newHTML = `
+            <option value="READING">Reading / Đọc hiểu</option>
+            <option value="LISTENING">Listening / Nghe hiểu</option>
+        `;
+        
+        if (mode === 'SINGLE') {
+            newHTML += `
+                <option value="WRITING">Writing / Viết</option>
+                <option value="SPEAKING">Speaking / Nói</option>
+            `;
+        }
+        
+        skillSelect.innerHTML = newHTML;
+        
+        // Restore previous selection if it still exists, otherwise default to the first
+        if (skillSelect.querySelector(`option[value="${currentSkill}"]`)) {
+            skillSelect.value = currentSkill;
+        }
+    }
+
     function selectMode(mode) {
         currentMode = mode;
         document.querySelectorAll('.mode-card').forEach(m => m.classList.remove('selected'));
         event.currentTarget.classList.add('selected');
+        updateSkillDropdownByMode(mode);
     }
 
     function nextStep() {
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
         document.getElementById('wizardSubtitle').textContent = "Bước 2: Soạn thảo nội dung và đáp án.";
+        
+        updateQuestionTypeDropdowns();
         
         if(currentMode === 'SINGLE') {
             document.getElementById('singleModeUI').style.display = 'block';
@@ -249,6 +276,58 @@
                 addSubQuestion();
             }
         }
+    }
+
+    function getAvailableSingleTypeOptionsHTML() {
+        const skill = document.getElementById('skill').value;
+        if (skill === 'WRITING') {
+            return `<option value="WRITING">Writing (Tự luận)</option>`;
+        } else if (skill === 'SPEAKING') {
+            return `<option value="SPEAKING">Speaking (Nói)</option>`;
+        } else {
+            return `
+                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Trắc nghiệm 1 đáp án)</option>
+                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Trắc nghiệm nhiều đáp án)</option>
+                <option value="FILL_IN_BLANK">Fill in the Blank (Điền từ)</option>
+                <option value="MATCHING">Matching (Ghép cặp)</option>
+            `;
+        }
+    }
+
+    function getAvailableSubTypeOptionsHTML() {
+        const skill = document.getElementById('skill').value;
+        if (skill === 'WRITING') {
+            return `<option value="WRITING">Writing / Tự luận</option>`;
+        } else if (skill === 'SPEAKING') {
+            return `<option value="SPEAKING">Speaking / Nói</option>`;
+        } else {
+            return `
+                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
+                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
+                <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                <option value="MATCHING">Matching</option>
+            `;
+        }
+    }
+
+    function updateQuestionTypeDropdowns() {
+        const singleType = document.getElementById('singleType');
+        const currentSingleVal = singleType.value;
+        singleType.innerHTML = getAvailableSingleTypeOptionsHTML();
+        if (singleType.querySelector(`option[value="${currentSingleVal}"]`)) {
+            singleType.value = currentSingleVal;
+        }
+        updateSingleType();
+
+        document.querySelectorAll('.sub-type').forEach(sel => {
+            const currentVal = sel.value;
+            sel.innerHTML = getAvailableSubTypeOptionsHTML();
+            if (sel.querySelector(`option[value="${currentVal}"]`)) {
+                sel.value = currentVal;
+            } else {
+                updateSubQuestionUI(sel.closest('.sub-question-item').id.replace('sub-q-', ''));
+            }
+        });
     }
 
     function prevStep() {
@@ -277,7 +356,7 @@
     function updateSingleType() {
         const type = document.getElementById('singleType').value;
         const section = document.getElementById('singleOptionsSection');
-        section.style.display = (type === 'WRITING') ? 'none' : 'block';
+        section.style.display = (type === 'WRITING' || type === 'SPEAKING') ? 'none' : 'block';
         
         const container = document.getElementById('singleOptionsContainer');
         container.innerHTML = '';
@@ -315,11 +394,7 @@
                     <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
                 </div>
                 <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubQuestionUI(${id})">
-                    <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
-                    <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
-                    <option value="FILL_IN_BLANK">Fill in the Blank</option>
-                    <option value="MATCHING">Matching</option>
-                    <option value="WRITING">Writing / Tự luận</option>
+                    ${getAvailableSubTypeOptionsHTML()}
                 </select>
                 <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nhập nội dung câu hỏi..." value="">
                 <div class="sub-options-section">
@@ -342,7 +417,7 @@
         const item = document.getElementById(`sub-q-${qId}`);
         const type = item.querySelector('.sub-type').value;
         const section = item.querySelector('.sub-options-section');
-        section.style.display = (type === 'WRITING') ? 'none' : 'block';
+        section.style.display = (type === 'WRITING' || type === 'SPEAKING') ? 'none' : 'block';
         const container = item.querySelector('.sub-options-container');
         container.innerHTML = '';
         addSubOption(qId); addSubOption(qId);
@@ -377,7 +452,7 @@
             if(!content) return alert('Vui lòng nhập nội dung câu hỏi.');
             const qType = document.getElementById('singleType').value;
             let options = [];
-            if (qType !== 'WRITING') {
+            if (qType !== 'WRITING' && qType !== 'SPEAKING') {
                 options = Array.from(document.querySelectorAll('#singleOptionsContainer .input-group')).map(el => ({
                     title: el.querySelector('.opt-title').value.trim(),
                     correct: el.querySelector('.chk-correct')?.checked || false,
@@ -393,7 +468,7 @@
             const questions = Array.from(document.querySelectorAll('.sub-question-item')).map(item => {
                 const subType = item.querySelector('.sub-type').value;
                 let subOpts = [];
-                if (subType !== 'WRITING') {
+                if (subType !== 'WRITING' && subType !== 'SPEAKING') {
                     subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => ({
                         title: opt.querySelector('.sub-opt-title').value.trim(),
                         correct: opt.querySelector('.sub-chk-correct')?.checked || false,
@@ -404,7 +479,7 @@
             });
             for(let q of questions) {
                 if(!q.content) return alert('Vui lòng nhập nội dung cho tất cả các câu hỏi con.');
-                if(q.questionType !== 'WRITING' && q.questionType !== 'FILL_IN_BLANK' && q.options.length < 2) return alert('Mỗi câu hỏi trắc nghiệm/ghép cặp con cần ít nhất 2 đáp án.');
+                if(q.questionType !== 'WRITING' && q.questionType !== 'SPEAKING' && q.questionType !== 'FILL_IN_BLANK' && q.options.length < 2) return alert('Mỗi câu hỏi trắc nghiệm/ghép cặp con cần ít nhất 2 đáp án.');
             }
             const finalBody = { ...commonData, groupContent, audioUrl: document.getElementById('groupAudioUrl').value, imageUrl: document.getElementById('groupImageUrl').value, questions };
             await sendRequest('/api/v1/expert/questions/groups', finalBody);

@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/learning")
@@ -35,5 +36,17 @@ public class LearningApiController {
             return ResponseEntity.status(response.getStatus()).body(response);
         }
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/track-time")
+    public ResponseEntity<ResponseData<Void>> trackTime(@RequestBody Map<String, Integer> payload, Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+
+        Integer seconds = payload.get("seconds");
+        if (seconds == null) seconds = 0;
+
+        ResponseData<Void> response = learningService.trackTime(email, seconds);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

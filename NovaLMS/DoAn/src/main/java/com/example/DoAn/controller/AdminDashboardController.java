@@ -33,6 +33,13 @@ public class AdminDashboardController {
         return "admin/registrations";
     }
 
+    @GetMapping("/settings")
+    public String settingsPage(Model model) {
+        model.addAttribute("pageTitle", "Cài đặt hệ thống - NovaLMS");
+        model.addAttribute("activePage", "settings");
+        return "admin/settings";
+    }
+
     @GetMapping("/registrations/data")
     @ResponseBody
     public ResponseEntity<ResponseData> getRegistrationsData(
