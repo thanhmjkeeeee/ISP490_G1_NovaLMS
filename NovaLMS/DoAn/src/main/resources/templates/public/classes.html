@@ -3,8 +3,9 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head th:replace="~{fragments/head :: common-head('Classes')}"></head>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<body class="classes-page" style="background-color: #f8f9fa;">
+<body class="classes-page" style="background-color: #f4f7fb; font-family: 'Inter', sans-serif; font-size: 0.95rem;">
 
 <!-- Biến toàn cục xác định trạng thái đăng nhập -->
 <script th:inline="javascript">
@@ -16,7 +17,10 @@
 <main class="main pt-5 pb-5">
     <div class="container">
 
-        <h2 class="fw-bold mb-4" style="color: #1a237e;">Lịch khai giảng</h2>
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-2" style="color: #0f172a; letter-spacing: -0.5px;">Lịch khai giảng</h2>
+            <p class="text-secondary fs-6">Lựa chọn chương trình phù hợp và bắt đầu hành trình học tập của bạn</p>
+        </div>
 
         <div class="row">
             <div class="col-12">
@@ -25,25 +29,32 @@
                     <div class="card-body p-4">
                         <div class="row">
                             <div class="col-md-4 mb-3 mb-md-0">
-                                <label class="fw-bold text-primary mb-2">Chương trình:</label>
-                                <select id="categorySelect" class="form-select border-0 bg-light rounded-3 py-2" onchange="loadClasses(0)">
-                                    <option value="">Tất cả</option>
+                                <label class="fw-bold text-primary mb-2 text-uppercase" style="font-size: 0.85rem;">Chương trình</label>
+                                <select id="categorySelect" class="form-select border-0 bg-light rounded-3 py-2 shadow-none" onchange="loadClasses(0)">
+                                    <option value="">Tất cả chương trình</option>
                                     <option th:each="cat : ${categories}"
                                             th:value="${cat.settingId}"
                                             th:text="${cat.name}"
                                             th:selected="${cat.settingId == selectedCat}"> </option>
                                 </select>
                             </div>
+                            <div class="col-md-8 mb-3 mb-md-0">
+                                <label class="fw-bold text-primary mb-2 text-uppercase" style="font-size: 0.85rem;">Tìm kiếm</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-0 rounded-start-3 text-muted"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="keywordSearch" class="form-control border-0 bg-light rounded-end-3 py-2 shadow-none" placeholder="Nhập tên khóa học hoặc giảng viên..." onkeyup="if(event.key === 'Enter') loadClasses(0)">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="d-none d-lg-flex align-items-center bg-white shadow-sm rounded-pill p-3 mb-3 fw-bold text-center" style="color: #1a237e;">
-                    <div class="col-2 text-start ps-4">Khoá học</div>
-                    <div class="col-2">Chương trình</div>
-                    <div class="col-2 text-start">Lớp / Giảng viên</div>
-                    <div class="col-2">Giờ học</div>
-                    <div class="col-2">Ngày khai giảng</div>
+                <div class="d-none d-lg-flex align-items-center header-row shadow-sm rounded-pill p-3 mb-3 fw-bold text-center">
+                    <div class="col-2 text-start ps-4 text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 0.5px;">Khoá học</div>
+                    <div class="col-2 text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 0.5px;">Chương trình</div>
+                    <div class="col-2 text-start text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 0.5px;">Lớp / Giảng viên</div>
+                    <div class="col-2 text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 0.5px;">Giờ học</div>
+                    <div class="col-2 text-uppercase text-secondary" style="font-size: 0.8rem; letter-spacing: 0.5px;">Ngày khai giảng</div>
                     <div class="col-2"></div>
                 </div>
 
@@ -67,10 +78,30 @@
 
 <style>
     .cursor-pointer { cursor: pointer; }
-    .transition-all { transition: all 0.3s ease; }
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .hover-shadow { border: 1px solid rgba(0,0,0,0.05); }
     .hover-shadow:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.05) !important;
+        border-color: rgba(59, 130, 246, 0.2);
+    }
+    .header-row { background: linear-gradient(to right, #ffffff, #f8fafc); border: 1px solid rgba(255,255,255,0.6); }
+    .btn-register {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    .btn-register:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.25) !important;
+        color: white;
+    }
+    .form-select.border-0:focus {
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        border: 1px solid #3b82f6 !important;
+        background-color: #ffffff !important;
     }
 
     /* CSS cho nút phân trang */
@@ -109,6 +140,7 @@
     function loadClasses(pageNo) {
         currentPage = pageNo;
         const categoryId = document.getElementById('categorySelect').value;
+        const keyword = document.getElementById('keywordSearch').value;
 
         // Xóa danh sách cũ và hiện loading để người dùng biết đang tải
         document.getElementById('class-list-wrapper').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
@@ -116,6 +148,9 @@
         let url = `/api/v1/classes/public-list?pageNo=${pageNo}&pageSize=${pageSize}`;
         if (categoryId) {
             url += `&categoryId=${categoryId}`;
+        }
+        if (keyword) {
+            url += `&keyword=${encodeURIComponent(keyword)}`;
         }
 
         fetch(url)
@@ -149,39 +184,39 @@
         let html = '';
         classes.forEach(clazz => {
             html += `
-                <div class="card border-0 shadow-sm rounded-4 mb-3 class-row-item hover-shadow transition-all">
+                <div class="card border-0 shadow-sm rounded-4 mb-3 class-row-item hover-shadow transition-all bg-white">
                     <div class="card-body p-3 p-lg-4">
                         <div class="row align-items-center text-center text-lg-center">
                             <div class="col-lg-2 col-6 mb-3 mb-lg-0 text-start">
-                                <h6 class="fw-bold text-primary mb-0 d-flex align-items-center">
-                                    <span>${clazz.courseTitle || ''}</span>
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center fs-6">
+                                    <i class="bi bi-book-half text-primary me-2"></i> <span>${clazz.courseTitle || ''}</span>
                                 </h6>
                             </div>
 
                             <div class="col-lg-2 col-6 mb-3 mb-lg-0">
-                                <span class="fw-bold text-primary">${clazz.categoryName || ''}</span>
+                                <span class="badge bg-light text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold shadow-sm">${clazz.categoryName || ''}</span>
                             </div>
 
-                            <div class="col-lg-2 col-12 mb-3 mb-lg-0 text-start small">
-                                <ul class="list-unstyled mb-0">
-                                    ${clazz.className ? `<li>• Lớp: <strong>${clazz.className}</strong></li>` : ''}
-                                    ${clazz.teacherName ? `<li>• GV: <strong>${clazz.teacherName}</strong></li>` : ''}
+                            <div class="col-lg-2 col-12 mb-3 mb-lg-0 text-start">
+                                <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                                    ${clazz.className ? `<li class="text-secondary"><i class="bi bi-people-fill me-1 text-muted"></i> <strong class="text-dark">${clazz.className}</strong></li>` : ''}
+                                    ${clazz.teacherName ? `<li class="text-secondary"><i class="bi bi-person-badge me-1 text-muted"></i> GV: <strong class="text-dark">${clazz.teacherName}</strong></li>` : ''}
                                 </ul>
                             </div>
 
-                            <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
-                                ${clazz.schedule ? `<div class="fw-bold text-dark">${clazz.schedule}</div>` : ''}
-                                ${clazz.slotTime ? `<div class="text-muted">${clazz.slotTime}</div>` : ''}
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0">
+                                ${clazz.schedule ? `<div class="fw-bold text-dark"><i class="bi bi-calendar-week me-1"></i> ${clazz.schedule}</div>` : ''}
+                                ${clazz.slotTime ? `<div class="text-muted small mt-1"><i class="bi bi-clock me-1"></i> ${clazz.slotTime}</div>` : ''}
                             </div>
 
-                            <div class="col-lg-2 col-6 mb-3 mb-lg-0 small">
-                                ${clazz.startDate ? `<div class="fw-bold text-dark">${clazz.startDate}</div>` : ''}
+                            <div class="col-lg-2 col-6 mb-3 mb-lg-0">
+                                ${clazz.startDate ? `<div class="fw-bold fs-6" style="color: #059669;"><i class="bi bi-calendar-check me-1"></i> ${clazz.startDate}</div>` : ''}
                             </div>
 
                             <div class="col-lg-2 col-12 text-lg-end mt-2 mt-lg-0">
                                 ${isAuthenticated
-                                    ? `<a href="/enroll/${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">Đăng ký</a>`
-                                    : `<a href="/login.html?redirect=/enroll/${clazz.classId}" class="btn btn-danger rounded-pill px-4 py-2 w-100 w-lg-auto fw-bold shadow-sm">Đăng ký</a>`
+                                    ? `<a href="/enroll/${clazz.classId}" class="btn btn-register rounded-pill px-3 py-1 w-100 w-lg-auto fw-bold shadow-sm" style="font-size: 0.9rem;">Đăng ký ngay <i class="bi bi-arrow-right ms-1"></i></a>`
+                                    : `<a href="/login.html?redirect=/enroll/${clazz.classId}" class="btn btn-register rounded-pill px-3 py-1 w-100 w-lg-auto fw-bold shadow-sm" style="font-size: 0.9rem;">Đăng ký ngay <i class="bi bi-arrow-right ms-1"></i></a>`
                                 }
                             </div>
                         </div>

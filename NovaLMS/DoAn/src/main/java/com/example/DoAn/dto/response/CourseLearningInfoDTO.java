@@ -59,6 +59,7 @@ public class CourseLearningInfoDTO {
         private String videoEmbedUrl; // YouTube embed URL
         private boolean completed;
         private boolean locked;
+        private Boolean allowDownload;
     }
 
     @Data

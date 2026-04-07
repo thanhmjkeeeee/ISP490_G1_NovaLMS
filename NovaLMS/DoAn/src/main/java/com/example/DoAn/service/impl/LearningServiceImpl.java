@@ -4,19 +4,17 @@ import com.example.DoAn.dto.response.CourseLearningInfoDTO;
 import com.example.DoAn.dto.response.ExpertLessonResponseDTO;
 import com.example.DoAn.dto.response.LessonResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.dto.response.ChartDataDTO;
 import com.example.DoAn.model.*;
 import com.example.DoAn.model.Module;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.LessonRepository;
-import com.example.DoAn.repository.QuizRepository;
-import com.example.DoAn.repository.QuizResultRepository;
-import com.example.DoAn.repository.RegistrationRepository;
-import com.example.DoAn.repository.UserLessonRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.repository.*;
+import com.example.DoAn.model.UserLearningLog;
 import com.example.DoAn.service.LearningService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,6 +30,7 @@ public class LearningServiceImpl implements LearningService {
     private final UserLessonRepository userLessonRepository;
     private final QuizRepository quizRepository;
     private final QuizResultRepository quizResultRepository;
+    private final UserLearningLogRepository userLearningLogRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,11 +93,12 @@ public class LearningServiceImpl implements LearningService {
                             CourseLearningInfoDTO.LessonDTO lessDTO = new CourseLearningInfoDTO.LessonDTO();
                             lessDTO.setLessonId(lesson.getLessonId().longValue());
                             lessDTO.setLessonTitle(lesson.getLessonName());
-                            lessDTO.setLessonName(lesson.getLessonName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
+                            lessDTO.setLessonName(lesson.getLessonName());
                             lessDTO.setType(lesson.getType());
                             lessDTO.setDuration(lesson.getDuration());
-                            lessDTO.setVideoUrl(lesson.getVideoUrl());     // 🟢 THÊM DÒNG NÀY: Bổ sung Link gốc
+                            lessDTO.setVideoUrl(lesson.getVideoUrl());
                             lessDTO.setVideoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()));
+                            lessDTO.setAllowDownload(lesson.getAllowDownload() != null ? lesson.getAllowDownload() : true);
                             lessDTO.setCompleted(isCompleted);
                             lessDTO.setLocked(false);
 
@@ -160,6 +160,15 @@ public class LearningServiceImpl implements LearningService {
             Long courseId = currentLesson.getModule().getCourse().getCourseId().longValue();
             ResponseData<CourseLearningInfoDTO> courseInfoResult = getCourseLearningInfo(courseId, email);
 
+            // Check if current lesson is actually completed by this user
+            User currentUser = userRepository.findByEmail(email).orElse(null);
+            boolean lessonCompleted = false;
+            if (currentUser != null) {
+                lessonCompleted = userLessonRepository
+                        .existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(
+                                currentUser.getUserId(), currentLesson.getLessonId());
+            }
+
             LessonResponseDTO lessonDTO = LessonResponseDTO.builder()
                     .lessonId(currentLesson.getLessonId())
                     .lessonTitle(currentLesson.getLessonName())
@@ -169,7 +178,8 @@ public class LearningServiceImpl implements LearningService {
                     .videoUrl(currentLesson.getVideoUrl())
                     .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(currentLesson.getVideoUrl()))
                     .contentText(currentLesson.getContent_text())
-                    .isCompleted(false)
+                    .allowDownload(currentLesson.getAllowDownload() != null ? currentLesson.getAllowDownload() : true)
+                    .isCompleted(lessonCompleted)
                     .isLocked(false)
                     .build();
 
@@ -250,6 +260,87 @@ public class LearningServiceImpl implements LearningService {
             return firstLessonId;
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseData<Void> trackTime(String email, int seconds) {
+        try {
+            // Anti-cheating: Không cho phép ping quá 60s (do FE đang setup 30s ping 1 lần)
+            if (seconds > 60 || seconds <= 0) {
+                return ResponseData.error(400, "Dữ liệu thời gian không hợp lệ");
+            }
+
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
+
+            LocalDate today = LocalDate.now();
+
+            // Sử dụng hàm findBy... chuẩn của Hibernate
+            Optional<UserLearningLog> existingLogOpt = userLearningLogRepository.findByUser_UserIdAndLearnDate(user.getUserId(), today);
+
+            if (existingLogOpt.isPresent()) {
+                // Nếu hôm nay đã có log -> Lấy ra, cộng dồn và Lưu lại
+                UserLearningLog log = existingLogOpt.get();
+                log.setTimeSpentSeconds(log.getTimeSpentSeconds() + seconds);
+                userLearningLogRepository.save(log);
+            } else {
+                // Nếu hôm nay chưa có log -> Tạo mới
+                UserLearningLog newLog = UserLearningLog.builder()
+                        .user(user)
+                        .learnDate(today)
+                        .timeSpentSeconds(seconds)
+                        .build();
+                userLearningLogRepository.save(newLog);
+            }
+
+            return ResponseData.success("Đã ghi nhận thời gian học");
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi tracking: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseData<ChartDataDTO> getDashboardChartData(String email, int days) {
+        try {
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
+
+            LocalDate today = LocalDate.now();
+            LocalDate startDate = today.minusDays(days - 1); // e.g. if days=7, starts 6 days ago
+
+            List<UserLearningLog> logs = userLearningLogRepository
+                    .findByUser_UserIdAndLearnDateAfterOrderByLearnDate(user.getUserId(), startDate.minusDays(1));
+
+            Map<LocalDate, Double> logMap = new HashMap<>();
+            for (UserLearningLog log : logs) {
+                double hours = (double) log.getTimeSpentSeconds() / 3600.0;
+                logMap.put(log.getLearnDate(), Math.round(hours * 100.0) / 100.0);
+            }
+
+            List<String> labels = new ArrayList<>();
+            List<Double> values = new ArrayList<>();
+
+            for (int i = 0; i < days; i++) {
+                LocalDate current = startDate.plusDays(i);
+                if (i == days - 1) {
+                    labels.add("Hôm nay");
+                } else {
+                    labels.add(String.format("%02d/%02d", current.getDayOfMonth(), current.getMonthValue()));
+                }
+                values.add(logMap.getOrDefault(current, 0.0));
+            }
+
+            ChartDataDTO dto = ChartDataDTO.builder()
+                    .labels(labels)
+                    .values(values)
+                    .build();
+
+            return ResponseData.success("Thành công", dto);
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi tải biểu đồ: " + e.getMessage());
         }
     }
 }

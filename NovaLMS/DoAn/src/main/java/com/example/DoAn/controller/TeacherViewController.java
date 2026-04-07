@@ -364,6 +364,11 @@ public class TeacherViewController {
                     .build());
         }
 
+        // Resolve meetLink: session-level overrides class-level
+        String resolvedMeetLink = (session.getMeetLink() != null && !session.getMeetLink().isBlank())
+                ? session.getMeetLink()
+                : session.getClazz().getMeetLink();
+
         SessionDetailDTO detail = SessionDetailDTO.builder()
                 .sessionId(session.getSessionId())
                 .sessionNo(session.getSessionNumber())
@@ -373,6 +378,9 @@ public class TeacherViewController {
                 .endTime(session.getEndTime())
                 .slotNumber(session.getSlotNumber())
                 .topic(aggregatedTopic)
+                .meetLink(resolvedMeetLink)
+                .className(session.getClazz().getClassName())
+                .courseName(session.getClazz().getCourse() != null ? session.getClazz().getCourse().getCourseName() : "")
                 .materials(materials)
                 .quizzes(quizzes)
                 .build();

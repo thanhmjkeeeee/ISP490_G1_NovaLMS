@@ -27,7 +27,7 @@ public class ClassPublicServiceImpl implements ClassPublicService {
     private final ClassRepository classRepository;
 
     @Override
-    public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId) {
+    public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId, String keyword) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").ascending());
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateMin = now.minusDays(7);
@@ -43,6 +43,13 @@ public class ClassPublicServiceImpl implements ClassPublicService {
 
             if (categoryId != null && categoryId > 0) {
                 predicates.add(cb.equal(root.get("course").get("category").get("settingId"), categoryId));
+            }
+            
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                String searchKeyword = "%" + keyword.toLowerCase().trim() + "%";
+                Predicate courseMatch = cb.like(cb.lower(root.get("course").get("courseName")), searchKeyword);
+                Predicate teacherMatch = cb.like(cb.lower(root.get("teacher").get("fullName")), searchKeyword);
+                predicates.add(cb.or(courseMatch, teacherMatch));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

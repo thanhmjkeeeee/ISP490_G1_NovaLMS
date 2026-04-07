@@ -16,6 +16,7 @@ public class ExpertLessonResponseDTO {
     private String videoEmbedUrl; // YouTube embed URL (auto-converted)
     private String contentText;
     private String duration;
+    private Boolean allowDownload;
     private Integer orderIndex;
 
     /** Converts a YouTube watch URL or youtu.be link into an embed-compatible URL. */

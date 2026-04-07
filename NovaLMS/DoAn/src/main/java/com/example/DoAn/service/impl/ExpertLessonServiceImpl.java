@@ -55,6 +55,7 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
                 .videoUrl(request.getVideoUrl())
                 .content_text(request.getContentText())
                 .duration(request.getDuration())
+                .allowDownload(request.getAllowDownload() != null ? request.getAllowDownload() : true)
                 .orderIndex(request.getOrderIndex() != null ? request.getOrderIndex() : nextOrder)
                 .build();
 
@@ -78,6 +79,7 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
         if (request.getVideoUrl() != null) lesson.setVideoUrl(request.getVideoUrl());
         if (request.getContentText() != null) lesson.setContent_text(request.getContentText());
         if (request.getDuration() != null) lesson.setDuration(request.getDuration());
+        lesson.setAllowDownload(request.getAllowDownload() != null ? request.getAllowDownload() : true);
         if (request.getOrderIndex() != null) lesson.setOrderIndex(request.getOrderIndex());
 
         lessonRepository.save(lesson);
@@ -108,6 +110,7 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
                 .videoEmbedUrl(ExpertLessonResponseDTO.toEmbedUrl(lesson.getVideoUrl()))
                 .contentText(lesson.getContent_text())
                 .duration(lesson.getDuration())
+                .allowDownload(lesson.getAllowDownload())
                 .orderIndex(lesson.getOrderIndex())
                 .build();
     }

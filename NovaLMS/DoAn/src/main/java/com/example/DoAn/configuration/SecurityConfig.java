@@ -90,6 +90,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/classes/**").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/files/preview").permitAll()
                         .requestMatchers("/api/v1/payment/webhook").permitAll()
                         .requestMatchers("/api/**").authenticated()
 
@@ -126,7 +127,8 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                 )
 
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
     }

@@ -15,8 +15,213 @@
 
 
 /*--------------------------------------------------------------
+dash board student
+--------------------------------------------------------------*/
+     /* ─────────────────────────────────────────
+        SCOPED DASHBOARD STYLES
+     ───────────────────────────────────────── */
+     body { font-family: 'Inter', sans-serif; background: #f0f4fb; color: #1e293b; }
+
+     /* ── Welcome Banner ───────────────────── */
+     .welcome-banner {
+       background: linear-gradient(135deg, #1d6de5 0%, #0ea5e9 100%);
+       border-radius: 20px;
+       padding: 28px 36px;
+       color: #fff;
+       position: relative;
+       overflow: hidden;
+       box-shadow: 0 8px 24px rgba(29,109,229,0.22);
+       margin-bottom: 20px;
+     }
+     .welcome-banner::before {
+       content: '';
+       position: absolute; top: -60px; right: -40px;
+       width: 260px; height: 260px;
+       background: rgba(255,255,255,0.08);
+       border-radius: 50%; filter: blur(30px);
+     }
+     .welcome-banner::after {
+       content: '';
+       position: absolute; bottom: -80px; right: 120px;
+       width: 180px; height: 180px;
+       background: rgba(255,255,255,0.05);
+       border-radius: 50%; filter: blur(20px);
+     }
+     .welcome-banner h2 { font-size: 1.55rem; font-weight: 800; margin-bottom: 6px; position: relative; z-index: 1; }
+     .welcome-banner p  { font-size: 0.9rem; opacity: 0.85; margin: 0; position: relative; z-index: 1; }
+
+     /* ── Stat Cards ──────────────────────── */
+     .stat-card {
+       background: #fff;
+       border-radius: 18px;
+       padding: 22px 20px;
+       border: 1px solid #e8edf5;
+       box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+       transition: transform 0.25s, box-shadow 0.25s;
+       height: 100%;
+     }
+     .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(29,109,229,0.1); }
+     .stat-icon {
+       width: 52px; height: 52px; border-radius: 14px;
+       display: flex; align-items: center; justify-content: center;
+       font-size: 1.35rem; margin-bottom: 14px;
+     }
+     .si-blue   { background: #eff6ff; color: #1d6de5; }
+     .si-orange { background: #fff7ed; color: #ea580c; }
+     .stat-card .stat-num  { font-size: 1.8rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+     .stat-card .stat-lbl  { font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
+
+     /* ── Quiz Score Mini Card ─────────────── */
+     .score-card {
+       background: #fff;
+       border-radius: 18px;
+       padding: 18px 20px;
+       border: 1px solid #e8edf5;
+       box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+       height: 100%;
+     }
+     .score-card-title {
+       font-size: 0.72rem; font-weight: 700;
+       text-transform: uppercase; letter-spacing: 0.6px;
+       color: #94a3b8; margin-bottom: 12px;
+     }
+
+     /* ── Section Cards ────────────────────── */
+     .dash-card {
+       background: #fff;
+       border-radius: 18px;
+       border: 1px solid #e8edf5;
+       box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+       padding: 24px;
+       height: 100%;
+     }
+     .dash-card-title {
+       font-size: 0.95rem; font-weight: 700; color: #1e293b;
+       margin-bottom: 20px;
+       display: flex; align-items: center; justify-content: space-between;
+     }
+     .dash-card-title a {
+       font-size: 0.8rem; font-weight: 600; color: #1d6de5;
+       text-decoration: none;
+     }
+     .dash-card-title a:hover { text-decoration: underline; }
+     .dash-card-title .section-label {
+       font-size: 0.72rem; font-weight: 700;
+       text-transform: uppercase; letter-spacing: 0.6px;
+       color: #94a3b8;
+     }
+
+     /* ── Resume Learning ──────────────────── */
+     .resume-item {
+       display: flex; align-items: center; gap: 12px;
+       padding: 12px; border-radius: 12px;
+       background: #f8fafc; border: 1px solid #e8edf5;
+       text-decoration: none; color: inherit;
+       transition: all 0.2s;
+     }
+     .resume-item:hover { background: #eff6ff; border-color: #bfdbfe; color: inherit; }
+     .resume-thumb {
+       width: 52px; height: 52px; border-radius: 10px;
+       background: #1d6de5; color: #fff;
+       display: flex; align-items: center; justify-content: center;
+       font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+       overflow: hidden;
+     }
+     .resume-thumb img { width: 100%; height: 100%; object-fit: cover; }
+     .resume-info { overflow: hidden; flex: 1; min-width: 0; }
+     .resume-info .ri-title {
+       font-size: 0.85rem; font-weight: 700; color: #1e293b;
+       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+     }
+     .resume-info .ri-sub  { font-size: 0.77rem; color: #94a3b8; }
+     .resume-progress { height: 3px; background: #e2e8f0; border-radius: 50px; margin-top: 6px; overflow: hidden; }
+     .resume-progress-fill { height: 100%; border-radius: 50px; background: #1d6de5; }
+     .btn-play {
+       width: 34px; height: 34px; border-radius: 50%;
+       background: #1d6de5; color: #fff; border: none;
+       display: flex; align-items: center; justify-content: center;
+       font-size: 0.85rem; flex-shrink: 0; cursor: pointer;
+       transition: background 0.2s;
+     }
+     .btn-play:hover { background: #155ec0; }
+
+     /* ── Schedule ─────────────────────────── */
+     .schedule-row {
+       display: flex; align-items: flex-start; gap: 14px;
+       padding: 14px 0; border-bottom: 1px solid #f1f5f9;
+     }
+     .schedule-row:last-child { border-bottom: none; padding-bottom: 0; }
+     .date-box {
+       background: #eff6ff; color: #1d6de5;
+       border-radius: 12px; text-align: center;
+       padding: 8px 10px; min-width: 52px; flex-shrink: 0;
+     }
+     .date-box.warning { background: #fff7ed; color: #ea580c; }
+     .date-box .db-day   { font-size: 1.2rem; font-weight: 800; line-height: 1; }
+     .date-box .db-month { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+     .sch-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 3px; }
+     .sch-sub   { font-size: 0.77rem; color: #94a3b8; }
+
+     /* ── Table ────────────────────────────── */
+     .table-custom thead th {
+       background: #f8fafc; color: #94a3b8;
+       font-size: 0.72rem; font-weight: 700;
+       text-transform: uppercase; letter-spacing: 0.5px;
+       padding: 14px 16px; border: none;
+     }
+     .table-custom tbody td {
+       padding: 14px 16px; vertical-align: middle;
+       font-size: 0.88rem; color: #334155;
+       border-bottom: 1px solid #f1f5f9;
+     }
+     .table-custom tbody tr:last-child td { border-bottom: none; }
+     .badge-warn    { background: #fef3c7; color: #d97706; border-radius: 50px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; }
+     .badge-danger  { background: #fee2e2; color: #dc2626; border-radius: 50px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; }
+     .badge-success { background: #dcfce7; color: #16a34a; border-radius: 50px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; }
+     .score-num { font-size: 1.1rem; font-weight: 800; }
+     .score-total { font-size: 0.82rem; color: #94a3b8; font-weight: 400; }
+     .btn-detail {
+       padding: 6px 14px; border: none;
+       background: #f1f5f9; border-radius: 50px;
+       font-size: 0.78rem; font-weight: 700; color: #1d6de5;
+       cursor: pointer; transition: background 0.2s;
+     }
+     .btn-detail:hover { background: #dbeafe; }
+
+     /* ── Chart select ─────────────────────── */
+     .chart-select {
+       padding: 5px 12px; border-radius: 50px;
+       background: #f1f5f9; border: none;
+       font-size: 0.82rem; font-weight: 600; color: #475569;
+       outline: none; cursor: pointer;
+       appearance: none;
+       padding-right: 24px;
+       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+       background-repeat: no-repeat;
+       background-position: right 8px center;
+     }
+
+     /* ── Skeleton loading ─────────────────── */
+     .skeleton {
+       background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+       background-size: 200% 100%;
+       animation: shimmer 1.4s infinite;
+       border-radius: 8px;
+     }
+     @keyframes shimmer { to { background-position: -200% 0; } }
+
+     /* ── Fade-in ──────────────────────────── */
+     .fi { animation: fadeUp 0.5s ease both; }
+     .fi-1 { animation-delay: 0.05s; }
+     .fi-2 { animation-delay: 0.12s; }
+     .fi-3 { animation-delay: 0.18s; }
+     .fi-4 { animation-delay: 0.25s; }
+     @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+/*--------------------------------------------------------------
 course
 --------------------------------------------------------------*/
+
 
 /* 1. Filter UI */
   .cursor-pointer { cursor: pointer; }
@@ -9230,6 +9435,76 @@ section,
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Style cho Dropdown User */
+.custom-user-dropdown {
+    border-radius: 12px !important;
+    padding: 8px 0 !important;
+    min-width: 220px !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.custom-user-dropdown li a,
+.custom-user-dropdown li .btn-logout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* ÉP CĂN TRÁI SÁT NHAU */
+    padding: 10px 20px !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    background: transparent;
+    border: none;
+    width: 100%; /* Tràn viền để hover đẹp */
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+/* Fix khoảng cách Icon và Chữ */
+.custom-user-dropdown li a i,
+.custom-user-dropdown li .btn-logout i {
+    font-size: 1.15rem;
+    margin-right: 12px !important; /* Khoảng cách cố định 12px, không bị doác ra */
+    transition: color 0.2s ease;
+}
+
+/* Hiệu ứng Hover chung */
+.custom-user-dropdown li a:hover {
+    background-color: #f1f5f9 !important;
+    color: #0d6efd !important;
+}
+.custom-user-dropdown li a:hover i.text-muted {
+    color: #0d6efd !important;
+}
+
+/* Hiệu ứng Hover riêng cho nút Đăng xuất */
+.custom-user-dropdown li .btn-logout:hover {
+    background-color: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+.custom-user-dropdown li .btn-logout:hover i {
+    color: #dc2626 !important;
+}
+
+.custom-user-dropdown .dropdown-divider {
+    border-color: #e2e8f0;
+}
+
+/* 1. Trạng thái mặc định của Dropdown: Ẩn, mờ và tụt xuống 10px */
+.dash-user-dropdown {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Hiệu ứng gia tốc mượt */
+    display: block !important; /* Bắt buộc dùng block, ẩn bằng opacity */
+}
+
+/* 2. Trạng thái Hover: Khi chuột di vào thẻ cha (.dash-user-menu) thì hiện con lên */
+.dash-user-menu:hover .dash-user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 /*--------------------------------------------------------------
