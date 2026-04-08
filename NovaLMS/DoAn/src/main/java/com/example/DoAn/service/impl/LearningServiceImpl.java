@@ -31,6 +31,7 @@ public class LearningServiceImpl implements LearningService {
     private final QuizRepository quizRepository;
     private final QuizResultRepository quizResultRepository;
     private final UserLearningLogRepository userLearningLogRepository;
+    private final SessionQuizRepository sessionQuizRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -123,21 +124,57 @@ public class LearningServiceImpl implements LearningService {
             Integer targetClassId = (reg != null && reg.getClazz() != null) ? reg.getClazz().getClassId() : null;
             List<Quiz> studentQuizzes = quizRepository.findQuizzesForStudent(course.getCourseId(), targetClassId);
 
+            // Optimization: Load all session-specific settings for this class to avoid N+1 query
+            Map<Integer, SessionQuiz> sessionQuizMap = new HashMap<>();
+            if (targetClassId != null) {
+                List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(targetClassId);
+                for (SessionQuiz sq : sqList) {
+                    if (sq.getQuiz() != null) {
+                        sessionQuizMap.put(sq.getQuiz().getQuizId(), sq);
+                    }
+                }
+            }
+
             List<CourseLearningInfoDTO.QuizInfoDTO> quizList = new ArrayList<>();
             for (Quiz quiz : studentQuizzes) {
                 long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quiz.getQuizId(), user.getUserId());
+                
+                // Get session-specific setting or fallback
+                SessionQuiz sq = sessionQuizMap.get(quiz.getQuizId());
+                boolean isAssignment = "COURSE_ASSIGNMENT".equals(quiz.getQuizCategory());
+
+                Boolean isOpen;
+                String openAtStr, closeAtStr;
+
+                if (sq != null) {
+                    // Use settings from specific class session
+                    isOpen = sq.getIsOpen() != null ? sq.getIsOpen() : false;
+                    openAtStr = sq.getOpenAt() != null ? sq.getOpenAt().toString() : null;
+                    closeAtStr = sq.getCloseAt() != null ? sq.getCloseAt().toString() : null;
+                } else if (!isAssignment) {
+                    // Global Course Quizzes (Not Assignments) use global settings
+                    isOpen = quiz.getIsOpen() != null ? quiz.getIsOpen() : false;
+                    openAtStr = quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null;
+                    closeAtStr = quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null;
+                } else {
+                    // Assignment but not in session_quiz for this class -> Fallback to Closed
+                    isOpen = false;
+                    openAtStr = null;
+                    closeAtStr = null;
+                }
+
                 quizList.add(CourseLearningInfoDTO.QuizInfoDTO.builder()
                         .quizId(quiz.getQuizId())
                         .title(quiz.getTitle())
                         .quizCategory(quiz.getQuizCategory())
-                        .isAssignment("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory()))
+                        .isAssignment(isAssignment)
                         .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
                         .timeLimitMinutes(quiz.getTimeLimitMinutes())
                         .maxAttempts(quiz.getMaxAttempts())
                         .attemptCount((int) attemptCount)
-                        .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
-                        .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null)
-                        .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null)
+                        .isOpen(isOpen)
+                        .openAt(openAtStr)
+                        .closeAt(closeAtStr)
                         .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
                         .build());
             }
