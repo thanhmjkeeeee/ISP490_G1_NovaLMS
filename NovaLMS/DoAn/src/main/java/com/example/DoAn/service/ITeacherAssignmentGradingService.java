@@ -14,7 +14,7 @@ public interface ITeacherAssignmentGradingService {
      * belonging to teacher's enrolled classes, matching optional quizId/classId.
      */
     Page<AssignmentGradingQueueDTO> getGradingQueue(
-        String teacherEmail, Integer quizId, Integer classId, String status, Pageable pageable);
+        String teacherEmail, Integer quizId, Integer classId, java.util.List<String> status, Pageable pageable);
 
     /**
      * Get full grading detail for a single student result.
