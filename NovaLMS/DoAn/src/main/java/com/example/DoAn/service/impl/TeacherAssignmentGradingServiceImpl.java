@@ -6,7 +6,9 @@ import com.example.DoAn.dto.response.AssignmentGradingQueueDTO;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.ITeacherAssignmentGradingService;
+import com.example.DoAn.service.INotificationService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private final QuizAnswerRepository quizAnswerRepository;
     private final QuizQuestionRepository quizQuestionRepository;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     // ─── Grading Queue ────────────────────────────────────────────────────────
 
@@ -389,5 +393,28 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         }
 
         quizResultRepository.save(result);
+
+        // ── Send email + in-app notification to student ──────────────────────
+        if (result.getUser() != null) {
+            User student = result.getUser();
+            String studentName = student.getFullName() != null ? student.getFullName() : "";
+            String email = student.getEmail();
+
+            String assignmentTitle = quiz != null ? quiz.getTitle() : "";
+            String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
+            String scoreStr = total != null ? total.intValue() + "/" + totalMax.intValue() : "";
+            String passedStatus = Boolean.TRUE.equals(result.getPassed()) ? "Dat" : "Khong dat";
+
+            if (email != null && !email.isBlank()) {
+                emailService.sendAssignmentGradedEmail(email, studentName,
+                        assignmentTitle, className, scoreStr, passedStatus);
+            }
+
+            if (student.getUserId() != null) {
+                notificationService.sendAssignmentGraded(
+                        Long.valueOf(student.getUserId()),
+                        assignmentTitle, className, scoreStr, passedStatus);
+            }
+        }
     }
 }

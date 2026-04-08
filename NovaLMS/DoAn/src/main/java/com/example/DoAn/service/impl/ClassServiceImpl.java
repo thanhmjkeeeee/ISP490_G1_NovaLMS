@@ -8,13 +8,17 @@ import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.ClassSession;
 import com.example.DoAn.model.Lesson;
 import com.example.DoAn.model.SessionLesson;
+import com.example.DoAn.model.User;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.ClassSessionRepository;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.LessonRepository;
+import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.SessionLessonRepository;
 import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.IClassService;
+import com.example.DoAn.service.INotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -57,6 +61,9 @@ public class ClassServiceImpl implements IClassService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
+    private final RegistrationRepository registrationRepository;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     @Override
     public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId) {
@@ -215,7 +222,31 @@ public class ClassServiceImpl implements IClassService {
         }
 
         log.info("Class created successfully: {}", clazz.getClassName());
+
+        // ── Notify teacher of new class assignment ──────────────────────────────
+        notifyTeacherClassCreated(clazz);
+
         return clazz.getClassId();
+    }
+
+    // ── Notification helper ────────────────────────────────────────────────────
+
+    private void notifyTeacherClassCreated(Clazz clazz) {
+        if (clazz == null || clazz.getTeacher() == null) return;
+        User teacher = clazz.getTeacher();
+        String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
+        String className = clazz.getClassName() != null ? clazz.getClassName() : "";
+        String courseName = clazz.getCourse() != null && clazz.getCourse().getCourseName() != null
+                ? clazz.getCourse().getCourseName() : "";
+        String startDate = clazz.getStartDate() != null ? clazz.getStartDate().toLocalDate().toString() : "";
+        String schedule = clazz.getSchedule() != null ? clazz.getSchedule() : "";
+
+        if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+            emailService.sendClassEnrollmentEmail(teacher.getEmail(), teacherName, className, courseName, startDate, schedule);
+        }
+        if (teacher.getUserId() != null) {
+            notificationService.sendClassEnrollment(Long.valueOf(teacher.getUserId()), className, courseName);
+        }
     }
 
     /**

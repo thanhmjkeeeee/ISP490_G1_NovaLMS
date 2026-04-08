@@ -31,6 +31,8 @@ public class RescheduleService {
     private final RescheduleRequestRepository rescheduleRequestRepository;
     private final ClassSessionRepository classSessionRepository;
     private final UserRepository userRepository;
+    private final com.example.DoAn.service.EmailService emailService;
+    private final com.example.DoAn.service.INotificationService notificationService;
 
     public Optional<RescheduleRequest> getPendingRequest(Integer sessionId) {
         return rescheduleRequestRepository.findPendingBySessionId(sessionId);
@@ -177,7 +179,39 @@ public class RescheduleService {
         }
 
         rescheduleRequestRepository.save(request);
+
+        // ── Notify teacher of manager decision ───────────────────────────────
+        notifyTeacherOnDecision(request);
+
         return ResponseData.success("Cập nhật trạng thái thành công");
+    }
+
+    private void notifyTeacherOnDecision(RescheduleRequest request) {
+        if (request == null || request.getCreatedBy() == null) return;
+        User teacher = request.getCreatedBy();
+        String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
+
+        String className = request.getSession() != null && request.getSession().getClazz() != null
+                ? request.getSession().getClazz().getClassName() != null
+                        ? request.getSession().getClazz().getClassName() : "" : "";
+        String newDate = request.getNewDate() != null ? request.getNewDate().toLocalDate().toString() : "";
+        String newTime = request.getNewStartTime() != null ? request.getNewStartTime() : "";
+        String reason = request.getManagerNote() != null ? request.getManagerNote() : "";
+        String status = request.getStatus();
+
+        if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+            if ("APPROVED".equals(status)) {
+                emailService.sendSessionRescheduledEmail(teacher.getEmail(), teacherName, className,
+                        "", "", newDate, newTime, reason);
+            } else if ("REJECTED".equals(status)) {
+                emailService.sendSessionCancelledEmail(teacher.getEmail(), teacherName, className, newDate, newTime, reason);
+            }
+        }
+        if (teacher.getUserId() != null) {
+            if ("APPROVED".equals(status)) {
+                notificationService.sendSessionRescheduled(Long.valueOf(teacher.getUserId()), className, newDate, newTime, reason);
+            }
+        }
     }
 
     private String calculateEndTime(String startTime) {

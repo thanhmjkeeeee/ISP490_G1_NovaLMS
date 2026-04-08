@@ -4,6 +4,9 @@ import com.example.DoAn.configuration.PayosConfig;
 import com.example.DoAn.dto.response.PaymentLinkResponseDTO;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.EmailService;
+import com.example.DoAn.service.INotificationService;
+import com.example.DoAn.service.InvoicePdfService;
 import com.example.DoAn.service.PayosService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +34,9 @@ public class PayosServiceImpl implements PayosService {
     private final RegistrationRepository registrationRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
+    private final InvoicePdfService invoicePdfService;
 
     // ══════════════════════════════════════════════════════════════
     // 1. TẠO PAYMENT LINK (tạo Payment → gọi PayOS → cập nhật)
@@ -288,6 +294,7 @@ public class PayosServiceImpl implements PayosService {
             }
 
             // Cập nhật Payment → PAID
+            final BigDecimal finalAmount = payment.getAmount();
             payment.setStatus("PAID");
             payment.setPaidAt(LocalDateTime.now());
             if (payosPaymentLinkId != null && payment.getPayosPaymentLinkId() == null) {
@@ -301,7 +308,56 @@ public class PayosServiceImpl implements PayosService {
                 registrationRepository.findById(registrationId).ifPresent(reg -> {
                     reg.setStatus("Approved");
                     registrationRepository.save(reg);
-                    log.info("✅ Registration auto-approved: registrationId={}", registrationId);
+                    log.info("Registration auto-approved: registrationId={}", registrationId);
+
+                    // ── Send email + in-app notification to student ──────────────────
+                    User student = reg.getUser();
+                    if (student != null) {
+                        String studentName = student.getFullName() != null ? student.getFullName() : "";
+                        String courseName = reg.getCourse() != null && reg.getCourse().getCourseName() != null
+                                ? reg.getCourse().getCourseName() : "";
+                        String className = reg.getClazz() != null ? reg.getClazz().getClassName() : "";
+                        String amountStr = finalAmount != null ? finalAmount.toString() : "";
+                        String startDate = reg.getClazz() != null && reg.getClazz().getStartDate() != null
+                                ? reg.getClazz().getStartDate().toString() : "";
+
+                        if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                            String pIdStr = String.valueOf(payment.getId());
+                            String pOrderCode = payment.getPayosOrderCode() != null
+                                    ? payment.getPayosOrderCode().toString() : "";
+                            String pPaidAtStr = payment.getPaidAt() != null
+                                    ? payment.getPaidAt().toString() : "";
+
+                            byte[] invoicePdf = invoicePdfService.generateInvoice(
+                                    studentName,
+                                    student.getEmail(),
+                                    courseName,
+                                    className,
+                                    amountStr,
+                                    pIdStr,
+                                    pOrderCode,
+                                    pPaidAtStr
+                            );
+
+                            emailService.sendPaymentSuccessEmail(student.getEmail(), studentName,
+                                    courseName, className, amountStr,
+                                    pIdStr, pOrderCode, pPaidAtStr, invoicePdf);
+                        }
+                        if (student.getUserId() != null) {
+                            notificationService.sendPaymentSuccess(Long.valueOf(student.getUserId()),
+                                    courseName, className);
+                        }
+
+                        // Also notify enrollment approved
+                        if (student.getUserId() != null) {
+                            notificationService.sendEnrollmentApproved(Long.valueOf(student.getUserId()),
+                                    className, courseName);
+                        }
+                        if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                            emailService.sendEnrollmentApprovedEmail(student.getEmail(), studentName,
+                                    className, courseName, startDate);
+                        }
+                    }
                 });
             }
 
@@ -336,6 +392,29 @@ public class PayosServiceImpl implements PayosService {
                 payment.setStatus("CANCELLED");
                 paymentRepository.save(payment);
                 log.info("Payment CANCELLED: paymentId={}", payment.getId());
+
+                // ── Send email + in-app notification to student ──────────────────
+                Integer registrationId = payment.getRegistrationId();
+                if (registrationId != null) {
+                    registrationRepository.findById(registrationId).ifPresent(reg -> {
+                        User student = reg.getUser();
+                        if (student != null) {
+                            String studentName = student.getFullName() != null ? student.getFullName() : "";
+                            String courseName = reg.getCourse() != null && reg.getCourse().getCourseName() != null
+                                    ? reg.getCourse().getCourseName() : "";
+                            String className = reg.getClazz() != null ? reg.getClazz().getClassName() : "";
+
+                            if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                                emailService.sendPaymentFailedEmail(student.getEmail(), studentName,
+                                        courseName, className);
+                            }
+                            if (student.getUserId() != null) {
+                                notificationService.sendPaymentFailed(Long.valueOf(student.getUserId()),
+                                        courseName, className);
+                            }
+                        }
+                    });
+                }
             }
         } catch (Exception e) {
             log.error("Error handling payment cancel: {}", e.getMessage(), e);

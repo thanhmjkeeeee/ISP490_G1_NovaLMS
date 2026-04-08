@@ -4,6 +4,8 @@ import com.example.DoAn.dto.response.*;
 import com.example.DoAn.dto.request.EnrollRequestDTO;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.EmailService;
+import com.example.DoAn.service.INotificationService;
 import com.example.DoAn.service.PayosService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,8 @@ public class StudentServiceImpl implements StudentService {
     private final LessonRepository lessonRepository;
     private final QuizResultRepository quizResultRepository;
     private final ClassSessionRepository classSessionRepository;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -479,6 +483,33 @@ public class StudentServiceImpl implements StudentService {
                 registration.setNote(note);
             }
             registrationRepository.save(registration);
+
+            // ── Send email + in-app notification ─────────────────────────────────
+            User student = registration.getUser();
+            if (student != null) {
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String courseName = registration.getCourse() != null && registration.getCourse().getCourseName() != null
+                        ? registration.getCourse().getCourseName() : "";
+                String className = registration.getClazz() != null ? registration.getClazz().getClassName() : "";
+                String startDate = registration.getClazz() != null && registration.getClazz().getStartDate() != null
+                        ? registration.getClazz().getStartDate().toString() : "";
+
+                if ("Approved".equals(status)) {
+                    if (student.getUserId() != null) {
+                        notificationService.sendEnrollmentApproved(Long.valueOf(student.getUserId()), className, courseName);
+                    }
+                    if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                        emailService.sendEnrollmentApprovedEmail(student.getEmail(), studentName, className, courseName, startDate);
+                    }
+                } else if ("Rejected".equals(status)) {
+                    if (student.getUserId() != null) {
+                        notificationService.sendEnrollmentRejected(Long.valueOf(student.getUserId()), className, courseName, note);
+                    }
+                    if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                        emailService.sendEnrollmentRejectedEmail(student.getEmail(), studentName, className, courseName, note);
+                    }
+                }
+            }
 
             return ResponseData.success("Cập nhật thành công!", registrationId);
         } catch (Exception e) {
