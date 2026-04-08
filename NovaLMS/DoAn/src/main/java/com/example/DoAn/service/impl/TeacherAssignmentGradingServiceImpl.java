@@ -331,59 +331,61 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         QuizResult result = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả không tìm thấy: " + resultId));
 
-        // Save per-question scores
+        // 1. Save per-question scores
         if (request.getGradingItems() != null) {
             for (AssignmentGradingRequestDTO.QuestionGradingItem item : request.getGradingItems()) {
-                Optional<QuizAnswer> optAnswer = Optional.ofNullable(
-                        quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId, item.getQuestionId()));
-                if (optAnswer.isPresent()) {
-                    QuizAnswer answer = optAnswer.get();
+                QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId, item.getQuestionId());
+                if (answer != null) {
                     answer.setPointsAwarded(item.getPointsAwarded());
                     answer.setTeacherNote(item.getTeacherNote());
-                    answer.setIsCorrect(
-                            item.getPointsAwarded() != null
-                                    && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                    answer.setIsCorrect(item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
                     quizAnswerRepository.save(answer);
                 }
             }
         }
 
-        // Update section scores JSON
-        if (request.getSectionScores() != null) {
-            try {
-                result.setSectionScores(objectMapper.writeValueAsString(request.getSectionScores()));
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to serialize section scores", e);
-            }
+        // 2. Recalculate everything from DB to avoid scoring bugs
+        List<QuizAnswer> allAnswers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        Map<String, BigDecimal> sectionScores = new LinkedHashMap<>();
+        BigDecimal totalScoreSum = BigDecimal.ZERO;
+
+        for (QuizAnswer a : allAnswers) {
+            BigDecimal pts = a.getPointsAwarded() != null ? a.getPointsAwarded() : BigDecimal.ZERO;
+            String skill = (a.getQuestion() != null && a.getQuestion().getSkill() != null) ? a.getQuestion().getSkill() : "OTHER";
+            sectionScores.put(skill, sectionScores.getOrDefault(skill, BigDecimal.ZERO).add(pts));
+            totalScoreSum = totalScoreSum.add(pts);
         }
 
-        // Recalculate total score
-        BigDecimal total = request.getSectionScores() != null
-                ? request.getSectionScores().values().stream()
-                        .filter(Objects::nonNull)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                : BigDecimal.ZERO;
-        result.setScore(total.intValue());
+        try {
+            result.setSectionScores(objectMapper.writeValueAsString(sectionScores));
+        } catch (Exception e) {
+            throw new RuntimeException("Serialization error", e);
+        }
+        result.setScore(totalScoreSum.setScale(0, RoundingMode.HALF_UP).intValue());
 
-        // Calculate correctRate
-        Quiz quiz = result.getQuiz();
-        if (quiz != null) {
-            BigDecimal totalMax = quizQuestionRepository
-                    .findByQuizQuizId(quiz.getQuizId()).stream()
-                    .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // 3. Status and Passed check
+        boolean isFinal = Boolean.TRUE.equals(request.getIsFinal());
+        if (isFinal) {
+            Quiz quiz = result.getQuiz();
+            if (quiz != null) {
+                BigDecimal totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            result.setCorrectRate(
-                    totalMax.compareTo(BigDecimal.ZERO) > 0
-                            ? total.divide(totalMax, 4, RoundingMode.HALF_UP)
-                                    .multiply(BigDecimal.valueOf(100))
-                            : BigDecimal.ZERO);
+                BigDecimal rate = totalMax.compareTo(BigDecimal.ZERO) > 0
+                        ? totalScoreSum.divide(totalMax, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+                        : BigDecimal.ZERO;
+                result.setCorrectRate(rate);
 
-            // Determine pass/fail
-            if (quiz.getPassScore() != null) {
-                BigDecimal pct = result.getCorrectRate();
-                result.setPassed(pct.compareTo(quiz.getPassScore()) >= 0);
+                if (quiz.getPassScore() != null) {
+                    result.setPassed(rate.compareTo(quiz.getPassScore()) >= 0);
+                } else {
+                    result.setPassed(true);
+                }
             }
+            result.setStatus("GRADED");
+        } else {
+            result.setStatus("GRADING");
         }
 
         quizResultRepository.save(result);

@@ -18,4 +18,10 @@ public class QuizQuestionPayloadDTO {
     private List<AnswerOptionPayloadDTO> options;
     // MATCHING: options chỉ LEFT, đây là RIGHT
     private List<AnswerOptionPayloadDTO> matchRightOptions;
+
+    // Optional fields for questions belonging to a group passage
+    private Integer groupId;
+    private String passage;
+    private String groupAudioUrl;
+    private String groupImageUrl;
 }

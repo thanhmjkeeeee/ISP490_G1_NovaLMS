@@ -39,6 +39,12 @@ public class QuizResult {
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "status", length = 30)
+    private String status; // 'IN_PROGRESS', 'LOCKED', 'SUBMITTED'
+
     @Column(name = "assignment_session_id")
     private Long assignmentSessionId;
 

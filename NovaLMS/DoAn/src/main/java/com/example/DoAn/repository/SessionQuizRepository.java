@@ -25,4 +25,6 @@ public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Intege
 
     @Query("SELECT sq FROM SessionQuiz sq JOIN FETCH sq.session s JOIN FETCH s.clazz WHERE sq.quiz.quizId = :quizId")
     List<SessionQuiz> findAllByQuizId(@Param("quizId") Integer quizId);
+
+    List<SessionQuiz> findBySession_Clazz_ClassId(Integer classId);
 }

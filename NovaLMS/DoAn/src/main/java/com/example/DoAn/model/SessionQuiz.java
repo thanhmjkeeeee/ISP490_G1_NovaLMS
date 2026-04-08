@@ -29,4 +29,10 @@ public class SessionQuiz {
     @Builder.Default
     @Column(name = "is_open")
     private Boolean isOpen = false;
+
+    @Column(name = "open_at")
+    private java.time.LocalDateTime openAt;
+
+    @Column(name = "close_at")
+    private java.time.LocalDateTime closeAt;
 }
