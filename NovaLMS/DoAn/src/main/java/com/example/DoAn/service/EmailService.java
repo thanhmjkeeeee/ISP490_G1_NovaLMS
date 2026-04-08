@@ -62,6 +62,12 @@ public interface EmailService {
     void sendManualGradingResultEmail(String toEmail, String studentName,
             String quizTitle, String className, String finalScore, String passedStatus);
 
+    /**
+     * Email cảnh báo hành vi vi phạm (gian lận) khi làm quiz (gửi giáo viên).
+     */
+    void sendQuizLockedEmail(String toEmail, String teacherName, String studentName,
+            String quizTitle, String reason, int violationCount, String violationDetails);
+
     // ─── Class / Session ──────────────────────────────────────────────────────
 
     /**

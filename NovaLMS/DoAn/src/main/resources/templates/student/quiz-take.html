@@ -4,6 +4,42 @@
 <head th:replace="~{fragments/head :: common-head(pageTitle='Làm Bài Kiểm Tra')}"></head>
 
 <body class="dashboard-body">
+<style>
+    /* White overlay when focus lost */
+    #anti-cheat-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        flex-direction: column;
+    }
+    /* Chống sao chép */
+    body {
+        user-select: none;
+        -webkit-user-select: none;
+    }
+</style>
+
+<div id="anti-cheat-overlay">
+    <div class="p-5 rounded-4 shadow-lg bg-light border border-danger border-3" style="max-width: 600px;">
+        <div class="mb-4">
+            <i class="bi bi-shield-slash-fill text-danger" style="font-size: 5rem;"></i>
+        </div>
+        <h2 class="text-danger fw-bold mb-3">CẢNH BÁO: RỜI KHỎI MÀN HÌNH</h2>
+        <p class="lead mb-4">Nội dung bài thi đã được ẩn để đảm bảo tính minh bạch và bảo mật.</p>
+        <div class="alert alert-warning border-warning">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            Màn hình sẽ hiển thị lại khi bạn quay lại tab này (nếu chưa vi phạm quá giới hạn).
+        </div>
+    </div>
+</div>
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Bài Kiểm Tra', breadcrumb='Lớp học')}"></header>
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
@@ -185,34 +221,60 @@
 
   // ── Anti-Cheat Logic ───────────────────────────────────────────────────────
   let isLocked = false;
-  
-  const lockQuizAndRedirect = async () => {
+  const overlay = document.getElementById('anti-cheat-overlay');
+
+  window.addEventListener('blur', () => {
+      if (!isLocked && !isSubmitting) overlay.style.display = 'flex';
+  });
+  window.addEventListener('focus', () => {
+      overlay.style.display = 'none';
+  });
+
+  const reportViolation = async (reason) => {
       if (isLocked || isSubmitting) return;
-      isLocked = true;
-      const quizId = document.getElementById('quizId').value;
+      const quizIdInput = document.getElementById('quizId');
+      if (!quizIdInput) return;
+      const qId = parseInt(quizIdInput.value);
+
       try {
-          await fetch('/api/v1/student/quiz/lock', {
+          const res = await fetch('/api/v1/student/quiz/lock', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({quizId: parseInt(quizId)})
+              body: JSON.stringify({
+                  quizId: qId,
+                  reason: reason || "Chuyển tab / Rời khỏi màn hình"
+              })
           });
-          alert("Bài làm của bạn đã bị khóa do vi phạm nội quy (chuyển tab/thoát màn hình). Vui lòng liên hệ giáo viên để được hỗ trợ.");
-          window.location.href = '/student/my-courses';
+          const data = await res.json();
+          
+          if (data.status === 'LOCKED') {
+              isLocked = true;
+              Swal.fire({
+                  title: 'BÀI THI ĐÃ BỊ KHÓA!',
+                  html: `<div class="text-start text-danger fw-bold">Bạn đã vi phạm quy chế quá 3 lần (Chuyển tab/Rời màn hình).</div><hr><div class="text-muted small">Hệ thống đã tự động khóa bài làm của bạn. Vui lòng quay lại danh sách bài kiểm tra để gửi yêu cầu hỗ trợ nếu cần.</div>`,
+                  icon: 'error',
+                  confirmButtonText: 'Quay lại danh sách',
+                  allowOutsideClick: false
+              }).then(() => {
+                  window.location.href = '/student/my-quizzes';
+              });
+          } else if (data.status === 'WARNING') {
+              Swal.fire({
+                  title: 'CẢNH BÁO VI PHẠM!',
+                  html: `<div class="mb-3">Bạn vừa rời khỏi màn hình bài thi!</div><h4 class="text-danger fw-bold">Số lần vi phạm: ${data.violationCount}/3</h4><p class="small text-muted">Lưu ý: Đến lần thứ 3 bài thi sẽ bị KHÓA tự động.</p>`,
+                  icon: 'warning',
+                  confirmButtonColor: '#ffc107',
+                  confirmButtonText: 'Tôi đã hiểu và cam kết không tái phạm'
+              });
+          }
       } catch (e) {
-          console.error("Lỗi khi khóa quiz", e);
+          console.error("Lỗi báo cáo vi phạm", e);
       }
   };
 
   document.addEventListener("visibilitychange", () => {
-      if (document.hidden && !isSubmitting) {
-          lockQuizAndRedirect();
-      }
-  });
-
-  window.addEventListener("blur", () => {
-      if (!isSubmitting) {
-          // Detect window losing focus (e.g., clicking outside the browser, using Alt+Tab)
-          lockQuizAndRedirect();
+      if (document.hidden && !isSubmitting && !isLocked) {
+          reportViolation("Chuyển Tab hoặc rời trình duyệt");
       }
   });
 
@@ -225,22 +287,25 @@
   });
 
   // Intercept normal links
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
       const link = e.target.closest('a');
       if (link && !isLocked && !isSubmitting) {
-          // If it's an external or navigation link
           const href = link.getAttribute('href');
           if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
               e.preventDefault();
-              if (confirm("Thoát trang sẽ khiến bài kiểm tra bị khóa. Bạn có muốn nộp bài thay vì thoát không?")) {
-                  submitQuiz(false); // They chose to submit
-              } else {
-                  if (confirm("Nếu bạn tiếp tục thoát, bài sẽ bị Khóa. Bạn có chắc muốn thoát?")) {
-                      lockQuizAndRedirect().then(() => {
-                           window.location.href = href;
-                      });
+              Swal.fire({
+                  title: 'Bạn muốn rời khỏi trang?',
+                  text: 'Hành động này sẽ được ghi nhận là một lần vi phạm quy chế thi!',
+                  icon: 'warning',
+                  showCancelButton: true,
+                  confirmButtonText: 'Vẫn rời đi',
+                  cancelButtonText: 'Ở lại làm bài'
+              }).then((result) => {
+                  if (result.isConfirmed) {
+                      reportViolation("Tự ý nhấn vào liên kết rời khỏi trang");
+                      window.location.href = href;
                   }
-              }
+              });
           }
       }
   });
@@ -370,7 +435,17 @@
     }
 
     if (!autoSubmit) {
-      if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+      const swalResult = await Swal.fire({
+        title: 'Xác nhận nộp bài',
+        text: 'Bạn có chắc chắn muốn nộp bài làm của mình không?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Đồng ý nộp',
+        cancelButtonText: 'Hủy'
+      });
+      if (!swalResult.isConfirmed) return;
     }
     
     isSubmitting = true;

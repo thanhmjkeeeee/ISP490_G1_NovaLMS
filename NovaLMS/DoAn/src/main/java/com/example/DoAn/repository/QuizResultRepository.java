@@ -37,11 +37,11 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
-           "WHERE qr.passed IS NULL " +
+           "WHERE (qr.passed IS NULL OR qr.status = 'LOCKED') " +
            "AND (q.user.email = :email " +
            "     OR c.teacher.email = :email " +
            "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
-           "ORDER BY qr.submittedAt ASC")
+           "ORDER BY COALESCE(qr.submittedAt, qr.startedAt) ASC")
     Page<QuizResult> findPendingGradingForTeacher(@org.springframework.data.repository.query.Param("email") String email, Pageable pageable);
 
     // Kết quả đã chấm xong (passed IS NOT NULL), teacher có quyền xem

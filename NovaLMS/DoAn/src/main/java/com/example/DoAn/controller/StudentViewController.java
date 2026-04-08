@@ -74,4 +74,9 @@ public class StudentViewController {
     public String viewDashboard() {
         return "student/student_dashboard";
     }
+
+    @GetMapping("/progress")
+    public String viewProgress() {
+        return "student/progress";
+    }
 }
