@@ -23,6 +23,8 @@ public class WizardStep2DTO {
 
     private List<String> aiQuestionTypes; // e.g. ["MULTIPLE_CHOICE_SINGLE", "FILL_IN_BLANK"]
 
+    private String aiMode = "NORMAL"; // "NORMAL" | "ADVANCED"
+
     // EXCEL_IMPORT fields
     private MultipartFile excelFile;
     private String excelQuestionType; // the question type for the uploaded Excel

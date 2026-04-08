@@ -119,6 +119,7 @@ public class QuestionGroupWizardServiceImpl implements IQuestionGroupWizardServi
                     .skill(step1.getSkill())
                     .cefrLevel(step1.getCefrLevel())
                     .questionTypes(dto.getAiQuestionTypes())
+                    .mode(dto.getAiMode() != null ? dto.getAiMode() : "NORMAL")
                     .build();
 
             AIGenerateResponseDTO response = aiQuestionService.generate(request, email);

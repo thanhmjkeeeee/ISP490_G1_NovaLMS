@@ -250,6 +250,7 @@ async function step2GenerateAI() {
   const topic = document.getElementById('aiTopic')?.value.trim();
   const qty = parseInt(document.getElementById('aiQty')?.value) || 5;
   const selectedTypes = Array.from(document.querySelectorAll('#aiTypeCheckboxes input:checked')).map(el => el.value);
+  const mode = document.querySelector('input[name="aiMode"]:checked')?.value || 'NORMAL';
 
   if (!topic) { showError('aiStep2Error', 'Please enter a topic.'); return; }
   if (!qty || qty < 1 || qty > 50) { showError('aiStep2Error', 'Quantity must be between 1 and 50.'); return; }
@@ -259,7 +260,8 @@ async function step2GenerateAI() {
     sourceType: 'AI_GENERATE',
     aiTopic: topic,
     aiQuantity: qty,
-    aiQuestionTypes: selectedTypes
+    aiQuestionTypes: selectedTypes,
+    aiMode: mode
   };
 
   const loadingEl = document.getElementById('aiStep2Loading');
@@ -274,6 +276,7 @@ async function step2GenerateAI() {
     formData.append('sourceType', 'AI_GENERATE');
     formData.append('aiTopic', topic);
     formData.append('aiQuantity', qty);
+    formData.append('aiMode', mode);
     selectedTypes.forEach(t => formData.append('aiQuestionTypes', t));
 
     const res = await fetch('/api/v1/expert/questions/wizard/step2', {

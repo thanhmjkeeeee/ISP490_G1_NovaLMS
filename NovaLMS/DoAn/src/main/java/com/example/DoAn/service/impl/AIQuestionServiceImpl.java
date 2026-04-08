@@ -59,7 +59,35 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     "Bạn đã vượt giới hạn 10 yêu cầu/phút. Vui lòng chờ một chút.");
         }
 
-        String prompt = buildPrompt(request);
+        String mode = (request.getMode() != null && "ADVANCED".equalsIgnoreCase(request.getMode()))
+                ? "ADVANCED" : "NORMAL";
+
+        String prompt;
+        if ("ADVANCED".equals(mode)) {
+            String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "B1";
+            if (request.hasModuleId()) {
+                Optional<Module> moduleOpt = moduleRepository.findById(request.getModuleId());
+                if (moduleOpt.isEmpty()) {
+                    throw new IllegalArgumentException("Module không tồn tại: " + request.getModuleId());
+                }
+                Module module = moduleOpt.get();
+                String lessonSummary = fetchLessonSummary(module.getModuleId());
+                prompt = promptBuilder.buildAdvancedContextPrompt(
+                        (String) module.getModuleName(), (String) lessonSummary,
+                        (int) request.getQuantity().intValue(),
+                        (java.util.List<String>) request.getQuestionTypes(),
+                        cefr);
+            } else {
+                prompt = promptBuilder.buildAdvancedQuickPrompt(
+                        (String) request.getTopic(),
+                        (int) request.getQuantity().intValue(),
+                        (java.util.List<String>) request.getQuestionTypes(),
+                        cefr);
+            }
+        } else {
+            prompt = buildPrompt(request);
+        }
+
         String rawJson = callGroq(prompt);
 
         List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
@@ -89,8 +117,14 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         String skill = request.getSkill() != null ? request.getSkill() : "READING";
         String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "B1";
         int qty = request.getQuantity() != null ? request.getQuantity() : 5;
+        boolean isAdvanced = request.getMode() != null && "ADVANCED".equalsIgnoreCase(request.getMode());
 
-        String prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes());
+        String prompt;
+        if (isAdvanced) {
+            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr);
+        } else {
+            prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes());
+        }
         String rawJson = callGroq(prompt);
 
         AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
