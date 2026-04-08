@@ -289,14 +289,20 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         keyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
 
         // 1. Lấy danh sách câu hỏi lẻ
-        List<Question> loneQuestions = questionRepository.findAllLoneQuestions(
-            skill, cefrLevel, questionType, topic, status, keyword
-        );
+        List<Question> loneQuestions = new ArrayList<>();
+        if (questionType == null || (!questionType.equals("PASSAGE"))) {
+            loneQuestions = questionRepository.findAllLoneQuestions(
+                skill, cefrLevel, questionType, topic, status, keyword
+            );
+        }
 
         // 2. Lấy danh sách bộ câu hỏi (Passages)
-        List<com.example.DoAn.model.QuestionGroup> groups = questionGroupRepository.findByFilters(
-            skill, cefrLevel, topic, status, keyword
-        );
+        List<com.example.DoAn.model.QuestionGroup> groups = new ArrayList<>();
+        if (questionType == null || questionType.equals("PASSAGE")) {
+            groups = questionGroupRepository.findByFilters(
+                skill, cefrLevel, topic, status, keyword
+            );
+        }
 
         // 3. Chuyển đổi và Gộp
         List<QuestionBankItemDTO> allItems = new ArrayList<>();

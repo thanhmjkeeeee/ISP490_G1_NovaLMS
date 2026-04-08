@@ -229,19 +229,11 @@
         if (statusKey === 'draft') return 'st-draft';
         return 'st-closed';
     }
-
     function renderPagination(currentPage, totalPages) {
-        document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
-        const container = document.getElementById('paginationButtons');
-        if (totalPages <= 1) { container.innerHTML = ''; return; }
-
-        let html = '';
-        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage - 1}); return false;">Trước</a></li>`;
-        for (let i = 0; i < totalPages; i++) {
-            html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadClassData(${i}); return false;">${i + 1}</a></li>`;
+        if (document.getElementById('paginationInfo')) {
+            document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
         }
-        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadClassData(${currentPage + 1}); return false;">Sau</a></li>`;
-        container.innerHTML = html;
+        NovaPagination.render('paginationButtons', totalPages, currentPage, 'loadClassData');
     }
 </script>
 </body>

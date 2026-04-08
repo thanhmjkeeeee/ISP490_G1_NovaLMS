@@ -47,6 +47,113 @@
     <!-- Main CSS (dùng chung — tái dụng .header, .footer styles của theme) -->
     <link th:href="@{/assets/css/main.css}" rel="stylesheet">
 
+    <!-- Toastify-JS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script>
+        /**
+         * NOVA LMS — GLOBAL TOAST UTILITY
+         * Overrides window.alert to automatically show toasts instead.
+         */
+        (function() {
+            window.showToast = function(message, type = 'info') {
+                let bgColor = "#3b82f6"; // Default Blue
+                if (type === 'success') bgColor = "#10b981"; // Emerald Green
+                if (type === 'error') bgColor = "#ef4444"; // Red
+                if (type === 'warning') bgColor = "#f59e0b"; // Amber
+
+                Toastify({
+                    text: message,
+                    duration: 4000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: {
+                        background: bgColor,
+                        borderRadius: "8px",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                        fontSize: "0.95rem",
+                        fontWeight: "500",
+                        fontFamily: "'Roboto', sans-serif"
+                    }
+                }).showToast();
+            };
+            
+            /**
+             * NOVA LMS — GLOBAL PAGINATION UTILITY
+             * Renders a sliding window pagination (1 2 ... 10 11 12 ... 50)
+             */
+            window.NovaPagination = {
+                render: function(containerId, totalPages, currentPage, onPageClick) {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+                    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+                    let html = '';
+                    
+                    // Previous Button
+                    html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                        <a class="page-link shadow-none" href="javascript:void(0)" 
+                           onclick="${currentPage > 0 ? `${onPageClick}(${currentPage - 1})` : ''}">Prev</a>
+                    </li>`;
+
+                    const delta = 1; // Show current and 1 neighbor
+                    const range = [];
+                    for (let i = 0; i < totalPages; i++) {
+                        if (i === 0 || i === totalPages - 1 || (i >= currentPage - delta && i <= currentPage + delta)) {
+                            range.push(i);
+                        }
+                    }
+
+                    let last = null;
+                    for (let i of range) {
+                        if (last !== null) {
+                            if (i - last === 2) {
+                                html += this.createPageItem(last + 1, currentPage, onPageClick);
+                            } else if (i - last > 2) {
+                                html += `<li class="page-item disabled"><span class="page-link border-0 text-muted">...</span></li>`;
+                            }
+                        }
+                        html += this.createPageItem(i, currentPage, onPageClick);
+                        last = i;
+                    }
+
+                    // Next Button
+                    html += `<li class="page-item ${currentPage >= totalPages - 1 ? 'disabled' : ''}">
+                        <a class="page-link shadow-none" href="javascript:void(0)" 
+                           onclick="${currentPage < totalPages - 1 ? `${onPageClick}(${currentPage + 1})` : ''}">Next</a>
+                    </li>`;
+
+                    container.innerHTML = html;
+                },
+                createPageItem: function(i, currentPage, onPageClick) {
+                    return `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link shadow-none" href="javascript:void(0)" onclick="${onPageClick}(${i})">${i + 1}</a>
+                    </li>`;
+                }
+            };
+            
+            // Global override for native alert
+            window.alert = function(message) {
+                if (message === undefined || message === null) return;
+                const msg = message.toString().toLowerCase();
+                let type = 'info';
+                
+                if (msg.includes('thành công') || msg.includes('success') || msg.includes('đã lưu') || msg.includes('hoàn tất') || msg.includes('đã gửi')) {
+                    type = 'success';
+                } else if (msg.includes('lỗi') || msg.includes('error') || msg.includes('thất bại') || msg.includes('không thể') || msg.includes('đã xảy ra')) {
+                    type = 'error';
+                } else if (msg.includes('vui lòng') || msg.includes('warning') || msg.includes('chú ý') || msg.includes('trước')) {
+                    type = 'warning';
+                }
+                
+                window.showToast(message, type);
+            };
+        })();
+    </script>
+
     <!-- ============================================================
          DASHBOARD CSS — chỉ inject khi isDashboard = true
          isDashboard được set trong Controller:

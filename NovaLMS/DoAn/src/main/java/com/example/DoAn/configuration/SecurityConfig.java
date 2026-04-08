@@ -151,10 +151,10 @@ public class SecurityConfig {
         return (request, response, authentication) -> {
             // Kiểm tra có redirect parameter không
             String redirectUrl = request.getParameter("redirect");
-            String targetUrl = redirectUrl != null ? redirectUrl : "/index";
+            String targetUrl = (redirectUrl != null && !redirectUrl.isEmpty()) ? redirectUrl : "/index";
 
-            // Nếu không có redirect, chuyển theo role
-            if (redirectUrl == null) {
+            // Nếu không có redirect hoặc redirect về trang chủ, chuyển theo role
+            if (redirectUrl == null || redirectUrl.isEmpty() || redirectUrl.equals("/") || redirectUrl.equals("/index") || redirectUrl.equals("/index.html")) {
                 var authorities = authentication.getAuthorities();
                 for (var authority : authorities) {
                     String role = authority.getAuthority();
@@ -164,6 +164,8 @@ public class SecurityConfig {
                         targetUrl = "/manager/dashboard"; break;
                     } else if (role.equals("ROLE_TEACHER")) {
                         targetUrl = "/teacher/dashboard"; break;
+                    } else if (role.equals("ROLE_EXPERT")) {
+                        targetUrl = "/expert/dashboard"; break;
                     } else if (role.equals("ROLE_STUDENT")) {
                         targetUrl = "/student/dashboard"; break;
                     }

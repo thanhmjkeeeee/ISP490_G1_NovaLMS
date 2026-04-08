@@ -36,8 +36,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         Integer roleId = userRepository.findRoleIdByEmail(email);
         if (roleId != null) {
             Setting role = settingRepository.findById(roleId).orElse(null);
-            if (role != null && role.getName() != null) {
-                roleName = role.getName();
+            if (role != null && role.getValue() != null) {
+                roleName = "ROLE_" + role.getValue(); // e.g. "ADMIN" -> "ROLE_ADMIN"
             }
         }
 
