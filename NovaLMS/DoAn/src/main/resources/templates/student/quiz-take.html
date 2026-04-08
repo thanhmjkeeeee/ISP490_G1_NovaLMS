@@ -38,6 +38,21 @@
           <input type="hidden" id="sessionId" th:value="${sessionId}">
           
           <div th:each="question, stat : ${quiz.questions}" class="card shadow-sm border-0 mb-4 rounded-4 question-card">
+            
+            <!-- Render Passage if it's the first question of the group -->
+            <div th:if="${question.groupId != null and (stat.first or quiz.questions[stat.index - 1].groupId != question.groupId)}" class="card-header bg-light border-bottom p-4">
+              <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-journal-text me-2"></i>Đoạn văn / Ngữ cảnh</h5>
+              <div th:if="${question.passage != null and !question.passage.isEmpty()}" class="mb-3 fs-5" th:utext="${question.passage}"></div>
+              <div th:if="${question.groupImageUrl != null and !question.groupImageUrl.isEmpty()}" class="mb-3 text-center">
+                <img th:src="${question.groupImageUrl}" class="img-fluid rounded border shadow-sm" style="max-height: 400px;">
+              </div>
+              <div th:if="${question.groupAudioUrl != null and !question.groupAudioUrl.isEmpty()}" class="mb-2">
+                <audio controls class="w-100 shadow-sm rounded">
+                  <source th:src="${question.groupAudioUrl}" type="audio/mpeg">
+                </audio>
+              </div>
+            </div>
+
             <div class="card-body p-4">
               <div class="d-flex justify-content-between mb-3">
                 <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span> <span class="text-muted fw-normal">/ <span th:text="${quiz.totalQuestions}"></span></span></h5>
@@ -159,12 +174,75 @@
   let mediaRecorder;
   let audioChunks = [];
   let speakingTimerInterval;
+  let isSubmitting = false;
 
   document.addEventListener("DOMContentLoaded", () => {
     const timeLimit = parseInt(document.getElementById('timeLimitMinutes').value);
     if (timeLimit && !isNaN(timeLimit)) {
       startTimer(timeLimit * 60);
     }
+  });
+
+  // ── Anti-Cheat Logic ───────────────────────────────────────────────────────
+  let isLocked = false;
+  
+  const lockQuizAndRedirect = async () => {
+      if (isLocked || isSubmitting) return;
+      isLocked = true;
+      const quizId = document.getElementById('quizId').value;
+      try {
+          await fetch('/api/v1/student/quiz/lock', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({quizId: parseInt(quizId)})
+          });
+          alert("Bài làm của bạn đã bị khóa do vi phạm nội quy (chuyển tab/thoát màn hình). Vui lòng liên hệ giáo viên để được hỗ trợ.");
+          window.location.href = '/student/my-courses';
+      } catch (e) {
+          console.error("Lỗi khi khóa quiz", e);
+      }
+  };
+
+  document.addEventListener("visibilitychange", () => {
+      if (document.hidden && !isSubmitting) {
+          lockQuizAndRedirect();
+      }
+  });
+
+  window.addEventListener("blur", () => {
+      if (!isSubmitting) {
+          // Detect window losing focus (e.g., clicking outside the browser, using Alt+Tab)
+          lockQuizAndRedirect();
+      }
+  });
+
+  // Warn before closing tab/browser
+  window.addEventListener("beforeunload", (e) => {
+      if (!isLocked && !isSubmitting) {
+          e.preventDefault();
+          e.returnValue = 'Bạn đang làm bài kiểm tra. Thoát trang sẽ khiến bài thi bị khóa. Bạn có chắc chắn muốn thoát?'; 
+      }
+  });
+
+  // Intercept normal links
+  document.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link && !isLocked && !isSubmitting) {
+          // If it's an external or navigation link
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+              e.preventDefault();
+              if (confirm("Thoát trang sẽ khiến bài kiểm tra bị khóa. Bạn có muốn nộp bài thay vì thoát không?")) {
+                  submitQuiz(false); // They chose to submit
+              } else {
+                  if (confirm("Nếu bạn tiếp tục thoát, bài sẽ bị Khóa. Bạn có chắc muốn thoát?")) {
+                      lockQuizAndRedirect().then(() => {
+                           window.location.href = href;
+                      });
+                  }
+              }
+          }
+      }
   });
 
   function startTimer(durationSeconds) {
@@ -295,6 +373,7 @@
       if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
     }
     
+    isSubmitting = true;
     if (timerInterval) clearInterval(timerInterval);
     
     const quizId = document.getElementById('quizId').value;

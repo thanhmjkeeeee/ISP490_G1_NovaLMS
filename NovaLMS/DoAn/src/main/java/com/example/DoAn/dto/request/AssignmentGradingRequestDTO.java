@@ -15,6 +15,7 @@ public class AssignmentGradingRequestDTO {
     private Map<String, BigDecimal> sectionScores;
     private List<QuestionGradingItem> gradingItems;
     private String overallNote;
+    private Boolean isFinal; // true = GRADED, false/null = GRADING
 
     @Data
     @NoArgsConstructor

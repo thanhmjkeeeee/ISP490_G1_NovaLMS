@@ -23,6 +23,7 @@ public class WizardStep2DTO {
 
     private List<String> aiQuestionTypes; // e.g. ["MULTIPLE_CHOICE_SINGLE", "FILL_IN_BLANK"]
 
+    @Builder.Default
     private String aiMode = "NORMAL"; // "NORMAL" | "ADVANCED"
 
     // EXCEL_IMPORT fields

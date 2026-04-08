@@ -57,26 +57,36 @@
             </div>
         </div>
 
-        <!-- 4 TABS NAVIGATION -->
-        <ul class="nav nav-pills workspace-tabs" id="workspaceTabs" role="tablist">
-            <li class="nav-item" role="presentation">
+        <!-- 6 TABS NAVIGATION -->
+        <ul class="nav nav-pills workspace-tabs d-flex flex-nowrap overflow-auto" id="workspaceTabs" role="tablist" style="gap: 5px;">
+            <li class="nav-item flex-shrink-0" role="presentation">
                 <button class="nav-link active" id="tab-classes-btn" data-bs-toggle="tab" data-bs-target="#tab-classes" type="button" role="tab">
-                    <i class="bi bi-journal-text me-2"></i>Danh sách Lớp
+                    <i class="bi bi-journal-text me-1"></i>Danh sách Lớp
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item flex-shrink-0" role="presentation">
                 <button class="nav-link" id="tab-schedule-btn" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
-                    <i class="bi bi-calendar-week me-2"></i>Lịch dạy
+                    <i class="bi bi-calendar-week me-1"></i>Lịch dạy
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            <li class="nav-item flex-shrink-0" role="presentation">
                 <button class="nav-link" id="tab-quiz-btn" data-bs-toggle="tab" data-bs-target="#tab-quiz" type="button" role="tab">
-                    <i class="bi bi-patch-question me-2"></i>Quản lý Quiz
+                    <i class="bi bi-patch-question me-1"></i>Quản lý Quiz
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tab-students-btn" data-bs-toggle="tab" data-bs-target="#tab-students" type="button" role="tab">
-                    <i class="bi bi-people me-2"></i>Học viên
+            <li class="nav-item flex-shrink-0" role="presentation">
+                <button class="nav-link" id="tab-assignment-btn" data-bs-toggle="tab" data-bs-target="#tab-assignment" type="button" role="tab">
+                    <i class="bi bi-file-earmark-code me-1"></i>Quản lý Assignment
+                </button>
+            </li>
+            <li class="nav-item flex-shrink-0" role="presentation">
+                <button class="nav-link" id="tab-grading-btn" data-bs-toggle="tab" data-bs-target="#tab-grading" type="button" role="tab">
+                    <i class="bi bi-pencil-square me-1"></i>Chấm bài
+                </button>
+            </li>
+            <li class="nav-item flex-shrink-0" role="presentation">
+                <button class="nav-link" id="tab-graded-btn" data-bs-toggle="tab" data-bs-target="#tab-graded" type="button" role="tab">
+                    <i class="bi bi-check2-circle me-1"></i>Kết quả đã chấm
                 </button>
             </li>
         </ul>
@@ -177,35 +187,104 @@
                 </div>
             </div>
 
-            <!-- TAB 4: HỌC VIÊN -->
-            <div class="tab-pane fade" id="tab-students" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0">Học viên trong lớp</h5>
-                </div>
-
-                <div id="studentsTableContainer" style="display: none;">
-                    <div class="table-responsive">
-                        <table class="table table-custom align-middle">
-                            <thead>
-                                <tr>
-                                    <th width="60">STT</th>
-                                    <th>Học viên</th>
-                                    <th>Email</th>
-                                    <th>Trạng thái</th>
-                                    <th class="text-center">Tiến độ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentsTableBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+            <!-- TAB 4: QUẢN LÝ ASSIGNMENT (NEW) -->
+            <div class="tab-pane fade" id="tab-assignment" role="tabpanel">
+                <div id="assignment-header-area" class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-code me-2 text-primary"></i>Quản lý Assignment</h5>
+                    <div class="d-flex gap-2">
+                        <button id="btn-create-assignment" class="btn btn-sm btn-primary rounded-pill px-3" style="display:none;" onclick="openCreateAssignmentModal()">
+                            <i class="bi bi-plus-lg me-1"></i>Tạo Assignment
+                        </button>
+                        <button id="btn-back-to-classes" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="display:none;" onclick="wsSelectClassFromTab('ALL')">
+                            <i class="bi bi-arrow-left me-1"></i>Danh sách lớp
+                        </button>
                     </div>
                 </div>
+                
+                <div id="assignment-content-area">
+                    <!-- Tables will be injected here -->
+                </div>
+            </div>
 
-                <div id="studentsEmptyState" class="text-center py-5">
-                    <div class="py-5">
-                        <i class="bi bi-people fs-1 text-primary opacity-25"></i>
-                        <h6 class="fw-bold mt-3">Chọn lớp học để xem danh sách học viên</h6>
+            <!-- TAB 5: CHẤM BÀI -->
+            <div class="tab-pane fade" id="tab-grading" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-pencil-square me-2 text-primary"></i>Danh sách bài nộp cần chấm</h5>
+                        <p class="text-muted small mb-0">Hệ thống chấm tự động LISTENING/READING. Cần tải bài SPEAKING/WRITING để chấm thủ công.</p>
+                    </div>
+                </div>
+                
+                <div id="gradingContentContainer">
+                    <!-- Grading Queue Area -->
+                    <div id="gradingQueueArea">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
+                    </div>
+
+                    <!-- Grading Detail Area (Hidden by default) -->
+                    <div id="gradingDetailArea" style="display:none;">
+                        <div class="card border-0 shadow-sm rounded-4 mb-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h4 class="fw-bold mb-1" id="ws-gd-studentName">Đang tải...</h4>
+                                        <div class="text-muted small">
+                                            <span>Bài: <strong id="ws-gd-quizTitle">—</strong></span>
+                                            <span class="mx-2">·</span>
+                                            <span>Lớp: <strong id="ws-gd-className">—</strong></span>
+                                            <span class="mx-2">·</span>
+                                            <span>Ngày nộp: <strong id="ws-gd-submittedAt">—</strong></span>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-secondary rounded-pill btn-sm" onclick="wsCloseGradingDetail()">
+                                        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                                    </button>
+                                </div>
+                                <div class="alert alert-info mb-0 py-2 px-3 small">
+                                    <i class="bi bi-lightning-charge me-1"></i>
+                                    Điểm tự động: <strong id="ws-gd-autoScore">0</strong>
+                                    &nbsp;|&nbsp;
+                                    Điểm hiện tại: <strong id="ws-gd-totalScore">0</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <ul class="nav nav-tabs mb-0" id="ws-gd-skillTabs"></ul>
+                        <div class="tab-content" id="ws-gd-tabContent"></div>
+
+                        <div class="card border-0 shadow-sm rounded-4 mt-4">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-muted small">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Bạn có thể <strong>Lưu nháp</strong> để tiếp tục sau, hoặc <strong>Hoàn tất</strong> để gửi điểm cuối cùng.
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary rounded-pill px-4" id="ws-gd-draftBtn" onclick="wsSubmitGrade(false)">
+                                            Lưu nháp
+                                        </button>
+                                        <button class="btn btn-success rounded-pill px-4 fw-bold" id="ws-gd-finalBtn" onclick="wsSubmitGrade(true)">
+                                            <i class="bi bi-check-circle me-1"></i> Hoàn tất chấm
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: KẾT QUẢ ĐÃ CHẤM -->
+            <div class="tab-pane fade" id="tab-graded" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2 text-primary"></i>Kết quả đã chấm</h5>
+                </div>
+                
+                <div id="gradedContentContainer">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary"></div>
                     </div>
                 </div>
             </div>
@@ -675,7 +754,7 @@
             if (json.status === 200 && json.data && json.data.items) {
                 state.allClasses = json.data.items;
                 renderGlobalFilter();
-                renderTabClasses();
+                loadClasses();
             }
         } catch (err) {
             console.error("Failed to fetch classes:", err);
@@ -683,27 +762,27 @@
     }
 
     function renderGlobalFilter() {
-        const select = document.getElementById('globalClassFilter');
-        if (!select) return;
-        select.innerHTML = '<option value="ALL">-- Tất cả lớp học --</option>' +
+        const selects = [document.getElementById('globalClassFilter'), document.getElementById('assignmentClassSelector')];
+        const options = '<option value="ALL">-- Chọn lớp học --</option>' +
             state.allClasses.map(c => `<option value="${c.classId}">${c.className}</option>`).join('');
+        
+        selects.forEach(sel => {
+            if (sel) sel.innerHTML = options;
+        });
     }
+
+    window.wsSelectClassFromTab = function(classId) {
+        state.selectedClassId = classId;
+        const globalFilter = document.getElementById('globalClassFilter');
+        if (globalFilter) globalFilter.value = classId;
+        refreshActiveTab();
+    };
 
     function handleGlobalFilterChange() {
         state.selectedClassId = document.getElementById('globalClassFilter').value;
         refreshActiveTab();
     }
 
-    function refreshActiveTab() {
-        const activeTabEl = document.querySelector('#workspaceTabs .nav-link.active');
-        if (!activeTabEl) return;
-
-        const tabId = activeTabEl.getAttribute('id');
-        if (tabId === 'tab-classes-btn') renderTabClasses();
-        else if (tabId === 'tab-schedule-btn') loadSchedule();
-        else if (tabId === 'tab-quiz-btn') loadQuizzes();
-        else if (tabId === 'tab-students-btn') loadStudents();
-    }
 
     // Add event listeners for tab switching
     document.querySelectorAll('#workspaceTabs [data-bs-toggle="tab"]').forEach(btn => {
@@ -711,7 +790,7 @@
     });
 
     // --- TAB 1: CLASSES ---
-    function renderTabClasses() {
+    async function loadClasses() {
         const tbody = document.getElementById('classesTableBody');
         if (!tbody) return;
 
@@ -1726,42 +1805,536 @@
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     };
 
-    // --- TAB 4: STUDENTS ---
-    async function loadStudents() {
+    // --- TAB 4: ASSIGNMENT MANAGEMENT (NEW) ---
+    // --- TAB 4: ASSIGNMENT MANAGEMENT (NEW) ---
+    async function loadAssignments() {
         const classId = state.selectedClassId;
-        const container = document.getElementById('studentsTableContainer');
-        const empty = document.getElementById('studentsEmptyState');
-        const tbody = document.getElementById('studentsTableBody');
+        const container = document.getElementById('assignment-content-area');
+        const backBtn = document.getElementById('btn-back-to-classes');
+        const createBtn = document.getElementById('btn-create-assignment');
+        if (!container) return;
 
-        if (classId === 'ALL') { container.style.display = 'none'; empty.style.display = 'block'; return; }
+        if (classId === 'ALL') {
+            backBtn.style.display = 'none';
+            createBtn.style.display = 'none';
+            renderAssignmentClassList(container);
+            return;
+        }
 
-        container.style.display = 'block';
-        empty.style.display = 'none';
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+        backBtn.style.display = 'inline-block';
+        createBtn.style.display = 'inline-block';
+        container.innerHTML = `
+            <div class="table-responsive mt-3">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th width="60">STT</th>
+                            <th>Assignment / Quiz</th>
+                            <th class="text-center">Thời gian mở</th>
+                            <th class="text-center">Thời gian đóng</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignmentTableBody">
+                        <tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+        
+        const tbody = document.getElementById('assignmentTableBody');
 
         try {
-            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/students`);
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`);
             const json = await res.json();
-
-            if (!json.data || json.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Lớp chưa có học viên nào.</td></tr>';
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Assignment nào trong lớp này.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = json.data.map((s, i) => `
+            tbody.innerHTML = json.data.map((a, i) => `
                 <tr>
                     <td>${i + 1}</td>
-                    <td><div class="fw-bold">${s.fullName}</div></td>
-                    <td>${s.email}</td>
-                    <td><span class="badge bg-success bg-opacity-10 text-success px-3">Đã duyệt</span></td>
+                    <td>
+                        <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
+                        <small class="text-muted">Buổi ${a.sessionNumber}</small>
+                    </td>
+                    <td class="text-center small">${a.openAt ? new Date(a.openAt).toLocaleString('vi-VN') : '—'}</td>
+                    <td class="text-center small">${a.closeAt ? new Date(a.closeAt).toLocaleString('vi-VN') : '—'}</td>
                     <td class="text-center">
-                        <span class="fw-bold text-primary">${s.progress || 0}%</span>
+                        <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
+                            ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
+                            <i class="bi bi-clock-history me-1"></i>Hẹn giờ
+                        </button>
+                        <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
+                            <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
+                        </button>
                     </td>
                 </tr>`).join('');
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải danh sách học viên</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Assignment</td></tr>';
         }
     }
+
+    function renderAssignmentClassList(container) {
+        if (!state.allClasses || state.allClasses.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-folder-x fs-1 text-muted opacity-25"></i>
+                    <p class="mt-3 text-muted">Không tìm thấy lớp học nào để cấu hình.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tên lớp</th>
+                            <th>Khóa học</th>
+                            <th class="text-center">Học viên</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.allClasses.map(c => `
+                            <tr>
+                                <td><h6 class="fw-bold mb-0">${c.className}</h6></td>
+                                <td>${c.courseName || '—'}</td>
+                                <td class="text-center">${c.studentCount}</td>
+                                <td class="text-center">
+                                    <span class="badge ${c.status === 'Open' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${c.status === 'Open' ? 'text-success' : 'text-secondary'} border">
+                                        ${c.status}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary rounded-pill px-4" onclick="wsSelectClassFromTab(${c.classId})">
+                                        Cấu hình Assignment <i class="bi bi-chevron-right ms-1"></i>
+                                    </button>
+                                </td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }
+
+    // --- CREATE ASSIGNMENT MODAL LOGIC ---
+    window.openCreateAssignmentModal = async function() {
+        const classId = state.selectedClassId;
+        const modal = new bootstrap.Modal('#createAssignmentModal');
+        
+        // Populate modal with loading skeleton
+        document.getElementById('ca-sessions-list').innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div> Đang tải buổi học...';
+        document.getElementById('ca-quizzes-list').innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div> Đang tải Quiz...';
+        
+        modal.show();
+
+        try {
+            // Fetch Sessions
+            const sRes = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
+            const sJson = await sRes.json();
+            const sessions = sJson.data || [];
+            
+            document.getElementById('ca-sessions-list').innerHTML = sessions.map(s => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="ca-selected-session" id="ca-session-${s.sessionId}" value="${s.sessionId}">
+                    <label class="form-check-label small" for="ca-session-${s.sessionId}">
+                        <strong>Buổi ${s.sessionNumber}</strong>: ${wsEscape(s.topic || 'Chưa có chủ đề')}
+                    </label>
+                </div>`).join('') || '<p class="text-muted small">Chưa có buổi học nào.</p>';
+
+            // Fetch Quizzes (Available for this class)
+            const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+            const qJson = await qRes.json();
+            const quizzes = qJson.data || [];
+
+            document.getElementById('ca-quizzes-list').innerHTML = quizzes.map(q => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="ca-selected-quiz" id="ca-quiz-${q.quizId}" value="${q.quizId}">
+                    <label class="form-check-label small" for="ca-quiz-${q.quizId}">
+                        <strong>${wsEscape(q.title)}</strong> (${q.questionCount} câu)
+                    </label>
+                </div>`).join('') || '<p class="text-muted small">Chưa có Quiz nào khả dụng cho lớp này.</p>';
+
+        } catch (err) {
+            console.error("Error loading create assignment data:", err);
+            alert("Lỗi tải dữ liệu. Vui lòng thử lại.");
+        }
+    };
+
+    window.saveNewAssignments = async function() {
+        const sessionId = document.querySelector('input[name="ca-selected-session"]:checked')?.value;
+        const quizIds = Array.from(document.querySelectorAll('input[name="ca-selected-quiz"]:checked')).map(el => el.value);
+
+        if (!sessionId) { alert("Vui lòng chọn 1 buổi học."); return; }
+        if (quizIds.length === 0) { alert("Vui lòng chọn ít nhất 1 Quiz."); return; }
+
+        const btn = document.getElementById('btn-save-ca');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+
+        try {
+            let successCount = 0;
+            for (const qId of quizIds) {
+                const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quizId: parseInt(qId) })
+                });
+                if (res.ok) successCount++;
+            }
+
+            alert(`Đã thêm thành công ${successCount} assignment(s) vào buổi học.`);
+            bootstrap.Modal.getInstance(document.getElementById('createAssignmentModal')).hide();
+            loadAssignments();
+        } catch (err) {
+            alert("Lỗi trong quá trình lưu: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Lưu Assignment';
+        }
+    };
+
+    window.openAssignmentScheduleModal = function(sqId, openAt, closeAt) {
+        document.getElementById('sched-sessionQuizId').value = sqId;
+        document.getElementById('sched-openAt').value = openAt ? openAt.substring(0, 16) : '';
+        document.getElementById('sched-closeAt').value = closeAt ? closeAt.substring(0, 16) : '';
+        new bootstrap.Modal('#assignmentScheduleModal').show();
+    };
+
+    window.saveAssignmentSchedule = async function() {
+        const sqId = document.getElementById('sched-sessionQuizId').value;
+        const payload = {
+            openAt: document.getElementById('sched-openAt').value || null,
+            closeAt: document.getElementById('sched-closeAt').value || null
+        };
+
+        try {
+            const res = await fetch(`/api/v1/teacher/class-sessions/session-quizzes/${sqId}/schedule`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (json.status === 200) {
+                alert('Lưu lịch hẹn giờ thành công!');
+                bootstrap.Modal.getInstance(document.getElementById('assignmentScheduleModal')).hide();
+                loadAssignments();
+            } else { alert('Lỗi: ' + json.message); }
+        } catch (err) { alert('Lỗi kết nối: ' + err.message); }
+    };
+
+    // --- TAB 5 & 6: GRADING ---
+    async function loadGradingQueue(page = 0) {
+        state.gradingPage = page;
+        const classId = state.selectedClassId;
+        const container = document.getElementById('gradingQueueArea');
+        let url = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=10`;
+        if (classId !== 'ALL') url += `&classId=${classId}`;
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            renderGradingTable(container, json.data, "Chưa có bài nào cần chấm.", 'loadGradingQueue');
+        } catch (err) { container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu</div>'; }
+    }
+
+    async function loadGradedResults(page = 0) {
+        state.gradedPage = page;
+        const classId = state.selectedClassId;
+        const container = document.getElementById('gradedContentContainer');
+        let url = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=${page}&size=10`;
+        if (classId !== 'ALL') url += `&classId=${classId}`;
+
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            renderGradingTable(container, json.data, "Chưa có kết quả đã chấm.", 'loadGradedResults');
+        } catch (err) { container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu</div>'; }
+    }
+
+    function renderGradingTable(container, pageData, emptyMsg, loadFunc) {
+        const items = pageData.content || [];
+        if (items.length === 0) {
+            container.innerHTML = `<div class="text-center py-5 text-muted">${emptyMsg}</div>`;
+            return;
+        }
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Học viên</th>
+                            <th>Bài thi</th>
+                            <th>Ngày nộp</th>
+                            <th class="text-center">Score</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
+                                <td>${item.quizTitle}</td>
+                                <td>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</td>
+                                <td class="text-center"><span class="badge bg-primary">${item.totalScore ?? item.autoScore ?? 0}</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="wsOpenGradingDetail(${item.resultId})">
+                                        ${item.isGraded ? 'Xem lại' : 'Chấm điểm'}
+                                    </button>
+                                </td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ${renderWsPagination(pageData, loadFunc)}`;
+    }
+
+    function renderWsPagination(p, func) {
+        if (!p || p.totalPages <= 1) return '';
+        let html = `<nav class="mt-4"><ul class="pagination pagination-sm justify-content-center">`;
+        
+        // Previous
+        html += `<li class="page-item ${p.first ? 'disabled' : ''}">
+            <button class="page-link rounded-start-pill px-3" onclick="${func}(${p.number - 1})">Trước</button>
+        </li>`;
+
+        // Pages
+        for (let i = 0; i < p.totalPages; i++) {
+            if (i === p.number) {
+                html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
+            } else if (i < 3 || i > p.totalPages - 4 || (i > p.number - 2 && i < p.number + 2)) {
+                html += `<li class="page-item"><button class="page-link" onclick="${func}(${i})">${i + 1}</button></li>`;
+            } else if (i === 3 || i === p.totalPages - 4) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        // Next
+        html += `<li class="page-item ${p.last ? 'disabled' : ''}">
+            <button class="page-link rounded-end-pill px-3" onclick="${func}(${p.number + 1})">Tiếp</button>
+        </li>`;
+
+        html += `</ul></nav>`;
+        return html;
+    }
+
+    function refreshActiveTab() {
+        const activeTab = document.querySelector('#workspaceTabs .nav-link.active');
+        if (!activeTab) return;
+        const id = activeTab.id;
+        if (id === 'tab-classes-btn') loadClasses();
+        else if (id === 'tab-schedule-btn') loadSchedule();
+        else if (id === 'id-quiz-btn' || id === 'tab-quiz-btn') loadQuizzes();
+        else if (id === 'tab-assignment-btn') loadAssignments();
+        else if (id === 'tab-grading-btn') loadGradingQueue();
+        else if (id === 'tab-graded-btn') loadGradedResults();
+    }
+
+    document.querySelectorAll('#workspaceTabs button').forEach(b => {
+        b.addEventListener('shown.bs.tab', refreshActiveTab);
+    });
+
+    const originalHandleFilter = handleGlobalFilterChange;
+    handleGlobalFilterChange = function() {
+        state.selectedClassId = document.getElementById('globalClassFilter').value;
+        refreshActiveTab();
+    };
+
+    // --- GRADING DETAIL LOGIC (IN-WORKSPACE) ---
+    let wsGradingData = null;
+    let wsCurrentResultId = null;
+
+    window.wsOpenGradingDetail = async function(resultId) {
+        wsCurrentResultId = resultId;
+        document.getElementById('gradingQueueArea').style.display = 'none';
+        document.getElementById('gradingDetailArea').style.display = 'block';
+        
+        // Quick loading state
+        document.getElementById('ws-gd-studentName').textContent = 'Đang tải...';
+        document.getElementById('ws-gd-skillTabs').innerHTML = '';
+        document.getElementById('ws-gd-tabContent').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+
+        try {
+            const resp = await fetch(`/api/v1/teacher/assignment-results/${resultId}`);
+            const json = await resp.json();
+            if (json.status !== 200) throw new Error(json.message);
+            
+            wsGradingData = json.data;
+            renderWsGradingDetail(wsGradingData);
+        } catch (e) {
+            alert('Lỗi: ' + e.message);
+            wsCloseGradingDetail();
+        }
+    };
+
+    window.wsCloseGradingDetail = function() {
+        document.getElementById('gradingDetailArea').style.display = 'none';
+        document.getElementById('gradingQueueArea').style.display = 'block';
+        loadGradingQueue(); // Refresh list 
+    };
+
+    function renderWsGradingDetail(d) {
+        document.getElementById('ws-gd-studentName').textContent = d.studentName || 'N/A';
+        document.getElementById('ws-gd-quizTitle').textContent = d.quizTitle || 'N/A';
+        document.getElementById('ws-gd-className').textContent = d.className || '—';
+        document.getElementById('ws-gd-submittedAt').textContent = d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('vi-VN') : '—';
+        document.getElementById('ws-gd-autoScore').textContent = d.autoScore ?? 0;
+        document.getElementById('ws-gd-totalScore').textContent = d.totalScore || '—';
+
+        const SKILL_ICONS = { LISTENING:'🎧', READING:'📖', SPEAKING:'🎤', WRITING:'✍️' };
+        
+        // Tabs
+        document.getElementById('ws-gd-skillTabs').innerHTML = d.sections.map((s, i) => `
+            <li class="nav-item">
+                <button class="nav-link ${i===0?'active':''} small py-2" data-bs-toggle="tab" data-bs-target="#ws-gd-skill-${s.skill}">
+                    ${SKILL_ICONS[s.skill] || '📝'} ${s.skill}
+                </button>
+            </li>`).join('');
+
+        // Tab Content
+        document.getElementById('ws-gd-tabContent').innerHTML = d.sections.map((s, i) => `
+            <div class="tab-pane fade ${i===0?'show active':''}" id="ws-gd-skill-${s.skill}">
+                <div class="card border-0 shadow-sm rounded-4 mt-3">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column gap-3">
+                            ${s.questions.map((q, qi) => `
+                                <div class="border rounded-3 p-3 bg-white">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <h6 class="mb-0 small fw-bold">Câu ${qi + 1} <span class="badge bg-light text-dark border ms-1">${q.maxPoints}đ</span></h6>
+                                        ${q.isCorrect ? '<span class="badge bg-success bg-opacity-10 text-success">Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger bg-opacity-10 text-danger">Sai</span>' : '')}
+                                    </div>
+                                    <p class="mb-2 small border-bottom pb-2">${q.content || '—'}</p>
+                                    ${q.audioUrl ? `<div class="mb-2"><audio controls src="${q.audioUrl}" class="w-100" style="height:35px;"></audio></div>` : ''}
+                                    ${q.studentAnswer ? `<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ${wsEscape(q.studentAnswer)}</div>` : ''}
+                                    
+                                    ${s.gradingStatus === 'AUTO' ? `
+                                        <div class="text-end fw-bold text-primary small">Điểm: ${q.teacherScore || 0} / ${q.maxPoints}</div>
+                                    ` : `
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-md-3">
+                                                <label class="form-label extra-small fw-bold">Điểm</label>
+                                                <input type="number" step="0.5" min="0" max="${q.maxPoints}" class="form-control form-control-sm ws-gd-score-input" data-qid="${q.questionId}" value="${q.teacherScore ?? 0}">
+                                            </div>
+                                            <div class="col-md-9">
+                                                <label class="form-label extra-small fw-bold">Nhận xét</label>
+                                                <input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="${q.questionId}" value="${q.teacherNote || ''}" placeholder="Ghi chú...">
+                                            </div>
+                                        </div>
+                                    `}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>`).join('');
+    }
+
+    window.wsSubmitGrade = async function(isFinal) {
+        const items = [];
+        document.querySelectorAll('.ws-gd-score-input').forEach(input => {
+            const qid = parseInt(input.dataset.qid);
+            const score = parseFloat(input.value) || 0;
+            const note = document.querySelector(`.ws-gd-note-input[data-qid="${qid}"]`)?.value || '';
+            items.push({ questionId: qid, pointsAwarded: score, teacherNote: note });
+        });
+
+        const btn = isFinal ? document.getElementById('ws-gd-finalBtn') : document.getElementById('ws-gd-draftBtn');
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const res = await fetch(`/api/v1/teacher/assignment-results/${wsCurrentResultId}/grade`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gradingItems: items, isFinal: isFinal })
+            });
+            const json = await res.json();
+            if (json.status === 200) {
+                alert(isFinal ? 'Đã hoàn tất chấm điểm!' : 'Đã lưu bản nháp thành công.');
+                if (isFinal) wsCloseGradingDetail();
+                else wsOpenGradingDetail(wsCurrentResultId); // Refresh scores
+            } else {
+                alert('Lỗi: ' + json.message);
+            }
+        } catch (e) {
+            alert('Lỗi hệ thống: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+        }
+    };
+
+    fetchAllClasses();
 </script>
+<!-- Create Assignment Modal -->
+<div class="modal fade" id="createAssignmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="fw-bold mb-0">Tạo Assignment mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-5 border-end">
+                        <label class="form-label fw-bold small text-primary text-uppercase">1. Chọn buổi học</label>
+                        <div id="ca-sessions-list" class="overflow-auto pe-2" style="max-height: 400px;">
+                            <!-- Sessions injected here -->
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold small text-primary text-uppercase">2. Chọn các Quiz làm assignment</label>
+                        <div id="ca-quizzes-list" class="overflow-auto pe-2" style="max-height: 400px;">
+                            <!-- Quizzes injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button id="btn-save-ca" class="btn btn-primary rounded-pill px-4 fw-bold" onclick="saveNewAssignments()">Lưu Assignment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assignment Schedule Modal -->
+<div class="modal fade" id="assignmentScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header">
+                <h5 class="fw-bold mb-0">Hẹn giờ mở/đóng Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="sched-sessionQuizId">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Thời gian mở</label>
+                    <input type="datetime-local" id="sched-openAt" class="form-control rounded-3">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Thời gian đóng</label>
+                    <input type="datetime-local" id="sched-closeAt" class="form-control rounded-3">
+                </div>
+                <div class="alert alert-info py-2 small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>Nếu để trống, assignment sẽ tuân theo trạng thái mở/đóng thủ công.
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-primary rounded-pill px-4 fw-bold" onclick="saveAssignmentSchedule()">Lưu kết quả</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

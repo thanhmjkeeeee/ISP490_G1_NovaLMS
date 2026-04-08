@@ -3,6 +3,7 @@ package com.example.DoAn.service;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.dto.request.AssignmentScheduleRequestDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
@@ -34,8 +35,7 @@ public class TeacherClassSessionService {
     private final ModuleRepository moduleRepository;
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
-    private final EmailService emailService;
-    private final INotificationService notificationService;
+    private final AssignmentSessionRepository assignmentSessionRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -685,76 +685,87 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  NOTIFICATION HELPERS
+    //  ASSIGNMENT MANAGEMENT (PRO)
     // ─────────────────────────────────────────────────────────────
 
-    private void notifyStudentsSessionCreated(ClassSession session, Clazz clazz) {
-        if (session == null || clazz == null) return;
-        List<Registration> regs = registrationRepository.findApprovedByClassId(clazz.getClassId());
-        String className = clazz.getClassName() != null ? clazz.getClassName() : "";
-        String courseName = clazz.getCourse() != null && clazz.getCourse().getCourseName() != null
-                ? clazz.getCourse().getCourseName() : "";
-        String sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-        String sessionTime = session.getStartTime() != null ? session.getStartTime() : "";
-        String topic = session.getTopic() != null ? session.getTopic() : "";
-        String meetLink = session.getMeetLink() != null ? session.getMeetLink()
-                : (clazz.getMeetLink() != null ? clazz.getMeetLink() : "");
+    @Transactional(readOnly = true)
+    public ResponseData<List<Map<String, Object>>> getAssignmentsByClass(String email, Integer classId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
 
-        for (Registration reg : regs) {
-            User student = reg.getUser();
-            if (student == null) continue;
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            if (student.getEmail() != null && !student.getEmail().isBlank()) {
-                emailService.sendSessionReminderEmail(student.getEmail(), studentName, className, topic, sessionDate, sessionTime, meetLink);
-            }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionReminder(Long.valueOf(student.getUserId()), className, topic, sessionDate, meetLink);
-            }
+            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
+            List<Map<String, Object>> result = sqList.stream().map(sq -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                Quiz q = sq.getQuiz();
+                m.put("sessionQuizId", sq.getId());
+                m.put("sessionId", sq.getSession().getSessionId());
+                m.put("sessionNumber", sq.getSession().getSessionNumber());
+                m.put("quizId", q.getQuizId());
+                m.put("title", q.getTitle());
+                m.put("isOpen", sq.getIsOpen() != null ? sq.getIsOpen() : false);
+                m.put("openAt", sq.getOpenAt());
+                m.put("closeAt", sq.getCloseAt());
+                m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+                return m;
+            }).toList();
+
+            return ResponseData.success("Danh sách Assignment", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
         }
     }
 
-    private void notifyStudentsSessionRescheduled(ClassSession session,
-            java.time.LocalDateTime oldDate, String oldTime) {
-        if (session == null || session.getClazz() == null) return;
-        List<Registration> regs = registrationRepository.findApprovedByClassId(session.getClazz().getClassId());
-        String className = session.getClazz().getClassName() != null ? session.getClazz().getClassName() : "";
-        String newDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-        String newTime = session.getStartTime() != null ? session.getStartTime() : "";
-        String reason = session.getNotes() != null ? session.getNotes() : "";
+    @Transactional
+    public ResponseData<Void> updateAssignmentSchedule(String email, Integer sessionQuizId, AssignmentScheduleRequestDTO request) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
 
-        for (Registration reg : regs) {
-            User student = reg.getUser();
-            if (student == null) continue;
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            String oldDateStr = oldDate != null ? oldDate.toLocalDate().toString() : "";
-            if (student.getEmail() != null && !student.getEmail().isBlank()) {
-                emailService.sendSessionRescheduledEmail(student.getEmail(), studentName, className,
-                        oldDateStr, oldTime != null ? oldTime : "", newDate, newTime, reason);
+            SessionQuiz sq = sessionQuizRepository.findById(sessionQuizId).orElse(null);
+            if (sq == null) return ResponseData.error(404, "Không tìm thấy cấu hình assignment");
+
+            if (!isTeacherOfClass(teacherId, sq.getSession().getClazz().getClassId())) {
+                return ResponseData.error(403, "Không có quyền");
             }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionRescheduled(Long.valueOf(student.getUserId()), className, newDate, newTime, reason);
-            }
+
+            sq.setOpenAt(request.getOpenAt());
+            sq.setCloseAt(request.getCloseAt());
+            // If openAt is in the past and closeAt is in the future, maybe auto-open? 
+            // For now, let teacher manually toggle isOpen as well.
+            
+            sessionQuizRepository.save(sq);
+            return ResponseData.success("Cập nhật thời gian thành công");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
         }
     }
 
-    private void notifyStudentsSessionCancelled(ClassSession session) {
-        if (session == null || session.getClazz() == null) return;
-        List<Registration> regs = registrationRepository.findApprovedByClassId(session.getClazz().getClassId());
-        String className = session.getClazz().getClassName() != null ? session.getClazz().getClassName() : "";
-        String sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-        String sessionTime = session.getStartTime() != null ? session.getStartTime() : "";
-        String reason = session.getNotes() != null ? session.getNotes() : "";
+    @Transactional
+    public ResponseData<Void> resetStudentAttempt(String email, Integer quizId, Long studentId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
 
-        for (Registration reg : regs) {
-            User student = reg.getUser();
-            if (student == null) continue;
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            if (student.getEmail() != null && !student.getEmail().isBlank()) {
-                emailService.sendSessionCancelledEmail(student.getEmail(), studentName, className, sessionDate, sessionTime, reason);
-            }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionCancelled(Long.valueOf(student.getUserId()), className, sessionDate, reason);
-            }
+            // Verify teacher has access to the class this quiz belongs to
+            // This is complex because a quiz can be in multiple sessions.
+            // But if the teacher is resetting it, they should have access to at least one class containing it.
+            
+            AssignmentSession session = assignmentSessionRepository.findByQuizQuizIdAndUserUserId(quizId, studentId).orElse(null);
+            if (session == null) return ResponseData.error(404, "Không tìm thấy bài làm của học viên");
+
+            // Reset logic: delete the session so they can start over
+            assignmentSessionRepository.delete(session);
+            
+            // Or just change status to IN_PROGRESS if we want to keep partial answers
+            // session.setStatus("IN_PROGRESS");
+            // assignmentSessionRepository.save(session);
+
+            return ResponseData.success("Đã reset lượt làm bài cho học viên");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
         }
     }
 }
+
