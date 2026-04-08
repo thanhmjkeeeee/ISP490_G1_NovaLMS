@@ -13,5 +13,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     Optional<Payment> findFirstByRegistrationIdOrderByCreatedAtDesc(Integer registrationId);
     Optional<Payment> findByPayosOrderCode(Long orderCode);
     Optional<Payment> findByPayosPaymentLinkId(Long payosPaymentLinkId);
+    /** Tính tổng doanh thu từ các payment đã PAID */
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(p.amount) FROM Payment p WHERE p.status = 'PAID'")
+    java.math.BigDecimal sumTotalRevenue();
+
+    /** Doanh thu theo tháng trong năm hiện tại */
+    @org.springframework.data.jpa.repository.Query(value = "SELECT MONTH(paid_at) as month, SUM(amount) as total FROM payment WHERE status = 'PAID' AND YEAR(paid_at) = YEAR(CURDATE()) GROUP BY MONTH(paid_at) ORDER BY month", nativeQuery = true)
+    List<Object[]> getMonthlyRevenue();
+
+    /** Lấy danh sách payment thành công để xuất Excel */
+    List<Payment> findByStatusOrderByPaidAtDesc(String status);
+
     List<Payment> findAllByRegistrationIdOrderByCreatedAtDesc(Integer registrationId);
 }

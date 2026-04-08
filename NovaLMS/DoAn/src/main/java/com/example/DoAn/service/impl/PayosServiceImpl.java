@@ -294,13 +294,16 @@ public class PayosServiceImpl implements PayosService {
             }
 
             // Cập nhật Payment → PAID
-            final BigDecimal finalAmount = payment.getAmount();
             payment.setStatus("PAID");
             payment.setPaidAt(LocalDateTime.now());
             if (payosPaymentLinkId != null && payment.getPayosPaymentLinkId() == null) {
                 payment.setPayosPaymentLinkId(payosPaymentLinkId);
             }
             paymentRepository.save(payment);
+
+            // Create a final reference for use inside the lambda
+            final Payment finalPayment = payment;
+            final BigDecimal finalAmount = payment.getAmount();
 
             // Tự động duyệt đăng ký khi thanh toán thành công
             Integer registrationId = payment.getRegistrationId();
@@ -322,11 +325,11 @@ public class PayosServiceImpl implements PayosService {
                                 ? reg.getClazz().getStartDate().toString() : "";
 
                         if (student.getEmail() != null && !student.getEmail().isBlank()) {
-                            String pIdStr = String.valueOf(payment.getId());
-                            String pOrderCode = payment.getPayosOrderCode() != null
-                                    ? payment.getPayosOrderCode().toString() : "";
-                            String pPaidAtStr = payment.getPaidAt() != null
-                                    ? payment.getPaidAt().toString() : "";
+                            String pIdStr = String.valueOf(finalPayment.getId());
+                            String pOrderCode = finalPayment.getPayosOrderCode() != null
+                                    ? finalPayment.getPayosOrderCode().toString() : "";
+                            String pPaidAtStr = finalPayment.getPaidAt() != null
+                                    ? finalPayment.getPaidAt().toString() : "";
 
                             byte[] invoicePdf = invoicePdfService.generateInvoice(
                                     studentName,

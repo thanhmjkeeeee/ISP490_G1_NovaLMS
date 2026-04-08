@@ -395,14 +395,24 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         quizResultRepository.save(result);
 
         // ── Send email + in-app notification to student ──────────────────────
-        if (result.getUser() != null) {
+        if (isFinal && result.getUser() != null) {
             User student = result.getUser();
             String studentName = student.getFullName() != null ? student.getFullName() : "";
             String email = student.getEmail();
 
+            Quiz quiz = result.getQuiz();
             String assignmentTitle = quiz != null ? quiz.getTitle() : "";
             String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
-            String scoreStr = total != null ? total.intValue() + "/" + totalMax.intValue() : "";
+
+            // Re-calculate max points for display
+            BigDecimal totalMaxDisplay = BigDecimal.ZERO;
+            if (quiz != null) {
+                totalMaxDisplay = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+            }
+
+            String scoreStr = totalScoreSum.setScale(0, RoundingMode.HALF_UP).intValue() + "/" + totalMaxDisplay.setScale(0, RoundingMode.HALF_UP).intValue();
             String passedStatus = Boolean.TRUE.equals(result.getPassed()) ? "Dat" : "Khong dat";
 
             if (email != null && !email.isBlank()) {
