@@ -210,15 +210,25 @@ async function loadHistory(page) {
 
         let html = '';
         result.data.items.forEach((item, index) => {
-            const date = new Date(item.submittedAt).toLocaleString('vi-VN');
-            const isPending = item.passed === null;
+            const timeValue = item.submittedAt || item.startedAt;
+            const date = timeValue ? new Date(timeValue).toLocaleString('vi-VN') : 'N/A';
+            const isPending = item.passed === null && item.status !== 'LOCKED';
+            const isLocked = item.status === 'LOCKED';
+            
             let statusBadge = '';
-            if (isPending) {
+            if (isLocked) {
+                statusBadge = '<span class="badge bg-danger"><i class="bi bi-shield-lock"></i> Bị khóa</span>';
+            } else if (isPending) {
                 statusBadge = '<span class="badge bg-warning text-dark">Chờ chấm điểm</span>';
             } else {
                 statusBadge = item.passed
                     ? '<span class="badge bg-success">Đạt</span>'
                     : '<span class="badge bg-danger">Không Đạt</span>';
+            }
+
+            let violationHtml = '';
+            if (isLocked && item.violationLog) {
+                violationHtml = `<div class="mt-1 small text-danger" style="font-size: 0.75rem;"><i class="bi bi-exclamation-triangle-fill"></i> ${item.violationLog}</div>`;
             }
 
             const categoryLabel = item.quizCategory === 'ENTRY_TEST'
@@ -230,15 +240,27 @@ async function loadHistory(page) {
                     <td class="ps-4 text-muted small">${page * 15 + index + 1}</td>
                     <td>
                         <div class="fw-bold text-dark">${item.quizTitle}</div>
+                        ${violationHtml}
                     </td>
                     <td><span class="badge bg-secondary">${item.courseName || 'N/A'}</span></td>
                     <td><span class="small text-muted"><i class="bi bi-clock me-1"></i>${date}</span></td>
-                    <td><span class="fw-bold">${item.score}</span> <span class="text-muted">/ ${item.maxScore}</span></td>
+                    <td><span class="fw-bold">${item.score || 0}</span> <span class="text-muted">/ ${item.maxScore || 0}</span></td>
                     <td>${statusBadge}</td>
                     <td class="text-end pe-4">
+                        ${isLocked ? `
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                ${item.isUnlockRequested 
+                                    ? '<span class="badge bg-info text-dark py-2"><i class="bi bi-send-check me-1"></i> Đã gửi yêu cầu</span>'
+                                    : `<button onclick="requestUnlock(${item.resultId})" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold shadow-sm">
+                                         <i class="bi bi-unlock me-1"></i> Yêu cầu mở bài
+                                       </button>`
+                                }
+                            </div>
+                        ` : `
                         <a href="/student/quiz/result/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                             Chi tiết <i class="bi bi-arrow-right"></i>
                         </a>
+                        `}
                     </td>
                 </tr>
             `;
@@ -259,6 +281,46 @@ function renderPagination(totalPages, currentPageIdx) {
     }
     nav.style.display = 'block';
     NovaPagination.render('historyPaginationButtons', totalPages, currentPageIdx, 'loadHistory');
+}
+
+async function requestUnlock(resultId) {
+    const { value: reason } = await Swal.fire({
+        title: 'Gửi yêu cầu mở bài?',
+        text: "Bạn cần cung cấp lý do giải trình chính đáng để giáo viên xem xét mở lại bài làm cho bạn.",
+        input: 'textarea',
+        inputPlaceholder: 'Nhập lý do giải trình của bạn tại đây (Bắt buộc)...',
+        inputAttributes: {
+            'aria-label': 'Nhập lý do của bạn'
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        confirmButtonText: 'Gửi yêu cầu giải trình',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn cần nhập lý do để giáo viên xem xét!'
+            }
+        }
+    });
+
+    if (reason) {
+        try {
+            const res = await fetch(`/api/v1/student/quiz/result/${resultId}/request-unlock`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ reason: reason })
+            });
+            const result = await res.json();
+            if (res.ok) {
+                Swal.fire('Thành công', result.message, 'success');
+                loadHistory(currentPage);
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi', 'Lỗi kết nối máy chủ', 'error');
+        }
+    }
 }
 </script>
 

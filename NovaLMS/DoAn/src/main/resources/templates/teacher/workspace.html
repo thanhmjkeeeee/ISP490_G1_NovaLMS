@@ -89,6 +89,12 @@
                     <i class="bi bi-check2-circle me-1"></i>Kết quả đã chấm
                 </button>
             </li>
+            <li class="nav-item flex-shrink-0" role="presentation">
+                <button class="nav-link position-relative" id="tab-requests-btn" data-bs-toggle="tab" data-bs-target="#tab-requests" type="button" role="tab" style="color: #dc3545;">
+                    <i class="bi bi-exclamation-octagon-fill me-1"></i>Yêu cầu mở khóa
+                    <span id="wsRequestBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">0</span>
+                </button>
+            </li>
         </ul>
 
         <!-- TABS CONTENT -->
@@ -288,6 +294,37 @@
                     </div>
                 </div>
             </div>
+
+            <!-- TAB 7: YÊU CẦU MỞ KHÓA (NEW) -->
+            <div class="tab-pane fade" id="tab-requests" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold mb-1 text-danger"><i class="bi bi-exclamation-octagon-fill me-2"></i>Danh sách yêu cầu xin mở lại bài</h5>
+                        <p class="text-muted small mb-0">Học sinh bị hệ thống tự động khóa do tabbing out 3 lần. Vui lòng xem xét giải trình để mở khóa.</p>
+                    </div>
+                </div>
+                
+                <div id="requestsContentContainer">
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th width="60">#</th>
+                                    <th>Thông tin bài thi & Vi phạm</th>
+                                    <th>Học sinh</th>
+                                    <th class="text-center">Số lần tabbing</th>
+                                    <th class="text-end">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wsRequestsTableBody">
+                                <tr><td colspan="5" class="text-center py-5 text-muted">Chọn lớp học để xem yêu cầu hoặc chuyển sang "Tất cả lớp học"</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
 
         </div>
     </div>
@@ -2079,14 +2116,98 @@
         state.gradingPage = page;
         const classId = state.selectedClassId;
         const container = document.getElementById('gradingQueueArea');
-        let url = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=10`;
-        if (classId !== 'ALL') url += `&classId=${classId}`;
+        
+        // Fetch Assignments
+        let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=50`;
+        if (classId !== 'ALL') assUrl += `&classId=${classId}`;
+        
+        // Fetch Quizzes (Lesson Quizzes)
+        let quizUrl = `/api/v1/teacher/quiz-results/pending?page=0&size=100`;
 
         try {
-            const res = await fetch(url);
-            const json = await res.json();
-            renderGradingTable(container, json.data, "Chưa có bài nào cần chấm.", 'loadGradingQueue');
-        } catch (err) { container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu</div>'; }
+            const [assRes, quizRes] = await Promise.all([
+                fetch(assUrl).then(r => r.json()),
+                fetch(quizUrl).then(r => r.json())
+            ]);
+
+            let mergedItems = [];
+            
+            // Map Assignments
+            if (assRes.status === 200 && assRes.data && assRes.data.content) {
+                mergedItems.push(...assRes.data.content.map(i => ({
+                    ...i,
+                    type: 'ASSIGNMENT',
+                    badgeClass: 'bg-info'
+                })));
+            }
+            
+            // Map Quizzes (Filter out Locked ones as they go to Request tab, only show Pending grading)
+            if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
+                let pQuizzes = quizRes.data.items.filter(i => i.status !== 'LOCKED');
+                // Local filter by class if needed
+                if (classId !== 'ALL') {
+                    // Quiz pending DTO might not have classId, we'll try to match by courseName or just show all
+                    // For now, if quiz item has courseName, we can try to match it with state.allClasses[classId].courseName
+                }
+                
+                mergedItems.push(...pQuizzes.map(i => ({
+                    resultId: i.resultId,
+                    studentName: i.studentName,
+                    studentEmail: i.studentEmail,
+                    quizTitle: i.quizTitle,
+                    submittedAt: i.submittedAt || i.startedAt,
+                    totalScore: i.status, // placeholder
+                    type: 'QUIZ',
+                    badgeClass: 'bg-primary'
+                })));
+            }
+
+            // Sort by Date Desc
+            mergedItems.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+            if (mergedItems.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">Chưa có bài nào cần chấm.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle">
+                        <thead>
+                            <tr>
+                                <th>Loại</th>
+                                <th>Học viên</th>
+                                <th>Bài thi / Bài tập</th>
+                                <th>Ngày nộp</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${mergedItems.map(item => `
+                                <tr>
+                                    <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-','text-')} border small">${item.type}</span></td>
+                                    <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
+                                    <td>${item.quizTitle}</td>
+                                    <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
+                                    <td class="text-end">
+                                        ${item.type === 'ASSIGNMENT' ? `
+                                            <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="wsOpenGradingDetail(${item.resultId})">
+                                                Chấm điểm <i class="bi bi-chevron-right ms-1"></i>
+                                            </button>
+                                        ` : `
+                                            <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                                Chấm định tính <i class="bi bi-arrow-right ms-1"></i>
+                                            </a>
+                                        `}
+                                    </td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+        } catch (err) { 
+            console.error(err);
+            container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu chấm bài</div>'; 
+        }
     }
 
     async function loadGradedResults(page = 0) {
@@ -2169,6 +2290,122 @@
         return html;
     }
 
+    async function loadUnlockRequests(page = 0) {
+        const tbody = document.getElementById('wsRequestsTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-danger"></div></td></tr>';
+        
+        const classId = state.selectedClassId;
+        let url = `/api/v1/teacher/quiz-results/pending?page=${page}&size=50`;
+        // Filter by classId if needed (backend would need to support this, or we filter in JS)
+        
+        try {
+            const res = await fetch(url);
+            const result = await res.json();
+            
+            let items = [];
+            if(result.status === 200 && result.data && result.data.items) {
+                // Filter locally by class if selectedClassId != 'ALL'
+                let rawItems = result.data.items.filter(i => i.isUnlockRequested);
+                if (classId !== 'ALL') {
+                    // Logic to find if student belongs to class would go here
+                    // For now, let's show all requests until we confirm backend filtering
+                    items = rawItems;
+                } else {
+                    items = rawItems;
+                }
+                
+                // Update badge
+                const badge = document.getElementById('wsRequestBadge');
+                if (items.length > 0) {
+                    badge.innerText = items.length;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Không có yêu cầu mở khóa nào cần xử lý.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map((item, index) => {
+                const date = item.submittedAt ? new Date(item.submittedAt).toLocaleString('vi-VN') : 'N/A';
+                const formattedLog = (item.violationLog || '').split('\n').map(l => `<div class="mb-1"><i class="bi bi-clock-history me-1"></i>${l}</div>`).join('');
+                
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>
+                            <div class="fw-bold">${item.quizTitle}</div>
+                            <div class="mt-2 p-2 bg-danger bg-opacity-10 border-start border-3 border-danger small text-danger mb-2">
+                                <strong><i class="bi bi-exclamation-triangle"></i> Nhật ký vi phạm:</strong><br>
+                                ${formattedLog || 'Hệ thống tự động khóa sau 3 lần thoát tab.'}
+                            </div>
+                            <div class="p-2 bg-warning bg-opacity-10 border-start border-3 border-warning small">
+                                <strong><i class="bi bi-chat-left-dots"></i> Giải trình của HS:</strong><br>
+                                <span class="fst-italic">"${item.studentAppealReason || 'Không có lý do'}"</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="fw-bold">${item.studentName}</div>
+                            <div class="small text-muted">${item.studentEmail}</div>
+                            <div class="small mt-1"><i class="bi bi-clock me-1"></i>${date}</div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-danger rounded-pill px-3">${item.violationCount || 3}</span>
+                        </td>
+                        <td class="text-end">
+                            <button onclick="unlockResult(${item.resultId})" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+                                <i class="bi bi-unlock"></i> Duyệt Mở Khóa
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải yêu cầu mở khóa.</td></tr>';
+        }
+    }
+
+    // Reuse unlockResult from standalone page or implement here
+    window.unlockResult = async function(resultId) {
+        const confirmResult = await Swal.fire({
+            title: 'Xác nhận mở khóa?',
+            text: "Học sinh sẽ được phép làm lại bài Quiz này. Bản ghi vi phạm hiện tại sẽ bị xóa để học sinh bắt đầu lượt mới.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Đồng ý mở khóa',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (confirmResult.isConfirmed) {
+            try {
+                const res = await fetch(`/api/v1/teacher/quiz-results/${resultId}/unlock`, { method: 'POST' });
+                const result = await res.json();
+                if (result.status === 200) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Đã mở khóa thành công!',
+                        showConfirmButton: false,
+                        timer: 2500
+                    });
+                    loadUnlockRequests();
+                } else {
+                    Swal.fire('Thất bại', result.message || 'Lỗi khi mở khóa', 'error');
+                }
+            } catch(e) {
+                Swal.fire('Lỗi', 'Lỗi kết nối server', 'error');
+            }
+        }
+    }
+
     function refreshActiveTab() {
         const activeTab = document.querySelector('#workspaceTabs .nav-link.active');
         if (!activeTab) return;
@@ -2179,6 +2416,7 @@
         else if (id === 'tab-assignment-btn') loadAssignments();
         else if (id === 'tab-grading-btn') loadGradingQueue();
         else if (id === 'tab-graded-btn') loadGradedResults();
+        else if (id === 'tab-requests-btn') loadUnlockRequests();
     }
 
     document.querySelectorAll('#workspaceTabs button').forEach(b => {

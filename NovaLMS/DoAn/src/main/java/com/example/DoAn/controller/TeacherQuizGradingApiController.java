@@ -143,4 +143,19 @@ public class TeacherQuizGradingApiController {
             return ResponseData.error(500, e.getMessage());
         }
     }
+
+    @PostMapping("/{resultId}/unlock")
+    public ResponseData<Void> unlockQuizResult(
+            @PathVariable Integer resultId,
+            Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+
+        try {
+            quizResultService.unlockQuiz(resultId);
+            return ResponseData.success("Đã mở khóa bài làm của học sinh thành công!");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
 }
