@@ -1842,7 +1842,7 @@
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
             const json = await res.json();
-            if (json.status === 200) loadQuizzes();
+            if (json.status === 200) refreshActiveTab();
             else alert(json.message || 'Lỗi khi mở/đóng quiz');
         } catch (e) { alert('Lỗi: ' + e.message); }
     };
@@ -1874,7 +1874,6 @@
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     };
 
-    // --- TAB 4: ASSIGNMENT MANAGEMENT (NEW) ---
     // --- TAB 4: ASSIGNMENT MANAGEMENT (NEW) ---
     async function loadAssignments() {
         const classId = state.selectedClassId;
@@ -1914,10 +1913,10 @@
         const tbody = document.getElementById('assignmentTableBody');
 
         try {
-            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/expert-assignments`);
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`);
             const json = await res.json();
             if (json.status !== 200 || !json.data || json.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Expert Assignment nào trong khóa học này.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Assignment nào trong khóa học này.</td></tr>';
                 return;
             }
 
@@ -1926,30 +1925,32 @@
                     <td>${i + 1}</td>
                     <td>
                         <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
-                        <small class="${a.sessionNumber ? 'text-primary' : 'text-muted'}">
-                            ${a.sessionNumber ? 'Buổi ' + a.sessionNumber : '<i class="bi bi-exclamation-circle me-1"></i>Chưa gán buổi'}
+                        <small>
+                            ${a.sessionNumber ? `<span class="text-primary">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary small">Chưa gán</span>`}
                         </small>
                     </td>
                     <td class="text-center small">${a.openAt ? new Date(a.openAt).toLocaleString('vi-VN') : '—'}</td>
                     <td class="text-center small">${a.closeAt ? new Date(a.closeAt).toLocaleString('vi-VN') : '—'}</td>
                     <td class="text-center">
-                        ${a.sessionQuizId ? `
-                            <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
-                                ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
-                            </span>
-                        ` : '<span class="text-muted small">—</span>'}
+                        <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
+                            ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
+                        </span>
                     </td>
                     <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
+                                ${a.sessionQuizId ? '' : 'disabled title="Cần gán vào buổi học trước khi hẹn giờ"'}
+                                onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
+                            <i class="bi bi-clock-history me-1"></i>Hẹn giờ
+                        </button>
+                        
                         ${a.sessionQuizId ? `
-                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
-                                <i class="bi bi-clock-history me-1"></i>Hẹn giờ
-                            </button>
-                            <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
+                            <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" 
+                                    onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
                                 <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
                             </button>
                         ` : `
-                            <button class="btn btn-sm btn-light rounded-pill px-3 text-muted border" disabled title="Gán vào buổi học để cấu hình">
-                                <i class="bi bi-gear-fill me-1"></i>Chưa gán
+                            <button class="btn btn-sm btn-secondary disabled rounded-pill px-3 ms-1" disabled>
+                                <i class="bi bi-lock me-1"></i>Đóng
                             </button>
                         `}
                     </td>
@@ -2028,19 +2029,19 @@
                     </label>
                 </div>`).join('') || '<p class="text-muted small">Chưa có buổi học nào.</p>';
 
-            // Fetch Quizzes (Only expert assignments not yet assigned)
-            const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/expert-assignments`);
+            // Fetch Assignments (Only unassigned ones)
+            const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`);
             const qJson = await qRes.json();
-            const allExpertQuizzes = qJson.data || [];
-            const quizzes = allExpertQuizzes.filter(q => q.sessionQuizId == null && q.sessionId == null);
+            const assignments = qJson.data || [];
+            const unassignedAssignments = assignments.filter(a => a.sessionQuizId == null);
 
-            document.getElementById('ca-quizzes-list').innerHTML = quizzes.map(q => `
+            document.getElementById('ca-quizzes-list').innerHTML = unassignedAssignments.map(q => `
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" name="ca-selected-quiz" id="ca-quiz-${q.quizId}" value="${q.quizId}">
                     <label class="form-check-label small" for="ca-quiz-${q.quizId}">
                         <strong>${wsEscape(q.title)}</strong> (${q.questionCount} câu)
                     </label>
-                </div>`).join('') || '<p class="text-muted small">Tất cả Expert Assignments đã được gán vào các buổi học.</p>';
+                </div>`).join('') || '<p class="text-muted small">Tất cả Assignment đã được gán vào buổi học.</p>';
 
         } catch (err) {
             console.error("Error loading create assignment data:", err);
