@@ -1,8 +1,6 @@
 package com.example.DoAn.service;
 
-import com.example.DoAn.model.Setting;
 import com.example.DoAn.model.User;
-import com.example.DoAn.repository.SettingRepository;
 import com.example.DoAn.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,27 +19,25 @@ import java.util.Collections;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final SettingRepository settingRepository;
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailWithRole(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
         boolean enabled = "Active".equalsIgnoreCase(user.getStatus());
 
         String roleName = "ROLE_STUDENT";
 
-        // Query role by role_id from user
-        Integer roleId = userRepository.findRoleIdByEmail(email);
-        if (roleId != null) {
-            Setting role = settingRepository.findById(roleId).orElse(null);
-            if (role != null && role.getValue() != null) {
-                roleName = "ROLE_" + role.getValue(); // e.g. "ADMIN" -> "ROLE_ADMIN"
-            }
+        // Get role from user association
+        if (user.getRole() != null && user.getRole().getValue() != null) {
+            roleName = user.getRole().getValue(); // Use value (e.g., ROLE_ADMIN) instead of name if possible
+        } else if (user.getRole() != null && user.getRole().getName() != null) {
+            roleName = user.getRole().getName();
         }
 
-        log.info("Loaded user: {}, roleId: {}, roleName: {}", email, roleId, roleName);
+        log.info("Loaded user: {}, roleName: {}", email, roleName);
 
         GrantedAuthority authority = new SimpleGrantedAuthority(roleName);
 

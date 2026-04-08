@@ -35,7 +35,7 @@ public class StudentQuizTakingController {
     }
 
     @GetMapping("/student/quiz/take/{quizId}")
-    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal) {
+    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return "redirect:/login.html";
 
@@ -46,8 +46,22 @@ public class StudentQuizTakingController {
             model.addAttribute("sessionId", dto.getSessionId());
             return "student/quiz-take";
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/student/my-courses";
+        }
+    }
+
+    @PostMapping("/api/v1/student/quiz/lock")
+    @ResponseBody
+    public ResponseEntity<?> lockQuiz(@RequestBody Map<String, Integer> payload, Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        try {
+            Integer quizId = payload.get("quizId");
+            quizResultService.lockQuiz(quizId, email);
+            return ResponseEntity.ok(Map.of("message", "Quiz locked due to violation."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

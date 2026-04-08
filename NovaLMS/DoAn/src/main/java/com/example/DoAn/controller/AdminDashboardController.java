@@ -11,6 +11,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.RegistrationRepository;
+import com.example.DoAn.repository.UserRepository;
+
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -18,10 +22,25 @@ public class AdminDashboardController {
 
     private final StudentService studentService;
     private final SettingService settingService;
+    private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
+    private final RegistrationRepository registrationRepository;
 
     @GetMapping("/dashboard")
     public String managerDashboard(Model model) {
-        model.addAttribute("pageTitle", "Admin Dashboard");
+        model.addAttribute("pageTitle", "Tổng quan hệ thống - Admin Dashboard");
+        model.addAttribute("activePage", "dashboard");
+        
+        long studentCount = userRepository.countByRoleName("ROLE_STUDENT");
+        long courseCount = courseRepository.count();
+        long registrationCount = registrationRepository.count();
+        long teacherCount = userRepository.countByRoleName("ROLE_TEACHER");
+        
+        model.addAttribute("studentCount", studentCount);
+        model.addAttribute("courseCount", courseCount);
+        model.addAttribute("registrationCount", registrationCount);
+        model.addAttribute("teacherCount", teacherCount);
+
         return "admin/dashboard";
     }
 

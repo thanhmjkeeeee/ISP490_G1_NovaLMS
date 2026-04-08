@@ -24,6 +24,7 @@ public class TeacherQuizApiController {
 
     private final TeacherQuizService teacherQuizService;
     private final AIQuestionService aiQuestionService;
+    private final com.example.DoAn.service.QuizResultService quizResultService;
 
     private String getEmail(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken token) {
@@ -112,6 +113,22 @@ public class TeacherQuizApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return teacherQuizService.deleteQuiz(quizId, email);
+    }
+
+    /**
+     * Mở khóa bài quiz bị khóa do student vi phạm.
+     * POST /api/v1/teacher/quizzes/results/{resultId}/unlock
+     */
+    @PostMapping("/results/{resultId}/unlock")
+    public ResponseData<?> unlockQuizResult(@PathVariable Integer resultId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        try {
+            quizResultService.unlockQuiz(resultId);
+            return ResponseData.success("Mở khóa bài làm thành công.");
+        } catch (Exception e) {
+            return ResponseData.error(400, e.getMessage());
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -46,6 +46,12 @@
       </div>
 
       <div class="col-lg-9">
+        
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <span th:text="${errorMessage}"></span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
 
         <div class="search-bar-wrapper mb-4">
           <div class="input-group search-input-group shadow-sm rounded-pill overflow-hidden bg-white">
