@@ -139,6 +139,7 @@ public class ExpertViewController {
             model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
         }
         model.addAttribute("isDashboard", true);
+        model.addAttribute("mode", "QUIZ");
         return "expert/quiz-list";
     }
 
@@ -172,7 +173,13 @@ public class ExpertViewController {
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/assignment-management")
-    public String redirectAssignmentManagement() {
-        return "redirect:/expert/quiz-management";
+    public String assignmentListPage(Model model, Principal principal) {
+        String email = getEmail(principal);
+        if (email != null) {
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+        }
+        model.addAttribute("isDashboard", true);
+        model.addAttribute("mode", "ASSIGNMENT");
+        return "expert/quiz-list";
     }
 }

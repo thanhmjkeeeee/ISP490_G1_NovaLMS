@@ -294,13 +294,16 @@ public class PayosServiceImpl implements PayosService {
             }
 
             // Cập nhật Payment → PAID
-            final BigDecimal finalAmount = payment.getAmount();
             payment.setStatus("PAID");
             payment.setPaidAt(LocalDateTime.now());
             if (payosPaymentLinkId != null && payment.getPayosPaymentLinkId() == null) {
                 payment.setPayosPaymentLinkId(payosPaymentLinkId);
             }
             paymentRepository.save(payment);
+
+            // Create a final reference for use inside the lambda
+            final Payment finalPayment = payment;
+            final BigDecimal finalAmount = payment.getAmount();
 
             // Tự động duyệt đăng ký khi thanh toán thành công
             Integer registrationId = payment.getRegistrationId();
