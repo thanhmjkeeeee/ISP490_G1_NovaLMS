@@ -308,7 +308,6 @@ public class PayosServiceImpl implements PayosService {
             // Tự động duyệt đăng ký khi thanh toán thành công
             Integer registrationId = payment.getRegistrationId();
             if (registrationId != null) {
-                Payment finalPayment = payment;
                 registrationRepository.findById(registrationId).ifPresent(reg -> {
                     reg.setStatus("Approved");
                     registrationRepository.save(reg);

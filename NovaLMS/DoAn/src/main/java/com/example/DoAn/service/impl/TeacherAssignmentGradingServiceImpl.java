@@ -403,7 +403,6 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             String studentName = student.getFullName() != null ? student.getFullName() : "";
             String email = student.getEmail();
 
-            Quiz quiz = result.getQuiz();
             String assignmentTitle = quiz != null ? quiz.getTitle() : "";
             String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
             String scoreStr = totalScoreSum != null ? totalScoreSum.intValue() + "/" + totalMax.intValue() : "";
