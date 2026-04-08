@@ -11,6 +11,7 @@ public interface StudentService {
     ResponseData<List<RegistrationResponseDTO>> getMyEnrollments(String email);
     ResponseData<PageResponse<MyCourseDTO>> getMyCourses(String email, String keyword, Integer categoryId, int page, int size, String sort);
     ResponseData<DashboardResponseDTO> getDashboardData(String email);
+    ResponseData<LearningProgressResponseDTO> getLearningProgress(String email);
     StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId);
 
     // Admin methods
