@@ -223,6 +223,41 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Override
+    public void sendQuizLockedEmail(String toEmail, String teacherName, String studentName,
+            String quizTitle, String reason, int violationCount, String violationDetails) {
+        String subject = "[Nova LMS] CẢNH BÁO VI PHẠM: Bài kiểm tra đã bị khóa - " + quizTitle;
+        
+        String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy"));
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("Kính gửi Quý thầy/cô ").append(nullToEmpty(teacherName)).append(",\n\n");
+        sb.append("Hệ thống Nova LMS xin thông báo về một trường hợp vi phạm quy chế nghiêm trọng trong bài kiểm tra.\n\n");
+        sb.append("THÔNG TIN CHI TIẾT SỰ VIỆC:\n");
+        sb.append("--------------------------------------------------\n");
+        sb.append("- Học sinh: ").append(nullToEmpty(studentName)).append("\n");
+        sb.append("- Bài kiểm tra: ").append(nullToEmpty(quizTitle)).append("\n");
+        sb.append("- Tổng số lần vi phạm: ").append(violationCount).append("\n");
+        sb.append("- Thời điểm ghi nhận khóa: ").append(now).append("\n");
+        sb.append("- Lý do khóa cuối: ").append(nullToEmpty(reason)).append("\n");
+        sb.append("--------------------------------------------------\n\n");
+        
+        if (violationDetails != null && !violationDetails.isBlank()) {
+            sb.append("NHẬT KÝ VI PHẠM CHI TIẾT:\n");
+            sb.append(violationDetails).append("\n");
+            sb.append("--------------------------------------------------\n\n");
+        }
+
+        sb.append("HÀNH ĐỘNG CỦA HỆ THỐNG:\n");
+        sb.append("Học sinh đã tabbing out vượt ngưỡng cho phép (3 lần). Hệ thống đã tự động KHÓA bài thi.\n\n");
+        sb.append("Quý thầy/cô vui lòng đăng nhập để xem xét giải trình của học sinh (nếu có):\n");
+        sb.append("Đường dẫn quản lý: http://localhost:8080/teacher/quiz/grading\n\n");
+        sb.append("Trân trọng,\n");
+        sb.append("Ban quản trị hệ thống Nova LMS");
+        
+        sendEmail(toEmail, subject, sb.toString());
+    }
+
     // ─── Class / Session ──────────────────────────────────────────────────────
 
     @Override

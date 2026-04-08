@@ -45,6 +45,20 @@ public class QuizResult {
     @Column(name = "status", length = 30)
     private String status; // 'IN_PROGRESS', 'LOCKED', 'SUBMITTED'
 
+    @Column(name = "violation_log", columnDefinition = "TEXT")
+    private String violationLog;
+
+    @Builder.Default
+    @Column(name = "is_unlock_requested")
+    private Boolean isUnlockRequested = false;
+
+    @Builder.Default
+    @Column(name = "violation_count")
+    private Integer violationCount = 0;
+
+    @Column(name = "student_appeal_reason", columnDefinition = "TEXT")
+    private String studentAppealReason;
+
     @Column(name = "assignment_session_id")
     private Long assignmentSessionId;
 

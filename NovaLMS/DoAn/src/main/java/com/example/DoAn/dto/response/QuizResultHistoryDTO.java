@@ -21,4 +21,7 @@ public class QuizResultHistoryDTO {
     private Integer score;
     private Integer maxScore;
     private Boolean passed;
+    private String status;
+    private String violationLog;
+    private Boolean isUnlockRequested;
 }
