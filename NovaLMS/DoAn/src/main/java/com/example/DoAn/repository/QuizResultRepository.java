@@ -77,30 +77,48 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             Pageable pageable
     );
 
-    // ─── Assignment Grading Queue ─────────────────────────────────────────────
-    // Returns all QuizResults for assignment-type quizzes (COURSE_ASSIGNMENT /
-    // MODULE_ASSIGNMENT) where the teacher is enrolled in the student's class.
-    @Query(value = """
-        SELECT qr FROM QuizResult qr
+    @Query("""
+        SELECT DISTINCT qr FROM QuizResult qr
         JOIN FETCH qr.quiz q
         LEFT JOIN FETCH qr.user stu
-        LEFT JOIN FETCH q.course
-        LEFT JOIN FETCH q.clazz c
-        LEFT JOIN FETCH c.teacher t
-        WHERE qr.assignmentSessionId IS NOT NULL
-          AND q.quizCategory IN ('COURSE_ASSIGNMENT', 'MODULE_ASSIGNMENT')
-          AND (t.email = :teacherEmail
-               OR EXISTS (SELECT 1 FROM Clazz tc
-                          WHERE tc.course = q.course
-                            AND tc.teacher.email = :teacherEmail))
-          AND (:quizId IS NULL OR q.quizId = :quizId)
-          AND (:classId IS NULL OR c.classId = :classId)
+        JOIN Registration reg ON reg.user.userId = stu.userId
+        WHERE reg.clazz.classId = :classId
+          AND LOWER(reg.status) = 'approved'
+          AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED'))
+          AND (
+               q.quizCategory = 'COURSE_ASSIGNMENT' 
+               OR EXISTS (
+                   SELECT 1 FROM Lesson l 
+                   JOIN l.module m 
+                   WHERE l.type = 'QUIZ' 
+                   AND m.course.courseId = reg.clazz.course.courseId
+                   AND l.lessonId = q.lesson.lessonId 
+               )
+          )
+          AND (
+            'ALL' IN :status
+            OR ('PENDING_SPEAKING' IN :status
+                AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)
+                AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)
+               )
+            OR ('PENDING_WRITING' IN :status
+                AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)
+                AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)
+               )
+            OR ('PENDING_BOTH' IN :status
+                AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)
+                AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)
+               )
+            OR ('ALL_GRADED' IN :status
+                AND qr.passed IS NOT NULL
+               )
+          )
         ORDER BY qr.submittedAt DESC
         """)
-    Page<QuizResult> findAssignmentResultsForTeacher(
-            @org.springframework.data.repository.query.Param("teacherEmail") String teacherEmail,
-            @org.springframework.data.repository.query.Param("quizId") Integer quizId,
+    Page<QuizResult> findAssignmentResultsForTeacherV2(
             @org.springframework.data.repository.query.Param("classId") Integer classId,
+            @org.springframework.data.repository.query.Param("status") java.util.Collection<String> status,
             Pageable pageable
     );
+
 }

@@ -38,26 +38,14 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     @Override
     @Transactional(readOnly = true)
     public Page<AssignmentGradingQueueDTO> getGradingQueue(
-            String teacherEmail, Integer quizId, Integer classId, String status, Pageable pageable) {
+            String teacherEmail, Integer quizId, Integer classId, List<String> status, Pageable pageable) {
 
-        Page<QuizResult> results = quizResultRepository.findAssignmentResultsForTeacher(
-                teacherEmail, quizId, classId, pageable);
+        // Use the new repository method that handles ALL filtering (including status) at the DB level
+        // to ensure correct pagination.
+        Page<QuizResult> results = quizResultRepository.findAssignmentResultsForTeacherV2(
+                classId, status, pageable);
 
-        // Filter by status if needed (done in-memory since status is derived)
-        List<QuizResult> all = results.getContent();
-        List<QuizResult> filtered = switch (status != null ? status : "ALL") {
-            case "PENDING_SPEAKING" -> all.stream()
-                    .filter(r -> hasPendingSpeaking(r) && !hasPendingWriting(r)).toList();
-            case "PENDING_WRITING" -> all.stream()
-                    .filter(r -> !hasPendingSpeaking(r) && hasPendingWriting(r)).toList();
-            case "PENDING_BOTH" -> all.stream()
-                    .filter(r -> hasPendingSpeaking(r) && hasPendingWriting(r)).toList();
-            case "ALL_GRADED" -> all.stream()
-                    .filter(r -> Boolean.TRUE.equals(r.getPassed())).toList();
-            default -> all;
-        };
-
-        List<AssignmentGradingQueueDTO> dtos = filtered.stream()
+        List<AssignmentGradingQueueDTO> dtos = results.getContent().stream()
                 .map(this::toQueueDTO)
                 .toList();
 
