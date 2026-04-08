@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface SettingRepository extends JpaRepository<Setting, Integer> {
-    @Query("SELECT s FROM Setting s WHERE s.settingType = 'USER_ROLE' AND s.value = :value")
+    @Query("SELECT s FROM Setting s WHERE s.settingType = 'ROLE' AND s.value = :value")
     Optional<Setting> findRoleByValue(String value);
 
     @Query("SELECT s FROM Setting s WHERE s.settingType = 'ROLE' AND s.name = :name")

@@ -81,4 +81,8 @@ public class SettingService {
         Setting setting = getSettingById(id);
         settingRepository.delete(setting);
     }
+
+    public List<Setting> getRoles() {
+        return settingRepository.findBySettingType("ROLE");
+    }
 }
