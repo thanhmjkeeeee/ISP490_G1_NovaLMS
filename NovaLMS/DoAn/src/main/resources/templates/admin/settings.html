@@ -310,8 +310,20 @@
                 autoWidth: false,
                 columns: [
                     { data: 'settingId' },
-                    { data: 'name', render: function(data) { return '<strong>' + data + '</strong>'; } },
-                    { data: 'description', render: function(data) { return data ? data : '<span class="text-muted fst-italic">Không có mô tả</span>'; } },
+                    { data: 'name', render: function(data, type, row) { 
+                        // Đối với Role, nếu name là mã code và có description, ưu tiên hiện description làm tên chính
+                        if (row.settingType === 'ROLE' || row.settingType === 'USER_ROLE') {
+                             return '<strong>' + (row.description || data) + '</strong>';
+                        }
+                        return '<strong>' + data + '</strong>'; 
+                    } },
+                    { data: 'description', render: function(data, type, row) { 
+                        // Nếu là Role, ô description hiện mã code (vì name đã hiện tên hiển thị ở cột trên)
+                        if (row.settingType === 'ROLE' || row.settingType === 'USER_ROLE') {
+                            return `<span class="badge bg-secondary">${row.name}</span>`;
+                        }
+                        return data ? data : '<span class="text-muted fst-italic">Không có mô tả</span>'; 
+                    } },
                     { data: 'status', render: function(data) {
                         const statusStr = (data || '').toLowerCase();
                         return statusStr === 'active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
@@ -330,12 +342,7 @@
                     }}
                 ],
                 createdRow: function(row, data, dataIndex) {
-                    if (data.settingType === 'ROLE') {
-                        const $td = $('td', row).eq(1);
-                        $td.empty();
-                        $('<span class="badge bg-secondary me-1"></span>').text(data.value || '').appendTo($td);
-                        $('<strong></strong>').text(data.name || '').appendTo($td);
-                    }
+                    // Xóa bỏ logic createdRow cũ vì đã chuyển vào render của columns cho sạch sẽ
                 }
             });
 
@@ -350,15 +357,21 @@
         });
 
         function loadData(type) {
+            console.log(">>> [JS] Sending request for type:", type);
             $.get('/api/settings', { type: type })
              .done(function(res) {
+                 console.log(">>> [JS] Received response:", res);
                  if(res.status === 200) {
                      table.clear().rows.add(res.data).draw();
                  } else {
+                     console.warn(">>> [JS] API returned non-200 status:", res);
                      toastr.error(res.message);
                  }
              })
-             .fail(function() { toastr.error('Lỗi khi tải dữ liệu'); });
+             .fail(function(xhr) { 
+                 console.error(">>> [JS] AJAX Request failed!", xhr);
+                 toastr.error('Lỗi khi tải dữ liệu'); 
+             });
         }
 
         function openSettingModal() {
@@ -482,6 +495,5 @@
         }
     </script>
     <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 </body>
 </html>

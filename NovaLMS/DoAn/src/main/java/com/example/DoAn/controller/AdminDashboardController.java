@@ -126,7 +126,7 @@ public class AdminDashboardController {
 
     @GetMapping("/registrations/data")
     @ResponseBody
-    public ResponseEntity<ResponseData> getRegistrationsData(
+    public ResponseEntity<ResponseData<?>> getRegistrationsData(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer courseId,
@@ -137,7 +137,7 @@ public class AdminDashboardController {
 
     @PutMapping("/registrations/{id}/status")
     @ResponseBody
-    public ResponseEntity<ResponseData> updateRegistrationStatus(
+    public ResponseEntity<ResponseData<?>> updateRegistrationStatus(
             @PathVariable Integer id,
             @RequestParam String status,
             @RequestParam(required = false) String note) {
