@@ -5,8 +5,7 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.LineSeparator;
-
+import com.lowagie.text.pdf.draw.LineSeparator;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.text.NumberFormat;
@@ -192,7 +191,7 @@ public class InvoicePdfService {
         LineSeparator line = new LineSeparator();
         line.setOffset(2);
         line.setLineColor(new Color(200, 200, 200));
-        document.add(new Paragraph(line));
+        document.add(new Paragraph(String.valueOf(line)));
     }
 
     private void addSectionTitle(Document document, String title) throws DocumentException {
@@ -295,7 +294,7 @@ public class InvoicePdfService {
 
         LineSeparator line = new LineSeparator();
         line.setLineColor(new Color(200, 200, 200));
-        document.add(new Paragraph(line));
+        document.add(new Paragraph(String.valueOf(line)));
 
         Paragraph footer = new Paragraph();
         footer.setFont(SMALL_FONT);
