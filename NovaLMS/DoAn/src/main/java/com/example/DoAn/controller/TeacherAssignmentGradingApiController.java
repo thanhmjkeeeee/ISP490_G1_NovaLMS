@@ -13,6 +13,8 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * REST API for teacher assignment grading.
@@ -41,16 +43,25 @@ public class TeacherAssignmentGradingApiController {
     public ResponseData<Page<AssignmentGradingQueueDTO>> getQueue(
             @RequestParam(required = false) Integer quizId,
             @RequestParam(required = false) Integer classId,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) List<String> status,
             @PageableDefault(size = 20) Pageable pageable,
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
 
+        // --- ĐÃ FIX: XỬ LÝ LỖI PARSING STATUS ---
+        List<String> processedStatus = status;
+        if (status == null || status.isEmpty()) {
+            processedStatus = Arrays.asList("ALL"); // Tránh lỗi Hibernate khi truyền list null/rỗng
+        } else if (status.size() == 1 && status.get(0).contains(",")) {
+            // Nếu Spring Boot gộp nhầm thành 1 chuỗi chứa dấu phẩy -> Cắt ra thành List chuẩn
+            processedStatus = Arrays.asList(status.get(0).split(","));
+        }
+
         try {
             Page<AssignmentGradingQueueDTO> page = gradingService.getGradingQueue(
-                    email, quizId, classId, status, pageable);
+                    email, quizId, classId, processedStatus, pageable);
             return ResponseData.success("OK", page);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
