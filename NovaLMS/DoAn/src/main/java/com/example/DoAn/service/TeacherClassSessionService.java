@@ -37,6 +37,7 @@ public class TeacherClassSessionService {
     private final SessionLessonRepository sessionLessonRepository;
     private final AssignmentSessionRepository assignmentSessionRepository;
     private final INotificationService notificationService;
+    private final EmailService emailService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -792,86 +793,6 @@ public class TeacherClassSessionService {
         }
     }
 
-    @Transactional
-
-    // ─────────────────────────────────────────────────────────────
-    //  NOTIFICATIONS
-    // ─────────────────────────────────────────────────────────────
-
-    private void notifyStudentsSessionCreated(ClassSession session, Clazz clazz) {
-        List<Registration> regs = registrationRepository.findApprovedByClassId(clazz.getClassId());
-        for (Registration r : regs) {
-            User student = r.getUser();
-            if (student == null) continue;
-
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            String email = student.getEmail();
-            String sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-            String sessionTime = session.getStartTime() != null ? session.getStartTime() : "";
-
-            if (email != null && !email.isBlank()) {
-                emailService.sendSessionReminderEmail(email, studentName, clazz.getClassName(), 
-                    session.getTopic(), sessionDate, sessionTime, session.getMeetLink());
-            }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionReminder(Long.valueOf(student.getUserId()), 
-                    clazz.getClassName(), session.getTopic(), sessionDate, session.getMeetLink());
-            }
-        }
-    }
-
-    private void notifyStudentsSessionRescheduled(ClassSession session, java.time.LocalDateTime oldDate, String oldTime) {
-        Clazz clazz = session.getClazz();
-        if (clazz == null) return;
-        List<Registration> regs = registrationRepository.findApprovedByClassId(clazz.getClassId());
-        
-        String oDate = oldDate != null ? oldDate.toLocalDate().toString() : "";
-        String nDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-        String nTime = session.getStartTime() != null ? session.getStartTime() : "";
-
-        for (Registration r : regs) {
-            User student = r.getUser();
-            if (student == null) continue;
-
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            String email = student.getEmail();
-
-            if (email != null && !email.isBlank()) {
-                emailService.sendSessionRescheduledEmail(email, studentName, clazz.getClassName(), 
-                    oDate, oldTime, nDate, nTime, "Giáo viên thay đổi lịch dạy");
-            }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionRescheduled(Long.valueOf(student.getUserId()), 
-                    clazz.getClassName(), nDate, nTime, "Giáo viên thay đổi lịch dạy");
-            }
-        }
-    }
-
-    private void notifyStudentsSessionCancelled(ClassSession session) {
-        Clazz clazz = session.getClazz();
-        if (clazz == null) return;
-        List<Registration> regs = registrationRepository.findApprovedByClassId(clazz.getClassId());
-        
-        String sDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
-        String sTime = session.getStartTime() != null ? session.getStartTime() : "";
-
-        for (Registration r : regs) {
-            User student = r.getUser();
-            if (student == null) continue;
-
-            String studentName = student.getFullName() != null ? student.getFullName() : "";
-            String email = student.getEmail();
-
-            if (email != null && !email.isBlank()) {
-                emailService.sendSessionCancelledEmail(email, studentName, clazz.getClassName(), 
-                    sDate, sTime, "Buổi học đã bị hủy bởi giáo viên");
-            }
-            if (student.getUserId() != null) {
-                notificationService.sendSessionCancelled(Long.valueOf(student.getUserId()), 
-                    clazz.getClassName(), sDate, "Buổi học đã bị hủy bởi giáo viên");
-            }
-        }
-    }
 
     @Transactional
     public ResponseData<Void> resetStudentAttempt(String email, Integer quizId, Long studentId) {
@@ -897,18 +818,27 @@ public class TeacherClassSessionService {
         try {
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
             String dateStr = session.getSessionDate() != null
-                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
+                    ? session.getSessionDate().toLocalDate().toString() : "";
+            String timeStr = session.getStartTime() != null ? session.getStartTime() : "";
 
             for (Registration reg : registrations) {
-                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
-                    notificationService.sendSessionReminder(
-                            Long.valueOf(reg.getUser().getUserId()),
-                            clazz.getClassName(),
-                            session.getTopic(),
-                            dateStr,
-                            session.getMeetLink()
-                    );
+                User student = reg.getUser();
+                if (student == null || student.getUserId() == null) continue;
+
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String email = student.getEmail();
+
+                if (email != null && !email.isBlank()) {
+                    emailService.sendSessionReminderEmail(email, studentName, clazz.getClassName(),
+                            session.getTopic(), dateStr, timeStr, session.getMeetLink());
                 }
+                notificationService.sendSessionReminder(
+                        Long.valueOf(student.getUserId()),
+                        clazz.getClassName(),
+                        session.getTopic(),
+                        dateStr,
+                        session.getMeetLink()
+                );
             }
         } catch (Exception e) {
             System.err.println("Error notifying session creation: " + e.getMessage());
@@ -921,20 +851,28 @@ public class TeacherClassSessionService {
             if (clazz == null) return;
 
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
-            String newDate = session.getSessionDate() != null
-                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
-            String newTime = session.getStartTime();
+            String oldDateStr = oldDate != null ? oldDate.toLocalDate().toString() : "";
+            String newDateStr = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
+            String newTimeStr = session.getStartTime() != null ? session.getStartTime() : "";
 
             for (Registration reg : registrations) {
-                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
-                    notificationService.sendSessionRescheduled(
-                            Long.valueOf(reg.getUser().getUserId()),
-                            clazz.getClassName(),
-                            newDate,
-                            newTime,
-                            "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber()
-                    );
+                User student = reg.getUser();
+                if (student == null || student.getUserId() == null) continue;
+
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String email = student.getEmail();
+
+                if (email != null && !email.isBlank()) {
+                    emailService.sendSessionRescheduledEmail(email, studentName, clazz.getClassName(),
+                            oldDateStr, oldTime, newDateStr, newTimeStr, "Giáo viên thay đổi lịch dạy");
                 }
+                notificationService.sendSessionRescheduled(
+                        Long.valueOf(student.getUserId()),
+                        clazz.getClassName(),
+                        newDateStr,
+                        newTimeStr,
+                        "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber()
+                );
             }
         } catch (Exception e) {
             System.err.println("Error notifying session reschedule: " + e.getMessage());
@@ -947,18 +885,26 @@ public class TeacherClassSessionService {
             if (clazz == null) return;
 
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
-            String dateStr = session.getSessionDate() != null
-                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
+            String dateStr = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
+            String timeStr = session.getStartTime() != null ? session.getStartTime() : "";
 
             for (Registration reg : registrations) {
-                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
-                    notificationService.sendSessionCancelled(
-                            Long.valueOf(reg.getUser().getUserId()),
-                            clazz.getClassName(),
-                            dateStr,
-                            "Buổi học số " + session.getSessionNumber() + " đã bị hủy."
-                    );
+                User student = reg.getUser();
+                if (student == null || student.getUserId() == null) continue;
+
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String email = student.getEmail();
+
+                if (email != null && !email.isBlank()) {
+                    emailService.sendSessionCancelledEmail(email, studentName, clazz.getClassName(),
+                            dateStr, timeStr, "Buổi học đã bị hủy bởi giáo viên");
                 }
+                notificationService.sendSessionCancelled(
+                        Long.valueOf(student.getUserId()),
+                        clazz.getClassName(),
+                        dateStr,
+                        "Buổi học số " + session.getSessionNumber() + " đã bị hủy."
+                );
             }
         } catch (Exception e) {
             System.err.println("Error notifying session cancellation: " + e.getMessage());
