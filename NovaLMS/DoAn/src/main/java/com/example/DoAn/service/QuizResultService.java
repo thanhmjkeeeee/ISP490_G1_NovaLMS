@@ -24,7 +24,10 @@ public interface QuizResultService {
     /** Extended method — accepts skillScores + overallNote */
     void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email);
     
-    void lockQuiz(Integer quizId, String email);
+    /** Handles a violation: increments count, logs time, and locks if >= 3 */
+    Map<String, Object> handleViolation(Integer quizId, String email, String reason);
     
     void unlockQuiz(Integer resultId);
+    
+    void requestUnlock(Integer resultId, String email, String reason);
 }

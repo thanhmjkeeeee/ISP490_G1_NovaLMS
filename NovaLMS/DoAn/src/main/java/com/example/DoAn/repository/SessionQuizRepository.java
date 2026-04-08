@@ -27,4 +27,7 @@ public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Intege
     List<SessionQuiz> findAllByQuizId(@Param("quizId") Integer quizId);
 
     List<SessionQuiz> findBySession_Clazz_ClassId(Integer classId);
+
+    @Query("SELECT COUNT(sq) FROM SessionQuiz sq WHERE sq.session.clazz.course.courseId = :courseId")
+    long countByCourseId(@Param("courseId") Integer courseId);
 }

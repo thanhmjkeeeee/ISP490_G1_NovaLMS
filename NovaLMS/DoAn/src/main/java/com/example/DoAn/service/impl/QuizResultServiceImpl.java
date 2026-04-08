@@ -25,6 +25,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -592,6 +593,11 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .studentName(qr.getUser().getFullName())
                 .studentEmail(qr.getUser().getEmail())
                 .submittedAt(qr.getSubmittedAt())
+                .startedAt(qr.getStartedAt())
+                .status(qr.getStatus())
+                .violationLog(qr.getViolationLog())
+                .isUnlockRequested(qr.getIsUnlockRequested())
+                .studentAppealReason(qr.getStudentAppealReason())
                 .courseName(qr.getQuiz().getCourse() != null ? qr.getQuiz().getCourse().getTitle() : null)
                 .build()).collect(Collectors.toList());
 
@@ -679,6 +685,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(qr.getScore())
                     .maxScore(maxScore)
                     .passed(qr.getPassed())
+                    .status(qr.getStatus())
+                    .violationLog(qr.getViolationLog())
+                    .isUnlockRequested(qr.getIsUnlockRequested())
                     .build();
         }).collect(Collectors.toList());
 
@@ -956,20 +965,69 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional
-    public void lockQuiz(Integer quizId, String email) {
+    public Map<String, Object> handleViolation(Integer quizId, String email, String reason) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
-        
-        Optional<QuizResult> existingLock = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
-        if (existingLock.isPresent()) return;
 
-        QuizResult locked = QuizResult.builder()
-                .quiz(quiz)
-                .user(user)
-                .startedAt(LocalDateTime.now())
-                .status("LOCKED")
-                .build();
-        quizResultRepository.save(locked);
+        QuizResult qr = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "IN_PROGRESS")
+                .orElseGet(() -> {
+                    Optional<QuizResult> locked = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
+                    return locked.orElseGet(() -> QuizResult.builder()
+                            .quiz(quiz)
+                            .user(user)
+                            .status("IN_PROGRESS")
+                            .startedAt(LocalDateTime.now())
+                            .violationCount(0)
+                            .build());
+                });
+
+        if ("LOCKED".equals(qr.getStatus())) {
+            return Map.of("status", "LOCKED", "violationCount", qr.getViolationCount());
+        }
+
+        int count = (qr.getViolationCount() != null ? qr.getViolationCount() : 0) + 1;
+        qr.setViolationCount(count);
+
+        String timeNow = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String newLogEntry = String.format("[%s] Vi phạm lần %d: %s", timeNow, count, reason);
+        String existingLog = qr.getViolationLog();
+        qr.setViolationLog(existingLog == null ? newLogEntry : existingLog + "\n" + newLogEntry);
+
+        if (count >= 3) {
+            qr.setStatus("LOCKED");
+            qr.setSubmittedAt(LocalDateTime.now());
+            quizResultRepository.save(qr);
+
+            // ── Notify Teacher via Email ────────
+            try {
+                User teacher = null;
+                if (quiz.getClazz() != null && quiz.getClazz().getTeacher() != null) {
+                    teacher = quiz.getClazz().getTeacher();
+                } else {
+                    List<com.example.DoAn.model.SessionQuiz> sqList = sessionQuizRepository.findAllByQuizId(quizId);
+                    for (com.example.DoAn.model.SessionQuiz sq : sqList) {
+                        if (sq.getSession() != null && sq.getSession().getClazz() != null) {
+                            Integer classId = sq.getSession().getClazz().getClassId();
+                            if (registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(user.getUserId(), classId)) {
+                                teacher = sq.getSession().getClazz().getTeacher();
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (teacher != null) {
+                    emailService.sendQuizLockedEmail(teacher.getEmail(), teacher.getFullName(),
+                            user.getFullName(), quiz.getTitle(), reason, count, qr.getViolationLog());
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi gửi email vi phạm: {}", e.getMessage());
+            }
+
+            return Map.of("status", "LOCKED", "violationCount", count);
+        } else {
+            quizResultRepository.save(qr);
+            return Map.of("status", "WARNING", "violationCount", count);
+        }
     }
 
     @Override
@@ -979,5 +1037,17 @@ public class QuizResultServiceImpl implements QuizResultService {
         if ("LOCKED".equals(qr.getStatus())) {
             quizResultRepository.delete(qr);
         }
+    }
+
+    @Override
+    @Transactional
+    public void requestUnlock(Integer resultId, String email, String reason) {
+        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Not found"));
+        if (!qr.getUser().getEmail().equals(email)) throw new RuntimeException("Unauthorized");
+        if (!"LOCKED".equals(qr.getStatus())) throw new RuntimeException("Bài thi không bị khóa");
+        
+        qr.setIsUnlockRequested(true);
+        qr.setStudentAppealReason(reason);
+        quizResultRepository.save(qr);
     }
 }
