@@ -124,7 +124,7 @@
 
         <!-- Pagination -->
         <nav id="historyPagination" class="mt-4" style="display: none;">
-            <ul class="pagination justify-content-center"></ul>
+            <ul id="historyPaginationButtons" class="pagination justify-content-center"></ul>
         </nav>
 
     </div>
@@ -258,18 +258,7 @@ function renderPagination(totalPages, currentPageIdx) {
         return;
     }
     nav.style.display = 'block';
-    const ul = nav.querySelector('ul');
-
-    let paginationHtml = `<li class="page-item ${currentPageIdx === 0 ? 'disabled' : ''}"><button class="page-link" onclick="loadHistory(${currentPageIdx - 1})">Trang trước</button></li>`;
-    for (let i = 0; i < totalPages; i++) {
-        if (i < 3 || i >= totalPages - 2 || Math.abs(i - currentPageIdx) < 2) {
-            paginationHtml += `<li class="page-item ${i === currentPageIdx ? 'active' : ''}"><button class="page-link" onclick="loadHistory(${i})">${i + 1}</button></li>`;
-        } else if (i === 3 && currentPageIdx > 4) {
-            paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        }
-    }
-    paginationHtml += `<li class="page-item ${currentPageIdx === totalPages - 1 ? 'disabled' : ''}"><button class="page-link" onclick="loadHistory(${currentPageIdx + 1})">Trang sau</button></li>`;
-    ul.innerHTML = paginationHtml;
+    NovaPagination.render('historyPaginationButtons', totalPages, currentPageIdx, 'loadHistory');
 }
 </script>
 

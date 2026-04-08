@@ -157,13 +157,7 @@ async function loadQuizzes(page = 0) {
 }
 
 function renderPagination(data) {
-    const ul = document.getElementById('pagination');
-    let html = '';
-    for (let i = 0; i < data.totalPages; i++) {
-        html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="loadQuizzes(${i})">${i + 1}</a></li>`;
-    }
-    ul.innerHTML = html;
+    NovaPagination.render('pagination', data.totalPages, currentPage, 'loadQuizzes');
 }
 
 async function deleteQuiz(id) {
