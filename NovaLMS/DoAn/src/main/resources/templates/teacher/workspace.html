@@ -790,7 +790,8 @@
     });
 
     // --- TAB 1: CLASSES ---
-    async function loadClasses() {
+    async function loadClasses(page = 0) {
+        state.classesPage = page;
         const tbody = document.getElementById('classesTableBody');
         if (!tbody) return;
 
@@ -803,9 +804,13 @@
             return;
         }
 
-        tbody.innerHTML = items.map((c, i) => `
+        const pageSize = 10;
+        const totalPages = Math.ceil(items.length / pageSize);
+        const pagedItems = items.slice(page * pageSize, (page + 1) * pageSize);
+
+        tbody.innerHTML = pagedItems.map((c, i) => `
             <tr>
-                <td>${i + 1}</td>
+                <td>${(page * pageSize) + i + 1}</td>
                 <td>
                     <div class="fw-bold">${c.className}</div>
                     <div class="small text-muted">${c.status || 'Active'}</div>
@@ -822,6 +827,19 @@
                     </button>
                 </td>
             </tr>`).join('');
+
+        const pagHtml = renderWsPagination({
+            number: page,
+            totalPages: totalPages,
+            first: page === 0,
+            last: page === totalPages - 1
+        }, 'loadClasses');
+
+        if (pagHtml) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="6" class="border-0">${pagHtml}</td>`;
+            tbody.appendChild(row);
+        }
     }
 
     function selectClassAndGoToSchedule(classId) {
@@ -1177,7 +1195,8 @@
     });
 
     // --- TAB 3: QUIZ MANAGEMENT ---
-    async function loadQuizzes() {
+    async function loadQuizzes(page = 0) {
+        state.quizPage = page;
         const classId = state.selectedClassId;
         const container = document.getElementById('quizTableContainer');
         const empty = document.getElementById('quizEmptyState');
@@ -1199,20 +1218,24 @@
             }
 
             // Flatten: each session + each quiz in session -> one row
-            const rows = [];
+            const allRows = [];
             json.data.forEach(session => {
                 const sessionQuizzes = session.quizzes || [];
                 if (sessionQuizzes.length === 0) {
-                    rows.push({ session, quiz: null });
+                    allRows.push({ session, quiz: null });
                 } else {
-                    sessionQuizzes.forEach(q => rows.push({ session, quiz: q }));
+                    sessionQuizzes.forEach(q => allRows.push({ session, quiz: q }));
                 }
             });
 
-            if (rows.length === 0) {
+            if (allRows.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Quiz nào cho lớp này.</td></tr>';
                 return;
             }
+
+            const pageSize = 10;
+            const totalPages = Math.ceil(allRows.length / pageSize);
+            const rows = allRows.slice(page * pageSize, (page + 1) * pageSize);
 
             tbody.innerHTML = rows.map((r, i) => {
                 const s = r.session;
@@ -1223,7 +1246,7 @@
 
                 if (!q) {
                     return `<tr>
-                        <td>${i + 1}</td>
+                        <td>${(page * pageSize) + i + 1}</td>
                         <td class="text-muted small">— Chưa có quiz —</td>
                         <td class="text-center">
                             <span class="badge bg-secondary bg-opacity-10 text-secondary border">${sessionLabel}</span>
@@ -1256,7 +1279,7 @@
                 const openLabel = isOpen ? 'Đóng' : 'Mở';
 
                 return `<tr>
-                    <td>${i + 1}</td>
+                    <td>${(page * pageSize) + i + 1}</td>
                     <td>
                         <div class="fw-bold text-dark">${wsEscape(q.title || '')}</div>
                         <small class="text-muted">${sessionInfo}</small>
@@ -1268,22 +1291,31 @@
                     <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
                     <td class="text-center">${statusBadge}${openBadge}</td>
                     <td class="text-end">
-                        ${q.status === 'DRAFT' ? `
-                        <a href="/teacher/quiz/${q.quizId}/finish" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Hoàn thiện quiz">
-                            <i class="bi bi-check2-square"></i>
-                        </a>` : ''}
                         <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${openLabel} quiz">
                             <i class="bi ${openIcon}"></i>
                         </button>
-                        <a href="/teacher/quiz/grading?quizId=${q.quizId}" class="btn btn-sm btn-primary rounded-pill px-2" title="Chấm bài">
-                            <i class="bi bi-pencil-square"></i>
-                        </a>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="openWsQuizBuilder(${q.quizId})" title="Sửa quiz">
+                            <i class="bi bi-pencil"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="wsRemoveQuizFromSession(${s.sessionId}, ${q.quizId})" title="Xóa khỏi buổi">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>`;
             }).join('');
+
+            const pagHtml = renderWsPagination({
+                number: page,
+                totalPages: totalPages,
+                first: page === 0,
+                last: page === totalPages - 1
+            }, 'loadQuizzes');
+
+            if (pagHtml) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="6" class="border-0">${pagHtml}</td>`;
+                tbody.appendChild(row);
+            }
         } catch (err) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz</td></tr>';
         }

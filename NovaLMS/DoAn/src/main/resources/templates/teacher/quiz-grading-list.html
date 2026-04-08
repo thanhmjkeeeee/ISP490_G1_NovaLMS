@@ -12,21 +12,8 @@
 <main class="dash-main" id="dashMain">
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-            <h5 class="fw-bold mb-2">Danh sách bài nộp chờ chấm điểm</h5>
-            <p class="text-muted">Lưu ý: Chỉ những bài quiz có câu hỏi Writing/Speaking mới rơi vào trạng thái cần review.</p>
-            <!-- Quiz Type Filter Tabs -->
-            <ul class="nav nav-tabs mt-3" id="quizTypeTabs">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#" data-type="LESSON_QUIZ">
-                        📝 Bài tập nhỏ (Quiz)
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" data-type="ASSIGNMENT">
-                        📋 Bài kiểm tra lớn
-                    </a>
-                </li>
-            </ul>
+            <h5 class="fw-bold mb-2">📝 Danh sách bài tập nhỏ (Quiz) chờ chấm điểm</h5>
+            <p class="text-muted">Lưu ý: Chỉ những bài quiz có câu hỏi tự luận (Writing/Speaking) mới hiện trong danh sách này.</p>
         </div>
         <div class="card-body px-4 pb-4">
             
@@ -69,17 +56,6 @@ let currentPage = 0;
 let currentQuizType = 'LESSON_QUIZ';
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Tab click handlers
-    document.querySelectorAll('#quizTypeTabs .nav-link').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('#quizTypeTabs .nav-link').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            currentQuizType = tab.dataset.type;
-            loadPendingList(0);
-        });
-    });
-
     loadPendingList(currentPage);
 });
 
@@ -93,9 +69,7 @@ async function loadPendingList(page) {
         if(result.status === 200 && result.data && result.data.items.length > 0) {
             result.data.items.forEach((item, index) => {
                 const date = new Date(item.submittedAt).toLocaleString('vi-VN');
-                const gradeUrl = currentQuizType === 'ASSIGNMENT'
-                    ? `/teacher/assignment/grading/${item.resultId}`
-                    : `/teacher/quiz/grading/${item.resultId}`;
+                const gradeUrl = `/teacher/quiz/grading/${item.resultId}`;
                 html += `
                     <tr>
                         <td>${page * 10 + index + 1}</td>
