@@ -82,6 +82,7 @@
                         <option value="MATCHING">Matching</option>
                         <option value="WRITING">Writing</option>
                         <option value="SPEAKING">Speaking</option>
+                        <option value="PASSAGE">Bộ bài đọc/nghe (Passage)</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -510,14 +511,7 @@ function findLocalItem(id, type) {
 // Map the result into lastLoadedData
 function renderPagination(data) {
     lastLoadedData = data;
-    const ul = document.getElementById('pagination');
-    let html = '';
-    for (let i = 0; i < data.totalPages; i++) {
-        html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="loadQuestions(${i})">${i + 1}</a>
-                 </li>`;
-    }
-    ul.innerHTML = html;
+    NovaPagination.render('pagination', data.totalPages, currentPage, 'loadQuestions');
 }
 
 async function changeStatus(id, type, newStatus) {

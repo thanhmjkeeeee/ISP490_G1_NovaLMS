@@ -361,32 +361,12 @@ function buildQuestionCard(q) {
 
 function renderPagination(totalPages) {
     const nav  = document.getElementById('paginationNav');
-    const list = document.getElementById('paginationList');
     if (totalPages <= 1) {
         nav.style.display = 'none';
         return;
     }
     nav.style.display = 'flex';
-    list.innerHTML = '';
-
-    const prev = document.createElement('li');
-    prev.className = 'page-item' + (currentPage === 0 ? ' disabled' : '');
-    prev.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${currentPage - 1});return false">
-        <i class="bi bi-chevron-left"></i></a>`;
-    list.appendChild(prev);
-
-    for (let i = 0; i < totalPages; i++) {
-        const li = document.createElement('li');
-        li.className = 'page-item' + (i === currentPage ? ' active' : '');
-        li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${i});return false">${i + 1}</a>`;
-        list.appendChild(li);
-    }
-
-    const next = document.createElement('li');
-    next.className = 'page-item' + (currentPage >= totalPages - 1 ? ' disabled' : '');
-    next.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${currentPage + 1});return false">
-        <i class="bi bi-chevron-right"></a>`;
-    list.appendChild(next);
+    NovaPagination.render('paginationList', totalPages, currentPage, 'goToPage');
 }
 
 function goToPage(page) {

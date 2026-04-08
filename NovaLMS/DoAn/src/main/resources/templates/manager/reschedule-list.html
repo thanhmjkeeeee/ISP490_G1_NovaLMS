@@ -242,15 +242,10 @@
 
     function renderPagination() {
         const info = document.getElementById('pageInfo');
-        info.innerHTML = `Hiển thị <span class="text-dark fw-bold">${state.items.length}</span> trên tổng số <span class="text-dark fw-bold">${state.totalElements}</span> yêu cầu`;
-
-        const list = document.getElementById('paginationList');
-        list.innerHTML = '';
-        for (let i = 0; i < state.totalPages; i++) {
-            list.innerHTML += `<li class="page-item ${i === state.page ? 'active' : ''}">
-                <button class="page-link shadow-none" onclick="goToPage(${i})">${i + 1}</button>
-            </li>`;
+        if (info) {
+            info.innerHTML = `Hiển thị <span class="text-dark fw-bold">${state.items.length}</span> trên tổng số <span class="text-dark fw-bold">${state.totalElements}</span> yêu cầu`;
         }
+        NovaPagination.render('paginationList', state.totalPages, state.page, 'goToPage');
     }
 
     function goToPage(p) {
