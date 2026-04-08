@@ -305,6 +305,7 @@ public class PayosServiceImpl implements PayosService {
             // Tự động duyệt đăng ký khi thanh toán thành công
             Integer registrationId = payment.getRegistrationId();
             if (registrationId != null) {
+                Payment finalPayment = payment;
                 registrationRepository.findById(registrationId).ifPresent(reg -> {
                     reg.setStatus("Approved");
                     registrationRepository.save(reg);
@@ -322,11 +323,11 @@ public class PayosServiceImpl implements PayosService {
                                 ? reg.getClazz().getStartDate().toString() : "";
 
                         if (student.getEmail() != null && !student.getEmail().isBlank()) {
-                            String pIdStr = String.valueOf(payment.getId());
-                            String pOrderCode = payment.getPayosOrderCode() != null
-                                    ? payment.getPayosOrderCode().toString() : "";
-                            String pPaidAtStr = payment.getPaidAt() != null
-                                    ? payment.getPaidAt().toString() : "";
+                            String pIdStr = String.valueOf(finalPayment.getId());
+                            String pOrderCode = finalPayment.getPayosOrderCode() != null
+                                    ? finalPayment.getPayosOrderCode().toString() : "";
+                            String pPaidAtStr = finalPayment.getPaidAt() != null
+                                    ? finalPayment.getPaidAt().toString() : "";
 
                             byte[] invoicePdf = invoicePdfService.generateInvoice(
                                     studentName,

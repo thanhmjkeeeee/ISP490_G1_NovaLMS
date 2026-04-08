@@ -36,6 +36,7 @@ public class TeacherClassSessionService {
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
     private final AssignmentSessionRepository assignmentSessionRepository;
+    private final INotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -765,6 +766,82 @@ public class TeacherClassSessionService {
             return ResponseData.success("Đã reset lượt làm bài cho học viên");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  NOTIFICATIONS
+    // ─────────────────────────────────────────────────────────────
+
+    private void notifyStudentsSessionCreated(ClassSession session, Clazz clazz) {
+        try {
+            List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
+            String dateStr = session.getSessionDate() != null
+                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
+
+            for (Registration reg : registrations) {
+                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
+                    notificationService.sendSessionReminder(
+                            Long.valueOf(reg.getUser().getUserId()),
+                            clazz.getClassName(),
+                            session.getTopic(),
+                            dateStr,
+                            session.getMeetLink()
+                    );
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error notifying session creation: " + e.getMessage());
+        }
+    }
+
+    private void notifyStudentsSessionRescheduled(ClassSession session, java.time.LocalDateTime oldDate, String oldTime) {
+        try {
+            Clazz clazz = session.getClazz();
+            if (clazz == null) return;
+
+            List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
+            String newDate = session.getSessionDate() != null
+                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
+            String newTime = session.getStartTime();
+
+            for (Registration reg : registrations) {
+                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
+                    notificationService.sendSessionRescheduled(
+                            Long.valueOf(reg.getUser().getUserId()),
+                            clazz.getClassName(),
+                            newDate,
+                            newTime,
+                            "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber()
+                    );
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error notifying session reschedule: " + e.getMessage());
+        }
+    }
+
+    private void notifyStudentsSessionCancelled(ClassSession session) {
+        try {
+            Clazz clazz = session.getClazz();
+            if (clazz == null) return;
+
+            List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
+            String dateStr = session.getSessionDate() != null
+                    ? session.getSessionDate().toLocalDate().toString() : "TBA";
+
+            for (Registration reg : registrations) {
+                if (reg.getUser() != null && reg.getUser().getUserId() != null) {
+                    notificationService.sendSessionCancelled(
+                            Long.valueOf(reg.getUser().getUserId()),
+                            clazz.getClassName(),
+                            dateStr,
+                            "Buổi học số " + session.getSessionNumber() + " đã bị hủy."
+                    );
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error notifying session cancellation: " + e.getMessage());
         }
     }
 }
