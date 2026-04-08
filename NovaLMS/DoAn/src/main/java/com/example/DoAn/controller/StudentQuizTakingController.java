@@ -53,13 +53,16 @@ public class StudentQuizTakingController {
 
     @PostMapping("/api/v1/student/quiz/lock")
     @ResponseBody
-    public ResponseEntity<?> lockQuiz(@RequestBody Map<String, Integer> payload, Principal principal) {
+    public ResponseEntity<?> reportViolation(@RequestBody Map<String, Object> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         try {
-            Integer quizId = payload.get("quizId");
-            quizResultService.lockQuiz(quizId, email);
-            return ResponseEntity.ok(Map.of("message", "Quiz locked due to violation."));
+            Integer quizId = (Integer) payload.get("quizId");
+            String reason = (String) payload.get("reason");
+            if (reason == null) reason = "Chuyển tab / Rời khỏi màn hình";
+            
+            Map<String, Object> result = quizResultService.handleViolation(quizId, email, reason);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -113,5 +116,19 @@ public class StudentQuizTakingController {
                 })
                 .toList();
         return ResponseEntity.ok(Map.of("status", 200, "data", data));
+    }
+
+    @PostMapping("/api/v1/student/quiz/result/{resultId}/request-unlock")
+    @ResponseBody
+    public ResponseEntity<?> requestUnlock(@PathVariable Integer resultId, @RequestBody Map<String, String> payload, Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        try {
+            String reason = payload.get("reason");
+            quizResultService.requestUnlock(resultId, email, reason);
+            return ResponseEntity.ok(Map.of("message", "Đã gửi yêu cầu mở khóa đến giáo viên."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

@@ -321,13 +321,14 @@ public class StudentServiceImpl implements StudentService {
                         iconBg = "#fee2e2"; iconColor = "#dc2626"; iconClass = "bi-x-circle-fill";
                     }
 
-                    // Determine max score: use numberOfQuestions from Quiz if available
-                    Integer maxScore = null;
-                    if (qr.getQuiz() != null && qr.getQuiz().getNumberOfQuestions() != null) {
-                        maxScore = qr.getQuiz().getNumberOfQuestions();
-                    } else if (qr.getQuiz() != null && qr.getQuiz().getQuizQuestions() != null) {
-                        maxScore = qr.getQuiz().getQuizQuestions().size();
+                    // Determine max score by summing points of all questions
+                    int totalPoints = 0;
+                    if (qr.getQuiz() != null && qr.getQuiz().getQuizQuestions() != null) {
+                        for (QuizQuestion qq : qr.getQuiz().getQuizQuestions()) {
+                            totalPoints += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+                        }
                     }
+                    Integer maxScore = totalPoints;
 
                     String courseName = "";
                     if (qr.getQuiz() != null && qr.getQuiz().getCourse() != null) {
@@ -712,6 +713,79 @@ public class StudentServiceImpl implements StudentService {
                 .sessions(sessionDTOs)
                 .members(members)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseData<LearningProgressResponseDTO> getLearningProgress(String email) {
+        try {
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
+
+            // 1. Lấy tất cả khóa học của học sinh (Approved)
+            List<Registration> regs = registrationRepository.findByUserEmail(email).stream()
+                    .filter(r -> "Approved".equals(r.getStatus()))
+                    .collect(Collectors.toList());
+
+            List<LearningProgressResponseDTO.CourseProgressDTO> courseProgressList = new ArrayList<>();
+
+            for (Registration reg : regs) {
+                Course course = reg.getCourse();
+                if (course == null) continue;
+
+                // Lessons
+                List<Integer> allLessonIds = userLessonRepository.findAllLessonIdsOfCourse(course.getCourseId());
+                long completedLessons = userLessonRepository.countCompletedLessonsByUserIdAndCourseId(user.getUserId(), course.getCourseId());
+                int totalLessons = allLessonIds.size();
+                int progress = totalLessons > 0 ? (int) ((completedLessons * 100) / totalLessons) : 0;
+
+                // Quizzes
+                // We need to count quizzes related to the course/class
+                // Simple way: Count QuizResults for quizzes belonging to this course
+                List<QuizResult> quizResults = quizResultRepository.findByUser_Email(email).stream()
+                        .filter(qr -> qr.getQuiz().getCourse() != null && qr.getQuiz().getCourse().getCourseId().equals(course.getCourseId()))
+                        .collect(Collectors.toList());
+                
+                long passedQuizzes = quizResults.stream()
+                        .filter(qr -> Boolean.TRUE.equals(qr.getPassed()))
+                        .map(qr -> qr.getQuiz().getQuizId()) // unique quizzes? 
+                        .distinct()
+                        .count();
+                
+                // Total quizzes in course (from SessionQuiz or Course content)
+                // Let's count from session_lesson where lesson type is QUIZ + session_quiz
+                long totalQuizzesInCourse = sessionLessonRepository.countByCourseIdAndLessonType(course.getCourseId(), "QUIZ")
+                        + sessionQuizRepository.countByCourseId(course.getCourseId());
+
+                double avgScore = quizResults.stream()
+                        .filter(qr -> qr.getScore() != null)
+                        .mapToDouble(qr -> qr.getScore().doubleValue())
+                        .average().orElse(0.0);
+
+                String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null) 
+                        ? reg.getClazz().getTeacher().getFullName() : "N/A";
+
+                courseProgressList.add(LearningProgressResponseDTO.CourseProgressDTO.builder()
+                        .courseId(course.getCourseId())
+                        .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
+                        .courseImage(course.getImageUrl())
+                        .totalLessons(totalLessons)
+                        .completedLessons((int) completedLessons)
+                        .progressPercent(progress)
+                        .totalQuizzes((int) totalQuizzesInCourse)
+                        .completedQuizzes((int) passedQuizzes)
+                        .averageScore(Math.round(avgScore * 10.0) / 10.0)
+                        .teacherName(teacherName)
+                        .status(progress >= 100 ? "Hoàn thành" : "Đang học")
+                        .build());
+            }
+
+            return ResponseData.success("Thành công", LearningProgressResponseDTO.builder()
+                    .courses(courseProgressList)
+                    .build());
+        } catch (Exception e) {
+            return ResponseData.error(500, "Lỗi tải tiến độ: " + e.getMessage());
+        }
     }
 
     private int calculateSlotNumber(String startTime) {

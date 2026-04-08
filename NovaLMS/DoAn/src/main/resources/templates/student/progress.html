@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Tiến độ học tập')}"></head>
+
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Tiến độ học tập', breadcrumb='Thống kê')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='progress')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex align-items-center justify-content-between bg-white p-4 rounded-4 shadow-sm">
+                    <div>
+                        <h3 class="fw-bold mb-1">Tiến Độ Học Tập 📈</h3>
+                        <p class="text-muted mb-0">Theo dõi chi tiết quá trình hoàn thành các khóa học của bạn</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Grid -->
+        <div class="row" id="progressContainer">
+            <!-- Skeleton list -->
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Đang tải dữ liệu tiến độ...</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        loadProgressData();
+    });
+
+    async function loadProgressData() {
+        const container = document.getElementById('progressContainer');
+        try {
+            const response = await fetch('/api/v1/student/progress/data');
+            const result = await response.json();
+
+            if (result.status === 200 && result.data && result.data.courses.length > 0) {
+                let html = '';
+                result.data.courses.forEach(course => {
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 progress-card">
+                                <div class="position-relative">
+                                    <img src="${course.courseImage || '/assets/img/course-placeholder.jpg'}" class="card-img-top" style="height: 160px; object-fit: cover;" alt="${course.courseName}">
+                                    <div class="position-absolute top-0 end-0 m-3">
+                                        <span class="badge ${course.status === 'Hoàn thành' ? 'bg-success' : 'bg-primary'} rounded-pill px-3 shadow-sm">
+                                            ${course.status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold mb-1 text-truncate">${course.courseName}</h5>
+                                    <p class="small text-muted mb-3"><i class="bi bi-person me-1"></i> Giảng viên: ${course.teacherName}</p>
+                                    
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="small fw-bold">Tiến độ tổng thể</span>
+                                            <span class="small fw-bold text-primary">${course.progressPercent}%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                                 style="width: ${course.progressPercent}%" aria-valuenow="${course.progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="p-3 bg-light rounded-3 text-center">
+                                                <div class="small text-muted mb-1">Bài học</div>
+                                                <div class="fw-bold fs-5">${course.completedLessons}/${course.totalLessons}</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="p-3 bg-light rounded-3 text-center">
+                                                <div class="small text-muted mb-1">Bài tập</div>
+                                                <div class="fw-bold fs-5">${course.completedQuizzes}/${course.totalQuizzes}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="small text-muted">Điểm trung bình</div>
+                                            <div class="fw-bold text-success fs-5">${course.averageScore || 0}/10</div>
+                                        </div>
+                                        <a href="/student/my-courses" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                            Tiếp tục học
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-journal-x display-1 text-muted"></i>
+                        </div>
+                        <h4>Chưa có dữ liệu tiến độ</h4>
+                        <p class="text-muted">Bạn chưa tham gia khóa học nào hoặc khóa học chưa có bài học.</p>
+                        <a href="/student/my-courses" class="btn btn-primary rounded-pill px-4">Đến khóa học của tôi</a>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            container.innerHTML = `<div class="col-12 text-center text-danger">Đã xảy ra lỗi khi tải dữ liệu!</div>`;
+        }
+    }
+</script>
+
+<style>
+    .progress-card {
+        transition: transform 0.3s ease, shadow 0.3s ease;
+    }
+    .progress-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .progress-bar {
+        background: linear-gradient(45deg, var(--dash-accent), #60a5fa);
+    }
+</style>
+
+</body>
+</html>

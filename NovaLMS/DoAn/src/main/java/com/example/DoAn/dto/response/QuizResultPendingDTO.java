@@ -17,5 +17,10 @@ public class QuizResultPendingDTO {
     private String studentName;
     private String studentEmail;
     private LocalDateTime submittedAt;
+    private LocalDateTime startedAt;
+    private String status;
+    private String violationLog;
+    private Boolean isUnlockRequested;
+    private String studentAppealReason;
     private String courseName;
 }
