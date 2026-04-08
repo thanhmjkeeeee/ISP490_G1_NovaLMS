@@ -5,6 +5,8 @@ import com.example.DoAn.dto.request.QuizGradingRequestDTO;
 import com.example.DoAn.dto.response.*;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.EmailService;
+import com.example.DoAn.service.INotificationService;
 import com.example.DoAn.service.LearningService;
 import com.example.DoAn.service.QuizResultService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,6 +47,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final com.example.DoAn.service.LessonQuizService lessonQuizService;
     private final com.example.DoAn.service.GroqGradingService groqGradingService;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -366,6 +370,25 @@ public class QuizResultServiceImpl implements QuizResultService {
         quizResult.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
         quizResult.setPassed(passed);
         quizResultRepository.save(quizResult);
+
+        // ── Send email + in-app notification to student (quiz auto-graded) ────
+        if (passed != null && quiz.getPassScore() != null) {
+            String studentName = user.getFullName() != null ? user.getFullName() : "";
+            String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
+            String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
+            String scoreStr = score + "/" + maxScoreAvailable;
+            String passedStatus = Boolean.TRUE.equals(passed) ? "Dat" : "Khong dat";
+
+            if (user.getEmail() != null && !user.getEmail().isBlank()) {
+                emailService.sendQuizResultEmail(user.getEmail(), studentName,
+                        quizTitle, className, scoreStr, passedStatus);
+            }
+            if (user.getUserId() != null) {
+                notificationService.sendQuizResult(
+                        Long.valueOf(user.getUserId()),
+                        quizTitle, className, scoreStr, passedStatus);
+            }
+        }
 
         if (Boolean.TRUE.equals(passed)) {
             lessonRepository.findByQuizId(quizId).ifPresent(l -> {
@@ -731,6 +754,26 @@ public class QuizResultServiceImpl implements QuizResultService {
         qr.setPassed(passed);
         quizResultRepository.save(qr);
 
+        // ── Send email + in-app notification to student ──────────────────────
+        if (qr.getUser() != null && passed != null) {
+            User student = qr.getUser();
+            String studentName = student.getFullName() != null ? student.getFullName() : "";
+            String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
+            String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
+            String finalScore = newScore + "/" + maxScoreAvailable;
+            String passedStatus = Boolean.TRUE.equals(passed) ? "Dat" : "Khong dat";
+
+            if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                emailService.sendManualGradingResultEmail(student.getEmail(), studentName,
+                        quizTitle, className, finalScore, passedStatus);
+            }
+            if (student.getUserId() != null) {
+                notificationService.sendManualGradingResult(
+                        Long.valueOf(student.getUserId()),
+                        quizTitle, className, finalScore, passedStatus);
+            }
+        }
+
         if (Boolean.TRUE.equals(passed)) {
             lessonRepository.findByQuizId(quiz.getQuizId()).ifPresent(l -> {
                 learningService.markLessonCompleted(l.getLessonId(), qr.getUser().getEmail());
@@ -850,6 +893,26 @@ public class QuizResultServiceImpl implements QuizResultService {
         qr.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
         qr.setPassed(passed);
         quizResultRepository.save(qr);
+
+        // ── Send email + in-app notification to student ──────────────────────
+        if (qr.getUser() != null && passed != null) {
+            User student = qr.getUser();
+            String studentName = student.getFullName() != null ? student.getFullName() : "";
+            String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
+            String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
+            String finalScore = newScore + "/" + maxScoreAvailable;
+            String passedStatus = Boolean.TRUE.equals(passed) ? "Dat" : "Khong dat";
+
+            if (student.getEmail() != null && !student.getEmail().isBlank()) {
+                emailService.sendManualGradingResultEmail(student.getEmail(), studentName,
+                        quizTitle, className, finalScore, passedStatus);
+            }
+            if (student.getUserId() != null) {
+                notificationService.sendManualGradingResult(
+                        Long.valueOf(student.getUserId()),
+                        quizTitle, className, finalScore, passedStatus);
+            }
+        }
 
         if (Boolean.TRUE.equals(passed)) {
             lessonRepository.findByQuizId(quiz.getQuizId())

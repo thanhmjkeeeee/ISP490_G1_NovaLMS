@@ -5,7 +5,6 @@ import com.example.DoAn.model.Question;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.QuestionRepository;
 import com.example.DoAn.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,12 +13,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class ExpertReviewService {
 
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
     private final INotificationService notificationService;
+    private final EmailService emailService;
+
+    public ExpertReviewService(QuestionRepository questionRepository,
+                              UserRepository userRepository,
+                              INotificationService notificationService,
+                              EmailService emailService) {
+        this.questionRepository = questionRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
+    }
 
     /**
      * Lấy danh sách câu hỏi TEACHER_PRIVATE đang chờ duyệt.
@@ -82,11 +91,20 @@ public class ExpertReviewService {
 
             // Fire notification to teacher
             if (question.getUser() != null) {
+                User teacher = question.getUser();
                 notificationService.sendQuestionApproved(
-                        Long.valueOf(question.getUser().getUserId()),
+                        Long.valueOf(teacher.getUserId()),
                         question.getContent(),
                         null
                 );
+
+                // Also send email
+                if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+                    String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
+                    String content = question.getContent() != null && question.getContent().length() > 80
+                            ? question.getContent().substring(0, 80) + "..." : question.getContent();
+                    emailService.sendQuestionApprovedEmail(teacher.getEmail(), teacherName, content, null);
+                }
             }
 
             return ResponseData.success("Đã duyệt câu hỏi", toDTO(question));
@@ -117,22 +135,30 @@ public class ExpertReviewService {
             question.setReviewedAt(LocalDateTime.now());
             question.setReviewNote(reviewNote);
 
-            if (deleteQuestion) {
+            // Fire notification + email to teacher
+            if (question.getUser() != null) {
+                User teacher = question.getUser();
+                String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
+                String content = question.getContent() != null && question.getContent().length() > 80
+                        ? question.getContent().substring(0, 80) + "..." : question.getContent();
+
                 notificationService.sendQuestionRejected(
-                        Long.valueOf(question.getUser().getUserId()),
+                        Long.valueOf(teacher.getUserId()),
                         question.getContent(),
                         reviewNote
                 );
+
+                if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+                    emailService.sendQuestionRejectedEmail(teacher.getEmail(), teacherName, content, reviewNote);
+                }
+            }
+
+            if (deleteQuestion) {
                 questionRepository.delete(question);
                 return ResponseData.success("Đã xóa câu hỏi");
             } else {
                 question.setStatus("DRAFT");
                 questionRepository.save(question);
-                notificationService.sendQuestionRejected(
-                        Long.valueOf(question.getUser().getUserId()),
-                        question.getContent(),
-                        reviewNote
-                );
                 return ResponseData.success("Đã trả lại câu hỏi về bản nháp");
             }
         } catch (Exception e) {

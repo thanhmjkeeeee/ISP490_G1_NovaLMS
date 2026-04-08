@@ -3,8 +3,10 @@ package com.example.DoAn.service.impl;
 import com.example.DoAn.dto.GradingResponse;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.GroqClient;
 import com.example.DoAn.service.GroqGradingService;
+import com.example.DoAn.service.INotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ public class GroqGradingServiceImpl implements GroqGradingService {
     private final QuizAnswerRepository quizAnswerRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final QuizResultRepository quizResultRepository;
+    private final INotificationService notificationService;
+    private final EmailService emailService;
 
     @Override
     @Async
