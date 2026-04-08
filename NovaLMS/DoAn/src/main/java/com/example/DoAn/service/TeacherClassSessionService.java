@@ -690,6 +690,55 @@ public class TeacherClassSessionService {
     // ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
+    public ResponseData<List<Map<String, Object>>> getExpertAssignmentsByClass(String email, Integer classId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+
+            // 1. Get all expert quizzes for this class's course
+            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
+
+            // 2. Get all session assignments for this class to check status
+            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
+            
+            // 3. Map status
+            List<Map<String, Object>> result = expertQuizzes.stream().map(q -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("quizId", q.getQuizId());
+                m.put("title", q.getTitle());
+                m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+
+                // Find if this quiz is assigned to any session in this class
+                SessionQuiz assignedSq = sqList.stream()
+                        .filter(sq -> sq.getQuiz().getQuizId().equals(q.getQuizId()))
+                        .findFirst().orElse(null);
+
+                if (assignedSq != null) {
+                    m.put("sessionQuizId", assignedSq.getId());
+                    m.put("sessionId", assignedSq.getSession().getSessionId());
+                    m.put("sessionNumber", assignedSq.getSession().getSessionNumber());
+                    m.put("isOpen", assignedSq.getIsOpen() != null ? assignedSq.getIsOpen() : false);
+                    m.put("openAt", assignedSq.getOpenAt());
+                    m.put("closeAt", assignedSq.getCloseAt());
+                } else {
+                    m.put("sessionQuizId", null);
+                    m.put("sessionId", null);
+                    m.put("sessionNumber", null);
+                    m.put("isOpen", false);
+                    m.put("openAt", null);
+                    m.put("closeAt", null);
+                }
+                return m;
+            }).toList();
+
+            return ResponseData.success("Danh sách Expert Assignments", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @Transactional(readOnly = true)
     public ResponseData<List<Map<String, Object>>> getAssignmentsByClass(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
