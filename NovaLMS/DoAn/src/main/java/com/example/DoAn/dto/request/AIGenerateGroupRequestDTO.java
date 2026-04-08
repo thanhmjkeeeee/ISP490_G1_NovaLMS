@@ -26,6 +26,8 @@ public class AIGenerateGroupRequestDTO {
 
     private java.util.List<String> questionTypes;
 
+    private String mode = "NORMAL"; // "NORMAL" | "ADVANCED"
+
     public boolean hasTopic() {
         return topic != null && !topic.isBlank();
     }

@@ -207,6 +207,11 @@
                     <li class="nav-item" role="presentation">
                         <button class="nav-link border-0" id="skill-tab" data-bs-toggle="tab" data-type="SKILL" type="button" role="tab">Kỹ năng</button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link border-0" id="role-tab" data-bs-toggle="tab" data-type="ROLE" type="button" role="tab">
+                            <i class="bi bi-people me-1"></i> Vai trò
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body mt-3">
@@ -241,14 +246,16 @@
                 <div class="modal-body">
                     <form id="settingForm">
                         <input type="hidden" id="settingId" name="settingId">
+                        <input type="hidden" id="originalValue" name="originalValue">
                         
-                        <div class="mb-3">
+                        <div class="mb-3" id="settingTypeGroup">
                             <label class="form-label">Loại cấu hình <span class="text-danger">*</span></label>
                             <select class="form-select" id="settingType" name="settingType" required>
                                 <option value="COURSE_CATEGORY">Danh mục khóa học</option>
                                 <option value="CEFR_LEVEL">Cấp độ (CEFR)</option>
                                 <option value="QUESTION_TYPE">Loại câu hỏi</option>
                                 <option value="SKILL">Kỹ năng</option>
+                                <option value="ROLE">Vai trò</option>
                             </select>
                         </div>
                         
@@ -311,17 +318,25 @@
                     }},
                     { data: null, render: function(data, type, row) {
                         const statusStr = (row.status || '').toLowerCase();
-                        const btnStatus = statusStr === 'active' 
+                        const btnStatus = statusStr === 'active'
                             ? `<button class="btn btn-sm btn-light text-warning btn-action border" title="Tạm ẩn" onclick="toggleStatus(${row.settingId}, 'Inactive')"><i class="bi bi-eye-slash-fill"></i></button>`
                             : `<button class="btn btn-sm btn-light text-success btn-action border" title="Khôi phục" onclick="toggleStatus(${row.settingId}, 'Active')"><i class="bi bi-eye-fill"></i></button>`;
-                            
+
                         return `
                         <div class="d-flex gap-2">
                             <button class="btn btn-sm btn-light text-primary btn-action border" title="Chỉnh sửa" onclick='editSetting(${JSON.stringify(row).replace(/'/g, "&#39;")})'><i class="bi bi-pencil-fill"></i></button>
                             ${btnStatus}
                         </div>`;
                     }}
-                ]
+                ],
+                createdRow: function(row, data, dataIndex) {
+                    if (data.settingType === 'ROLE') {
+                        const $td = $('td', row).eq(1);
+                        $td.empty();
+                        $('<span class="badge bg-secondary me-1"></span>').text(data.value || '').appendTo($td);
+                        $('<strong></strong>').text(data.name || '').appendTo($td);
+                    }
+                }
             });
 
             // Load initial data
@@ -353,19 +368,38 @@
             // Cho phép chọn loại nếu mở form mới, nhưng fix mặc định theo tab hiện hành
             document.getElementById('settingModalLabel').innerText = 'Thêm Cấu hình mới';
             document.getElementById('statusGroup').style.display = 'none'; // Ẩn chọn status khi thêm mới
+            // Ẩn/hiện modal fields theo tab
+            if (currentType === 'ROLE') {
+                document.getElementById('settingTypeGroup').style.display = 'none';
+                document.getElementById('statusGroup').style.display = 'none';
+                document.getElementById('settingModalLabel').innerText = 'Thêm vai trò mới';
+            } else {
+                document.getElementById('settingTypeGroup').style.display = 'block';
+                document.getElementById('statusGroup').style.display = 'block';
+                document.getElementById('settingModalLabel').innerText = 'Thêm Cấu hình mới';
+            }
             myModal.show();
         }
 
         function editSetting(row) {
             document.getElementById('settingId').value = row.settingId;
-            document.getElementById('settingType').value = row.settingType;
             document.getElementById('name').value = row.name;
-            const tempStatus = (row.status || 'Active').toLowerCase();
-            document.getElementById('status').value = (tempStatus === 'active') ? 'Active' : 'Inactive';
             document.getElementById('description').value = row.description || '';
-            
-            document.getElementById('settingModalLabel').innerText = 'Chỉnh sửa Cấu hình';
-            document.getElementById('statusGroup').style.display = 'block'; // Hiện chọn status khi edit
+            document.getElementById('originalValue').value = row.value || '';
+
+            // Khi ở role tab, KHÔNG ghi đè settingType — giữ nguyên tab hiện tại
+            if (currentType === 'ROLE') {
+                document.getElementById('settingModalLabel').innerText = 'Chỉnh sửa vai trò';
+                document.getElementById('settingTypeGroup').style.display = 'none';
+                document.getElementById('statusGroup').style.display = 'none';
+            } else {
+                document.getElementById('settingType').value = row.settingType;
+                document.getElementById('settingModalLabel').innerText = 'Chỉnh sửa Cấu hình';
+                document.getElementById('settingTypeGroup').style.display = 'block';
+                document.getElementById('statusGroup').style.display = 'block';
+                const tempStatus = (row.status || 'Active').toLowerCase();
+                document.getElementById('status').value = (tempStatus === 'active') ? 'Active' : 'Inactive';
+            }
             myModal.show();
         }
 
@@ -380,13 +414,18 @@
             const isEditing = !!settingIdRaw;
             const nameVal = $('#name').val();
             const data = {
-                settingType: $('#settingType').val(),
+                settingType: currentType, // luôn dùng current tab, không lấy từ dropdown
                 name: nameVal,
-                value: nameVal.trim().toUpperCase().replace(/\s+/g, '_'),
+                value: currentType === 'ROLE'
+                    ? (isEditing ? $('#originalValue').val() : nameVal.trim().toUpperCase().replace(/\s+/g, '_'))
+                    : nameVal.trim().toUpperCase().replace(/\s+/g, '_'),
                 orderIndex: 0,
-                status: isEditing ? $('#status').val() : 'Active', // Luôn tạo active
                 description: $('#description').val()
             };
+            // ROLE không có trường status — không thêm key để tránh serialize thành null
+            if (currentType !== 'ROLE') {
+                data.status = isEditing ? $('#status').val() : 'Active';
+            }
 
             const btn = $('#btnSave');
             btn.prop('disabled', true).text('Đang lưu...');

@@ -209,6 +209,25 @@
                 <!-- Populated by JS based on skill -->
               </div>
             </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small">Generation Mode</label>
+              <div class="d-flex gap-3 align-items-center">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="aiMode" id="modeNormal" value="NORMAL" checked>
+                  <label class="form-check-label" for="modeNormal">
+                    <span class="fw-semibold">Normal</span>
+                    <small class="text-muted d-block">Standard questions for all levels</small>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="aiMode" id="modeAdvanced" value="ADVANCED">
+                  <label class="form-check-label" for="modeAdvanced">
+                    <span class="fw-semibold text-primary">Advanced</span>
+                    <small class="text-muted d-block">Bloom's Taxonomy, idioms, complex grammar</small>
+                  </label>
+                </div>
+              </div>
+            </div>
             <div id="aiStep2Error" class="alert alert-danger" style="display:none;"></div>
             <div id="aiStep2Loading" class="text-center py-3" style="display:none;">
               <div class="spinner-border text-primary mb-2"></div>
