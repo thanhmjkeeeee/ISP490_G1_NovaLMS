@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface QuizResultRepository extends JpaRepository<QuizResult, Integer> {
     Optional<QuizResult> findByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
+    
+    Optional<QuizResult> findByQuizQuizIdAndUser_EmailAndStatus(Integer quizId, String email, String status);
 
     @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.quizId = :quizId AND qr.user.email = :email")
     Optional<QuizResult> findByQuizIdAndUserEmail(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("email") String email);

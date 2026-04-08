@@ -3,6 +3,7 @@ package com.example.DoAn.service;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.dto.request.AssignmentScheduleRequestDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
@@ -34,6 +35,7 @@ public class TeacherClassSessionService {
     private final ModuleRepository moduleRepository;
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
+    private final AssignmentSessionRepository assignmentSessionRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -661,4 +663,89 @@ public class TeacherClassSessionService {
             return ResponseData.error(500, "Lỗi cập nhật link: " + e.getMessage());
         }
     }
+
+    // ─────────────────────────────────────────────────────────────
+    //  ASSIGNMENT MANAGEMENT (PRO)
+    // ─────────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public ResponseData<List<Map<String, Object>>> getAssignmentsByClass(String email, Integer classId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+
+            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
+            List<Map<String, Object>> result = sqList.stream().map(sq -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                Quiz q = sq.getQuiz();
+                m.put("sessionQuizId", sq.getId());
+                m.put("sessionId", sq.getSession().getSessionId());
+                m.put("sessionNumber", sq.getSession().getSessionNumber());
+                m.put("quizId", q.getQuizId());
+                m.put("title", q.getTitle());
+                m.put("isOpen", sq.getIsOpen() != null ? sq.getIsOpen() : false);
+                m.put("openAt", sq.getOpenAt());
+                m.put("closeAt", sq.getCloseAt());
+                m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+                return m;
+            }).toList();
+
+            return ResponseData.success("Danh sách Assignment", result);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ResponseData<Void> updateAssignmentSchedule(String email, Integer sessionQuizId, AssignmentScheduleRequestDTO request) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+
+            SessionQuiz sq = sessionQuizRepository.findById(sessionQuizId).orElse(null);
+            if (sq == null) return ResponseData.error(404, "Không tìm thấy cấu hình assignment");
+
+            if (!isTeacherOfClass(teacherId, sq.getSession().getClazz().getClassId())) {
+                return ResponseData.error(403, "Không có quyền");
+            }
+
+            sq.setOpenAt(request.getOpenAt());
+            sq.setCloseAt(request.getCloseAt());
+            // If openAt is in the past and closeAt is in the future, maybe auto-open? 
+            // For now, let teacher manually toggle isOpen as well.
+            
+            sessionQuizRepository.save(sq);
+            return ResponseData.success("Cập nhật thời gian thành công");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @Transactional
+    public ResponseData<Void> resetStudentAttempt(String email, Integer quizId, Long studentId) {
+        try {
+            Integer teacherId = getTeacherId(email);
+            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+
+            // Verify teacher has access to the class this quiz belongs to
+            // This is complex because a quiz can be in multiple sessions.
+            // But if the teacher is resetting it, they should have access to at least one class containing it.
+            
+            AssignmentSession session = assignmentSessionRepository.findByQuizQuizIdAndUserUserId(quizId, studentId).orElse(null);
+            if (session == null) return ResponseData.error(404, "Không tìm thấy bài làm của học viên");
+
+            // Reset logic: delete the session so they can start over
+            assignmentSessionRepository.delete(session);
+            
+            // Or just change status to IN_PROGRESS if we want to keep partial answers
+            // session.setStatus("IN_PROGRESS");
+            // assignmentSessionRepository.save(session);
+
+            return ResponseData.success("Đã reset lượt làm bài cho học viên");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
 }
+

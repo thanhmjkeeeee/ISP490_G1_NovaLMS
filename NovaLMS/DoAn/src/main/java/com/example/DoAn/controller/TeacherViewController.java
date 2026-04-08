@@ -9,12 +9,14 @@ import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.RescheduleService;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,6 +24,7 @@ import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Controller
 @RequestMapping("/teacher")
 public class TeacherViewController {
@@ -109,51 +112,73 @@ public class TeacherViewController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Principal principal) {
-        Integer teacherId = getTeacherId(principal);
-        if (teacherId == null) {
-            return ResponseData.error(401, "Unauthorized");
-        }
+        
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
 
-        Long total = entityManager.createQuery(
-                        "SELECT COUNT(c.classId) FROM Clazz c WHERE c.teacher.userId = :teacherId",
-                        Long.class)
-                .setParameter("teacherId", teacherId)
-                .getSingleResult();
+        log.info("Fetching classes for email: {}", email);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = entityManager.createQuery("""
-                        SELECT new map(
-                            c.classId as classId,
-                            c.className as className,
-                            co.courseName as courseName,
-                            c.status as status,
-                            c.startDate as startDate,
-                            c.endDate as endDate,
-                            c.schedule as schedule,
-                            c.slotTime as slotTime,
-                            c.numberOfSessions as numberOfSessions,
-                            (SELECT COUNT(r.registrationId) FROM Registration r WHERE r.clazz.classId = c.classId) as studentCount
-                        )
-                        FROM Clazz c
-                        LEFT JOIN c.course co
-                        WHERE c.teacher.userId = :teacherId
-                        ORDER BY c.classId DESC
-                        """)
-                .setParameter("teacherId", teacherId)
-                .setFirstResult(page * size)
-                .setMaxResults(size)
+        try {
+            List<String> roles = entityManager.createQuery("""
+                SELECT s.value FROM User u 
+                JOIN u.role s 
+                WHERE u.email = :email
+                """, String.class)
+                .setParameter("email", email)
                 .getResultList();
 
-        int totalPages = total == 0 ? 1 : (int) Math.ceil((double) total / size);
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("items", items);
-        data.put("pageNo", page);
-        data.put("pageSize", size);
-        data.put("totalPages", totalPages);
-        data.put("totalElements", total);
-        data.put("last", page >= totalPages - 1);
+            boolean isAdmin = roles.stream().anyMatch(r -> "ROLE_ADMIN".equals(r) || "ROLE_MANAGER".equals(r));
+            log.info("Email: {}, isAdmin: {}", email, isAdmin);
 
-        return ResponseData.success("Success", data);
+            String whereClause = isAdmin ? "1=1" : "c.teacher.email = :email";
+            
+            TypedQuery<Long> totalQuery = entityManager.createQuery(
+                    "SELECT COUNT(c.classId) FROM Clazz c WHERE " + whereClause, Long.class);
+            if (!isAdmin) totalQuery.setParameter("email", email);
+            Long total = totalQuery.getSingleResult();
+
+            String queryStr = """
+                SELECT new map(
+                    c.classId as classId,
+                    c.className as className,
+                    co.courseName as courseName,
+                    c.status as status,
+                    c.startDate as startDate,
+                    c.endDate as endDate,
+                    c.schedule as schedule,
+                    c.slotTime as slotTime,
+                    c.numberOfSessions as numberOfSessions,
+                    (SELECT COUNT(r.registrationId) FROM Registration r WHERE r.clazz.classId = c.classId) as studentCount
+                )
+                FROM Clazz c
+                LEFT JOIN c.course co
+                WHERE %s
+                ORDER BY c.classId DESC
+                """.formatted(whereClause);
+
+            Query itemsQuery = entityManager.createQuery(queryStr);
+            if (!isAdmin) itemsQuery.setParameter("email", email);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> items = itemsQuery
+                    .setFirstResult(page * size)
+                    .setMaxResults(size)
+                    .getResultList();
+
+            int totalPages = total == 0 ? 1 : (int) Math.ceil((double) total / size);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("items", items);
+            data.put("pageNo", page);
+            data.put("pageSize", size);
+            data.put("totalPages", totalPages);
+            data.put("totalElements", total);
+            data.put("last", page >= totalPages - 1);
+
+            return ResponseData.success("Success", data);
+        } catch (Exception e) {
+            log.error("Error in myClasses: ", e);
+            return ResponseData.error(500, "Internal Server Error: " + e.getMessage());
+        }
     }
 
     @GetMapping("/api/schedule")

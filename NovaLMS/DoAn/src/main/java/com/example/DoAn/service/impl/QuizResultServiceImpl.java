@@ -138,8 +138,15 @@ public class QuizResultServiceImpl implements QuizResultService {
             if (!enrolled) throw new RuntimeException("User is not enrolled in this course");
         }
 
+        // Kiểm tra xem có attempt nào đang in progress/locked không
+        Optional<QuizResult> lockedOpt = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
+        if (lockedOpt.isPresent()) {
+            throw new RuntimeException("Bài làm của bạn đang bị khóa do hành vi vi phạm nội quy. Vui lòng liên hệ giáo viên để được mở khóa.");
+        }
+
         // Kiểm tra số lần đã làm so với giới hạn cho phép
-        long attemptCount = quizResultRepository.countByQuizQuizId(quizId);
+        // Lưu ý: countByQuizQuizId đếm TẤT CẢ học viên của quiz. Cần đổi thành countByQuizQuizIdAndUserUserId.
+        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quizId, user.getUserId());
         if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
@@ -204,6 +211,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .audioUrl(q.getAudioUrl())
                     .options(noOptionsType ? new ArrayList<AnswerOptionPayloadDTO>() : optionsDTO)
                     .matchRightOptions(matchRightOptionsDTO)
+                    .groupId(q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupId() : null)
+                    .passage(q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupContent() : null)
+                    .groupAudioUrl(q.getQuestionGroup() != null ? q.getQuestionGroup().getAudioUrl() : null)
+                    .groupImageUrl(q.getQuestionGroup() != null ? q.getQuestionGroup().getImageUrl() : null)
                     .build();
         }).collect(Collectors.toList());
 
@@ -878,5 +889,32 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .replace("\\\\", "\\");
         }
         return json;
+    }
+
+    @Override
+    @Transactional
+    public void lockQuiz(Integer quizId, String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
+        
+        Optional<QuizResult> existingLock = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
+        if (existingLock.isPresent()) return;
+
+        QuizResult locked = QuizResult.builder()
+                .quiz(quiz)
+                .user(user)
+                .startedAt(LocalDateTime.now())
+                .status("LOCKED")
+                .build();
+        quizResultRepository.save(locked);
+    }
+
+    @Override
+    @Transactional
+    public void unlockQuiz(Integer resultId) {
+        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Not found"));
+        if ("LOCKED".equals(qr.getStatus())) {
+            quizResultRepository.delete(qr);
+        }
     }
 }

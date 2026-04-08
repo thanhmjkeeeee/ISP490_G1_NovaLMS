@@ -12,6 +12,7 @@ import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import com.example.DoAn.dto.request.AssignmentScheduleRequestDTO;
 
 @RestController
 @RequestMapping("/api/v1/teacher/class-sessions")
@@ -241,4 +242,45 @@ public class TeacherClassSessionApiController {
         String meetLink = body.get("meetLink");
         return sessionService.updateMeetLink(email, sessionId, meetLink);
     }
+
+    // ─────────────────────────────────────────────
+    //  ASSIGNMENT MANAGEMENT ENDPOINTS
+    // ─────────────────────────────────────────────
+
+    /**
+     * Lấy danh sách assignment của lớp (các quiz trong session).
+     */
+    @GetMapping("/{classId}/assignments")
+    public ResponseData<?> getAssignments(@PathVariable Integer classId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.getAssignmentsByClass(email, classId);
+    }
+
+    /**
+     * Cấu hình thời gian mở/đóng cho 1 assignment trong session.
+     */
+    @PatchMapping("/session-quizzes/{sessionQuizId}/schedule")
+    public ResponseData<Void> updateSchedule(
+            @PathVariable Integer sessionQuizId,
+            @RequestBody AssignmentScheduleRequestDTO request,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.updateAssignmentSchedule(email, sessionQuizId, request);
+    }
+
+    /**
+     * Reset lượt làm bài cho student.
+     */
+    @DeleteMapping("/quizzes/{quizId}/students/{studentId}/reset")
+    public ResponseData<Void> resetAttempt(
+            @PathVariable Integer quizId,
+            @PathVariable Long studentId,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.resetStudentAttempt(email, quizId, studentId);
+    }
 }
+

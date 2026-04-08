@@ -23,4 +23,8 @@ public interface QuizResultService {
 
     /** Extended method — accepts skillScores + overallNote */
     void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email);
+    
+    void lockQuiz(Integer quizId, String email);
+    
+    void unlockQuiz(Integer resultId);
 }
