@@ -367,15 +367,18 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         }
         result.setScore(totalScoreSum.setScale(0, RoundingMode.HALF_UP).intValue());
 
+        Quiz quiz = result.getQuiz();
+        BigDecimal totalMax = BigDecimal.ZERO;
+        if (quiz != null) {
+            totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
+                    .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
         // 3. Status and Passed check
         boolean isFinal = Boolean.TRUE.equals(request.getIsFinal());
         if (isFinal) {
-            Quiz quiz = result.getQuiz();
             if (quiz != null) {
-                BigDecimal totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
-                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
                 BigDecimal rate = totalMax.compareTo(BigDecimal.ZERO) > 0
                         ? totalScoreSum.divide(totalMax, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
                         : BigDecimal.ZERO;
@@ -403,16 +406,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             Quiz quiz = result.getQuiz();
             String assignmentTitle = quiz != null ? quiz.getTitle() : "";
             String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
-
-            // Re-calculate max points for display
-            BigDecimal totalMaxDisplay = BigDecimal.ZERO;
-            if (quiz != null) {
-                totalMaxDisplay = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
-                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-            }
-
-            String scoreStr = totalScoreSum.setScale(0, RoundingMode.HALF_UP).intValue() + "/" + totalMaxDisplay.setScale(0, RoundingMode.HALF_UP).intValue();
+            String scoreStr = totalScoreSum != null ? totalScoreSum.intValue() + "/" + totalMax.intValue() : "";
             String passedStatus = Boolean.TRUE.equals(result.getPassed()) ? "Dat" : "Khong dat";
 
             if (email != null && !email.isBlank()) {

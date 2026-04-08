@@ -258,6 +258,16 @@ public class TeacherClassSessionApiController {
     }
 
     /**
+     * Lấy danh sách Expert Assignment (khung chương trình) kèm trạng thái gán buổi.
+     */
+    @GetMapping("/{classId}/expert-assignments")
+    public ResponseData<?> getExpertAssignments(@PathVariable Integer classId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return sessionService.getExpertAssignmentsByClass(email, classId);
+    }
+
+    /**
      * Cấu hình thời gian mở/đóng cho 1 assignment trong session.
      */
     @PatchMapping("/session-quizzes/{sessionQuizId}/schedule")

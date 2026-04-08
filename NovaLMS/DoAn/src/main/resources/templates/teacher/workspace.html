@@ -1877,10 +1877,10 @@
         const tbody = document.getElementById('assignmentTableBody');
 
         try {
-            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`);
+            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/expert-assignments`);
             const json = await res.json();
             if (json.status !== 200 || !json.data || json.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Assignment nào trong lớp này.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Expert Assignment nào trong khóa học này.</td></tr>';
                 return;
             }
 
@@ -1889,22 +1889,32 @@
                     <td>${i + 1}</td>
                     <td>
                         <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
-                        <small class="text-muted">Buổi ${a.sessionNumber}</small>
+                        <small class="${a.sessionNumber ? 'text-primary' : 'text-muted'}">
+                            ${a.sessionNumber ? 'Buổi ' + a.sessionNumber : '<i class="bi bi-exclamation-circle me-1"></i>Chưa gán buổi'}
+                        </small>
                     </td>
                     <td class="text-center small">${a.openAt ? new Date(a.openAt).toLocaleString('vi-VN') : '—'}</td>
                     <td class="text-center small">${a.closeAt ? new Date(a.closeAt).toLocaleString('vi-VN') : '—'}</td>
                     <td class="text-center">
-                        <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
-                            ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
-                        </span>
+                        ${a.sessionQuizId ? `
+                            <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
+                                ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
+                            </span>
+                        ` : '<span class="text-muted small">—</span>'}
                     </td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
-                            <i class="bi bi-clock-history me-1"></i>Hẹn giờ
-                        </button>
-                        <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
-                            <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
-                        </button>
+                        ${a.sessionQuizId ? `
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
+                                <i class="bi bi-clock-history me-1"></i>Hẹn giờ
+                            </button>
+                            <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
+                                <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-light rounded-pill px-3 text-muted border" disabled title="Gán vào buổi học để cấu hình">
+                                <i class="bi bi-gear-fill me-1"></i>Chưa gán
+                            </button>
+                        `}
                     </td>
                 </tr>`).join('');
         } catch (err) {
@@ -1981,10 +1991,11 @@
                     </label>
                 </div>`).join('') || '<p class="text-muted small">Chưa có buổi học nào.</p>';
 
-            // Fetch Quizzes (Available for this class)
-            const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+            // Fetch Quizzes (Only expert assignments not yet assigned)
+            const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/expert-assignments`);
             const qJson = await qRes.json();
-            const quizzes = qJson.data || [];
+            const allExpertQuizzes = qJson.data || [];
+            const quizzes = allExpertQuizzes.filter(q => q.sessionQuizId == null && q.sessionId == null);
 
             document.getElementById('ca-quizzes-list').innerHTML = quizzes.map(q => `
                 <div class="form-check mb-2">
@@ -1992,7 +2003,7 @@
                     <label class="form-check-label small" for="ca-quiz-${q.quizId}">
                         <strong>${wsEscape(q.title)}</strong> (${q.questionCount} câu)
                     </label>
-                </div>`).join('') || '<p class="text-muted small">Chưa có Quiz nào khả dụng cho lớp này.</p>';
+                </div>`).join('') || '<p class="text-muted small">Tất cả Expert Assignments đã được gán vào các buổi học.</p>';
 
         } catch (err) {
             console.error("Error loading create assignment data:", err);
