@@ -12,12 +12,14 @@ import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.PayosService;
 import com.example.DoAn.service.StudentService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,8 +34,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/api/v1")
-@RequiredArgsConstructor
-@Slf4j
 public class EnrollmentController {
 
     private final StudentService studentService;
@@ -41,6 +41,23 @@ public class EnrollmentController {
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
     private final PaymentRepository paymentRepository;
+    private final com.example.DoAn.service.EmailService emailService;
+    private final com.example.DoAn.service.INotificationService notificationService;
+    private static final Logger log = LoggerFactory.getLogger(EnrollmentController.class);
+
+    public EnrollmentController(StudentService studentService, PayosService payosService,
+            UserRepository userRepository, RegistrationRepository registrationRepository,
+            PaymentRepository paymentRepository,
+            com.example.DoAn.service.EmailService emailService,
+            com.example.DoAn.service.INotificationService notificationService) {
+        this.studentService = studentService;
+        this.payosService = payosService;
+        this.userRepository = userRepository;
+        this.registrationRepository = registrationRepository;
+        this.paymentRepository = paymentRepository;
+        this.emailService = emailService;
+        this.notificationService = notificationService;
+    }
 
     private String getEmail(Principal principal) {
         if (principal == null) return null;
@@ -131,9 +148,11 @@ public class EnrollmentController {
         Registration registration = optReg.get();
 
         // Free course — no payment needed, auto-approve
-        if (isPositivePrice(registration.getRegistrationPrice())) {
+        boolean isPaid = isPositivePrice(registration.getRegistrationPrice());
+        if (!isPaid) {
             registration.setStatus("Approved");
             registrationRepository.save(registration);
+            notifyStudentApproved(registration);
             PaymentLinkResponseDTO freeResult = PaymentLinkResponseDTO.builder()
                     .registrationId(registrationId)
                     .status("APPROVED")
@@ -141,6 +160,9 @@ public class EnrollmentController {
                     .build();
             return ResponseData.success("Đăng ký thành công!", freeResult);
         }
+
+        // ── Notify managers of new enrollment ─────────────────────────────────
+        notifyManagersOfNewEnrollment(registration);
 
         // Step 2: Call PayOS — createPaymentLink handles everything:
         //   creates Payment record → calls PayOS → updates Payment + Registration.status=PENDING
@@ -164,5 +186,51 @@ public class EnrollmentController {
         if (price instanceof Double) return (Double) price > 0;
         if (price instanceof Number) return ((Number) price).doubleValue() > 0;
         return false;
+    }
+
+    private void notifyManagersOfNewEnrollment(Registration registration) {
+        if (registration == null) return;
+        List<User> managers = userRepository.findByRole_Value("MANAGER");
+        if (managers == null || managers.isEmpty()) return;
+
+        String studentName = registration.getUser() != null
+                ? (registration.getUser().getFullName() != null ? registration.getUser().getFullName() : "") : "";
+        String studentEmail = registration.getUser() != null
+                ? (registration.getUser().getEmail() != null ? registration.getUser().getEmail() : "") : "";
+        String className = registration.getClazz() != null
+                ? (registration.getClazz().getClassName() != null ? registration.getClazz().getClassName() : "") : "";
+        String courseName = registration.getCourse() != null
+                ? (registration.getCourse().getCourseName() != null ? registration.getCourse().getCourseName() : "") : "";
+
+        for (User manager : managers) {
+            String managerName = manager.getFullName() != null ? manager.getFullName() : "";
+            if (manager.getEmail() != null && !manager.getEmail().isBlank()) {
+                emailService.sendEnrollmentPendingApprovalEmail(manager.getEmail(), managerName,
+                        studentName, studentEmail, className, courseName);
+            }
+            if (manager.getUserId() != null) {
+                notificationService.sendEnrollmentPendingApproval(Long.valueOf(manager.getUserId()),
+                        studentName, className, courseName);
+            }
+        }
+    }
+
+    private void notifyStudentApproved(Registration registration) {
+        if (registration == null || registration.getUser() == null) return;
+        User student = registration.getUser();
+        String studentName = student.getFullName() != null ? student.getFullName() : "";
+        String className = registration.getClazz() != null
+                ? (registration.getClazz().getClassName() != null ? registration.getClazz().getClassName() : "") : "";
+        String courseName = registration.getCourse() != null
+                ? (registration.getCourse().getCourseName() != null ? registration.getCourse().getCourseName() : "") : "";
+        String startDate = registration.getClazz() != null && registration.getClazz().getStartDate() != null
+                ? registration.getClazz().getStartDate().toLocalDate().toString() : "";
+
+        if (student.getUserId() != null) {
+            notificationService.sendEnrollmentApproved(Long.valueOf(student.getUserId()), className, courseName);
+        }
+        if (student.getEmail() != null && !student.getEmail().isBlank()) {
+            emailService.sendEnrollmentApprovedEmail(student.getEmail(), studentName, className, courseName, startDate);
+        }
     }
 }

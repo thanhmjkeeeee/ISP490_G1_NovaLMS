@@ -34,6 +34,9 @@ public class TeacherQuizService {
     private final ClassSessionRepository classSessionRepository;
     private final LessonRepository lessonRepository;
     private final CourseRepository courseRepository;
+    private final RegistrationRepository registrationRepository;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -174,6 +177,10 @@ public class TeacherQuizService {
 
             quiz.setStatus("PUBLISHED");
             quizRepository.save(quiz);
+
+            // ── Notify enrolled students ────────────────────────────────────────
+            notifyStudentsQuizPublished(quiz, null, "PUBLISHED");
+
             return ResponseData.success("Quiz đã được publish! Sinh viên có thể làm bài.", toTeacherQuizDTO(quiz));
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -947,5 +954,45 @@ public class TeacherQuizService {
     public static class AIImportResultDTO {
         private int imported;
         private List<Integer> questionIds;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  NOTIFICATION HELPERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Notify enrolled students when a quiz is published or its open status changes.
+     */
+    private void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
+        if (quiz == null) return;
+        String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
+        String className = "";
+        String deadline = "";
+
+        if (quiz.getDeadline() != null) {
+            deadline = quiz.getDeadline().toString();
+        }
+
+        if (quiz.getClazz() != null) {
+            className = quiz.getClazz().getClassName() != null ? quiz.getClazz().getClassName() : "";
+            List<Registration> regs = registrationRepository.findByClazz_ClassIdAndStatus(quiz.getClazz().getClassId(), "Approved");
+            for (Registration reg : regs) {
+                User student = reg.getUser();
+                if (student == null) continue;
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String email = student.getEmail();
+
+                if (email != null && !email.isBlank()) {
+                    if ("PUBLISHED".equals(action)) {
+                        emailService.sendQuizPublishedEmail(email, studentName, quizTitle, className, deadline);
+                    }
+                }
+                if (student.getUserId() != null) {
+                    if ("PUBLISHED".equals(action)) {
+                        notificationService.sendQuizPublished(Long.valueOf(student.getUserId()), quizTitle, className);
+                    }
+                }
+            }
+        }
     }
 }

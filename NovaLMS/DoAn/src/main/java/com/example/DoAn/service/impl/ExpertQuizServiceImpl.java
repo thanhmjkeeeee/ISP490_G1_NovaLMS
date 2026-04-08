@@ -3,6 +3,8 @@ package com.example.DoAn.service.impl;
 import com.example.DoAn.dto.request.AssignmentQuestionRequestDTO;
 import com.example.DoAn.dto.request.QuizQuestionRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
+import com.example.DoAn.service.EmailService;
+import com.example.DoAn.service.INotificationService;
 import com.example.DoAn.dto.response.AssignmentPreviewDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.QuizResponseDTO;
@@ -43,6 +45,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final LessonRepository lessonRepository;
     private final QuestionGroupRepository questionGroupRepository;
     private final ObjectMapper objectMapper;
+    private final RegistrationRepository registrationRepository;
+    private final EmailService emailService;
+    private final INotificationService notificationService;
 
     private static final Set<String> VALID_CATEGORIES = Set.of(
             "ENTRY_TEST", "COURSE_QUIZ", "MODULE_QUIZ", "LESSON_QUIZ",
@@ -292,6 +297,12 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
         quiz.setStatus(newStatus);
         quizRepository.save(quiz);
+
+        // ── Notify on publish ─────────────────────────────────────────────────
+        if ("PUBLISHED".equals(newStatus)) {
+            notifyOnPublish(quiz);
+        }
+
         return toResponseDTO(quiz);
     }
 
@@ -625,7 +636,49 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         quiz.setStatus("PUBLISHED");
         quiz.setIsOpen(false);
         quizRepository.save(quiz);
+        notifyOnPublish(quiz);
         return toResponseDTO(quiz);
+    }
+
+    // ── Notification helper ────────────────────────────────────────────────────
+
+    private void notifyOnPublish(Quiz quiz) {
+        if (quiz == null) return;
+
+        String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
+        String courseName = quiz.getCourse() != null && quiz.getCourse().getCourseName() != null
+                ? quiz.getCourse().getCourseName() : "";
+        String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
+        String deadline = quiz.getDeadline() != null ? quiz.getDeadline().toString() : "";
+
+        // For COURSE_QUIZ / COURSE_ASSIGNMENT with class → notify enrolled students
+        if (quiz.getClazz() != null) {
+            List<Registration> regs = registrationRepository.findApprovedByClassId(quiz.getClazz().getClassId());
+            for (Registration reg : regs) {
+                User student = reg.getUser();
+                if (student == null) continue;
+                String studentName = student.getFullName() != null ? student.getFullName() : "";
+                String email = student.getEmail();
+
+                boolean isAssignment = "COURSE_ASSIGNMENT".equals(quiz.getQuizCategory())
+                        || "MODULE_ASSIGNMENT".equals(quiz.getQuizCategory());
+
+                if (email != null && !email.isBlank()) {
+                    if (isAssignment) {
+                        emailService.sendAssignmentPublishedEmail(email, studentName, quizTitle, className, deadline);
+                    } else {
+                        emailService.sendQuizPublishedEmail(email, studentName, quizTitle, className, deadline);
+                    }
+                }
+                if (student.getUserId() != null) {
+                    if (isAssignment) {
+                        notificationService.sendAssignmentPublished(Long.valueOf(student.getUserId()), quizTitle, className);
+                    } else {
+                        notificationService.sendQuizPublished(Long.valueOf(student.getUserId()), quizTitle, className);
+                    }
+                }
+            }
+        }
     }
 
     @Override

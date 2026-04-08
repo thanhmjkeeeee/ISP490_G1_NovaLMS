@@ -203,6 +203,10 @@ public class TeacherClassSessionService {
                     .build();
 
             ClassSession saved = classSessionRepository.save(session);
+
+            // ── Notify enrolled students of new session ───────────────────────
+            notifyStudentsSessionCreated(saved, clazz);
+
             return ResponseData.success("Tạo buổi học thành công", saved.getSessionId());
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -220,6 +224,13 @@ public class TeacherClassSessionService {
             if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
             if (!isTeacherOfClass(teacherId, session.getClazz().getClassId())) return ResponseData.error(403, "Không có quyền");
 
+            // Capture old values for reschedule notification
+            java.time.LocalDateTime oldDate = session.getSessionDate();
+            String oldTime = session.getStartTime();
+
+            boolean dateChanged = sessionDate != null && !sessionDate.equals(session.getSessionDate());
+            boolean timeChanged = startTime != null && !startTime.equals(session.getStartTime());
+
             if (sessionNumber != null) session.setSessionNumber(sessionNumber);
             if (sessionDate != null) session.setSessionDate(sessionDate);
             if (startTime != null) session.setStartTime(startTime);
@@ -232,6 +243,12 @@ public class TeacherClassSessionService {
             }
 
             classSessionRepository.save(session);
+
+            // ── Notify if session was rescheduled ─────────────────────────────
+            if ((dateChanged || timeChanged) && session.getClazz() != null) {
+                notifyStudentsSessionRescheduled(session, oldDate, oldTime);
+            }
+
             return ResponseData.success("Cập nhật thành công");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -247,6 +264,9 @@ public class TeacherClassSessionService {
             ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
             if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
             if (!isTeacherOfClass(teacherId, session.getClazz().getClassId())) return ResponseData.error(403, "Không có quyền");
+
+            // ── Notify enrolled students ─────────────────────────────────
+            notifyStudentsSessionCancelled(session);
 
             classSessionRepository.delete(session);
             return ResponseData.success("Xóa buổi học thành công");
