@@ -52,7 +52,7 @@
             </div>
 
             <nav id="resultsPagination" class="mt-4" style="display: none;">
-                <ul class="pagination justify-content-center"></ul>
+                <ul id="resultsPaginationButtons" class="pagination justify-content-center"></ul>
             </nav>
 
         </div>
@@ -168,26 +168,13 @@ async function loadGradedList(page) {
 }
 
 function renderPagination(totalPages, currentPageIdx) {
+    const nav = document.getElementById('resultsPagination');
     if (totalPages <= 1) {
-        document.getElementById('resultsPagination').style.display = 'none';
+        nav.style.display = 'none';
         return;
     }
-    const nav = document.getElementById('resultsPagination');
     nav.style.display = 'block';
-    const ul = nav.querySelector('ul');
-
-    let paginationHtml = `<li class="page-item ${currentPageIdx === 0 ? 'disabled' : ''}">
-        <button class="page-link" onclick="loadGradedList(${currentPageIdx - 1})">Trước</button>
-    </li>`;
-    for (let i = 0; i < totalPages; i++) {
-        paginationHtml += `<li class="page-item ${i === currentPageIdx ? 'active' : ''}">
-            <button class="page-link" onclick="loadGradedList(${i})">${i + 1}</button>
-        </li>`;
-    }
-    paginationHtml += `<li class="page-item ${currentPageIdx === totalPages - 1 ? 'disabled' : ''}">
-        <button class="page-link" onclick="loadGradedList(${currentPageIdx + 1})">Sau</button>
-    </li>`;
-    ul.innerHTML = paginationHtml;
+    NovaPagination.render('resultsPaginationButtons', totalPages, currentPageIdx, 'loadGradedList');
 }
 </script>
 

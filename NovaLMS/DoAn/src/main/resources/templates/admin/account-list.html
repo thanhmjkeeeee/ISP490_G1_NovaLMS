@@ -209,26 +209,10 @@
 
     // Hàm vẽ phân trang
     function renderPagination(currentPage, totalPages) {
-        document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
-        const container = document.getElementById('paginationButtons');
-        if (totalPages <= 1) { container.innerHTML = ''; return; }
-
-        let html = '';
-        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
-                    <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${currentPage - 1})">Prev</a>
-                 </li>`;
-
-        for (let i = 0; i < totalPages; i++) {
-            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                        <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${i})">${i + 1}</a>
-                     </li>`;
+        if (document.getElementById('paginationInfo')) {
+            document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
         }
-
-        html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
-                    <a class="page-link shadow-none" href="javascript:void(0)" onclick="loadAccountData(${currentPage + 1})">Next</a>
-                 </li>`;
-
-        container.innerHTML = html;
+        NovaPagination.render('paginationButtons', totalPages, currentPage, 'loadAccountData');
     }
 
     // Hàm đổi trạng thái (Kết nối với @PatchMapping của bạn)

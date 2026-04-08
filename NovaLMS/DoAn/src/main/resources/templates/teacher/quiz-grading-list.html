@@ -52,7 +52,7 @@
             
             <!-- Pagination Controls -->
             <nav id="gradingPagination" class="mt-4" style="display: none;">
-                <ul class="pagination justify-content-center">
+                <ul id="gradingPaginationButtons" class="pagination justify-content-center">
                     <!-- JS sẽ render phân trang ở đây -->
                 </ul>
             </nav>
@@ -125,20 +125,13 @@ async function loadPendingList(page) {
 }
 
 function renderPagination(totalPages, currentPageIdx) {
-    if(totalPages <= 1) {
-        document.getElementById('gradingPagination').style.display = 'none';
+    const nav = document.getElementById('gradingPagination');
+    if (totalPages <= 1) {
+        nav.style.display = 'none';
         return;
     }
-    const nav = document.getElementById('gradingPagination');
     nav.style.display = 'block';
-    const ul = nav.querySelector('ul');
-    
-    let paginationHtml = `<li class="page-item ${currentPageIdx === 0 ? 'disabled' : ''}"><button class="page-link" onclick="loadPendingList(${currentPageIdx - 1})">Trang trước</button></li>`;
-    for(let i=0; i<totalPages; i++) {
-        paginationHtml += `<li class="page-item ${i === currentPageIdx ? 'active' : ''}"><button class="page-link" onclick="loadPendingList(${i})">${i + 1}</button></li>`;
-    }
-    paginationHtml += `<li class="page-item ${currentPageIdx === totalPages - 1 ? 'disabled' : ''}"><button class="page-link" onclick="loadPendingList(${currentPageIdx + 1})">Trang sau</button></li>`;
-    ul.innerHTML = paginationHtml;
+    NovaPagination.render('gradingPaginationButtons', totalPages, currentPageIdx, 'loadPendingList');
 }
 </script>
 

@@ -74,6 +74,8 @@
                 </table>
             </div>
             <div id="paginationContainer" class="d-flex justify-content-between align-items-center p-3 border-top">
+                <div id="paginationInfo" class="small text-muted fw-medium"></div>
+                <nav><ul id="paginationButtons" class="pagination pagination-sm mb-0 shadow-sm"></ul></nav>
             </div>
         </div>
     </div>
@@ -268,35 +270,10 @@
     }
 
     function renderPagination(data) {
-        const container = document.getElementById('paginationContainer');
-        if (data.totalPages <= 1) {
-            container.innerHTML = '';
-            return;
+        if (document.getElementById('paginationInfo')) {
+            document.getElementById('paginationInfo').innerText = `Hiển thị ${data.pageNo * pageSize + 1} - ${Math.min((data.pageNo + 1) * pageSize, data.totalElements)} / ${data.totalElements} bản ghi`;
         }
-
-        let html = `<div class="small text-muted fw-medium">Hiển thị ${data.pageNo * pageSize + 1} - ${Math.min((data.pageNo + 1) * pageSize, data.totalElements)} / ${data.totalElements} bản ghi</div>`;
-        html += '<nav><ul class="pagination pagination-sm mb-0 shadow-sm">';
-
-        html += `<li class="page-item ${data.pageNo === 0 ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="loadRegistrationData(${data.pageNo - 1})"><i class="bi bi-chevron-left"></i></a>
-        </li>`;
-
-        for (let i = 0; i < data.totalPages; i++) {
-            if (i === 0 || i === data.totalPages - 1 || (i >= data.pageNo - 1 && i <= data.pageNo + 1)) {
-                html += `<li class="page-item ${i === data.pageNo ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="loadRegistrationData(${i})">${i + 1}</a>
-                </li>`;
-            } else if (i === data.pageNo - 2 || i === data.pageNo + 2) {
-                html += '<li class="page-item disabled"><span class="page-link border-0">...</span></li>';
-            }
-        }
-
-        html += `<li class="page-item ${data.pageNo >= data.totalPages - 1 ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="loadRegistrationData(${data.pageNo + 1})"><i class="bi bi-chevron-right"></i></a>
-        </li>`;
-
-        html += '</ul></nav>';
-        container.innerHTML = html;
+        NovaPagination.render('paginationButtons', data.totalPages, data.pageNo, 'loadRegistrationData');
     }
 
     function openStatusModal(registrationId, isPaidCourse, isPaid, currentStatus) {
