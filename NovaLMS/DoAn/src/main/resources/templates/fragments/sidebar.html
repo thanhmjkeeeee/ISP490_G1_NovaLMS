@@ -50,21 +50,8 @@
             <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'workspace'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-grid-1x2"></i><span>Workspace</span>
             </a>
-            <a th:href="@{/teacher/my-classes}" th:classappend="${activePage == 'my-classes'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-people"></i><span>Lớp của tôi</span>
-            </a>
-
-            <a th:href="@{/teacher/quiz-bank}" th:classappend="${activePage == 'quiz-bank'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-collection"></i><span>Ngân hàng câu hỏi</span>
-            </a>
             <a th:href="@{/teacher/my-questions}" th:classappend="${activePage == 'my-questions'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-list-task"></i><span>Câu hỏi của tôi</span>
-            </a>
-            <a th:href="@{/teacher/my-grading}" th:classappend="${activePage == 'my-grading'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-mortarboard"></i><span>Chấm bài</span>
-            </a>
-            <a th:href="@{/teacher/quiz/graded}" th:classappend="${activePage == 'grading-results'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-clipboard-check"></i><span>Kết quả đã chấm</span>
             </a>
         </div>
 

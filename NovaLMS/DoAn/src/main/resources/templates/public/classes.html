@@ -66,7 +66,9 @@
                     </div>
                 </div>
 
-                <nav aria-label="Page navigation" class="mt-4" id="pagination-container"></nav>
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul id="pagination-buttons" class="pagination justify-content-center"></ul>
+                </nav>
 
             </div>
         </div>
@@ -230,41 +232,7 @@
 
     // 3. VẼ THANH PHÂN TRANG
     function renderPagination(totalPages) {
-        const paginationContainer = document.getElementById('pagination-container');
-
-        if (!totalPages || totalPages <= 1) {
-            paginationContainer.innerHTML = '';
-            return;
-        }
-
-        let html = '<ul class="pagination justify-content-center">';
-
-        // Nút Trước
-        html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
-                    <a class="page-link shadow-sm rounded-start-pill border-0 me-1 text-primary" onclick="loadClasses(${currentPage - 1})">
-                        <i class="bi bi-chevron-left"></i> Trước
-                    </a>
-                 </li>`;
-
-        // Các số trang
-        for (let i = 0; i < totalPages; i++) {
-            const activeClass = (currentPage === i) ? 'bg-primary text-white' : 'text-primary bg-white';
-            html += `<li class="page-item">
-                        <a class="page-link shadow-sm border-0 mx-1 rounded-circle fw-bold ${activeClass}"
-                           onclick="loadClasses(${i})"
-                           style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${i + 1}</a>
-                     </li>`;
-        }
-
-        // Nút Sau
-        html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
-                    <a class="page-link shadow-sm rounded-end-pill border-0 ms-1 text-primary" onclick="loadClasses(${currentPage + 1})">
-                        Sau <i class="bi bi-chevron-right"></i>
-                    </a>
-                 </li>`;
-
-        html += '</ul>';
-        paginationContainer.innerHTML = html;
+        NovaPagination.render('pagination-buttons', totalPages, currentPage, 'loadClasses');
     }
 </script>
 
