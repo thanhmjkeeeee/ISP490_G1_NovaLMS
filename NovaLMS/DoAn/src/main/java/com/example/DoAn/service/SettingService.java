@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Arrays;
 
 @Service
 public class SettingService {
@@ -17,8 +18,17 @@ public class SettingService {
     }
 
     public List<Setting> getSettingsByType(String type) {
+        System.out.println(">>> [SERVICE] getSettingsByType called with: " + type);
         if (type == null || type.isEmpty()) {
             return settingRepository.findAll();
+        }
+        // Hỗ trợ cả 2 định danh ROLE và USER_ROLE cho vai trò
+        if ("ROLE".equalsIgnoreCase(type)) {
+            List<String> types = Arrays.asList("ROLE", "USER_ROLE");
+            System.out.println(">>> [SERVICE] Querying for types: " + types);
+            List<Setting> result = settingRepository.findBySettingTypeIn(types);
+            System.out.println(">>> [SERVICE] Query returned " + (result != null ? result.size() : 0) + " items.");
+            return result;
         }
         return settingRepository.findBySettingType(type);
     }

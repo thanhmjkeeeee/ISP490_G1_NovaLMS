@@ -1,14 +1,17 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.dto.response.SettingDTO;
 import com.example.DoAn.model.Setting;
 import com.example.DoAn.service.SettingService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/settings")
@@ -22,25 +25,46 @@ public class SettingApiController {
 
     // GET /api/settings?type=COURSE_CATEGORY
     @GetMapping
-    public ResponseEntity<ResponseData<List<Setting>>> getSettings(@RequestParam(required = false, defaultValue = "COURSE_CATEGORY") String type) {
-        List<Setting> settings = settingService.getSettingsByType(type);
-        return ResponseEntity.ok(new ResponseData<>(HttpStatus.OK.value(), "Success", settings));
+    public ResponseEntity<ResponseData<List<SettingDTO>>> getSettings(@RequestParam(required = false, defaultValue = "COURSE_CATEGORY") String type) {
+        try {
+            System.out.println(">>> [LOG] Fetching settings for type: " + type);
+            List<Setting> entities = settingService.getSettingsByType(type);
+            
+            // Chuyển đổi sang DTO để loại bỏ hoàn toàn lỗi JSON Serialization
+            List<SettingDTO> dtos = entities.stream().map(s -> SettingDTO.builder()
+                    .settingId(s.getSettingId())
+                    .name(s.getName())
+                    .value(s.getValue())
+                    .settingType(s.getSettingType())
+                    .orderIndex(s.getOrderIndex())
+                    .status(s.getStatus())
+                    .description(s.getDescription())
+                    .build()).collect(Collectors.toList());
+
+            System.out.println(">>> [LOG] Successfully mapped " + dtos.size() + " items to DTO.");
+            return ResponseEntity.ok(ResponseData.success("Success", dtos));
+        } catch (Exception e) {
+            System.err.println(">>> [ERROR] Failed to fetch settings: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Server Error: " + e.getMessage()));
+        }
     }
 
     // POST /api/settings
     @PostMapping
-    public ResponseEntity<ResponseData<Setting>> createSetting(@RequestBody SettingRequest request) {
+    public ResponseEntity<ResponseData<Setting>> addSetting(@RequestBody SettingRequest request) {
         try {
             Setting setting = settingService.createSetting(
-                    request.getSettingType(),
-                    request.getName(),
-                    request.getValue(),
-                    request.getDescription(),
-                    request.getOrderIndex()
+                request.getSettingType(),
+                request.getName(),
+                request.getValue(),
+                request.getDescription(),
+                request.getOrderIndex()
             );
-            return ResponseEntity.ok(new ResponseData<>(HttpStatus.CREATED.value(), "Setting created successfully", setting));
+            return ResponseEntity.status(HttpStatus.CREATED).body(ResponseData.success("Thêm thành công!", setting));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ResponseData<>(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Lỗi: " + e.getMessage()));
         }
     }
 
@@ -49,16 +73,16 @@ public class SettingApiController {
     public ResponseEntity<ResponseData<Setting>> updateSetting(@PathVariable Integer id, @RequestBody SettingRequest request) {
         try {
             Setting setting = settingService.updateSetting(
-                    id,
-                    request.getName(),
-                    request.getValue(),
-                    request.getDescription(),
-                    request.getOrderIndex(),
-                    request.getStatus()
+                id,
+                request.getName(),
+                request.getValue(),
+                request.getDescription(),
+                request.getOrderIndex(),
+                request.getStatus()
             );
-            return ResponseEntity.ok(new ResponseData<>(HttpStatus.OK.value(), "Category updated successfully", setting));
+            return ResponseEntity.ok(ResponseData.success("Cập nhật thành công!", setting));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ResponseData<>(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Lỗi: " + e.getMessage()));
         }
     }
 
@@ -67,38 +91,28 @@ public class SettingApiController {
     public ResponseEntity<ResponseData<Void>> deleteSetting(@PathVariable Integer id) {
         try {
             settingService.deleteSetting(id);
-            return ResponseEntity.ok(new ResponseData<>(HttpStatus.OK.value(), "Category deleted successfully"));
+            return ResponseEntity.ok(ResponseData.success("Xóa thành công!"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ResponseData<>(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Lỗi: " + e.getMessage()));
         }
     }
 
-    // DTO mapping payload
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SettingRequest {
-        private String settingType;
         private String name;
         private String value;
+        private String settingType;
         private String description;
         private Integer orderIndex;
         private String status;
-
-        public String getSettingType() { return settingType; }
-        public void setSettingType(String settingType) { this.settingType = settingType; }
-
+        
+        // Manual Getters/Setters if Lombok fails
         public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-
         public String getValue() { return value; }
-        public void setValue(String value) { this.value = value; }
-
+        public String getSettingType() { return settingType; }
         public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-
         public Integer getOrderIndex() { return orderIndex; }
-        public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-
         public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
     }
 }
