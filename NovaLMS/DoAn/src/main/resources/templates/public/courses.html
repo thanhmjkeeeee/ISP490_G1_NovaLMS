@@ -176,16 +176,16 @@
         let shortDesc = course.description || 'Chưa có mô tả chi tiết.';
         if (shortDesc.length > 90) shortDesc = shortDesc.substring(0, 90) + '...';
 
-        const avatar = (course.expert && course.expert.avatarUrl) ? course.expert.avatarUrl : '/assets/img/default-avatar.png';
+        const avatar = (course.expert && course.expert.avatarUrl) ? course.expert.avatarUrl : '';
         const expertName = course.expert ? course.expert.fullName : 'Hệ thống';
-        const imageUrl = course.imageUrl || '/assets/img/default-course.jpg';
+        const imageUrl = course.imageUrl || '';
 
         // Render Card HTML (Dùng pub-course-card)
         return `
           <div class="col-lg-6 col-md-6 pub-fade-in" style="animation-delay: ${index * 50}ms">
             <div class="pub-course-card shadow-sm">
               <div class="pub-course-img-wrap">
-                <img src="${imageUrl}" onerror="this.src='/assets/img/default-course.jpg'" alt="Course">
+                <img src="${imageUrl}" onerror="this.src=''" alt="Course">
                 <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
                   ${course.categoryName || 'Khác'}
                 </span>

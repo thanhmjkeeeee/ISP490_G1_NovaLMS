@@ -52,12 +52,13 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
            "AND (q.clazz IS NULL OR q.clazz.classId = :classId)")
     List<Quiz> findQuizzesForStudent(@Param("courseId") Integer courseId, @Param("classId") Integer classId);
 
-    @Query("SELECT q FROM Quiz q WHERE q.quizId IN (" +
-           "  SELECT l.quiz_id FROM Lesson l " +
-           "  JOIN l.module m " +
-           "  JOIN m.course c " +
-           "  JOIN c.classes cl " +
-           "  WHERE cl.classId = :classId AND l.type = 'QUIZ'" +
+    @Query("SELECT DISTINCT q FROM Quiz q " +
+           "JOIN q.course c " +
+           "JOIN c.classes cl " +
+           "WHERE cl.classId = :classId " +
+           "AND (" +
+           "  q.quizId IN (SELECT l.quiz_id FROM Lesson l WHERE l.type = 'QUIZ') " +
+           "  OR q.quizCategory = 'COURSE_ASSIGNMENT'" +
            ")")
     List<Quiz> findExpertQuizzesByClassId(@Param("classId") Integer classId);
 }

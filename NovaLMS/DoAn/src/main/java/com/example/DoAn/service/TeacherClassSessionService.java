@@ -746,19 +746,40 @@ public class TeacherClassSessionService {
             if (teacherId == null) return ResponseData.error(401, "Unauthorized");
             if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
 
+            // 1. Get all expert assignments for this class's course
+            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
+
+            // 2. Get all session assignments for this class
             List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
-            List<Map<String, Object>> result = sqList.stream().map(sq -> {
+
+            // 3. Merge status
+            List<Map<String, Object>> result = expertQuizzes.stream().map(q -> {
                 Map<String, Object> m = new LinkedHashMap<>();
-                Quiz q = sq.getQuiz();
-                m.put("sessionQuizId", sq.getId());
-                m.put("sessionId", sq.getSession().getSessionId());
-                m.put("sessionNumber", sq.getSession().getSessionNumber());
                 m.put("quizId", q.getQuizId());
                 m.put("title", q.getTitle());
-                m.put("isOpen", sq.getIsOpen() != null ? sq.getIsOpen() : false);
-                m.put("openAt", sq.getOpenAt());
-                m.put("closeAt", sq.getCloseAt());
                 m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+
+                // Find if this quiz is assigned to any session in this class
+                SessionQuiz assignedSq = sqList.stream()
+                        .filter(sq -> sq.getQuiz().getQuizId().equals(q.getQuizId()))
+                        .findFirst().orElse(null);
+
+                if (assignedSq != null) {
+                    m.put("sessionQuizId", assignedSq.getId());
+                    m.put("sessionId", assignedSq.getSession().getSessionId());
+                    m.put("sessionNumber", assignedSq.getSession().getSessionNumber());
+                    m.put("isOpen", assignedSq.getIsOpen() != null ? assignedSq.getIsOpen() : false);
+                    m.put("openAt", assignedSq.getOpenAt());
+                    m.put("closeAt", assignedSq.getCloseAt());
+                } else {
+                    m.put("sessionQuizId", null);
+                    m.put("sessionId", null);
+                    m.put("sessionNumber", null);
+                    // For unassigned, take isOpen from the Quiz entity
+                    m.put("isOpen", q.getIsOpen() != null ? q.getIsOpen() : false);
+                    m.put("openAt", null);
+                    m.put("closeAt", null);
+                }
                 return m;
             }).toList();
 
