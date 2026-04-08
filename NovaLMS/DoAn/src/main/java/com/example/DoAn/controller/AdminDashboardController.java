@@ -2,18 +2,30 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.model.Setting;
+import com.example.DoAn.service.ExcelExportService;
 import com.example.DoAn.service.SettingService;
 import com.example.DoAn.service.StudentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.DoAn.repository.CourseRepository;
+import com.example.DoAn.repository.PaymentRepository;
+import com.example.DoAn.repository.QuizRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserRepository;
+
+import java.io.ByteArrayInputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
+import java.util.*;
 
 @Controller
 @RequestMapping("/admin")
@@ -25,6 +37,9 @@ public class AdminDashboardController {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final RegistrationRepository registrationRepository;
+    private final PaymentRepository paymentRepository;
+    private final QuizRepository quizRepository;
+    private final ExcelExportService excelExportService;
 
     @GetMapping("/dashboard")
     public String managerDashboard(Model model) {
@@ -35,13 +50,63 @@ public class AdminDashboardController {
         long courseCount = courseRepository.count();
         long registrationCount = registrationRepository.count();
         long teacherCount = userRepository.countByRoleName("ROLE_TEACHER");
+        long quizCount = quizRepository.count();
         
+        java.math.BigDecimal totalRevenue = paymentRepository.sumTotalRevenue();
+        if (totalRevenue == null) totalRevenue = java.math.BigDecimal.ZERO;
+        
+        // Lấy 5 đăng ký gần đây nhất
+        var recentRegistrations = registrationRepository.findTop10ByOrderByRegistrationTimeDesc();
+        if (recentRegistrations.size() > 5) {
+            recentRegistrations = recentRegistrations.subList(0, 5);
+        }
+
         model.addAttribute("studentCount", studentCount);
         model.addAttribute("courseCount", courseCount);
         model.addAttribute("registrationCount", registrationCount);
         model.addAttribute("teacherCount", teacherCount);
+        model.addAttribute("quizCount", quizCount);
+        model.addAttribute("totalRevenue", totalRevenue);
+        model.addAttribute("recentRegistrations", recentRegistrations);
+
+        // --- DỮ LIỆU BIỂU ĐỒ DOANH THU ---
+        List<Object[]> revenueData = paymentRepository.getMonthlyRevenue();
+        List<Integer> revenueLabels = new ArrayList<>();
+        List<java.math.BigDecimal> revenueValues = new ArrayList<>();
+        // Khởi tạo 12 tháng với giá trị 0
+        Map<Integer, java.math.BigDecimal> monthlyMap = new HashMap<>();
+        for (int i = 1; i <= 12; i++) monthlyMap.put(i, java.math.BigDecimal.ZERO);
+        for (Object[] row : revenueData) {
+            monthlyMap.put(((Number) row[0]).intValue(), (java.math.BigDecimal) row[1]);
+        }
+        for (int i = 1; i <= 12; i++) {
+            revenueLabels.add(i);
+            revenueValues.add(monthlyMap.get(i));
+        }
+        model.addAttribute("revenueLabels", revenueLabels);
+        model.addAttribute("revenueValues", revenueValues);
+
+        // --- DỮ LIỆU BIỂU ĐỒ TẢI TRỌNG KHÓA HỌC ---
+        List<Object[]> categoryData = registrationRepository.countEnrollmentsByCategory();
+        model.addAttribute("categoryLabels", categoryData.stream().map(row -> row[0]).collect(Collectors.toList()));
+        model.addAttribute("categoryValues", categoryData.stream().map(row -> row[1]).collect(Collectors.toList()));
 
         return "admin/dashboard";
+    }
+
+    @GetMapping("/revenue/export")
+    public ResponseEntity<InputStreamResource> exportRevenue() {
+        ByteArrayInputStream in = excelExportService.exportRevenueToExcel();
+
+        String filename = "Revenue_Report_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".xlsx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=" + filename);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(in));
     }
 
     @GetMapping("/registrations")

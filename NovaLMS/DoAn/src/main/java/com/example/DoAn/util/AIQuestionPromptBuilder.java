@@ -126,18 +126,24 @@ public class AIQuestionPromptBuilder {
      */
     public String buildGroupPrompt(String topic, String skill, String cefrLevel,
                                   int questionCount, List<String> questionTypes) {
-        String types = buildTypesClause(questionTypes);
         String cefr = cefrLevel != null ? cefrLevel : "B1";
         String topicVal = topic != null ? topic : "General English";
         String skillVal = skill != null ? skill : "READING";
 
+        // Xác định nhãn nội dung dựa trên skill
+        String contentLabel = "LISTENING".equalsIgnoreCase(skillVal) ? "Transcript bài nghe" : "Đoạn văn đọc (Passage)";
+        String taskInstruction = "LISTENING".equalsIgnoreCase(skillVal) 
+            ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. Nội dung cần có đối thoại hoặc thông báo rõ ràng."
+            : "Đoạn văn này dùng cho bài đọc hiểu.";
+
         StringBuilder sb = new StringBuilder();
         sb.append("You are an expert English language test designer.\n\n");
-        sb.append("Generate a passage-based question group in JSON format. ");
-        sb.append("The passage must be in English and should be interesting, educational, and appropriate for CEFR level ").append(cefr).append(".\n\n");
-        sb.append("Return ONLY a valid JSON object with this exact structure (no markdown, no explanation):\n");
+        sb.append("Generate a ").append(skillVal).append(" question group in JSON format.\n");
+        sb.append("Requirement: ").append(taskInstruction).append("\n");
+        sb.append("The content must be in English and appropriate for CEFR level ").append(cefr).append(".\n\n");
+        sb.append("Return ONLY a valid JSON object with this exact structure:\n");
         sb.append("{\n");
-        sb.append("  \"passage\": \"<English passage text, 150-400 words>\",\n");
+        sb.append("  \"passage\": \"<").append(contentLabel).append(" text, 150-400 words>\",\n");
         sb.append("  \"audioUrl\": null,\n");
         sb.append("  \"imageUrl\": null,\n");
         sb.append("  \"skill\": \"").append(skillVal).append("\",\n");
@@ -162,10 +168,11 @@ public class AIQuestionPromptBuilder {
 
         sb.append("Rules:\n");
         sb.append("- Generate exactly ").append(questionCount).append(" questions.\n");
-        sb.append("- Question types allowed: ").append(types).append(".\n");
+        sb.append("- FORBIDDEN: Do NOT generate WRITING or SPEAKING questions for Reading/Listening skills.\n");
+        sb.append("- Question types allowed: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING.\n");
         sb.append("- MULTIPLE_CHOICE_SINGLE: exactly 1 correct answer, at least 3 distractors, all options in English.\n");
         sb.append("- MULTIPLE_CHOICE_MULTI: 2 or more correct answers (but not all).\n");
-        sb.append("- FILL_IN_BLANK: must have a correctAnswer field.\n");
+        sb.append("- FILL_IN_BLANK: must have a correctAnswer field. The answer must be found in the text.\n");
         sb.append("- MATCHING: matchLeft (words/phrases) and matchRight (definitions/meanings) must have the same size (3-5 items each).\n");
         sb.append("  CRITICAL - correctPairs format: a JSON array of 1-based INTEGER indices into the matchRight array.\n");
         sb.append("  The Nth value in correctPairs is the 1-based index in matchRight that matches the Nth item in matchLeft.\n");
