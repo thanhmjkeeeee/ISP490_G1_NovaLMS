@@ -612,18 +612,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
         String cat = quiz.getQuizCategory();
 
-        // COURSE_QUIZ + COURSE_ASSIGNMENT: bắt buộc đủ 4 kỹ năng
+        // COURSE_QUIZ + COURSE_ASSIGNMENT: gỡ bỏ ràng buộc đủ 4 kỹ năng
         if ("COURSE_QUIZ".equals(cat) || "COURSE_ASSIGNMENT".equals(cat)) {
-            Map<String, SkillSectionSummaryDTO> summaries = getSkillSummaries(quizId);
-            List<String> missing = new java.util.ArrayList<>();
-            for (SkillSectionSummaryDTO s : summaries.values()) {
-                if (s.getQuestionCount() == 0) missing.add(s.getSkill());
-            }
-            if (!missing.isEmpty()) {
-                throw new InvalidDataException("Missing questions for skills: " + String.join(", ", missing)
-                        + ". All 4 skills (LISTENING, READING, SPEAKING, WRITING) are required.");
-            }
-            // COURSE_ASSIGNMENT: kiểm tra per-skill time set
+            // COURSE_ASSIGNMENT: vẫn kiểm tra per-skill time set nếu cần thiết
             if ("COURSE_ASSIGNMENT".equals(cat)) {
                 if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty()) {
                     throw new InvalidDataException("COURSE_ASSIGNMENT requires per-skill time limits to be set.");
@@ -709,7 +700,3 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         );
     }
 }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
-    // ═══════════════════════════════════════════════════════════════════════
