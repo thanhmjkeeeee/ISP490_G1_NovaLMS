@@ -30,6 +30,6 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
 
     List<QuizQuestion> findByQuizQuizIdAndSkill(Integer quizId, String skill);
 
-    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT q.question.questionId) FROM QuizQuestion q WHERE q.quiz.quizId = :quizId AND q.skill = :skill")
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT q.question.questionId) FROM QuizQuestion q WHERE q.quiz.quizId = :quizId AND q.question.skill = :skill")
     long countByQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);
 }
