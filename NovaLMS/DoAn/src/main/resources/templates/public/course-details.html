@@ -150,7 +150,9 @@
 
         <div class="col-lg-4 mt-4 mt-lg-0">
           <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 100px;">
-            <img th:src="${course.imageUrl ?: '/assets/img/course-default.jpg'}" class="card-img-top p-2 rounded" alt="Course Image">
+            <img th:src="${course.imageUrl ?: '/assets/img/default-course.png'}" 
+                 onerror="this.onerror=null;this.src='/assets/img/default-course.png'"
+                 class="card-img-top p-2 rounded" alt="Course Image">
             <div class="card-body text-center">
 
               <div class="mb-3">
