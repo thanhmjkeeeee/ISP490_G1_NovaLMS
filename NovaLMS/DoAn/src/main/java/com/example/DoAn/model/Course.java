@@ -78,6 +78,54 @@ public class Course {
     @Fetch(FetchMode.SUBSELECT)
     private List<Module> modules;
 
+    public Integer getCourseId() { return courseId; }
+    public void setCourseId(Integer courseId) { this.courseId = courseId; }
+
+    public String getCourseName() { return courseName; }
+    public void setCourseName(String courseName) { this.courseName = courseName; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getLevelTag() { return levelTag; }
+    public void setLevelTag(String levelTag) { this.levelTag = levelTag; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+
+    public Double getSale() { return sale; }
+    public void setSale(Double sale) { this.sale = sale; }
+
+    public Integer getNumberOfSessions() { return numberOfSessions; }
+    public void setNumberOfSessions(Integer numberOfSessions) { this.numberOfSessions = numberOfSessions; }
+
+    public String getAvatar() { return avatar; }
+    public void setAvatar(String avatar) { this.avatar = avatar; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Setting getCategory() { return category; }
+    public void setCategory(Setting category) { this.category = category; }
+
+    public User getExpert() { return expert; }
+    public void setExpert(User expert) { this.expert = expert; }
+
+    public List<Registration> getRegistrations() { return registrations; }
+    public void setRegistrations(List<Registration> registrations) { this.registrations = registrations; }
+
+    public List<Clazz> getClasses() { return classes; }
+    public void setClasses(List<Clazz> classes) { this.classes = classes; }
+
+    public List<Module> getModules() { return modules; }
+    public void setModules(List<Module> modules) { this.modules = modules; }
+
     public Integer getStudentCount() { return studentCount; }
 
     public void setStudentCount(Integer studentCount) { this.studentCount = studentCount; }
