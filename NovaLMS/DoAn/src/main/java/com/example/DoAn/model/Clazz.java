@@ -72,4 +72,45 @@ public class Clazz { // Tránh từ khóa 'Class' của Java
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+    public Integer getClassId() { return classId; }
+    public void setClassId(Integer classId) { this.classId = classId; }
+
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
+
+    public User getTeacher() { return teacher; }
+    public void setTeacher(User teacher) { this.teacher = teacher; }
+
+    public String getClassName() { return className; }
+    public void setClassName(String className) { this.className = className; }
+
+    public LocalDateTime getStartDate() { return startDate; }
+    public void setStartDate(LocalDateTime startDate) { this.startDate = startDate; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public LocalDateTime getEndDate() { return endDate; }
+    public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
+
+    public List<Registration> getRegistrations() { return registrations; }
+    public void setRegistrations(List<Registration> registrations) { this.registrations = registrations; }
+
+    public String getSchedule() { return schedule; }
+    public void setSchedule(String schedule) { this.schedule = schedule; }
+
+    public String getSlotTime() { return slotTime; }
+    public void setSlotTime(String slotTime) { this.slotTime = slotTime; }
+
+    public Integer getNumberOfSessions() { return numberOfSessions; }
+    public void setNumberOfSessions(Integer numberOfSessions) { this.numberOfSessions = numberOfSessions; }
+
+    public List<ClassSession> getSessions() { return sessions; }
+    public void setSessions(List<ClassSession> sessions) { this.sessions = sessions; }
+
+    public String getMeetLink() { return meetLink; }
+    public void setMeetLink(String meetLink) { this.meetLink = meetLink; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }

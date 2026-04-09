@@ -24,44 +24,37 @@
   <section id="courses-2" class="courses-2 section pt-0">
     <div class="container" data-aos="fade-up" data-aos-delay="100">
       <div class="row g-4">
-
         <div class="col-lg-3">
-          <div class="bg-white p-4 rounded-4 shadow-sm pub-sidebar-sticky" data-aos="fade-right" data-aos-delay="100">            <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">
+          <div class="bg-white p-4 rounded-4 shadow-sm pub-sidebar-sticky" data-aos="fade-right" data-aos-delay="100">
+            <h5 class="fw-bold mb-4 text-primary border-bottom pb-2">
               <i class="bi bi-funnel-fill me-2"></i>Lọc khóa học
             </h5>
-
             <div class="filter-group">
               <h6 class="fw-bold text-dark mb-3">Thể loại</h6>
               <div class="d-flex flex-column gap-2">
-
                 <label class="pub-filter-label">
                   <input type="radio" name="categoryId" value="" class="pub-filter-radio d-none" th:checked="${selectedCat == null}">
                   <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
                     <i class="bi bi-grid-fill me-2"></i> Tất cả
                   </span>
                 </label>
-
                 <label class="pub-filter-label" th:each="cat : ${categories}">
                   <input type="radio" name="categoryId" th:value="${cat.settingId}" class="pub-filter-radio d-none" th:checked="${selectedCat == cat.settingId}">
                   <span class="pub-filter-box d-flex align-items-center p-2 rounded-3 cursor-pointer">
                     <i class="bi bi-tag me-2"></i> <span th:text="${cat.name}">Category</span>
                   </span>
                 </label>
-
               </div>
             </div>
-
           </div>
         </div>
 
         <div class="col-lg-9">
-
-          <div class="bg-white p-3 rounded-4 shadow-sm mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3" data-aos="fade-left" data-aos-delay="100">
+          <div class="bg-white p-3 rounded-4 shadow-sm mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div class="position-relative flex-grow-1" style="max-width: 400px;">
               <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
               <input type="text" id="searchInput" class="form-control rounded-pill ps-5 py-2 border-0 bg-light" placeholder="Tìm kiếm khóa học...">
             </div>
-
             <div class="d-flex align-items-center gap-2">
               <label for="sortSelect" class="text-muted small fw-bold mb-0 text-nowrap">Sắp xếp:</label>
               <select id="sortSelect" class="form-select border-0 bg-light rounded-pill py-2 cursor-pointer shadow-none">
@@ -72,13 +65,11 @@
             </div>
           </div>
 
-          <div class="row g-4" id="courseContainer">
-          </div>
+          <div class="row g-4" id="courseContainer"></div>
 
           <nav class="mt-5" aria-label="Pagination">
             <ul id="pagination-container" class="pagination justify-content-center gap-2"></ul>
           </nav>
-
         </div>
       </div>
     </div>
@@ -94,12 +85,13 @@
   let debounceTimer = null;
   let abortController = null;
 
-  const isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+  // CẦN THIẾT: Định nghĩa các đường dẫn mặc định để tránh lỗi undefined
+  const DEFAULT_COURSE_IMAGE = '/assets/img/default-course.png';
+  const DEFAULT_AVATAR = '/assets/img/default-avatar.png';
 
   const showSkeleton = () => {
     const container = document.getElementById('courseContainer');
-    document.getElementById('pagination-container').innerHTML = ''; // Ẩn phân trang
-
+    document.getElementById('pagination-container').innerHTML = '';
     container.innerHTML = Array(4).fill(0).map(() => `
       <div class="col-lg-6 col-md-6">
         <div class="pub-course-card border-0 shadow-sm">
@@ -111,13 +103,11 @@
             <div class="pub-skeleton mt-auto rounded-pill" style="height: 42px; width: 100%;"></div>
           </div>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   };
 
   const loadCourses = async (page = 0) => {
     currentPage = page;
-
     const keyword = document.getElementById('searchInput')?.value.trim() || '';
     const sortValue = document.getElementById('sortSelect')?.value || 'newest';
     const selectedCategory = document.querySelector('input[name="categoryId"]:checked')?.value || '';
@@ -126,7 +116,6 @@
     if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
     if (selectedCategory) url += `&categoryId=${selectedCategory}`;
 
-    // Hủy request cũ nếu spam
     if (abortController) abortController.abort();
     abortController = new AbortController();
 
@@ -134,7 +123,7 @@
 
     try {
       const response = await fetch(url, { signal: abortController.signal });
-      if (!response.ok) throw new Error('Lỗi mạng');
+      if (!response.ok) throw new Error('Network error');
 
       const jsonResponse = await response.json();
       const pageData = jsonResponse.data;
@@ -144,28 +133,23 @@
       const container = document.getElementById('courseContainer');
 
       if (!courses || courses.length === 0) {
-        container.innerHTML = `
-          <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm pub-fade-in">
+        container.innerHTML = `<div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm">
             <i class="bi bi-journal-x text-muted" style="font-size: 4rem;"></i>
             <h4 class="fw-bold mt-3 text-dark">Không tìm thấy khóa học nào</h4>
-            <p class="text-muted mb-0">Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm.</p>
           </div>`;
         renderPagination(0);
         return;
       }
 
       container.innerHTML = courses.map((course, index) => {
-        // Render Giá
+        // 1. Xử lý hiển thị Giá
         let priceHtml = '';
         if (course.price != null && course.price > 0) {
           const formattedPrice = course.price.toLocaleString('vi-VN');
           if (course.sale != null && course.sale > 0) {
             const salePrice = (course.price - course.sale).toLocaleString('vi-VN');
-            const saleAmount = course.sale.toLocaleString('vi-VN');
-            priceHtml = `
-              <span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
-              <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>
-              <span class="badge bg-danger ms-2">-${saleAmount} đ</span>`;
+            priceHtml = `<span class="text-decoration-line-through text-muted small me-2">${formattedPrice} đ</span>
+                         <span class="h5 fw-bold text-primary mb-0">${salePrice} đ</span>`;
           } else {
             priceHtml = `<span class="h5 fw-bold text-primary mb-0">${formattedPrice} đ</span>`;
           }
@@ -173,19 +157,21 @@
           priceHtml = `<span class="h5 fw-bold text-success mb-0">Miễn phí</span>`;
         }
 
+        // 2. Xử lý nội dung & Ảnh (ĐÃ FIX: Xóa khai báo trùng tên và lặp thẻ img)
         let shortDesc = course.description || 'Chưa có mô tả chi tiết.';
         if (shortDesc.length > 90) shortDesc = shortDesc.substring(0, 90) + '...';
 
-        const avatar = (course.expert && course.expert.avatarUrl) ? course.expert.avatarUrl : '';
+        const expertAvatar = (course.expert && course.expert.avatarUrl) ? course.expert.avatarUrl : DEFAULT_AVATAR;
         const expertName = course.expert ? course.expert.fullName : 'Hệ thống';
-        const imageUrl = course.imageUrl || '';
+        const finalImageUrl = (course.imageUrl && course.imageUrl.trim() !== '') ? course.imageUrl : DEFAULT_COURSE_IMAGE;
 
-        // Render Card HTML (Dùng pub-course-card)
         return `
           <div class="col-lg-6 col-md-6 pub-fade-in" style="animation-delay: ${index * 50}ms">
             <div class="pub-course-card shadow-sm">
               <div class="pub-course-img-wrap">
-                <img src="${imageUrl}" onerror="this.src=''" alt="Course">
+                <img src="${finalImageUrl}"
+                     onerror="this.onerror=null; this.src='${DEFAULT_COURSE_IMAGE}';"
+                     alt="Course Image">
                 <span class="position-absolute top-0 start-0 bg-primary text-white px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
                   ${course.categoryName || 'Khác'}
                 </span>
@@ -193,16 +179,15 @@
               <div class="pub-course-content">
                 <h5 class="fw-bold mb-2 text-dark text-truncate" title="${course.courseName}">${course.courseName}</h5>
                 <p class="text-muted small mb-4 flex-grow-1">${shortDesc}</p>
-
                 <div class="d-flex justify-content-between align-items-center mb-4 pt-3 border-top">
                   <div>${priceHtml}</div>
                 </div>
-
                 <div class="d-flex align-items-center mb-4">
-                  <img src="${avatar}" class="rounded-circle me-2 border" width="32" height="32" alt="Avatar">
+                  <img src="${expertAvatar}"
+                       onerror="this.onerror=null; this.src='${DEFAULT_AVATAR}';"
+                       class="rounded-circle me-2 border" width="32" height="32" alt="Avatar">
                   <span class="small fw-bold text-secondary">${expertName}</span>
                 </div>
-
                 <a href="/course/details/${course.courseId}" class="pub-btn-course mt-auto">Xem chi tiết <i class="bi bi-arrow-right ms-1"></i></a>
               </div>
             </div>
@@ -213,61 +198,44 @@
 
     } catch (error) {
       if (error.name !== 'AbortError') {
-        document.getElementById('courseContainer').innerHTML = `
-          <div class="col-12 text-center text-danger py-5 bg-white rounded-4 shadow-sm">
-            <i class="bi bi-exclamation-triangle fs-1"></i>
-            <h5 class="mt-2">Lỗi kết nối</h5>
-            <p>Vui lòng tải lại trang.</p>
-          </div>`;
+        console.error("Fetch error:", error);
       }
     }
   };
 
   const renderPagination = (totalPages) => {
     const paginationContainer = document.getElementById('pagination-container');
-    if (totalPages <= 1) {
-      paginationContainer.innerHTML = '';
-      return;
-    }
+    if (totalPages <= 1) { paginationContainer.innerHTML = ''; return; }
 
-    let html = `
-      <li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
-        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage - 1})"><i class="bi bi-chevron-left"></i></button>
-      </li>`;
+    let html = `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage - 1})">
+          <i class="bi bi-chevron-left"></i>
+        </button></li>`;
 
     for (let i = 0; i < totalPages; i++) {
-      html += `
-        <li class="page-item ${i === currentPage ? 'active' : ''}">
-          <button class="page-link rounded-circle border-0 shadow-sm ${i === currentPage ? 'bg-primary text-white' : 'text-dark'}" onclick="loadCourses(${i})">${i + 1}</button>
-        </li>`;
+      html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+          <button class="page-link rounded-circle border-0 shadow-sm ${i === currentPage ? 'bg-primary text-white' : 'text-dark'}" onclick="loadCourses(${i})">
+            ${i + 1}
+          </button></li>`;
     }
 
-    html += `
-      <li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
-        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage + 1})"><i class="bi bi-chevron-right"></i></button>
-      </li>`;
+    html += `<li class="page-item ${currentPage + 1 >= totalPages ? 'disabled' : ''}">
+        <button class="page-link rounded-circle border-0 text-dark shadow-sm" onclick="loadCourses(${currentPage + 1})">
+          <i class="bi bi-chevron-right"></i>
+        </button></li>`;
 
     paginationContainer.innerHTML = html;
   };
 
-  // --- Lắng nghe sự kiện (Event Listeners) ---
   document.addEventListener('DOMContentLoaded', () => {
     loadCourses(0);
-
-    // Filter Radio
     document.querySelectorAll('.pub-filter-radio').forEach(radio => {
       radio.addEventListener('change', () => loadCourses(0));
     });
-
-    // Sort Dropdown
     document.getElementById('sortSelect').addEventListener('change', () => loadCourses(0));
-
-    // Debounce Search Input
     document.getElementById('searchInput').addEventListener('input', () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        loadCourses(0);
-      }, 400);
+      debounceTimer = setTimeout(() => loadCourses(0), 400);
     });
   });
 </script>
