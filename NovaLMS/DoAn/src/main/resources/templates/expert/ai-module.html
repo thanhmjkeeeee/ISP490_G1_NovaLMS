@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Sinh câu hỏi theo Module - AI')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='AI Generator by Module', breadcrumb='Expert')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='question-bank')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Sinh câu hỏi theo Module bằng AI</h3>
+            <p class="text-muted small m-0">Chọn Module để AI dựa vào nội dung bài học sinh ra các câu hỏi tương ứng.</p>
+        </div>
+        <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại Ngân hàng đề
+        </a>
+    </div>
+
+    <!-- Generator Form -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Chọn Khóa học</label>
+                    <select id="courseId" class="form-select" onchange="loadModules()">
+                        <option value="">-- Tất cả khóa học --</option>
+                        <option th:each="c : ${courses}" th:value="${c.courseId}" th:text="${c.courseName}"></option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Chọn Module <span class="text-danger">*</span></label>
+                    <select id="aiModuleId" class="form-select">
+                        <option value="">-- Chọn module --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Số lượng (1-50)</label>
+                    <input type="number" id="aiQty" class="form-control" min="1" max="50" value="5">
+                </div>
+            </div>
+            <div class="mt-3 text-end">
+                <button class="btn text-white px-4" style="background-color: #136ad5;" onclick="generateAI()">
+                    <i class="bi bi-lightning-charge me-1"></i> Sinh câu hỏi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div id="aiLoading" class="text-center py-5" style="display:none;">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <p class="text-muted fw-bold">AI đang phân tích nội dung Module và sinh câu hỏi, vui lòng chờ...</p>
+    </div>
+
+    <!-- Warning -->
+    <div id="aiWarning" class="alert alert-warning mb-4" style="display:none;"></div>
+
+    <!-- Preview Results -->
+    <div id="aiPreview" style="display:none;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-primary m-0">Kết quả xem trước (<span id="aiSelectedCount">0</span>/<span id="aiTotalCount">0</span> đã chọn)</h6>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllAI()">Chọn / Bỏ chọn tất cả</button>
+            </div>
+            <div class="card-body p-0">
+                <div id="aiQuestionList" class="list-group list-group-flush"></div>
+            </div>
+            <div class="card-footer bg-white py-3 text-end">
+                <button class="btn btn-success px-4" onclick="importSelectedAI()">
+                    <i class="bi bi-check-circle me-1"></i> Lưu các câu đã chọn vào Ngân hàng đề
+                </button>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+    let aiQuestions = [];
+    let aiSelectedSet = new Set();
+    let allAiSelected = false;
+
+    window.onload = () => {
+        loadModules(); // Load ban đầu nếu có thể
+    };
+
+    async function loadModules() {
+        const courseId = document.getElementById('courseId').value;
+        const sel = document.getElementById('aiModuleId');
+        sel.innerHTML = '<option value="">-- Đang tải module... --</option>';
+
+        let url = '/api/v1/expert/modules';
+        if (courseId) url += `?courseId=${courseId}`;
+
+        try {
+            const res = await fetch(url);
+            const result = await res.json();
+            sel.innerHTML = '<option value="">-- Chọn module --</option>';
+            if (result.status === 200 && result.data) {
+                result.data.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.moduleId;
+                    opt.textContent = m.moduleName;
+                    sel.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.error(e);
+            sel.innerHTML = '<option value="">-- Lỗi tải module --</option>';
+        }
+    }
+
+    async function generateAI() {
+        const moduleId = document.getElementById('aiModuleId').value;
+        const qty = parseInt(document.getElementById('aiQty').value);
+
+        if (!moduleId) { alert('Vui lòng chọn module.'); return; }
+        if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+
+        const body = { moduleId: parseInt(moduleId), quantity: qty };
+        
+        document.getElementById('aiLoading').style.display = 'block';
+        document.getElementById('aiPreview').style.display = 'none';
+        document.getElementById('aiWarning').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/v1/expert/questions/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi sinh câu hỏi.'); return; }
+
+            aiQuestions = result.data.questions || [];
+            aiSelectedSet = new Set(aiQuestions.map((_, i) => i));
+            renderAIQuestions();
+
+            if (result.data.warning) {
+                const w = document.getElementById('aiWarning');
+                w.textContent = result.data.warning;
+                w.style.display = 'block';
+            }
+        } catch (e) { 
+            alert('Lỗi: ' + e.message); 
+        } finally { 
+            document.getElementById('aiLoading').style.display = 'none'; 
+        }
+    }
+
+    function renderAIQuestions() {
+        const container = document.getElementById('aiQuestionList');
+        document.getElementById('aiTotalCount').textContent = aiQuestions.length;
+        document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+        document.getElementById('aiPreview').style.display = 'block';
+
+        if (aiQuestions.length === 0) {
+            container.innerHTML = '<div class="p-4 text-center text-muted">AI không thể trả về câu hỏi nào.</div>';
+            return;
+        }
+
+        container.innerHTML = aiQuestions.map((q, i) => `
+            <div class="list-group-item p-4 ${aiSelectedSet.has(i) ? 'bg-light-subtle' : ''}">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="aiChk${i}"
+                            ${aiSelectedSet.has(i) ? 'checked' : ''}
+                            onchange="toggleAI(${i})">
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex gap-2 flex-wrap mb-2">
+                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">${q.questionType}</span>
+                             <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">${q.skill}</span>
+                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">${q.cefrLevel}</span>
+                        </div>
+                        <h6 class="mb-2 fw-bold text-dark">${escapeHtml(q.content || '')}</h6>
+                        ${q.options && q.options.length > 0 ? `
+                            <div class="row g-2 mt-2">
+                                ${q.options.map(o => `
+                                    <div class="col-md-6">
+                                        <div class="p-2 border rounded ${o.correct ? 'bg-success-subtle border-success' : 'bg-white'}">
+                                            <span class="small ${o.correct ? 'fw-bold text-success' : 'text-muted'}">${escapeHtml(o.title)}</span>
+                                            ${o.correct ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>` : ''}
+                        ${q.correctAnswer ? `<p class="mt-2 mb-0 small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function toggleAI(idx) {
+        if (aiSelectedSet.has(idx)) aiSelectedSet.delete(idx);
+        else aiSelectedSet.add(idx);
+        document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+        renderAIQuestions();
+    }
+
+    function toggleAllAI() {
+        allAiSelected = !allAiSelected;
+        if (allAiSelected) {
+            aiSelectedSet = new Set(aiQuestions.map((_, i) => i));
+        } else {
+            aiSelectedSet = new Set();
+        }
+        renderAIQuestions();
+    }
+
+    async function importSelectedAI() {
+        if (aiSelectedSet.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
+        const selected = aiQuestions.filter((_, i) => aiSelectedSet.has(i));
+        
+        if (!confirm(`Xác nhận lưu ${aiSelectedSet.size} câu hỏi?`)) return;
+
+        try {
+            const res = await fetch('/api/v1/expert/questions/ai/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questions: selected })
+            });
+            const result = await res.json();
+            if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
+            alert('Đã lưu thành công.');
+            window.location.href = '/expert/question-bank';
+        } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+
+<style>
+    .bg-light-subtle { background-color: #f0f7ff !important; }
+</style>
+
+</body>
+</html>
