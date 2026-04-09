@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class QuizResultDetailDTO {
+    private Integer resultId;
     private Integer quizId;
     private String quizTitle;
     private String courseName;

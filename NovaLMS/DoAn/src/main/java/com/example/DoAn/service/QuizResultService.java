@@ -14,9 +14,9 @@ public interface QuizResultService {
 
     PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category);
 
-    PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, int page, int size);
+    PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size);
 
-    PageResponse<QuizResultGradedDTO> getGradedResults(String email, int page, int size);
+    PageResponse<QuizResultGradedDTO> getGradedResults(String email, Integer classId, int page, int size);
 
     /** Legacy method — accepts List of grading items only */
     void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email);
