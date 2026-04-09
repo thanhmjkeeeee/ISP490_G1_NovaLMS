@@ -550,17 +550,30 @@
                     onclick = `onclick="alert('Chưa có ID bài tập!')"`;
                 }
 
+                const latestResultId = q.latestResultId;
+                const isSequential = q.isSequential;
+
                 quizzesHtml += `
-                    <a href="${url}" ${onclick} class="action-card shadow-sm" style="${lockedState}">
-                        <div class="icon-box icon-quiz">
-                            <i class="bi bi-patch-question-fill"></i>
-                        </div>
-                        <div class="card-text">
-                            <div class="card-title">${title}</div>
-                            <div class="card-subtitle">Trắc nghiệm • Có tính điểm</div>
-                        </div>
-                        ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '<i class="bi bi-chevron-right arrow-icon"></i>'}
-                    </a>`;
+                    <div class="action-card shadow-sm" style="${lockedState}">
+                        <a href="${url}" ${onclick} class="d-flex align-items-center text-decoration-none w-100 p-0 m-0" style="color: inherit;">
+                            <div class="icon-box icon-quiz">
+                                <i class="bi bi-patch-question-fill"></i>
+                            </div>
+                            <div class="card-text flex-grow-1">
+                                <div class="card-title">${title}</div>
+                                <div class="card-subtitle">${isSequential ? 'Bài tập nâng cao • Chấm thủ công' : 'Trắc nghiệm • Tự động'}</div>
+                            </div>
+                            ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '<i class="bi bi-chevron-right arrow-icon"></i>'}
+                        </a>
+                        ${!isLocked && latestResultId ? `
+                            <div class="mt-2 pt-2 border-top d-flex justify-content-end w-100">
+                                <a href="${isSequential ? '/student/assignment/result/' : '/student/quiz/result/'}${latestResultId}" 
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="bi bi-eye-fill me-1"></i> Xem kết quả
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>`;
             });
             quizzesContainer.innerHTML = quizzesHtml;
         } else {

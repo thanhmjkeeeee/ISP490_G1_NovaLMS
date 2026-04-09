@@ -1,5 +1,6 @@
 package com.example.DoAn.controller;
 
+import com.example.DoAn.dto.response.AssignmentGradingDetailDTO;
 import com.example.DoAn.dto.response.AssignmentInfoDTO;
 import com.example.DoAn.dto.response.AssignmentSectionDTO;
 import com.example.DoAn.dto.response.ResponseData;
@@ -150,6 +151,23 @@ public class StudentAssignmentApiController {
         try {
             assignmentService.autoSubmit(sessionId, auth.getName());
             return ResponseEntity.ok(ResponseData.success(true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ResponseData.error(400, e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/student/assignment/result/{resultId}
+     * Returns detailed result for a single student assignment.
+     */
+    @GetMapping("/result/{resultId}")
+    public ResponseEntity<ResponseData<AssignmentGradingDetailDTO>> getResultDetail(
+            @PathVariable Integer resultId,
+            Authentication auth) {
+        try {
+            AssignmentGradingDetailDTO detail = assignmentService.getAssignmentResultDetail(resultId, auth.getName());
+            return ResponseEntity.ok(ResponseData.success(detail));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(ResponseData.error(400, e.getMessage()));

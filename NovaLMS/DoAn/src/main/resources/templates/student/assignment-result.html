@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Kết Quả Bài Tập Lớn')}"></head>
+
+<body class="dashboard-body bg-light">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết Kết quả', breadcrumb='Kết quả bài tập')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-quizzes')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid px-3 px-xl-4 py-4">
+        <!-- ── Student / Quiz Info Header ─────────────────────────────────── -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h4 class="fw-bold mb-1" th:text="${studentName}">Học viên</h4>
+                        <div class="text-muted small">
+                            <span>Bài: <strong id="quizTitle">—</strong></span>
+                            <span class="mx-2">·</span>
+                            <span>Lớp: <strong id="className">—</strong></span>
+                            <span class="mx-2">·</span>
+                            <span>Ngày nộp: <strong id="submittedAt">—</strong></span>
+                        </div>
+                    </div>
+                    <a href="/student/my-quizzes" class="btn btn-outline-secondary rounded-pill px-4">
+                        <i class="bi bi-arrow-left"></i> Quay lại lịch sử
+                    </a>
+                </div>
+
+                <!-- Score summary bar -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="alert alert-info mb-0 py-3 px-4 rounded-4 shadow-sm border-0 d-flex align-items-center">
+                            <div class="me-3 fs-3 text-primary">
+                                <i class="bi bi-lightning-charge-fill"></i>
+                            </div>
+                            <div>
+                                <div class="small opacity-75">Điểm tự động (LISTENING + READING)</div>
+                                <div class="fw-bold fs-5" id="autoScore">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-primary mb-0 py-3 px-4 rounded-4 shadow-sm border-0 d-flex align-items-center">
+                            <div class="me-3 fs-3 text-primary">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+                            <div>
+                                <div class="small opacity-75">Tổng điểm cuối cùng</div>
+                                <div class="fw-bold fs-5" id="totalScore">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Skill Tabs ──────────────────────────────────────────────────── -->
+        <div class="bg-white rounded-4 shadow-sm p-2 mb-4">
+            <ul class="nav nav-pills nav-fill gap-2" id="skillTabs">
+                <!-- Tabs injected by JS -->
+            </ul>
+        </div>
+
+        <!-- ── Tab Content ─────────────────────────────────────────────────── -->
+        <div class="tab-content" id="tabContent">
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-3 fw-medium">Đang tải kết quả chi tiết...</p>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<style>
+    .nav-pills .nav-link { color: #64748b; font-weight: 600; border-radius: 12px; padding: 12px; transition: all 0.2s; border: 1px solid transparent; }
+    .nav-pills .nav-link:hover { background: #f8fafc; color: #0d6efd; }
+    .nav-pills .nav-link.active { background: #0d6efd; color: white; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25); }
+    
+    .question-card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; background: white; transition: all 0.2s; }
+    .question-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+    
+    .answer-block { background: #f8fafc; border-radius: 12px; padding: 16px; margin-top: 12px; border: 1px solid #f1f5f9; }
+    .feedback-block { background: #fffbeb; border-radius: 12px; padding: 16px; margin-top: 12px; border-left: 4px solid #f59e0b; }
+    .ai-block { background: #f5f3ff; border-radius: 12px; padding: 16px; margin-bottom: 20px; border-left: 4px solid #8b5cf6; }
+    
+    .skill-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
+</style>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+const resultId = /*[[${resultId}]]*/ 0;
+let gradingData = null;
+
+async function loadDetail() {
+    try {
+        const resp = await fetch(`/api/v1/student/assignment/result/${resultId}`);
+        const json = await resp.json();
+        if (json.status !== 200) {
+            document.getElementById('tabContent').innerHTML = `
+                <div class="alert alert-danger rounded-4 p-4 text-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+                    <h5 class="mt-3">Lỗi tải dữ liệu</h5>
+                    <p class="mb-0">${json.message}</p>
+                </div>`;
+            return;
+        }
+        gradingData = json.data;
+        populateHeader(gradingData);
+        renderTabs(gradingData.sections);
+        renderTabContent(gradingData.sections);
+    } catch (e) {
+        console.error(e);
+        document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger p-4 text-center">Không thể tải chi tiết bài nộp.</div>`;
+    }
+}
+
+function populateHeader(d) {
+    document.getElementById('quizTitle').textContent     = d.quizTitle    || 'N/A';
+    document.getElementById('className').textContent     = d.className    || '—';
+    document.getElementById('submittedAt').textContent   = d.submittedAt
+        ? new Date(d.submittedAt).toLocaleString('vi-VN')
+        : '—';
+    document.getElementById('autoScore').textContent    = (d.autoScore ?? 0) + ' điểm';
+    document.getElementById('totalScore').textContent   = (d.totalScore || '—') + ' điểm';
+}
+
+const SKILL_ICONS = { LISTENING:'🎧', READING:'📖', SPEAKING:'🎤', WRITING:'✍️' };
+const SKILL_NAMES = { LISTENING:'Listening', READING:'Reading', SPEAKING:'Speaking', WRITING:'Writing' };
+
+function renderTabs(sections) {
+    const nav = document.getElementById('skillTabs');
+    nav.innerHTML = sections.map((s, i) => {
+        const active = i === 0 ? 'active' : '';
+        const icon   = SKILL_ICONS[s.skill] || '📝';
+        const name   = SKILL_NAMES[s.skill] || s.skill;
+        return `<li class="nav-item">
+            <button class="nav-link ${active}" data-bs-toggle="tab"
+                    data-bs-target="#skill-${s.skill}" type="button">
+                ${icon} ${name}
+            </button>
+        </li>`;
+    }).join('');
+}
+
+function renderTabContent(sections) {
+    document.getElementById('tabContent').innerHTML = sections.map((s, i) => {
+        const show = i === 0 ? 'show active' : '';
+        return `<div class="tab-pane fade ${show}" id="skill-${s.skill}">
+            ${renderSection(s)}
+        </div>`;
+    }).join('');
+}
+
+function renderSection(section) {
+    const isAuto   = section.gradingStatus === 'AUTO';
+    const hasAi    = section.gradingStatus === 'GRADED' || section.gradingStatus === 'AI_READY';
+
+    let aiBlock = '';
+    if (hasAi && section.aiScore) {
+        aiBlock = `
+        <div class="ai-block">
+            <div class="d-flex align-items-center mb-2">
+                <span class="fs-4 me-2">🤖</span>
+                <strong class="text-primary">AI Feedback & Suggestion</strong>
+            </div>
+            <div class="fw-bold mb-1">Dự đoán điểm AI: <span class="badge bg-primary">${section.aiScore}</span></div>
+            ${section.aiFeedback ? `<div class="text-muted small">${section.aiFeedback.replace(/\n/g, '<br>')}</div>` : ''}
+            ${section.aiRubricJson ? `<div class="mt-2 pt-2 border-top small text-secondary"><strong>Chi tiết Rubric:</strong> ${section.aiRubricJson}</div>` : ''}
+        </div>`;
+    }
+
+    return `
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            ${aiBlock}
+            <div class="d-flex flex-column gap-4">
+                ${section.questions.map((q, qi) => renderQuestion(q, qi, isAuto)).join('')}
+            </div>
+            
+            ${!isAuto ? `
+            <div class="mt-4 p-3 bg-light rounded-3 text-end d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Điểm phần này do Giáo viên chấm</span>
+                <strong class="fs-5">Tổng điểm:
+                    <span class="text-primary">${section.teacherScore ?? 0}</span> / ${section.maxScore ?? '?'}
+                </strong>
+            </div>` : ''}
+        </div>
+    </div>`;
+}
+
+function renderQuestion(q, qi, isAutoGraded) {
+    let answerBlock = '';
+
+    if (q.questionType === 'SPEAKING' && q.audioUrl) {
+        answerBlock += `
+        <div class="mb-2">
+            <label class="form-label small fw-bold text-muted"><i class="bi bi-mic-fill me-1"></i>File ghi âm của bạn:</label>
+            <audio controls src="${q.audioUrl}" class="w-100"></audio>
+        </div>`;
+    }
+
+    if (q.studentAnswer) {
+        answerBlock += `
+        <div class="answer-block">
+            <div class="small fw-bold text-muted mb-1">Câu trả lời của bạn:</div>
+            <div class="text-dark">${q.studentAnswer}</div>
+        </div>`;
+    }
+
+    let scoreBadge = '';
+    if (isAutoGraded) {
+        const isCorrect = q.isCorrect;
+        scoreBadge = `<span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'} rounded-pill px-3">
+            ${isCorrect ? '✅ Đúng' : '❌ Sai'} • ${q.teacherScore ?? 0} / ${q.maxPoints} đ
+        </span>`;
+    } else {
+        scoreBadge = `<span class="badge bg-primary rounded-pill px-3">
+            Điểm: ${q.teacherScore ?? 0} / ${q.maxPoints} đ
+        </span>`;
+    }
+
+    let teacherNoteBlock = '';
+    if (q.teacherNote) {
+        teacherNoteBlock = `
+        <div class="feedback-block">
+            <div class="small fw-bold text-warning mb-1"><i class="bi bi-chat-left-text-fill me-1"></i>Nhận xét từ Giáo viên:</div>
+            <div class="text-dark">${q.teacherNote}</div>
+        </div>`;
+    }
+
+    return `
+    <div class="question-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 fw-bold">
+                <span class="text-primary me-2">CÂU ${qi + 1}</span>
+            </h6>
+            ${scoreBadge}
+        </div>
+        <div class="mb-3 text-secondary lh-base">${q.content || '—'}</div>
+        ${answerBlock}
+        ${teacherNoteBlock}
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', loadDetail);
+/*]]>*/
+</script>
+
+</body>
+</html>

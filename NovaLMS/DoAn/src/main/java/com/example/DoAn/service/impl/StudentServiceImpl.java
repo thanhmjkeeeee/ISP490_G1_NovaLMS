@@ -40,6 +40,7 @@ public class StudentServiceImpl implements StudentService {
     private final LessonRepository lessonRepository;
     private final QuizResultRepository quizResultRepository;
     private final ClassSessionRepository classSessionRepository;
+    private final QuizRepository quizRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
 
@@ -627,6 +628,14 @@ public class StudentServiceImpl implements StudentService {
                     boolean isComp = userLessonRepository.existsByUser_UserIdAndLesson_LessonIdAndIsCompletedTrue(userId, lesson.getLessonId());
                     if (isComp) completedLessonsByUser++;
 
+                    QuizResult latestResult = quizResultRepository
+                            .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(lesson.getQuiz_id(), userId)
+                            .orElse(null);
+
+                    Quiz qObj = (lesson.getQuiz_id() != null) 
+                            ? quizRepository.findById(lesson.getQuiz_id()).orElse(null) 
+                            : null;
+
                     LessonResponseDTO lDTO = LessonResponseDTO.builder()
                             .lessonId(lesson.getLessonId())
                             .type(lesson.getType() != null ? lesson.getType() : "DOC")
@@ -637,6 +646,9 @@ public class StudentServiceImpl implements StudentService {
                             .quizId(lesson.getQuiz_id()) 
                             .isCompleted(isComp)
                             .isLocked(isLocked)
+                            .latestResultId(latestResult != null ? latestResult.getResultId() : null)
+                            .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
+                            .isSequential(qObj != null && Boolean.TRUE.equals(qObj.getIsSequential()))
                             .build();
 
                     if ("QUIZ".equalsIgnoreCase(lDTO.getType())) quizzes.add(lDTO);
@@ -646,13 +658,20 @@ public class StudentServiceImpl implements StudentService {
                 // --- CATEGORY 2: TEACHER DIRECT QUIZ (ClassSession.quiz) ---
                 if (session.getQuiz() != null) {
                     Quiz q = session.getQuiz();
+                    QuizResult latestResult = quizResultRepository
+                            .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(q.getQuizId(), userId)
+                            .orElse(null);
+
                     quizzes.add(LessonResponseDTO.builder()
                             .quizId(q.getQuizId())
                             .lessonTitle("[Lớp] " + q.getTitle())
                             .lessonName(q.getTitle())
                             .type("QUIZ")
-                            .isCompleted(false) // Cần check QuizResult nếu muốn chính xác hơn
+                            .isCompleted(latestResult != null && Boolean.TRUE.equals(latestResult.getPassed()))
                             .isLocked(isLocked)
+                            .latestResultId(latestResult != null ? latestResult.getResultId() : null)
+                            .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
+                            .isSequential(Boolean.TRUE.equals(q.getIsSequential()))
                             .build());
                 }
 
@@ -662,13 +681,20 @@ public class StudentServiceImpl implements StudentService {
                     Quiz q = sq.getQuiz();
                     // Chỉ hiển thị nếu Teacher đã "Open"
                     if (Boolean.TRUE.equals(sq.getIsOpen())) {
+                        QuizResult latestResult = quizResultRepository
+                                .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(q.getQuizId(), userId)
+                                .orElse(null);
+
                         quizzes.add(LessonResponseDTO.builder()
                                 .quizId(q.getQuizId())
                                 .lessonTitle("[Bổ trợ] " + q.getTitle())
                                 .lessonName(q.getTitle())
                                 .type("QUIZ")
-                                .isCompleted(false)
+                                .isCompleted(latestResult != null && Boolean.TRUE.equals(latestResult.getPassed()))
                                 .isLocked(isLocked)
+                                .latestResultId(latestResult != null ? latestResult.getResultId() : null)
+                                .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
+                                .isSequential(Boolean.TRUE.equals(q.getIsSequential()))
                                 .build());
                     }
                 }

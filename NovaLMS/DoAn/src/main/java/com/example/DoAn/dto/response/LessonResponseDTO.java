@@ -27,4 +27,8 @@ public class LessonResponseDTO {
     private String title;
     private Double score;
     private String status;
+
+    private Integer latestResultId;
+    private String gradingStatus;
+    private boolean isSequential;
 }
