@@ -38,13 +38,13 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
     private final ObjectMapper objectMapper;
 
     private static final List<String> SEQUENTIAL_SKILLS = Arrays.asList(
-        "LISTENING", "READING", "SPEAKING", "WRITING"
+            "LISTENING", "READING", "SPEAKING", "WRITING"
     );
 
     @Override
     public Quiz createAssignment(QuizRequestDTO dto, String expertEmail) throws JsonProcessingException {
         User expert = userRepository.findByEmail(expertEmail)
-            .orElseThrow(() -> new ResourceNotFoundException("Expert not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Expert not found"));
 
         if (!"ROLE_EXPERT".equals(expert.getRole().getName())) {
             throw new InvalidDataException("Only experts can create assignments");
@@ -85,8 +85,8 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
         for (String skill : SEQUENTIAL_SKILLS) {
             long count = quizQuestionRepository.countByQuizIdAndSkill(quizId, skill);
             SkillSectionSummaryDTO dto = new SkillSectionSummaryDTO(
-                skill, count, 0L,
-                count > 0 ? "READY" : "DRAFT"
+                    skill, count, 0L,
+                    count > 0 ? "READY" : "DRAFT"
             );
             result.put(skill, dto);
         }
@@ -96,7 +96,7 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
     @Override
     public void addQuestionsToSection(Integer quizId, AssignmentQuestionRequestDTO dto, String expertEmail) {
         Quiz quiz = quizRepository.findById(quizId)
-            .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         if (!Boolean.TRUE.equals(quiz.getIsSequential())) {
             throw new InvalidDataException("This quiz does not support section-based question addition");
@@ -118,7 +118,7 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
             if (existingIds.contains(questionId)) continue;
 
             Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Question not found: " + questionId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Question not found: " + questionId));
 
             QuizQuestion qq = new QuizQuestion();
             qq.setQuiz(quiz);
@@ -133,14 +133,14 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
     @Override
     public void removeQuestion(Integer quizId, Integer questionId) {
         quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quizId, questionId)
-            .ifPresent(quizQuestionRepository::delete);
+                .ifPresent(quizQuestionRepository::delete);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AssignmentPreviewDTO getPreview(Integer quizId) {
         Quiz quiz = quizRepository.findById(quizId)
-            .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         Map<String, SkillSectionSummaryDTO> summaries = getSkillSummaries(quizId);
         List<String> missingSkills = new ArrayList<>();
@@ -151,54 +151,42 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
         }
 
         long totalQuestions = summaries.values().stream()
-            .mapToLong(SkillSectionSummaryDTO::getQuestionCount).sum();
+                .mapToLong(SkillSectionSummaryDTO::getQuestionCount).sum();
 
         Map<String, Integer> timeLimits = null;
         if (quiz.getTimeLimitPerSkill() != null) {
             try {
                 timeLimits = objectMapper.readValue(
-                    quiz.getTimeLimitPerSkill(),
-                    new TypeReference<Map<String, Integer>>() {}
+                        quiz.getTimeLimitPerSkill(),
+                        new TypeReference<Map<String, Integer>>() {}
                 );
             } catch (Exception ignored) {}
         }
 
         return new AssignmentPreviewDTO(
-            quiz.getQuizId(),
-            quiz.getTitle(),
-            quiz.getDescription(),
-            quiz.getQuizCategory(),
-            new ArrayList<>(summaries.values()),
-            totalQuestions,
-            quiz.getPassScore() != null ? quiz.getPassScore() : BigDecimal.ZERO,
-            timeLimits,
-            quiz.getPassScore(),
-            quiz.getMaxAttempts(),
-            quiz.getShowAnswerAfterSubmit(),
-            missingSkills,
-            missingSkills.isEmpty()
+                quiz.getQuizId(),
+                quiz.getTitle(),
+                quiz.getDescription(),
+                quiz.getQuizCategory(),
+                new ArrayList<>(summaries.values()),
+                totalQuestions,
+                quiz.getPassScore() != null ? quiz.getPassScore() : BigDecimal.ZERO,
+                timeLimits,
+                quiz.getPassScore(),
+                quiz.getMaxAttempts(),
+                quiz.getShowAnswerAfterSubmit(),
+                missingSkills,
+                missingSkills.isEmpty()
         );
     }
 
     @Override
     public void publishAssignment(Integer quizId) {
         Quiz quiz = quizRepository.findById(quizId)
-            .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
 
         if (!"DRAFT".equals(quiz.getStatus())) {
             throw new InvalidDataException("Only DRAFT quizzes can be published");
-        }
-
-        Map<String, SkillSectionSummaryDTO> summaries = getSkillSummaries(quizId);
-        List<String> missing = new ArrayList<>();
-        for (SkillSectionSummaryDTO s : summaries.values()) {
-            if (s.getQuestionCount() == 0) {
-                missing.add(s.getSkill());
-            }
-        }
-
-        if (!missing.isEmpty()) {
-            throw new InvalidDataException("Missing questions for skills: " + String.join(", ", missing));
         }
 
         quiz.setStatus("PUBLISHED");
@@ -209,7 +197,7 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
     @Override
     public void changeStatus(Integer quizId, String status) {
         Quiz quiz = quizRepository.findById(quizId)
-            .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
         quiz.setStatus(status);
         quizRepository.save(quiz);
     }
@@ -218,17 +206,17 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
     @Transactional(readOnly = true)
     public List<Quiz> getAssignments(String expertEmail) {
         return quizRepository.findAll().stream()
-            .filter(q -> ("COURSE_ASSIGNMENT".equals(q.getQuizCategory())
-                       || "MODULE_ASSIGNMENT".equals(q.getQuizCategory()))
-                  && expertEmail.equals(q.getUser().getEmail()))
-            .toList();
+                .filter(q -> ("COURSE_ASSIGNMENT".equals(q.getQuizCategory())
+                        || "MODULE_ASSIGNMENT".equals(q.getQuizCategory()))
+                        && expertEmail.equals(q.getUser().getEmail()))
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Quiz getAssignment(Integer quizId, String expertEmail) {
         Quiz quiz = quizRepository.findById(quizId)
-            .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
         if (!expertEmail.equals(quiz.getUser().getEmail())) {
             throw new InvalidDataException("Access denied");
         }
