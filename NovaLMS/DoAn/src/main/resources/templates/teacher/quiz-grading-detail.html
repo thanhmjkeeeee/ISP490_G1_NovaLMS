@@ -230,34 +230,31 @@
 
         // Student answer
         let answerBlock = '';
-    if (q.userAnswerDisplay && q.questionType !== 'SPEAKING') {
-        const displayText = (q.userAnswerDisplay || '').replace(/&quot;/g, '"');
-        const safeText = displayText.split(String.fromCharCode(96)).join('&#96;');
 
-        answerBlock = `
-        <div class="p-3 bg-light rounded-3 mb-3">
-            <h6 class="fw-bold text-muted mb-2">📝 Câu trả lời:</h6>
-            <div class="text-dark" style="white-space:pre-wrap;">${safeText}</div>
-        </div>`;
-    } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
-        const correctBadge = isCorrect === true ? '<span class="badge bg-success">✅ Đúng</span>'
-            : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
-            : '<span class="badge bg-secondary">Chưa rõ</span>';
-        answerBlock = `
-        <div class="p-3 bg-light rounded-3 mb-3">
-            <h6 class="fw-bold text-muted mb-2">Kết quả tự động:</h6>
-            ${correctBadge}
-        </div>`;
-    } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
-        const correctBadge = isCorrect === true ? '<span class="badge bg-success">Đúng</span>'
-            : isCorrect === false ? '<span class="badge bg-danger">Sai</span>'
-            : '<span class="badge bg-secondary">Chưa rõ</span>';
-        answerBlock = `
-        <div class="p-3 bg-light rounded-3 mb-3">
-            <h6 class="fw-bold text-muted mb-2">Kết quả tự động:</h6>
-            ${correctBadge}
-        </div>`;
-    }
+        // ĐÃ FIX: Thêm && q.questionType !== 'SPEAKING'
+        // -> Bài WRITING vẫn hiện câu trả lời bình thường.
+        // -> Bài SPEAKING sẽ bị ẩn cái link Cloudinary đi (vì đã có trình phát Audio ở trên rồi).
+        if (q.userAnswerDisplay && q.questionType !== 'SPEAKING') {
+            const displayText = (q.userAnswerDisplay || '').replace(/&quot;/g, '"');
+
+            // Không gõ trực tiếp dấu backtick (`) để tránh lỗi Thymeleaf
+            const safeText = displayText.split(String.fromCharCode(96)).join('&#96;');
+
+            answerBlock = `
+            <div class="p-3 bg-light rounded-3 mb-3">
+                <h6 class="fw-bold text-muted mb-2">📝 Câu trả lời:</h6>
+                <div class="text-dark" style="white-space:pre-wrap;">${safeText}</div>
+            </div>`;
+        } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
+            const correctBadge = isCorrect === true ? '<span class="badge bg-success">✅ Đúng</span>'
+                : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
+                : '<span class="badge bg-secondary">Chưa rõ</span>';
+            answerBlock = `
+            <div class="p-3 bg-light rounded-3 mb-3">
+                <h6 class="fw-bold text-muted mb-2">Kết quả tự động:</h6>
+                ${correctBadge}
+            </div>`;
+        }
 
         // Grading input (only for WRITING/SPEAKING)
         let inputBlock = '';
