@@ -1378,14 +1378,19 @@
     let wsAiQuestions = [];
     let wsAiSelected = new Set();
     let wsAllAiSelected = false;
+    let wsIsEditing = false;
 
     document.addEventListener('DOMContentLoaded', () => {
         wsQuizModal = new bootstrap.Modal(document.getElementById('wsQuizModal'));
     });
 
     const openCreateQuizModal = async () => {
-        if (state.selectedClassId === 'ALL') { alert('Vui lòng chọn lớp học trước.'); return; }
+        if (state.selectedClassId === 'ALL') {
+            Swal.fire('Chú ý', 'Vui lòng chọn lớp học trước.', 'warning');
+            return;
+        }
         resetWsQuizBuilder();
+        wsIsEditing = false;
         const cls = state.allClasses.find(c => c.classId == state.selectedClassId);
         document.getElementById('wsQuizModalTitle').textContent = 'Tạo Quiz mới';
         document.getElementById('wsQuizModalSubtitle').textContent = cls?.courseName || '';
@@ -1408,8 +1413,69 @@
         wsQuizModal.show();
     };
 
+    const openWsQuizBuilder = async (quizId) => {
+        if (!quizId) return;
+        resetWsQuizBuilder();
+        wsIsEditing = true;
+        wsCurrentQuizId = quizId;
+        document.getElementById('wsQuizModalTitle').textContent = 'Chỉnh sửa Quiz';
+        
+        try {
+            // Fetch quiz details
+            const res = await fetch(`/api/v1/teacher/quizzes/${quizId}`);
+            const json = await res.json();
+            if (json.status !== 200) throw new Error(json.message);
+            
+            const q = json.data;
+            document.getElementById('wsQuizTitle').value = q.title || '';
+            document.getElementById('wsQuizDescription').value = q.description || '';
+            document.getElementById('wsQuizTimeLimit').value = q.timeLimitMinutes || '';
+            document.getElementById('wsQuizPassScore').value = q.passScore || '70';
+            document.getElementById('wsQuizMaxAttempts').value = q.maxAttempts || '3';
+            
+            if (q.status === 'PUBLISHED') document.getElementById('wsStatusPublish').checked = true;
+            else document.getElementById('wsStatusDraft').checked = true;
+
+            // Load sessions for this class
+            const sel = document.getElementById('wsSessionSelect');
+            sel.innerHTML = '<option value="">-- Chọn buổi học --</option><option value="">Không gắn buổi (quiz chung)</option>';
+            const sRes = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
+            const sJson = await sRes.json();
+            if (sJson.status === 200 && sJson.data) {
+                sJson.data.forEach(s => {
+                    const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+                    const isSelected = q.classSessionId == s.sessionId ? 'selected' : '';
+                    sel.innerHTML += `<option value="${s.sessionId}" ${isSelected}>Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}</option>`;
+                });
+            }
+
+            // Load questions into builder
+            if (q.questions && q.questions.length > 0) {
+                wsSelectedQuestions = q.questions.map(sq => ({
+                    questionId: sq.questionId,
+                    content: sq.content,
+                    questionType: sq.questionType,
+                    skill: sq.skill,
+                    cefrLevel: sq.cefrLevel,
+                    status: sq.status,
+                    source: sq.source || 'TEACHER_PRIVATE'
+                }));
+                wsRenderSelected();
+            }
+
+            document.getElementById('wsQuizIdBadge').classList.remove('d-none');
+            document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
+            
+            wsSwitchStep(1);
+            wsQuizModal.show();
+        } catch (e) {
+            Swal.fire('Lỗi', 'Không thể tải chi tiết quiz: ' + e.message, 'error');
+        }
+    };
+
     const resetWsQuizBuilder = () => {
         wsCurrentQuizId = null;
+        wsIsEditing = false;
         wsCurrentStep = 1;
         wsSelectedQuestions = [];
         wsBankCache.clear();
@@ -1506,8 +1572,12 @@
                 maxAttempts: document.getElementById('wsQuizMaxAttempts').value ? parseInt(document.getElementById('wsQuizMaxAttempts').value) : null
             };
             try {
-                const res = await fetch('/api/v1/teacher/quizzes', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                const url = wsIsEditing && wsCurrentQuizId ? `/api/v1/teacher/quizzes/${wsCurrentQuizId}` : '/api/v1/teacher/quizzes';
+                const method = wsIsEditing && wsCurrentQuizId ? 'PUT' : 'POST';
+                
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const json = await res.json();
@@ -1518,9 +1588,11 @@
                     document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
                     wsSwitchStep(2);
                 } else {
-                    alert(json.message || 'Lỗi khi tạo quiz');
+                    Swal.fire('Thất bại', json.message || 'Lỗi khi lưu quiz', 'error');
                 }
-            } catch (e) { alert('Lỗi kết nối: ' + e.message); }
+            } catch (e) {
+                Swal.fire('Lỗi kết nối', e.message, 'error');
+            }
         } else {
             // Finalize: attach to session, publish if needed
             const sessionId = document.getElementById('wsQuizModalSessionId').value;
@@ -2053,8 +2125,8 @@
         const sessionId = document.querySelector('input[name="ca-selected-session"]:checked')?.value;
         const quizIds = Array.from(document.querySelectorAll('input[name="ca-selected-quiz"]:checked')).map(el => el.value);
 
-        if (!sessionId) { alert("Vui lòng chọn 1 buổi học."); return; }
-        if (quizIds.length === 0) { alert("Vui lòng chọn ít nhất 1 Quiz."); return; }
+        if (!sessionId) { Swal.fire('Chú ý', "Vui lòng chọn 1 buổi học.", 'warning'); return; }
+        if (quizIds.length === 0) { Swal.fire('Chú ý', "Vui lòng chọn ít nhất 1 Quiz.", 'warning'); return; }
 
         const btn = document.getElementById('btn-save-ca');
         btn.disabled = true;
@@ -2071,11 +2143,11 @@
                 if (res.ok) successCount++;
             }
 
-            alert(`Đã thêm thành công ${successCount} assignment(s) vào buổi học.`);
+            Swal.fire('Thành công', `Đã thêm thành công ${successCount} assignment(s) vào buổi học.`, 'success');
             bootstrap.Modal.getInstance(document.getElementById('createAssignmentModal')).hide();
             loadAssignments();
         } catch (err) {
-            alert("Lỗi trong quá trình lưu: " + err.message);
+            Swal.fire('Lỗi', "Lỗi trong quá trình lưu: " + err.message, 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = 'Lưu Assignment';
@@ -2091,9 +2163,35 @@
 
     window.saveAssignmentSchedule = async function() {
         const sqId = document.getElementById('sched-sessionQuizId').value;
+        const openVal = document.getElementById('sched-openAt').value;
+        const closeVal = document.getElementById('sched-closeAt').value;
+
+        // Frontend Validation
+        const now = new Date();
+        if (openVal) {
+            const openDate = new Date(openVal);
+            if (openDate < new Date(now.getTime() - 5 * 60000)) {
+                Swal.fire('Lỗi', 'Thời gian mở không được ở trong quá khứ', 'error');
+                return;
+            }
+        }
+        if (closeVal) {
+            const closeDate = new Date(closeVal);
+            if (closeDate < now) {
+                Swal.fire('Lỗi', 'Thời gian đóng không được ở trong quá khứ', 'error');
+                return;
+            }
+        }
+        if (openVal && closeVal) {
+            if (new Date(closeVal) <= new Date(openVal)) {
+                Swal.fire('Lỗi', 'Thời gian đóng phải sau thời gian mở', 'error');
+                return;
+            }
+        }
+
         const payload = {
-            openAt: document.getElementById('sched-openAt').value || null,
-            closeAt: document.getElementById('sched-closeAt').value || null
+            openAt: openVal || null,
+            closeAt: closeVal || null
         };
 
         try {
@@ -2104,11 +2202,22 @@
             });
             const json = await res.json();
             if (json.status === 200) {
-                alert('Lưu lịch hẹn giờ thành công!');
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Lưu lịch hẹn giờ thành công!',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
                 bootstrap.Modal.getInstance(document.getElementById('assignmentScheduleModal')).hide();
                 loadAssignments();
-            } else { alert('Lỗi: ' + json.message); }
-        } catch (err) { alert('Lỗi kết nối: ' + err.message); }
+            } else { 
+                Swal.fire('Thất bại', json.message, 'error');
+            }
+        } catch (err) { 
+            Swal.fire('Lỗi kết nối', err.message, 'error');
+        }
     };
 
     // --- TAB 5 & 6: GRADING ---
