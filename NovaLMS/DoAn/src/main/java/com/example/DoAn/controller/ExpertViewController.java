@@ -119,6 +119,32 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    //  AI QUESTION GENERATION (MODAL SPLIT INTO PAGES)
+    // ══════════════════════════════════════════════════════════════════════
+
+    @GetMapping("/question-bank/ai-quick")
+    public String aiQuickPage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/ai-quick";
+    }
+
+    @GetMapping("/question-bank/ai-module")
+    public String aiModulePage(Model model, Principal principal) {
+        String email = getEmail(principal);
+        if (email != null) {
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+        }
+        model.addAttribute("isDashboard", true);
+        return "expert/ai-module";
+    }
+
+    @GetMapping("/question-bank/ai-group")
+    public String aiGroupPage(Model model) {
+        model.addAttribute("isDashboard", true);
+        return "expert/ai-group";
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     //  QUESTION APPROVAL QUEUE (SPEC 003)
     // ══════════════════════════════════════════════════════════════════════
 
