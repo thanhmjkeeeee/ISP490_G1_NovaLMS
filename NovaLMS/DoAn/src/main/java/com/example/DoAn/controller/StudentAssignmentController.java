@@ -81,4 +81,17 @@ public class StudentAssignmentController {
         model.addAttribute("resultId", resultId);
         return "student/assignment-complete";
     }
+
+    /**
+     * Result detail page.
+     * GET /student/assignment/result/{resultId}
+     */
+    @GetMapping("/student/assignment/result/{resultId}")
+    public String showResultDetailPage(
+            @PathVariable Integer resultId,
+            Authentication auth,
+            Model model) {
+        model.addAttribute("resultId", resultId);
+        return "student/assignment-result";
+    }
 }

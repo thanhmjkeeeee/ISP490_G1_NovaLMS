@@ -1,5 +1,6 @@
 package com.example.DoAn.service;
 
+import com.example.DoAn.dto.response.AssignmentGradingDetailDTO;
 import com.example.DoAn.dto.response.AssignmentInfoDTO;
 import com.example.DoAn.dto.response.AssignmentSectionDTO;
 
@@ -29,4 +30,7 @@ public interface IStudentAssignmentService {
 
     /** Auto-submit on timer expiry */
     void autoSubmit(Long sessionId, String userEmail);
+
+    /** Get detailed result for student */
+    AssignmentGradingDetailDTO getAssignmentResultDetail(Integer resultId, String studentEmail);
 }
