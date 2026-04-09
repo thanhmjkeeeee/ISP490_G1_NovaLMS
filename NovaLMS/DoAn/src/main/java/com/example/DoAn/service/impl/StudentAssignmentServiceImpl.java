@@ -388,6 +388,133 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         createQuizResult(session);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public AssignmentGradingDetailDTO getAssignmentResultDetail(Integer resultId, String studentEmail) {
+        QuizResult result = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kết quả không tìm thấy: " + resultId));
+
+        // Security check: result must belong to the student
+        if (!result.getUser().getEmail().equals(studentEmail)) {
+            throw new InvalidDataException("Bạn không có quyền xem kết quả này");
+        }
+
+        Quiz quiz = result.getQuiz();
+        if (quiz == null) throw new ResourceNotFoundException("Quiz không tìm thấy");
+
+        // Fetch all answers eagerly
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+
+        // Group answers by skill
+        Map<String, List<QuizAnswer>> bySkill = new LinkedHashMap<>();
+        for (QuizAnswer a : answers) {
+            Question q = a.getQuestion();
+            String skill = q.getSkill() != null ? q.getSkill() : "OTHER";
+            bySkill.computeIfAbsent(skill, k -> new ArrayList<>()).add(a);
+        }
+
+        AssignmentGradingDetailDTO dto = new AssignmentGradingDetailDTO();
+        dto.setResultId(resultId);
+        dto.setAssignmentSessionId(result.getAssignmentSessionId());
+        dto.setStudentName(result.getUser() != null ? result.getUser().getFullName() : null);
+        dto.setQuizTitle(quiz.getTitle());
+        if (quiz.getClazz() != null) {
+            dto.setClassName(quiz.getClazz().getClassName());
+        }
+        dto.setSubmittedAt(result.getSubmittedAt());
+
+        List<AssignmentGradingDetailDTO.SkillSectionDetail> sections = new ArrayList<>();
+        BigDecimal autoScore = BigDecimal.ZERO;
+
+        for (String skill : Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING")) {
+            List<QuizAnswer> skillAnswers = bySkill.getOrDefault(skill, Collections.emptyList());
+            if (skillAnswers.isEmpty()) continue;
+
+            AssignmentGradingDetailDTO.SkillSectionDetail section =
+                    new AssignmentGradingDetailDTO.SkillSectionDetail();
+            section.setSkill(skill);
+
+            BigDecimal sectionMax = BigDecimal.ZERO;
+            BigDecimal sectionTeacherScore = BigDecimal.ZERO;
+            List<AssignmentGradingDetailDTO.QuestionGradeItem> items = new ArrayList<>();
+
+            for (QuizAnswer a : skillAnswers) {
+                Question q = a.getQuestion();
+                BigDecimal maxPts = getQuestionMaxPoints(q);
+                sectionMax = sectionMax.add(maxPts);
+
+                AssignmentGradingDetailDTO.QuestionGradeItem item =
+                        new AssignmentGradingDetailDTO.QuestionGradeItem();
+                item.setQuestionId(q.getQuestionId());
+                item.setQuestionType(q.getQuestionType());
+                item.setContent(q.getContent());
+                item.setMaxPoints(maxPts);
+                item.setStudentAnswer(a.getAnsweredOptions());
+                item.setIsCorrect(a.getIsCorrect());
+                item.setAiScore(a.getAiScore());
+                item.setAiFeedback(a.getAiFeedback());
+                item.setAudioUrl(q.getAudioUrl());
+                item.setTeacherScore(a.getPointsAwarded());
+                item.setTeacherNote(a.getTeacherNote());
+
+                // Accumulate teacher score for this section
+                if (a.getPointsAwarded() != null) {
+                    sectionTeacherScore = sectionTeacherScore.add(a.getPointsAwarded());
+                } else if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                    // For auto-graded sections, pointsAwarded might be null but isCorrect is set
+                    if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                        sectionTeacherScore = sectionTeacherScore.add(maxPts);
+                    }
+                }
+
+                items.add(item);
+            }
+
+            section.setQuestions(items);
+            section.setMaxScore(sectionMax);
+            section.setTeacherScore(sectionTeacherScore.compareTo(BigDecimal.ZERO) > 0
+                    ? sectionTeacherScore : null);
+
+            // AI summary (first answer with AI score)
+            QuizAnswer aiAnswer = skillAnswers.stream()
+                    .filter(a -> a.getAiScore() != null)
+                    .findFirst().orElse(null);
+            if (aiAnswer != null) {
+                section.setAiScore(aiAnswer.getAiScore());
+                section.setAiFeedback(aiAnswer.getAiFeedback());
+                section.setAiRubricJson(aiAnswer.getAiRubricJson());
+            }
+
+            if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                section.setGradingStatus("AUTO");
+                autoScore = autoScore.add(sectionTeacherScore);
+            } else {
+                boolean hasAi = skillAnswers.stream().anyMatch(a -> a.getAiScore() != null);
+                boolean hasTeacher = skillAnswers.stream().anyMatch(a -> a.getPointsAwarded() != null);
+                section.setGradingStatus(hasTeacher ? "GRADED" : (hasAi ? "AI_READY" : "AI_PENDING"));
+            }
+
+            sections.add(section);
+        }
+
+        dto.setSections(sections);
+        dto.setAutoScore(autoScore);
+
+        if (result.getSectionScores() != null && !result.getSectionScores().isBlank()) {
+            try {
+                dto.setSectionScores(objectMapper.readValue(
+                        result.getSectionScores(),
+                        new TypeReference<Map<String, BigDecimal>>() {}));
+            } catch (Exception ignored) { /* leave null */ }
+        }
+
+        if (result.getScore() != null) {
+            dto.setTotalScore(BigDecimal.valueOf(result.getScore()));
+        }
+
+        return dto;
+    }
+
     // ─── Private helpers ────────────────────────────────────────────────
 
     private AssignmentSession getSessionForUser(Long sessionId, String userEmail) {
@@ -609,5 +736,14 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         } catch (Exception e) {
             return "{}";
         }
+    }
+
+    private BigDecimal getQuestionMaxPoints(Question q) {
+        // Try QuizQuestion for explicit points, else default to 1
+        return quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
+                        q.getQuestionId(), q.getQuestionId())
+                .filter(qq -> qq.getPoints() != null)
+                .map(QuizQuestion::getPoints)
+                .orElse(BigDecimal.ONE);
     }
 }

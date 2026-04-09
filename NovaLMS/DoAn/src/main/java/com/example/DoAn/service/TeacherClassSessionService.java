@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -800,6 +801,16 @@ public class TeacherClassSessionService {
 
             if (!isTeacherOfClass(teacherId, sq.getSession().getClazz().getClassId())) {
                 return ResponseData.error(403, "Không có quyền");
+            }
+
+            if (request.getOpenAt() != null && request.getOpenAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
+                return ResponseData.error(400, "Thời gian mở không được ở trong quá khứ");
+            }
+            if (request.getCloseAt() != null && request.getCloseAt().isBefore(LocalDateTime.now())) {
+                return ResponseData.error(400, "Thời gian đóng không được ở trong quá khứ");
+            }
+            if (request.getOpenAt() != null && request.getCloseAt() != null && !request.getCloseAt().isAfter(request.getOpenAt())) {
+                return ResponseData.error(400, "Thời gian đóng phải sau thời gian mở");
             }
 
             sq.setOpenAt(request.getOpenAt());
