@@ -2220,18 +2220,24 @@
         }
     };
 
-    // --- TAB 5 & 6: GRADING ---
+    // --- TAB 5: GRADING QUEUE ---
     async function loadGradingQueue(page = 0) {
         state.gradingPage = page;
         const classId = state.selectedClassId;
         const container = document.getElementById('gradingQueueArea');
-        
+        if (!container) return;
+
         // Fetch Assignments
         let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=50`;
-        if (classId !== 'ALL') assUrl += `&classId=${classId}`;
-        
-        // Fetch Quizzes (Lesson Quizzes)
+
+        // Fetch Quizzes
         let quizUrl = `/api/v1/teacher/quiz-results/pending?page=0&size=100`;
+
+        // ĐÃ FIX: Bắt buộc truyền classId cho CẢ 2 API để không bị lọt bài của lớp khác
+        if (classId !== 'ALL') {
+            assUrl += `&classId=${classId}`;
+            quizUrl += `&classId=${classId}`;
+        }
 
         try {
             const [assRes, quizRes] = await Promise.all([
@@ -2239,39 +2245,43 @@
                 fetch(quizUrl).then(r => r.json())
             ]);
 
-            let mergedItems = [];
-            
-            // Map Assignments
+            // ĐÃ FIX: Dùng Map để khử trùng lặp (Deduplicate). Mỗi resultId chỉ được tồn tại 1 lần!
+            const uniqueMap = new Map();
+
+            // Ưu tiên 1: Đưa Assignment vào Map trước (Để giữ lại loại ASSIGNMENT và nút popup AI)
             if (assRes.status === 200 && assRes.data && assRes.data.content) {
-                mergedItems.push(...assRes.data.content.map(i => ({
-                    ...i,
-                    type: 'ASSIGNMENT',
-                    badgeClass: 'bg-info'
-                })));
-            }
-            
-            // Map Quizzes (Filter out Locked ones as they go to Request tab, only show Pending grading)
-            if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
-                let pQuizzes = quizRes.data.items.filter(i => i.status !== 'LOCKED');
-                // Local filter by class if needed
-                if (classId !== 'ALL') {
-                    // Quiz pending DTO might not have classId, we'll try to match by courseName or just show all
-                    // For now, if quiz item has courseName, we can try to match it with state.allClasses[classId].courseName
-                }
-                
-                mergedItems.push(...pQuizzes.map(i => ({
-                    resultId: i.resultId,
-                    studentName: i.studentName,
-                    studentEmail: i.studentEmail,
-                    quizTitle: i.quizTitle,
-                    submittedAt: i.submittedAt || i.startedAt,
-                    totalScore: i.status, // placeholder
-                    type: 'QUIZ',
-                    badgeClass: 'bg-primary'
-                })));
+                assRes.data.content.forEach(i => {
+                    uniqueMap.set(i.resultId, {
+                        ...i,
+                        type: 'ASSIGNMENT',
+                        badgeClass: 'bg-info'
+                    });
+                });
             }
 
-            // Sort by Date Desc
+            // Ưu tiên 2: Đưa Quiz vào (Chỉ lấy những bài chưa có trong Map để tránh bị lặp)
+            if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
+                let pQuizzes = quizRes.data.items.filter(i => i.status !== 'LOCKED');
+
+                pQuizzes.forEach(i => {
+                    if (!uniqueMap.has(i.resultId)) {
+                        uniqueMap.set(i.resultId, {
+                            resultId: i.resultId,
+                            studentName: i.studentName,
+                            studentEmail: i.studentEmail,
+                            quizTitle: i.quizTitle,
+                            submittedAt: i.submittedAt || i.startedAt,
+                            totalScore: i.status,
+                            type: 'QUIZ',
+                            badgeClass: 'bg-primary'
+                        });
+                    }
+                });
+            }
+
+            let mergedItems = Array.from(uniqueMap.values());
+
+            // Sort theo ngày mới nhất
             mergedItems.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
             if (mergedItems.length === 0) {
@@ -2294,28 +2304,22 @@
                         <tbody>
                             ${mergedItems.map(item => `
                                 <tr>
-                                    <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-','text-')} border small">${item.type}</span></td>
+                                    <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-','text-')} border small px-3 py-2">${item.type}</span></td>
                                     <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
-                                    <td>${item.quizTitle}</td>
+                                    <td><span class="fw-bold text-dark">${item.quizTitle}</span></td>
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
                                     <td class="text-end">
-                                        ${item.type === 'ASSIGNMENT' ? `
-                                            <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="wsOpenGradingDetail(${item.resultId})">
-                                                Chấm điểm <i class="bi bi-chevron-right ms-1"></i>
-                                            </button>
-                                        ` : `
-                                            <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
-                                                Chấm định tính <i class="bi bi-arrow-right ms-1"></i>
-                                            </a>
-                                        `}
+                                        <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                                            Chấm định tính <i class="bi bi-arrow-right ms-1"></i>
+                                        </a>
                                     </td>
                                 </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>`;
-        } catch (err) { 
+        } catch (err) {
             console.error(err);
-            container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu chấm bài</div>'; 
+            container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu chấm bài</div>';
         }
     }
 
@@ -2359,9 +2363,9 @@
                                 <td>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</td>
                                 <td class="text-center"><span class="badge bg-primary">${item.totalScore ?? item.autoScore ?? 0}</span></td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-primary rounded-pill px-3" onclick="wsOpenGradingDetail(${item.resultId})">
-                                        ${item.isGraded ? 'Xem lại' : 'Chấm điểm'}
-                                    </button>
+                                    <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        Xem lại <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
                                 </td>
                             </tr>`).join('')}
                     </tbody>
@@ -2541,11 +2545,23 @@
     // --- GRADING DETAIL LOGIC (IN-WORKSPACE) ---
     let wsGradingData = null;
     let wsCurrentResultId = null;
+    let currentGradingSource = 'QUEUE';
 
-    window.wsOpenGradingDetail = async function(resultId) {
+    window.wsOpenGradingDetail = async function(resultId, source) {
+        currentGradingSource = source || 'QUEUE';
         wsCurrentResultId = resultId;
-        document.getElementById('gradingQueueArea').style.display = 'none';
-        document.getElementById('gradingDetailArea').style.display = 'block';
+        
+        const detailArea = document.getElementById('gradingDetailArea');
+        
+        if (currentGradingSource === 'QUEUE') {
+            document.getElementById('tab-grading').appendChild(detailArea);
+            document.getElementById('gradingQueueArea').style.display = 'none';
+        } else {
+            document.getElementById('tab-graded').appendChild(detailArea);
+            document.getElementById('gradedContentContainer').style.display = 'none';
+        }
+        
+        detailArea.style.display = 'block';
         
         // Quick loading state
         document.getElementById('ws-gd-studentName').textContent = 'Đang tải...';
@@ -2560,15 +2576,21 @@
             wsGradingData = json.data;
             renderWsGradingDetail(wsGradingData);
         } catch (e) {
-            alert('Lỗi: ' + e.message);
+            Swal.fire('Lỗi', e.message, 'error');
             wsCloseGradingDetail();
         }
     };
 
     window.wsCloseGradingDetail = function() {
         document.getElementById('gradingDetailArea').style.display = 'none';
-        document.getElementById('gradingQueueArea').style.display = 'block';
-        loadGradingQueue(); // Refresh list 
+        
+        if (currentGradingSource === 'QUEUE') {
+            document.getElementById('gradingQueueArea').style.display = 'block';
+            loadGradingQueue();
+        } else {
+            document.getElementById('gradedContentContainer').style.display = 'block';
+            loadGradedResults();
+        }
     };
 
     function renderWsGradingDetail(d) {
@@ -2589,6 +2611,8 @@
                 </button>
             </li>`).join('');
 
+        const isReadonly = d.isGraded || currentGradingSource === 'GRADED';
+
         // Tab Content
         document.getElementById('ws-gd-tabContent').innerHTML = d.sections.map((s, i) => `
             <div class="tab-pane fade ${i===0?'show active':''}" id="ws-gd-skill-${s.skill}">
@@ -2605,8 +2629,13 @@
                                     ${q.audioUrl ? `<div class="mb-2"><audio controls src="${q.audioUrl}" class="w-100" style="height:35px;"></audio></div>` : ''}
                                     ${q.studentAnswer ? `<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ${wsEscape(q.studentAnswer)}</div>` : ''}
                                     
-                                    ${s.gradingStatus === 'AUTO' ? `
-                                        <div class="text-end fw-bold text-primary small">Điểm: ${q.teacherScore || 0} / ${q.maxPoints}</div>
+                                    ${(s.gradingStatus === 'AUTO' || isReadonly) ? `
+                                        <div class="row g-2">
+                                            <div class="col-12 text-end">
+                                                <div class="fw-bold text-primary small">Điểm: ${q.teacherScore ?? 0} / ${q.maxPoints}</div>
+                                                ${q.teacherNote ? `<div class="small text-muted mt-1 fst-italic">"${q.teacherNote}"</div>` : ''}
+                                            </div>
+                                        </div>
                                     ` : `
                                         <div class="row g-2 align-items-end">
                                             <div class="col-md-3">
@@ -2625,6 +2654,12 @@
                     </div>
                 </div>
             </div>`).join('');
+
+        // Hide/Show action buttons based on status
+        const actionArea = document.querySelector('#gradingDetailArea .card-body.p-4 .d-flex.justify-content-between.align-items-center')?.parentElement?.parentElement;
+        if (actionArea) {
+            actionArea.style.display = isReadonly ? 'none' : 'block';
+        }
     }
 
     window.wsSubmitGrade = async function(isFinal) {
@@ -2649,9 +2684,27 @@
             });
             const json = await res.json();
             if (json.status === 200) {
-                alert(isFinal ? 'Đã hoàn tất chấm điểm!' : 'Đã lưu bản nháp thành công.');
-                if (isFinal) wsCloseGradingDetail();
-                else wsOpenGradingDetail(wsCurrentResultId); // Refresh scores
+
+                if (isFinal) {
+                    alert('Đã hoàn tất chấm điểm!');
+
+                    // 1. Ẩn màn hình chi tiết chấm bài đi
+                    document.getElementById('gradingDetailArea').style.display = 'none';
+
+                    // 2. Khôi phục lại UI danh sách cho Tab Chấm bài (Phòng hờ lần sau quay lại bị kẹt)
+                    document.getElementById('gradingQueueArea').style.display = 'block';
+
+                    // 3. Tự động kích hoạt chuyển sang Tab "Kết quả đã chấm"
+                    const gradedTabBtn = document.getElementById('tab-graded-btn');
+                    const tab = new bootstrap.Tab(gradedTabBtn);
+                    tab.show();
+                    // (Lưu ý: lệnh tab.show() của Bootstrap sẽ tự động gọi hàm loadGradedResults() luôn)
+
+                } else {
+                    alert('Đã lưu bản nháp thành công.');
+                    wsOpenGradingDetail(wsCurrentResultId, currentGradingSource); // Refresh lại điểm nháp
+                }
+
             } else {
                 alert('Lỗi: ' + json.message);
             }

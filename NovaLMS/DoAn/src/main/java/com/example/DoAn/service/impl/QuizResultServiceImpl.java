@@ -565,6 +565,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .toList();
 
         return QuizResultDetailDTO.builder()
+                .resultId(qr.getResultId())
                 .quizId(quiz.getQuizId())
                 .quizTitle(quiz.getTitle())
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getTitle() : null)
@@ -582,9 +583,9 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, int page, int size) {
+    public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findPendingGradingForTeacher(email, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findPendingGradingForTeacher(email, classId, pageable);
 
         List<QuizResultPendingDTO> dtoList = resultPage.getContent().stream().map(qr -> QuizResultPendingDTO.builder()
                 .resultId(qr.getResultId())
@@ -613,9 +614,9 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultGradedDTO> getGradedResults(String email, int page, int size) {
+    public PageResponse<QuizResultGradedDTO> getGradedResults(String email, Integer classId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findGradedForTeacher(email, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findGradedForTeacher(email, classId, pageable);
 
         List<QuizResultGradedDTO> dtoList = resultPage.getContent().stream().map(qr -> {
             int maxScore = 0;

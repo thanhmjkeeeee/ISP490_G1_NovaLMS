@@ -47,6 +47,7 @@ public class TeacherQuizGradingController {
         try {
             QuizResultDetailDTO result = quizResultService.getQuizResult(resultId, email);
             model.addAttribute("result", result);
+            model.addAttribute("resultId", resultId);
             return "teacher/quiz-grading-detail";
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMsg", "Không tìm thấy bài thi hoặc bạn không có quyền.");
