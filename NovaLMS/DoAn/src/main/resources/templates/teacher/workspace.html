@@ -159,7 +159,7 @@
             <!-- TAB 3: QUẢN LÝ QUIZ (NEW) -->
             <div class="tab-pane fade" id="tab-quiz" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-patch-question me-2 text-primary"></i>Danh sách Quiz & Chấm điểm</h5>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-patch-question me-2 text-primary"></i>Danh sách Quiz</h5>
                     <button class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold" id="btnCreateQuiz" onclick="openCreateQuizModal()" style="display:none;">
                         <i class="bi bi-plus-lg me-1"></i>Tạo Quiz mới
                     </button>
@@ -169,17 +169,16 @@
                     <div class="table-responsive">
                         <table class="table table-custom align-middle">
                             <thead>
-                                <tr>
-                                    <th width="60">STT</th>
-                                    <th>Tên bài Quiz</th>
-                                    <th class="text-center">Buổi học</th>
-                                    <th class="text-center">Câu hỏi</th>
-                                    <th class="text-center">Trạng thái</th>
-                                    <th class="text-end">Hành động</th>
-                                </tr>
+                            <tr>
+                                <th width="60" class="text-center">STT</th>
+                                <th>Tên bài Quiz</th>
+                                <th>Buổi học</th>
+                                <th>Câu hỏi</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Hành động</th>
+                            </tr>
                             </thead>
                             <tbody id="quizTableBody">
-                                <!-- Populated by JS -->
                             </tbody>
                         </table>
                     </div>
@@ -808,6 +807,50 @@
         });
     }
 
+    function renderClassSelectionTable(container, buttonLabel) {
+        if (!state.allClasses || state.allClasses.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-folder-x fs-1 text-muted opacity-25"></i>
+                    <p class="mt-3 text-muted">Không tìm thấy lớp học nào để chọn.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-start">Tên lớp</th>
+                            <th class="text-start">Khóa học</th>
+                            <th class="text-center">Học viên</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.allClasses.map(c => `
+                            <tr>
+                                <td class="text-start"><h6 class="fw-bold mb-0">${c.className}</h6></td>
+                                <td class="text-start">${c.courseName || '—'}</td>
+                                <td class="text-center">${c.studentCount || 0}</td>
+                                <td class="text-center">
+                                    <span class="badge ${c.status === 'Open' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${c.status === 'Open' ? 'text-success' : 'text-secondary'} border">
+                                        ${c.status || 'Chưa rõ'}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary rounded-pill px-4" onclick="wsSelectClassFromTab(${c.classId})">
+                                        ${buttonLabel}
+                                    </button>
+                                </td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+    }
+
     window.wsSelectClassFromTab = function(classId) {
         state.selectedClassId = classId;
         const globalFilter = document.getElementById('globalClassFilter');
@@ -1239,7 +1282,12 @@
         const empty = document.getElementById('quizEmptyState');
         const tbody = document.getElementById('quizTableBody');
 
-        if (classId === 'ALL') { container.style.display = 'none'; empty.style.display = 'block'; return; }
+        if (classId === 'ALL') {
+            container.style.display = 'none';
+            empty.style.display = 'block';
+            renderClassSelectionTable(empty, 'Cấu hình Quiz <i class="bi bi-chevron-right ms-1"></i>');
+            return;
+        }
 
         container.style.display = 'block';
         empty.style.display = 'none';
@@ -1957,7 +2005,7 @@
         if (classId === 'ALL') {
             backBtn.style.display = 'none';
             createBtn.style.display = 'none';
-            renderAssignmentClassList(container);
+            renderClassSelectionTable(container, 'Cấu hình Assignment <i class="bi bi-chevron-right ms-1"></i>');
             return;
         }
 
@@ -2032,49 +2080,6 @@
         }
     }
 
-    function renderAssignmentClassList(container) {
-        if (!state.allClasses || state.allClasses.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-folder-x fs-1 text-muted opacity-25"></i>
-                    <p class="mt-3 text-muted">Không tìm thấy lớp học nào để cấu hình.</p>
-                </div>`;
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-custom align-middle">
-                    <thead>
-                        <tr>
-                            <th>Tên lớp</th>
-                            <th>Khóa học</th>
-                            <th class="text-center">Học viên</th>
-                            <th class="text-center">Trạng thái</th>
-                            <th class="text-end">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${state.allClasses.map(c => `
-                            <tr>
-                                <td><h6 class="fw-bold mb-0">${c.className}</h6></td>
-                                <td>${c.courseName || '—'}</td>
-                                <td class="text-center">${c.studentCount}</td>
-                                <td class="text-center">
-                                    <span class="badge ${c.status === 'Open' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${c.status === 'Open' ? 'text-success' : 'text-secondary'} border">
-                                        ${c.status}
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-primary rounded-pill px-4" onclick="wsSelectClassFromTab(${c.classId})">
-                                        Cấu hình Assignment <i class="bi bi-chevron-right ms-1"></i>
-                                    </button>
-                                </td>
-                            </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-    }
 
     // --- CREATE ASSIGNMENT MODAL LOGIC ---
     window.openCreateAssignmentModal = async function() {
@@ -2227,6 +2232,11 @@
         const container = document.getElementById('gradingQueueArea');
         if (!container) return;
 
+        if (classId === 'ALL') {
+            renderClassSelectionTable(container, 'Chấm bài lớp này <i class="bi bi-chevron-right ms-1"></i>');
+            return;
+        }
+
         // Fetch Assignments
         let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=50`;
 
@@ -2327,52 +2337,97 @@
         state.gradedPage = page;
         const classId = state.selectedClassId;
         const container = document.getElementById('gradedContentContainer');
-        let url = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=${page}&size=10`;
-        if (classId !== 'ALL') url += `&classId=${classId}`;
-
-        try {
-            const res = await fetch(url);
-            const json = await res.json();
-            renderGradingTable(container, json.data, "Chưa có kết quả đã chấm.", 'loadGradedResults');
-        } catch (err) { container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu</div>'; }
-    }
-
-    function renderGradingTable(container, pageData, emptyMsg, loadFunc) {
-        const items = pageData.content || [];
-        if (items.length === 0) {
-            container.innerHTML = `<div class="text-center py-5 text-muted">${emptyMsg}</div>`;
+        
+        if (classId === 'ALL') {
+            renderClassSelectionTable(container, 'Xem kết quả <i class="bi bi-chevron-right ms-1"></i>');
             return;
         }
-        container.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-custom align-middle">
-                    <thead>
-                        <tr>
-                            <th>Học viên</th>
-                            <th>Bài thi</th>
-                            <th>Ngày nộp</th>
-                            <th class="text-center">Score</th>
-                            <th class="text-end">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(item => `
+
+        // Fetch Both Assignments and Quizzes
+        let assUrl = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=${page}&size=50&classId=${classId}`;
+        let quizUrl = `/api/v1/teacher/quiz-results/graded?page=${page}&size=50&classId=${classId}`;
+
+        try {
+            const [assRes, quizRes] = await Promise.all([
+                fetch(assUrl).then(r => r.json()),
+                fetch(quizUrl).then(r => r.json())
+            ]);
+
+            const uniqueMap = new Map();
+
+            // Assignments
+            if (assRes.status === 200 && assRes.data && assRes.data.content) {
+                assRes.data.content.forEach(i => {
+                    uniqueMap.set(i.resultId, {
+                        ...i,
+                        type: 'ASSIGNMENT',
+                        badgeClass: 'bg-info'
+                    });
+                });
+            }
+
+            // Quizzes
+            if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
+                quizRes.data.items.forEach(i => {
+                    if (!uniqueMap.has(i.resultId)) {
+                        uniqueMap.set(i.resultId, {
+                            resultId: i.resultId,
+                            studentName: i.studentName,
+                            studentEmail: i.studentEmail,
+                            quizTitle: i.quizTitle,
+                            submittedAt: i.submittedAt || i.startedAt,
+                            totalScore: i.totalScore || i.score || 0,
+                            type: 'QUIZ',
+                            badgeClass: 'bg-primary'
+                        });
+                    }
+                });
+            }
+
+            let mergedItems = Array.from(uniqueMap.values());
+            mergedItems.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+            if (mergedItems.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">Chưa có kết quả đã chấm cho lớp này.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle">
+                        <thead>
                             <tr>
-                                <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
-                                <td>${item.quizTitle}</td>
-                                <td>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</td>
-                                <td class="text-center"><span class="badge bg-primary">${item.totalScore ?? item.autoScore ?? 0}</span></td>
-                                <td class="text-end">
-                                    <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                        Xem lại <i class="bi bi-arrow-right ms-1"></i>
-                                    </a>
-                                </td>
-                            </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>
-            ${renderWsPagination(pageData, loadFunc)}`;
+                                <th>Loại</th>
+                                <th>Học viên</th>
+                                <th>Bài thi / Bài tập</th>
+                                <th>Ngày nộp</th>
+                                <th class="text-center">Điểm</th>
+                                <th class="text-end">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${mergedItems.map(item => `
+                                <tr>
+                                    <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-','text-')} border small px-3 py-2">${item.type}</span></td>
+                                    <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
+                                    <td><span class="fw-bold text-dark">${item.quizTitle}</span></td>
+                                    <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
+                                    <td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary border px-3">${item.totalScore ?? 0}</span></td>
+                                    <td class="text-end">
+                                        <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                            Xem lại <i class="bi bi-chevron-right ms-1"></i>
+                                        </a>
+                                    </td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div class="alert alert-danger">Lỗi tải dữ liệu kết quả</div>';
+        }
     }
+
 
     function renderWsPagination(p, func) {
         if (!p || p.totalPages <= 1) return '';
