@@ -434,6 +434,11 @@ loadQuestions();
 
 // ═══════════════════════════ AI PANEL (Moved to separate pages) ═══════════════════════════
 
+let importModal;
+
+document.addEventListener('DOMContentLoaded', () => {
+    importModal = new bootstrap.Modal(document.getElementById('importModal'));
+});
 
 // ═══════════════════════════ EXCEL PANEL ═══════════════════════════
 
