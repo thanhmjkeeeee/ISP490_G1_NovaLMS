@@ -37,12 +37,13 @@ public class TeacherQuizGradingApiController {
     public ResponseData<PageResponse<QuizResultPendingDTO>> getPendingGradingList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
 
         try {
-            PageResponse<QuizResultPendingDTO> list = quizResultService.getPendingGradingList(email, page, size);
+            PageResponse<QuizResultPendingDTO> list = quizResultService.getPendingGradingList(email, classId, page, size);
             return ResponseData.success("Success", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -53,12 +54,13 @@ public class TeacherQuizGradingApiController {
     public ResponseData<PageResponse<QuizResultGradedDTO>> getGradedResults(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
 
         try {
-            PageResponse<QuizResultGradedDTO> list = quizResultService.getGradedResults(email, page, size);
+            PageResponse<QuizResultGradedDTO> list = quizResultService.getGradedResults(email, classId, page, size);
             return ResponseData.success("Success", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
