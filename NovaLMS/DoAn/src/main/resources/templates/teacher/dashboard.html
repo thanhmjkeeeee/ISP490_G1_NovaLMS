@@ -1,103 +1,165 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Tổng quan Giảng viên')}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard - Nova LMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Teacher Dashboard')}"></head>
+
 
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Tổng quan')}"></header>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan', breadcrumb='Dashboard')}"></header>
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
-    <div class="row g-4 mb-4">
-        <!-- Dashboard Stats Placeholder -->
-        <div class="col-xl-4 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="stats-icon text-primary bg-primary bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-people-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted fw-bold mb-1">Học viên của tôi</h6>
-                        <h3 class="fw-bold mb-0">--</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="stats-icon text-success bg-success bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-journal-check fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted fw-bold mb-1">Khóa học phụ trách</h6>
-                        <h3 class="fw-bold mb-0">--</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-4 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="stats-icon text-warning bg-warning bg-opacity-10 rounded-circle p-3 me-3">
-                        <i class="bi bi-file-earmark-text-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted fw-bold mb-1">Bài cần chấm</h6>
-                        <h3 class="fw-bold mb-0">--</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container-fluid py-4 px-4">
+  <!-- WELCOME -->
+  <div class="welcome-banner fi">
+    <div class="wb-text">
+      <h2 id="welcomeUser">Chào buổi sáng! ☕</h2>
+      <p id="welcomeSub">Đang tải dữ liệu của bạn...</p>
     </div>
+    <div class="wb-action d-none d-md-block">
+      <a href="/teacher/workspace" class="btn-live"><i class="bi bi-camera-video-fill"></i> Vào lớp</a>
+    </div>
+  </div>
 
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-2">Bài nộp gần đây</h5>
-            <a href="/teacher/quiz/grading" class="btn btn-sm btn-outline-primary">Đi tới trang chấm điểm <i class="bi bi-arrow-right"></i></a>
+  <!-- STATS -->
+  <div class="row g-3 mb-4 fi">
+    <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon si-blue"><i class="bi bi-journal-bookmark"></i></div><div class="stat-info"><div class="stat-lbl">Lớp đang dạy</div><div class="stat-num" id="statClasses">--</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon si-green"><i class="bi bi-people"></i></div><div class="stat-info"><div class="stat-lbl">Tổng học viên</div><div class="stat-num" id="statStudents">--</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card border-warn"><div class="stat-icon si-orange"><i class="bi bi-pencil-square"></i></div><div class="stat-info"><div class="stat-lbl">Bài chờ chấm</div><div class="stat-num warn" id="statPending">--</div></div></div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card border-dang"><div class="stat-icon si-red"><i class="bi bi-exclamation-octagon"></i></div><div class="stat-info"><div class="stat-lbl">Yêu cầu mở khóa</div><div class="stat-num dang" id="statUnlock">--</div></div></div></div>
+  </div>
+
+  <div class="row g-3 mb-4 fi">
+    <!-- ALERTS -->
+    <div class="col-lg-8">
+      <div class="alert-section">
+        <div class="alert-section-header d-flex justify-content-between mb-3">
+          <div class="alert-section-title"><i class="bi bi-exclamation-square-fill"></i> Học viên cần chú ý</div>
+          <a href="/teacher/workspace" class="text-secondary text-decoration-none small">Xem chi tiết →</a>
         </div>
-        <div class="card-body px-4 pb-4">
-            <p class="text-muted mb-0">Truy cập menu chấm bài để đánh giá các câu tự luận của học viên.</p>
-        </div>
+        <div class="student-alert-grid" id="studentAlertGrid"></div>
+      </div>
     </div>
+    <!-- SIDE COL -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="dash-card">
+        <div class="card-title-row"><span class="section-label">Lịch dạy hôm nay</span><a href="/teacher/workspace">Tất cả</a></div>
+        <div class="custom-scroll" id="scheduleArea"></div>
+      </div>
+      <div class="dash-card">
+        <div class="todo-alert warn"><div class="todo-body"><div class="tb-title">Chờ chấm điểm</div><div class="tb-desc"><strong id="pendingCount">0</strong> bài chưa chấm.</div><a href="/teacher/workspace" class="btn-todo warn">Chấm ngay</a></div></div>
+        <div class="todo-alert dang"><div class="todo-body"><div class="tb-title">Yêu cầu mở khóa</div><div class="tb-desc"><strong id="unlockCount">0</strong> yêu cầu.</div><a href="/teacher/workspace" class="btn-todo dang">Xem xét</a></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="dash-card fi">
+    <div class="card-title-row"><h5><i class="bi bi-clock-history"></i> Bài nộp gần đây</h5></div>
+    <div class="table-responsive">
+      <table class="table table-custom mb-0">
+        <thead><tr><th>Học viên</th><th>Bài tập</th><th>Lớp</th><th>Thời gian</th><th>Điểm</th><th>Trạng thái</th><th class="text-end">Hành động</th></tr></thead>
+        <tbody id="recentSubmissions"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header  :: dash-scripts}"></th:block>
 
 <script>
-async function loadDashboardStats() {
+document.addEventListener('DOMContentLoaded', function () {
+
+  const renderSchedule = (list) => {
+    const area = document.getElementById('scheduleArea');
+    if (!area) return;
+    if (!list || list.length === 0) { area.innerHTML = `<div class="text-center py-4 text-muted small">Không có lịch dạy.</div>`; return; }
+    area.innerHTML = list.map(s => `
+      <div class="sched-item ${s.isToday ? 'today' : ''}">
+        <div class="sched-badge ${s.isToday ? 'today' : 'future'}"><div class="sb-day">${s.isToday ? 'H.Nay' : new Date(s.sessionDate).getDate()}</div><div class="sb-sub">${s.slotName || 'Slot ?'}</div></div>
+        <div class="sched-info"><div class="si-title">${s.className}</div><div class="si-sub">${s.startTime} – ${s.endTime}</div></div>
+        <button class="btn-enter ${s.isToday ? 'primary' : 'outline'}">${s.isToday ? 'Vào lớp' : 'Xem'}</button>
+      </div>`).join('');
+  };
+
+  const renderRecentSubmissions = (list) => {
+    const tbody = document.getElementById('recentSubmissions');
+    if (!tbody) return;
+    if (!list || list.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Chưa có bài nộp.</td></tr>`; return; }
+    tbody.innerHTML = list.map(item => {
+      const isPending = !item.status || item.status.includes('PENDING');
+      const isPassed = item.status === 'ALL_GRADED' && (item.score / (item.totalScore || 8) >= 0.5);
+      const statusBadge = isPending ? '<span class="badge-pill bp-warn">Chờ chấm</span>' : (isPassed ? '<span class="badge-pill bp-success">Đạt</span>' : '<span class="badge-pill bp-danger">Không đạt</span>');
+      return `
+        <tr>
+          <td><div class="d-flex align-items-center gap-2"><div class="grade-av">${item.initials||'?'}</div><span>${item.studentName}</span></div></td>
+          <td>${item.quizTitle}</td><td>${item.className}</td>
+          <td class="text-muted small">${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString() : '—'}</td>
+          <td><span class="${isPending?'':'fw-bold '+(isPassed?'text-success':'text-danger')}">${isPending ? '--' : item.score}</span> / ${item.totalScore||8}</td>
+          <td>${statusBadge}</td>
+          <td class="text-end"><a href="/teacher/quiz/grading/${item.resultId}" class="btn-detail">${isPending?'Chấm':'Xem'}</a></td>
+        </tr>`;
+    }).join('');
+  };
+
+  const renderStudentAlerts = (list) => {
+    const grid = document.getElementById('studentAlertGrid');
+    if (!grid || !list) return;
+    const colorMap = { red: 'av-red', orange: 'av-orange', yellow: 'av-yellow', purple: 'av-purple' };
+    grid.innerHTML = list.map(s => {
+      const avClass = colorMap[s.avatarColor] || 'av-orange';
+      return `
+        <div class="sa-card type-${s.type||'score'}">
+          <div class="sa-av ${avClass}">${s.initials||'?'}</div>
+          <div class="sa-body"><div class="sa-name">${s.name}</div><div class="sa-reason text-truncate" style="max-width:150px">${s.reason}</div></div>
+          <span class="sa-badge">${s.badgeText}</span>
+        </div>`;
+    }).join('');
+  };
+
+  const loadDashboard = async () => {
     try {
-        const res = await fetch('/teacher/api/dashboard-stats');
-        const json = await res.json();
-        if (json.status !== 200 || !json.data) return;
-        const s = json.data;
+      const res = await fetch('/api/v1/teacher/dashboard');
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('Vui lòng đăng nhập lại');
+        throw new Error('Lỗi máy chủ');
+      }
+      const result = await res.json();
+      if (result.status !== 200) throw new Error(result.message || 'Lỗi tải dữ liệu');
+      const d = result.data;
 
-        // Student count
-        const studentEl = document.querySelector('.col-xl-4.col-md-6:nth-child(1) h3');
-        if (studentEl) studentEl.textContent = s.studentCount ?? 0;
+      document.getElementById('welcomeUser').textContent = d.fullName ? `Chào, ${d.fullName}! ☕` : 'Chào mừng! ☕';
+      document.getElementById('welcomeSub').innerHTML = `Hôm nay có <strong>${d.todayClasses??0} ca dạy</strong> và <strong>${d.pendingGrading??0} bài</strong> chờ chấm.`;
+      document.getElementById('statClasses').textContent = d.activeClasses??0;
+      document.getElementById('statStudents').textContent = d.totalStudents??0;
+      document.getElementById('statPending').textContent = d.pendingGrading??0;
+      document.getElementById('pendingCount').textContent = d.pendingGrading??0;
+      document.getElementById('statUnlock').textContent = d.unlockRequests??0;
+      document.getElementById('unlockCount').textContent = d.unlockRequests??0;
 
-        // Course count
-        const courseEl = document.querySelector('.col-xl-4.col-md-6:nth-child(2) h3');
-        if (courseEl) courseEl.textContent = s.courseCount ?? 0;
+      renderStudentAlerts(d.alertStudents);
+      renderSchedule(d.todaySchedule);
+      renderRecentSubmissions(d.recentSubmissions);
+    } catch (err) {
+      console.warn('Dashboard:', err.message);
+      document.getElementById('welcomeSub').innerHTML = `<span class="text-danger">Lỗi: ${err.message}. Thử lại sau.</span>`;
+    }
+  };
 
-        // Pending questions badge
-        const pendingCount = s.pendingQuestionCount ?? 0;
-        const badgeEl = document.querySelector('.col-xl-4.col-md-6:nth-child(3)');
-        if (badgeEl) {
-            const h3 = badgeEl.querySelector('h3');
-            if (pendingCount > 0) {
-                h3.innerHTML = `${pendingCount} <span class="badge bg-warning text-dark ms-1 align-middle" style="font-size:0.6em">chờ duyệt</span>`;
-            } else {
-                h3.textContent = pendingCount;
-            }
-        }
-    } catch (e) { /* silently fail - keep placeholders */ }
-}
-document.addEventListener('DOMContentLoaded', loadDashboardStats);
+  loadDashboard();
+});
 </script>
-
 </body>
 </html>

@@ -4,6 +4,7 @@ import com.example.DoAn.model.QuizResult;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface QuizResultRepository extends JpaRepository<QuizResult, Integer> {
     Optional<QuizResult> findByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
-    
+
     Optional<QuizResult> findByQuizQuizIdAndUser_EmailAndStatus(Integer quizId, String email, String status);
 
     @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.quizId = :quizId AND qr.user.email = :email")
@@ -37,12 +38,13 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     @Query("SELECT DISTINCT qr FROM QuizResult qr " +
            "JOIN FETCH qr.quiz q " +
            "LEFT JOIN FETCH qr.user stu " +
+           "JOIN Registration reg ON reg.user.userId = stu.userId " +
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
            "WHERE (qr.passed IS NULL OR qr.status = 'LOCKED') " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
-           "AND (:classId IS NULL OR c.classId = :classId) " +
+           "AND (:classId IS NULL OR (c.classId = :classId AND reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
            "     OR c.teacher.email = :email " +
            "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
@@ -56,12 +58,13 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     @Query("SELECT DISTINCT qr FROM QuizResult qr " +
            "JOIN FETCH qr.quiz q " +
            "LEFT JOIN FETCH qr.user stu " +
+           "JOIN Registration reg ON reg.user.userId = stu.userId " +
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
            "WHERE qr.passed IS NOT NULL " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
-           "AND (:classId IS NULL OR c.classId = :classId) " +
+           "AND (:classId IS NULL OR (c.classId = :classId AND reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
            "     OR c.teacher.email = :email " +
            "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
@@ -99,7 +102,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
           AND LOWER(reg.status) = 'approved'
           AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED'))
           AND (
-               q.quizCategory = 'COURSE_ASSIGNMENT' 
+               (q.quizCategory = 'COURSE_ASSIGNMENT' AND (q.clazz.classId = :classId OR (q.clazz IS NULL AND q.course.courseId = reg.clazz.course.courseId))) 
                OR EXISTS (
                    SELECT 1 FROM Lesson l 
                    JOIN l.module m 
@@ -110,24 +113,10 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
           )
           AND (
             'ALL' IN :status
-            OR ('PENDING_SPEAKING' IN :status
-                AND qr.passed IS NULL
-                AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL))
-                AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)
-               )
-            OR ('PENDING_WRITING' IN :status
-                AND qr.passed IS NULL
-                AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL))
-                AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)
-               )
-            OR ('PENDING_BOTH' IN :status
-                AND qr.passed IS NULL
-                AND (qr.status = 'GRADING' OR (EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)
-                    AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)))
-               )
-            OR ('ALL_GRADED' IN :status
-                AND qr.passed IS NOT NULL
-               )
+            OR ('PENDING_SPEAKING' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL))
+            OR ('PENDING_WRITING' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL))
+            OR ('PENDING_BOTH' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR (EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL) AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL))))
+            OR ('ALL_GRADED' IN :status AND qr.passed IS NOT NULL)
           )
         ORDER BY qr.submittedAt DESC
         """)
@@ -136,5 +125,49 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             @org.springframework.data.repository.query.Param("status") java.util.Collection<String> status,
             Pageable pageable
     );
+
+    @Query("SELECT COUNT(DISTINCT qr.resultId) FROM QuizResult qr " +
+            "JOIN qr.user u " +
+            "JOIN Registration reg ON reg.user.userId = u.userId " +
+            "WHERE reg.clazz.classId = :classId " +
+            "AND reg.status = 'Approved' " +
+            "AND qr.passed IS NULL " +
+            "AND qr.status != 'LOCKED' " +
+            "AND (qr.quiz.clazz.classId = :classId OR (qr.quiz.clazz IS NULL AND qr.quiz.course.courseId = reg.clazz.course.courseId))")
+    long countPendingGradingForClass(@Param("classId") Integer classId);
+
+    @Query("SELECT COUNT(DISTINCT qr.resultId) FROM QuizResult qr " +
+            "JOIN qr.user u " +
+            "JOIN Registration reg ON reg.user.userId = u.userId " +
+            "WHERE reg.clazz.classId = :classId " +
+            "AND reg.status = 'Approved' " +
+            "AND qr.isUnlockRequested = true " +
+            "AND (qr.quiz.clazz.classId = :classId OR (qr.quiz.clazz IS NULL AND qr.quiz.course.courseId = reg.clazz.course.courseId))")
+    long countUnlockRequestsForClass(@Param("classId") Integer classId);
+
+    @Query("SELECT qr FROM QuizResult qr " +
+            "JOIN FETCH qr.quiz q " +
+            "JOIN FETCH qr.user u " +
+            "JOIN Registration reg ON reg.user.userId = u.userId " +
+            "WHERE reg.clazz.classId = :classId " +
+            "AND reg.status = 'Approved' " +
+            "AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED')) " +
+            "AND (q.clazz.classId = :classId OR (q.clazz IS NULL AND q.course.courseId = reg.clazz.course.courseId)) " +
+            "ORDER BY qr.submittedAt DESC")
+    List<QuizResult> findRecentSubmissionsByClassId(@org.springframework.data.repository.query.Param("classId") Integer classId, Pageable pageable);
+
+    // Tính điểm trung bình của học viên trong các lớp được chỉ định và lọc ra những ai dưới mức điểm (threshold)
+    @Query("SELECT u.fullName, u.email, AVG(qr.score) " +
+            "FROM QuizResult qr " +
+            "JOIN qr.user u " +
+            "JOIN Registration r ON r.user.userId = u.userId " +
+            "WHERE r.clazz.classId IN :classIds " +
+            "AND r.status = 'Approved' " +
+            "AND qr.score IS NOT NULL " +
+            "AND (qr.quiz.clazz.classId IN :classIds OR qr.quiz.course.courseId = r.clazz.course.courseId) " +
+            "GROUP BY u.userId, u.fullName, u.email " +
+            "HAVING AVG(qr.score) < :threshold " +
+            "ORDER BY AVG(qr.score) ASC") // Sắp xếp ai điểm thấp nhất lên đầu
+    List<Object[]> findStudentsWithAverageScoreBelow(@Param("classIds") List<Integer> classIds, @Param("threshold") Double threshold);
 
 }
