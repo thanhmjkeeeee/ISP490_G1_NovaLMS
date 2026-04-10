@@ -1,16 +1,17 @@
 package com.example.DoAn.util;
 
 import org.springframework.stereotype.Component;
-import org.yaml.snakeyaml.Yaml;
 import lombok.extern.slf4j.Slf4j;
-import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @Slf4j
 @Component
+@lombok.RequiredArgsConstructor
 public class AIQuestionPromptBuilder {
+
+    private final com.example.DoAn.service.IAIPromptConfigService aiPromptConfigService;
 
     private static final Set<String> VALID_QUESTION_TYPES = Set.of(
             "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI",
@@ -208,24 +209,12 @@ public class AIQuestionPromptBuilder {
 
     // ─── ADVANCED MODE ─────────────────────────────────────────────────────────
 
-    private static final String ADVANCED_CONFIG_PATH = "config/ai-prompt-advanced.yaml";
-    private Map<String, Object> cachedAdvancedConfig;
-
-    private Map<String, Object> loadAdvancedConfig() {
-        if (cachedAdvancedConfig != null) return cachedAdvancedConfig;
-        try {
-            InputStream is = getClass().getClassLoader().getResourceAsStream(ADVANCED_CONFIG_PATH);
-            if (is == null) {
-                log.warn("Advanced config file not found: {}", ADVANCED_CONFIG_PATH);
-                return null;
-            }
-            cachedAdvancedConfig = new Yaml().load(is);
-            is.close();
-            return cachedAdvancedConfig;
-        } catch (Exception e) {
-            log.warn("Failed to load advanced config: {}", e.getMessage());
-            return null;
-        }
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getBucketConfig(String cefr) {
+        String bucket = getBucket(cefr);
+        Map<String, Object> config = aiPromptConfigService.getBucketConfigAsMap(bucket);
+        if (config == null) return getFallbackBucketConfig(bucket);
+        return config;
     }
 
     private String getBucket(String cefr) {
@@ -235,18 +224,6 @@ public class AIQuestionPromptBuilder {
             case "C1", "C2" -> "advanced";
             default          -> "intermediate";
         };
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getBucketConfig(String cefr) {
-        Map<String, Object> config = loadAdvancedConfig();
-        if (config == null) return getFallbackBucketConfig(getBucket(cefr));
-        Map<String, Object> advanced = (Map<String, Object>) config.get("advanced");
-        if (advanced == null) return getFallbackBucketConfig(getBucket(cefr));
-        String bucket = getBucket(cefr);
-        Map<String, Object> bucketConfig = (Map<String, Object>) advanced.get(bucket);
-        if (bucketConfig == null) return getFallbackBucketConfig(bucket);
-        return bucketConfig;
     }
 
     private Map<String, Object> getFallbackBucketConfig(String bucket) {

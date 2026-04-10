@@ -23,6 +23,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
 
     long countByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
 
+    long countByQuizQuizIdAndUserUserIdAndStatusNot(Integer quizId, Integer userId, String status);
+
     Optional<QuizResult> findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(Integer quizId, Integer userId);
 
     Page<QuizResult> findByPassedIsNullAndQuiz_User_EmailOrderBySubmittedAtAsc(String email, Pageable pageable);
