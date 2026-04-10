@@ -848,14 +848,17 @@ public class TeacherQuizService {
                             // matchTarget comes from correctPairs mapping
                             // Build matchTarget from index mapping
                             String matchTarget = null;
-                            if (q.getCorrectPairs() != null && q.getMatchRight() != null) {
+                            if (q.getCorrectPairs() != null && q.getMatchRight() != null && q.getMatchLeft() != null) {
                                 for (int pairIdx = 0; pairIdx < q.getCorrectPairs().size(); pairIdx++) {
-                                    int leftIdx = q.getCorrectPairs().get(pairIdx) - 1; // 1-based to 0-based
-                                    int rightIdx = pairIdx;
-                                    if (q.getOptions().get(i).equals(q.getMatchLeft().get(leftIdx))) {
-                                        if (rightIdx < q.getMatchRight().size()) {
+                                    // According to prompt: matchLeft[pairIdx] matches matchRight[correctPairs[pairIdx] - 1]
+                                    int leftIdx = pairIdx;
+                                    int rightIdx = q.getCorrectPairs().get(pairIdx) - 1;
+
+                                    if (leftIdx < q.getMatchLeft().size() && optDto.getTitle().equals(q.getMatchLeft().get(leftIdx))) {
+                                        if (rightIdx >= 0 && rightIdx < q.getMatchRight().size()) {
                                             matchTarget = q.getMatchRight().get(rightIdx);
                                         }
+                                        break; // Found the match, no need to continue looping pairs
                                     }
                                 }
                             }

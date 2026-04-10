@@ -150,8 +150,8 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
-        // Lưu ý: countByQuizQuizId đếm TẤT CẢ học viên của quiz. Cần đổi thành countByQuizQuizIdAndUserUserId.
-        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quizId, user.getUserId());
+        // Lưu ý: Loại trừ status 'IN_PROGRESS' để tránh bị tính là lượt làm bài khi đang bị vi phạm/đang làm.
+        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
         if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
@@ -244,7 +244,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
-        long attemptCount = quizResultRepository.countByQuizQuizId(quizId);
+        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
         if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
