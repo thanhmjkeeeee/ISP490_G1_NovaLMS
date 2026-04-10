@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Cấu hình AI Prompt')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Cấu hình AI Prompt', breadcrumb='Chuyên gia')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='ai-config')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+    <div class="container-fluid py-4">
+        <div class="card border-0 shadow-sm rounded-4 overlay-card">
+            <div class="card-header bg-white border-bottom p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="fw-bold mb-1"><i class="bi bi-robot me-2 text-primary"></i>Quản lý cấu hình AI</h4>
+                        <p class="text-muted mb-0">Căn chỉnh thông minh cách AI tạo nội dung câu hỏi.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- CEFR Level Tabs -->
+                <ul class="nav nav-pills mb-4 gap-2 modern-tabs" id="levelTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active px-4" id="beginner-tab" data-bs-toggle="pill" type="button" onclick="loadConfig('beginner')">
+                            <i class="bi bi-reception-1 me-2"></i>Beginner
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link px-4" id="intermediate-tab" data-bs-toggle="pill" type="button" onclick="loadConfig('intermediate')">
+                            <i class="bi bi-reception-3 me-2"></i>Intermediate
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link px-4" id="advanced-tab" data-bs-toggle="pill" type="button" onclick="loadConfig('advanced')">
+                            <i class="bi bi-reception-4 me-2"></i>Advanced
+                        </button>
+                    </li>
+                </ul>
+
+                <hr class="opacity-10 mb-5">
+
+                <form id="aiConfigForm">
+                    <input type="hidden" id="configId">
+                    <input type="hidden" id="currentBucket" value="beginner">
+
+                    <div class="row g-5">
+                        <!-- Left Column: Guidelines & Ratios -->
+                        <div class="col-lg-7">
+                            <section class="mb-5">
+                                <h5 class="fw-bold mb-4 section-title">1. Hướng dẫn chung (Guidelines)</h5>
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Bloom's Taxonomy Focus</label>
+                                    <textarea class="form-control rounded-3" id="bloomInstruction" rows="4"></textarea>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small text-uppercase">Lexical Complexity</label>
+                                        <input type="text" class="form-control" id="lexicalComplexity">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-secondary small text-uppercase">Kỹ năng mục tiêu</label>
+                                        <div class="d-flex flex-wrap gap-3 mt-1" id="skillsContainer">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" value="LISTENING" id="skillListening">
+                                                <label class="form-check-label" for="skillListening">LISTENING</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" value="READING" id="skillReading">
+                                                <label class="form-check-label" for="skillReading">READING</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" value="WRITING" id="skillWriting">
+                                                <label class="form-check-label" for="skillWriting">WRITING</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="checkbox" value="SPEAKING" id="skillSpeaking">
+                                                <label class="form-check-label" for="skillSpeaking">SPEAKING</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="fw-bold mb-4 section-title">2. Phân bổ loại câu hỏi (%)</h5>
+                                <div id="ratiosContainer" class="ratio-grid">
+                                    <div class="ratio-item" data-type="MULTIPLE_CHOICE_SINGLE">
+                                        <label>Trắc nghiệm (1 đáp án)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-item" data-type="MULTIPLE_CHOICE_MULTI">
+                                        <label>Trắc nghiệm (Nhiều đáp án)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-item" data-type="FILL_IN_BLANK">
+                                        <label>Điền từ vào chỗ trống</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-item" data-type="MATCHING">
+                                        <label>Nối cặp (Matching)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-item" data-type="WRITING">
+                                        <label>Câu hỏi Tự luận (Viết)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    <div class="ratio-item" data-type="SPEAKING">
+                                        <label>Câu hỏi Nói (Speaking)</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control ratio-input" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                    <span class="text-secondary small">Tổng cộng:</span>
+                                    <span id="totalRatio" class="fw-bold text-primary fs-5">0%</span>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Right Column: Grammar & Constraints -->
+                        <div class="col-lg-5">
+                            <section class="mb-5">
+                                <h5 class="fw-bold mb-4 section-title">3. Chủ điểm ngữ pháp</h5>
+                                <div class="grammar-widget p-4 rounded-4 bg-light border">
+                                    <div class="input-group mb-3">
+                                        <input type="text" id="grammarInput" class="form-control border-0 bg-white" placeholder="Thêm chủ điểm ngữ pháp...">
+                                        <button class="btn btn-primary px-3" type="button" onclick="addGrammar()">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div id="grammarTagsContainer" class="d-flex flex-wrap gap-2 min-vh-10">
+                                        <!-- Tags will be rendered here -->
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="fw-bold mb-4 section-title">4. Ràng buộc phản hồi (Constraints)</h5>
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Writing Constraint</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-pencil-square"></i></span>
+                                        <input type="text" class="form-control border-start-0" id="writingConstraint">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Speaking Constraint</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-mic"></i></span>
+                                        <input type="text" class="form-control border-start-0" id="speakingConstraint">
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div class="mt-5 pt-5 border-top d-grid gap-2">
+                                <button type="button" class="btn btn-primary btn-lg rounded-pill fw-bold" onclick="saveConfig()">
+                                    <i class="bi bi-cloud-check me-2"></i>Cập nhật cấu hình
+                                </button>
+                                <button type="button" class="btn btn-link text-danger text-decoration-none" onclick="resetToDefault()">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i>Khôi phục giá trị mặc định
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --soft-bg: #f8fafc;
+    }
+
+    .modern-tabs .nav-link {
+        border-radius: 12px;
+        padding: 12px 24px;
+        color: #64748b;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .modern-tabs .nav-link.active {
+        background: var(--primary-gradient);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+    }
+
+    .section-title {
+        color: #1e293b;
+        position: relative;
+        padding-left: 15px;
+    }
+
+    .section-title::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--primary-gradient);
+        border-radius: 4px;
+    }
+
+    .ratio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .ratio-item {
+        background: #f1f5f9;
+        padding: 15px;
+        border-radius: 16px;
+        transition: transform 0.2s;
+    }
+
+    .ratio-item:focus-within {
+        transform: translateY(-5px);
+        background: white;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+    }
+
+    .ratio-item label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+    }
+
+    .grammar-tag {
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 6px 14px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .grammar-tag .remove-btn {
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+
+    .grammar-tag .remove-btn:hover { opacity: 1; }
+
+    .form-control:focus {
+        border-color: #a855f7;
+        box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+
+<script>
+    let currentGrammar = [];
+
+    async function loadConfig(bucket) {
+        document.getElementById('currentBucket').value = bucket;
+        try {
+            const resp = await fetch(`/expert/ai-config/api/${bucket}`);
+            if (!resp.ok) throw new Error('Không thể tải cấu hình');
+            const data = await resp.json();
+            
+            document.getElementById('configId').value = data.id || '';
+            document.getElementById('bloomInstruction').value = data.bloomInstruction || '';
+            document.getElementById('lexicalComplexity').value = data.lexicalComplexity || '';
+            document.getElementById('writingConstraint').value = data.writingConstraint || '';
+            document.getElementById('speakingConstraint').value = data.speakingConstraint || '';
+
+            // Handle Grammar Tags
+            currentGrammar = JSON.parse(data.grammarFocus || '[]');
+            renderGrammarTags();
+
+            // Handle Skills Checkboxes
+            const skills = JSON.parse(data.skills || '[]');
+            document.querySelectorAll('#skillsContainer input').forEach(cb => {
+                cb.checked = skills.includes(cb.value);
+            });
+
+            // Handle Ratios
+            const ratios = JSON.parse(data.questionTypesRatio || '{}');
+            document.querySelectorAll('.ratio-input').forEach(input => {
+                const type = input.closest('.ratio-item').dataset.type;
+                input.value = Math.round((ratios[type] || 0) * 100);
+            });
+            updateTotalRatio();
+
+        } catch (e) {
+            Swal.fire('Lỗi', e.message, 'error');
+        }
+    }
+
+    function renderGrammarTags() {
+        const container = document.getElementById('grammarTagsContainer');
+        container.innerHTML = currentGrammar.map((tag, index) => `
+            <div class="grammar-tag">
+                <span>${tag}</span>
+                <i class="bi bi-x-circle-fill remove-btn" onclick="removeGrammar(${index})"></i>
+            </div>
+        `).join('');
+    }
+
+    function addGrammar() {
+        const input = document.getElementById('grammarInput');
+        const val = input.value.trim();
+        if (val && !currentGrammar.includes(val)) {
+            currentGrammar.push(val);
+            renderGrammarTags();
+            input.value = '';
+        }
+    }
+
+    function removeGrammar(index) {
+        currentGrammar.splice(index, 1);
+        renderGrammarTags();
+    }
+
+    // Enter key for grammar
+    document.getElementById('grammarInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addGrammar();
+        }
+    });
+
+    function updateTotalRatio() {
+        let total = 0;
+        document.querySelectorAll('.ratio-input').forEach(input => {
+            total += parseInt(input.value || 0);
+        });
+        const totalEl = document.getElementById('totalRatio');
+        totalEl.textContent = total + '%';
+        totalEl.className = total === 100 ? 'fw-bold text-success fs-5' : 'fw-bold text-danger fs-5';
+    }
+
+    document.querySelectorAll('.ratio-input').forEach(input => {
+        input.addEventListener('input', updateTotalRatio);
+    });
+
+    async function saveConfig() {
+        // Collect Ratios
+        let total = 0;
+        const ratios = {};
+        document.querySelectorAll('.ratio-input').forEach(input => {
+            const type = input.closest('.ratio-item').dataset.type;
+            const val = parseInt(input.value || 0);
+            ratios[type] = val / 100;
+            total += val;
+        });
+
+        if (total !== 100) {
+            const confirm = await Swal.fire({
+                title: 'Tổng tỉ lệ không bằng 100%',
+                text: `Tổng hiện tại là ${total}%. AI có thể sinh câu hỏi không như ý muốn. Bạn vẫn muốn lưu?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Lưu bất chấp',
+                cancelButtonText: 'Sửa lại'
+            });
+            if (!confirm.isConfirmed) return;
+        }
+
+        // Collect Skills
+        const selectedSkills = Array.from(document.querySelectorAll('#skillsContainer input:checked'))
+                                     .map(cb => cb.value);
+
+        const payload = {
+            bucket: document.getElementById('currentBucket').value,
+            bloomInstruction: document.getElementById('bloomInstruction').value,
+            grammarFocus: JSON.stringify(currentGrammar),
+            questionTypesRatio: JSON.stringify(ratios),
+            skills: JSON.stringify(selectedSkills),
+            lexicalComplexity: document.getElementById('lexicalComplexity').value,
+            writingConstraint: document.getElementById('writingConstraint').value,
+            speakingConstraint: document.getElementById('speakingConstraint').value
+        };
+
+        try {
+            const resp = await fetch('/expert/ai-config/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.json();
+            if (resp.ok) {
+                Swal.fire('Thành công', result.message, 'success');
+            } else {
+                Swal.fire('Lỗi', result.message, 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+        }
+    }
+
+    async function resetToDefault() {
+        const bucket = document.getElementById('currentBucket').value;
+        const confirm = await Swal.fire({
+            title: 'Khôi phục mặc định?',
+            text: `Bạn có chắc chắn muốn khôi phục cấu hình mặc định cho mức ${bucket}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (confirm.isConfirmed) {
+            const resp = await fetch(`/expert/ai-config/api/reset/${bucket}`, { method: 'POST' });
+            if (resp.ok) {
+                Swal.fire('Đã khôi phục', 'Cấu hình đã về mặc định', 'success');
+                loadConfig(bucket);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => loadConfig('beginner'));
+</script>
+
+</body>
+</html>

@@ -97,6 +97,9 @@
             <a th:href="@{/expert/quiz-management}" th:classappend="${activePage == 'quiz-management'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-question"></i><span>Quản lý bộ đề</span>
             </a>
+            <a th:href="@{/expert/ai-config}" th:classappend="${activePage == 'ai-config'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-robot"></i><span>Cấu hình AI Prompt</span>
+            </a>
             <a th:href="@{/expert/question-approval}" th:classappend="${activePage == 'question-approval'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-check"></i><span>Phê duyệt câu hỏi</span>
             </a>

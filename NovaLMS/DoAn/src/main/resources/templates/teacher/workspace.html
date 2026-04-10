@@ -1844,6 +1844,23 @@
                         <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
                         ${q.options && q.options.length > 0 ? `<ul class="mb-1 small">${q.options.map(o => `<li class="${o.correct ? 'text-success fw-bold' : 'text-muted'}">${wsEscape(o.title)} ${o.correct ? '✓' : ''}</li>`).join('')}</ul>` : ''}
                         ${q.correctAnswer ? `<p class="mb-0 small text-muted">Đáp án: ${wsEscape(q.correctAnswer)}</p>` : ''}
+                        ${q.questionType === 'MATCHING' && q.matchLeft && q.matchRight ? `
+                            <div class="mt-1 small bg-light p-2 rounded border border-light-subtle">
+                                <div class="fw-bold mb-1"><i class="bi bi-list-check me-1"></i>Các cặp nối:</div>
+                                <ul class="list-unstyled mb-0 ps-1">
+                                    ${q.matchLeft.map((left, idx) => {
+                                        const rIdx = (q.correctPairs && q.correctPairs[idx]) ? q.correctPairs[idx] - 1 : -1;
+                                        const right = rIdx >= 0 ? q.matchRight[rIdx] : '???';
+                                        return `<li class="d-flex gap-2">
+                                            <span class="text-primary">•</span>
+                                            <span>${wsEscape(left)}</span>
+                                            <span class="text-muted">→</span>
+                                            <span class="text-success fw-medium">${wsEscape(right)}</span>
+                                        </li>`;
+                                    }).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>`).join('');
