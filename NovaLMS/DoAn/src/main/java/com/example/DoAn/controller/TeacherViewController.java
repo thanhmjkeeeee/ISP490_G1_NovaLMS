@@ -5,9 +5,12 @@ import com.example.DoAn.dto.request.RescheduleRequestDTO;
 import com.example.DoAn.dto.response.LessonResponseDTO;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.dto.response.SessionDetailDTO;
+import com.example.DoAn.dto.response.TeacherDashboardResponseDTO;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
+import com.example.DoAn.service.ITeacherDashboardService;
 import com.example.DoAn.service.RescheduleService;
+import org.springframework.ui.Model;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
@@ -34,21 +37,29 @@ public class TeacherViewController {
     private final RescheduleService rescheduleService;
     private final SessionLessonRepository sessionLessonRepository;
     private final SessionQuizRepository sessionQuizRepository;
+    private final ITeacherDashboardService teacherDashboardService;
 
     public TeacherViewController(EntityManager entityManager,
                                   ClassSessionRepository classSessionRepository,
                                   RescheduleService rescheduleService,
                                   SessionLessonRepository sessionLessonRepository,
-                                  SessionQuizRepository sessionQuizRepository) {
+                                  SessionQuizRepository sessionQuizRepository,
+                                  ITeacherDashboardService teacherDashboardService) {
         this.entityManager = entityManager;
         this.classSessionRepository = classSessionRepository;
         this.rescheduleService = rescheduleService;
         this.sessionLessonRepository = sessionLessonRepository;
         this.sessionQuizRepository = sessionQuizRepository;
+        this.teacherDashboardService = teacherDashboardService;
     }
 
     @GetMapping("/dashboard")
-    public String dashboard() {
+    public String dashboard(Principal principal, Model model) {
+        String email = getEmailFromPrincipal(principal);
+        if (email != null) {
+            TeacherDashboardResponseDTO dashboardData = teacherDashboardService.getDashboardData(email);
+            model.addAttribute("dashboardData", dashboardData);
+        }
         return "teacher/dashboard";
     }
 
