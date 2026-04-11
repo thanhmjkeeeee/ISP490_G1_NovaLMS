@@ -23,4 +23,5 @@ public class QuizResultPendingDTO {
     private Boolean isUnlockRequested;
     private String studentAppealReason;
     private String courseName;
+    private Integer violationCount;
 }

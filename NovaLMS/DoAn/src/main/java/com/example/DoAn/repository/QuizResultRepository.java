@@ -170,4 +170,24 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             "ORDER BY AVG(qr.score) ASC") // Sắp xếp ai điểm thấp nhất lên đầu
     List<Object[]> findStudentsWithAverageScoreBelow(@Param("classIds") List<Integer> classIds, @Param("threshold") Double threshold);
 
+    @Query("SELECT DISTINCT qr FROM QuizResult qr " +
+           "JOIN FETCH qr.quiz q " +
+           "JOIN FETCH qr.user stu " +
+           "JOIN Registration reg ON reg.user.userId = stu.userId " +
+           "LEFT JOIN FETCH q.course " +
+           "LEFT JOIN FETCH q.clazz c " +
+           "LEFT JOIN FETCH c.teacher " +
+           "WHERE qr.isUnlockRequested = true " +
+           "AND (:classId IS NULL OR reg.clazz.classId = :classId) " +
+           "AND (:classId IS NULL OR (q.clazz.classId = :classId OR (q.clazz IS NULL AND q.course.courseId = reg.clazz.course.courseId))) " +
+           "AND LOWER(reg.status) = 'approved' " +
+           "AND (q.user.email = :email " +
+           "     OR (c IS NOT NULL AND c.teacher.email = :email) " +
+           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
+           "ORDER BY qr.submittedAt DESC")
+    Page<QuizResult> findUnlockRequestsForTeacher(
+            @org.springframework.data.repository.query.Param("email") String email,
+            @org.springframework.data.repository.query.Param("classId") Integer classId,
+            Pageable pageable);
+
 }

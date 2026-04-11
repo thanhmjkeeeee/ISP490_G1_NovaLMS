@@ -30,4 +30,6 @@ public interface QuizResultService {
     void unlockQuiz(Integer resultId);
     
     void requestUnlock(Integer resultId, String email, String reason);
+    
+    PageResponse<QuizResultPendingDTO> getUnlockRequests(String email, Integer classId, int page, int size);
 }
