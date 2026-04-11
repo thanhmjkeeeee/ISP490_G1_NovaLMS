@@ -600,6 +600,39 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .isUnlockRequested(qr.getIsUnlockRequested())
                 .studentAppealReason(qr.getStudentAppealReason())
                 .courseName(qr.getQuiz().getCourse() != null ? qr.getQuiz().getCourse().getTitle() : null)
+                .violationCount(qr.getViolationCount())
+                .build()).collect(Collectors.toList());
+
+        return PageResponse.<QuizResultPendingDTO>builder()
+                .items(dtoList)
+                .pageNo(resultPage.getNumber())
+                .pageSize(resultPage.getSize())
+                .totalPages(resultPage.getTotalPages())
+                .totalElements(resultPage.getTotalElements())
+                .last(resultPage.isLast())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<QuizResultPendingDTO> getUnlockRequests(String email, Integer classId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<QuizResult> resultPage = quizResultRepository.findUnlockRequestsForTeacher(email, classId, pageable);
+
+        List<QuizResultPendingDTO> dtoList = resultPage.getContent().stream().map(qr -> QuizResultPendingDTO.builder()
+                .resultId(qr.getResultId())
+                .quizId(qr.getQuiz().getQuizId())
+                .quizTitle(qr.getQuiz().getTitle())
+                .studentName(qr.getUser().getFullName())
+                .studentEmail(qr.getUser().getEmail())
+                .submittedAt(qr.getSubmittedAt())
+                .startedAt(qr.getStartedAt())
+                .status(qr.getStatus())
+                .violationLog(qr.getViolationLog())
+                .isUnlockRequested(qr.getIsUnlockRequested())
+                .studentAppealReason(qr.getStudentAppealReason())
+                .courseName(qr.getQuiz().getCourse() != null ? qr.getQuiz().getCourse().getTitle() : null)
+                .violationCount(qr.getViolationCount())
                 .build()).collect(Collectors.toList());
 
         return PageResponse.<QuizResultPendingDTO>builder()
