@@ -8,6 +8,8 @@ import lombok.Data;
 @Builder
 public class LessonResponseDTO {
     private Integer lessonId;
+    private Integer classId;
+    private Integer sessionId;
     private String type;
     private String lessonTitle;
     private String lessonName;
@@ -31,4 +33,7 @@ public class LessonResponseDTO {
     private Integer latestResultId;
     private String gradingStatus;
     private boolean isSequential;
+    private Boolean canRetake;
+    private Integer attemptsLeft;
+    private Integer maxAttempts;
 }

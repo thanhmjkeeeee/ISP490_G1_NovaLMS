@@ -101,8 +101,11 @@
                     </div>
 
                     <h6 class="fw-bold mt-4 mb-3" style="color: #223a58; border-left: 4px solid #136ad5; padding-left: 10px;">Cấu hình nâng cao</h6>
+                    <div id="assignmentTimeMsg" class="alert alert-info" style="display:none; border-radius: 12px; border: 0;">
+                        <i class="bi bi-info-circle-fill me-2"></i> Thời gian làm bài sẽ được cấu hình theo từng kỹ năng ở bước chỉnh sửa.
+                    </div>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-3">
+                        <div class="col-md-3" id="timeLimitCol">
                             <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
                             <input type="number" id="timeLimitMinutes" class="form-control" placeholder="Không giới hạn" min="1">
                         </div>
@@ -131,25 +134,26 @@
                     </div>
 
                     <!-- Assignment schedule fields (hidden by default) -->
-                    <div id="assignmentScheduleSection" class="mb-4 p-3 border border-2 border-warning rounded-4 bg-warning bg-opacity-5" style="display:none;">
-                        <h6 class="fw-bold text-warning mb-3">
-                            <i class="bi bi-calendar-event me-2"></i>Cài đặt thời hạn Assignment
+                    <div id="perSkillTimeSection" style="display:none;">
+                        <h6 class="fw-bold mt-4 mb-3" style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                            Thời gian từng phần (phút) <span class="text-danger">*</span>
                         </h6>
                         <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Mở bài lúc</label>
-                                <input type="datetime-local" id="openAt" class="form-control" placeholder="Để trống = mở ngay">
-                                <div class="form-text small">Để trống = mở ngay khi teacher bật isOpen</div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">LISTENING</label>
+                                <input type="text" id="timeLimit_LISTENING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Đóng bài lúc</label>
-                                <input type="datetime-local" id="closeAt" class="form-control" placeholder="Không đóng tự động">
-                                <div class="form-text small">Để trống = không đóng tự động</div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">READING</label>
+                                <input type="text" id="timeLimit_READING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Deadline nộp bài <span class="text-danger">*</span></label>
-                                <input type="datetime-local" id="deadline" class="form-control" required>
-                                <div class="form-text small">Sau deadline không thể nộp bài</div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">SPEAKING</label>
+                                <input type="text" id="timeLimit_SPEAKING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">WRITING</label>
+                                <input type="text" id="timeLimit_WRITING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                             </div>
                         </div>
                     </div>
@@ -299,45 +303,76 @@
         }
     })();
 
-    function onCategoryChange() {
+    function calculateTotalTime(input) {
+        // Xóa mọi ký tự không phải là số (chặn chữ, dấu âm, ký tự đặc biệt)
+        input.value = input.value.replace(/[^0-9]/g, '');
+
+        // Không cho phép vượt quá 100 phút
+        if (parseInt(input.value) > 100) {
+            input.value = '100';
+        }
+
+        // Tính tổng
+        let total = 0;
+        ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(skill => {
+            let val = parseInt(document.getElementById('timeLimit_' + skill).value) || 0;
+            total += val;
+        });
+
+        // Cập nhật lên ô tổng
+        const totalInput = document.getElementById('timeLimitMinutes');
+        if (totalInput) {
+            totalInput.value = total > 0 ? total : '';
+        }
+    }
+    function buildTimeLimitPerSkill() {
+        const result = {};
+        ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(s => {
+            const el = document.getElementById('timeLimit_' + s);
+            if (el && el.value) result[s] = parseInt(el.value);
+        });
+        return Object.keys(result).length === 4 ? result : null; // Phải đủ 4 kỹ năng
+    }
+
+   function onCategoryChange() {
         const cat = document.getElementById('quizCategory').value;
         const courseSection = document.getElementById('courseSection');
-        const assignSection = document.getElementById('assignmentScheduleSection');
+        const perSkillSection = document.getElementById('perSkillTimeSection');
+        const timeLimitInput = document.getElementById('timeLimitMinutes');
 
         if (courseSection) {
             courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
         }
 
-        // Hiện phần cài đặt thời hạn khi chọn ASSIGNMENT
-        if (assignSection) {
-            assignSection.style.display = (cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
+        if (cat === 'COURSE_ASSIGNMENT') {
+            perSkillSection.style.display = 'block';
+            timeLimitInput.readOnly = true; // Khóa ô tổng lại
+            timeLimitInput.style.backgroundColor = '#e9ecef';
+            timeLimitInput.placeholder = 'Tự động tính';
+        } else {
+            perSkillSection.style.display = 'none';
+            timeLimitInput.readOnly = false;
+            timeLimitInput.style.backgroundColor = '';
+            if (cat === 'ENTRY_TEST') {
+                timeLimitInput.value = 20;
+                document.getElementById('passScore').value = 40;
+                document.getElementById('maxAttempts').value = 1;
+            } else {
+                timeLimitInput.value = '';
+                timeLimitInput.placeholder = 'Không giới hạn';
+            }
         }
 
         if (cat === 'ENTRY_TEST') {
-            // Auto-fill defaults cho Entry Test
-            document.getElementById('timeLimitMinutes').value = 20;
-            document.getElementById('passScore').value = 40;
-            document.getElementById('maxAttempts').value = 1;
-            document.getElementById('questionOrder').value = 'FIXED';
-            document.getElementById('showAnswerAfterSubmit').checked = true;
             document.getElementById('entryTestWarning').style.display = 'block';
         } else {
-            // Reset về mặc định
-            document.getElementById('timeLimitMinutes').value = '';
-            document.getElementById('passScore').value = '';
-            document.getElementById('maxAttempts').value = '';
-            document.getElementById('questionOrder').value = 'FIXED';
-            document.getElementById('showAnswerAfterSubmit').checked = false;
             document.getElementById('entryTestWarning').style.display = 'none';
         }
 
-        if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') {
+        if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
             const btnNext = document.getElementById('btnNextStep');
             if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
-            loadCourses();
-        } else if (cat === 'ENTRY_TEST') {
-            const btnNext = document.getElementById('btnNextStep');
-            if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
+            if (cat !== 'ENTRY_TEST') loadCourses();
         }
     }
 
@@ -374,16 +409,19 @@
         const moduleId = /*[[${moduleId}]]*/ null;
         let cat = document.getElementById('quizCategory').value;
 
-        // Nếu đang tạo quiz cho module, loại quiz luôn là MODULE_QUIZ
-        if (moduleId) {
-            cat = 'MODULE_QUIZ';
-        } else {
-            if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
-        }
+        if (moduleId) cat = 'MODULE_QUIZ';
+        else if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
 
-        // Entry Test: luôn lưu DRAFT trước để expert thêm câu hỏi trước khi publish
-        if (cat === 'ENTRY_TEST') {
-            status = 'DRAFT';
+        if (cat === 'ENTRY_TEST') status = 'DRAFT';
+
+        // Validate 4 kỹ năng nếu là ASSIGNMENT
+        let timeLimits = null;
+        if (cat === 'COURSE_ASSIGNMENT') {
+            timeLimits = buildTimeLimitPerSkill();
+            if (!timeLimits) {
+                alert('Vui lòng nhập đầy đủ thời gian cho cả 4 kỹ năng!');
+                return;
+            }
         }
 
         const body = {
@@ -397,9 +435,7 @@
             maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
             questionOrder: document.getElementById('questionOrder').value,
             showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-            openAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('openAt').value || null) : null,
-            closeAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('closeAt').value || null) : null,
-            deadline: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('deadline').value || null) : null,
+            timeLimitPerSkill: timeLimits, // Đã đẩy 4 kỹ năng lên BE từ bước Create
             status: status
         };
 

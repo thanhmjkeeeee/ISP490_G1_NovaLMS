@@ -28,6 +28,9 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     List<Quiz> findByClazz_ClassId(Integer classId);
 
+    List<Quiz> findByClazz_ClassIdAndQuizCategory(Integer classId, String quizCategory);
+
+
     // Tìm tất cả quiz theo danh sách courseId (cho teacher xem quiz của các lớp mình)
     @Query("SELECT q FROM Quiz q WHERE q.course.courseId IN :courseIds AND q.quizCategory = 'COURSE_QUIZ' ORDER BY q.createdAt DESC")
     List<Quiz> findAllByCourseCourseIdIn(@Param("courseIds") List<Integer> courseIds);

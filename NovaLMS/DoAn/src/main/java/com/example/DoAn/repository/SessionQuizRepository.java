@@ -15,6 +15,8 @@ public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Intege
 
     List<SessionQuiz> findBySessionSessionIdOrderByOrderIndexAsc(Integer sessionId);
 
+    List<SessionQuiz> findBySessionSessionIdAndQuiz_QuizCategoryOrderByOrderIndexAsc(Integer sessionId, String quizCategory);
+
     Optional<SessionQuiz> findBySessionSessionIdAndQuizQuizId(Integer sessionId, Integer quizId);
 
     boolean existsBySessionSessionIdAndQuizQuizId(Integer sessionId, Integer quizId);

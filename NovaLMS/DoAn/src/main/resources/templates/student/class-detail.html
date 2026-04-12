@@ -208,6 +208,11 @@
                                     <i class="bi bi-people me-2"></i>Thành viên
                                 </button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="tab" data-bs-target="#tab-assignment" type="button" id="assignment-tab-btn" role="tab">
+                                    <i class="bi bi-assignment me-2"></i>Bài tập lớn
+                                </button>
+                            </li>
                         </ul>
                     </div>
 
@@ -274,6 +279,13 @@
                             <div class="card p-4 border-0 shadow-sm rounded-4">
                                 <h5 class="fw-bold mb-4 border-bottom pb-2">Danh sách học viên</h5>
                                 <div id="membersContent" class="row g-3">Đang cập nhật...</div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-assignment" role="tabpanel">
+                            <div class="card p-4 border-0 shadow-sm rounded-4">
+                                <h5 class="fw-bold mb-4 border-bottom pb-2"><i class="bi bi-journal-check text-primary me-2"></i>Danh sách Bài tập & Kiểm tra</h5>
+                                <div id="assignmentsTabContent" class="row g-3">Đang tải dữ liệu...</div>
                             </div>
                         </div>
                     </div>
@@ -357,12 +369,22 @@
             renderBanner(classDetailData);
             renderInfoAndTeacher(classDetailData);
             renderMembers(classDetailData);
+            renderAssignments(classDetailData);
 
             // Initialize Timetable Selectors
             initTimetableSelectors();
 
             document.getElementById('classBannerContainer').classList.add('d-none');
             document.getElementById('classContentWrapper').classList.remove('d-none');
+
+            // Handle Tab Redirect (?tab=assignment)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'assignment') {
+                const triggerEl = document.querySelector('#assignment-tab-btn');
+                if (triggerEl) {
+                    bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+                }
+            }
 
         } catch (error) {
             console.error(error);
@@ -537,6 +559,7 @@
                 const title = q.lessonTitle || q.lessonName || q.title || 'Bài tập trắc nghiệm';
                 const qId = q.quizId;
                 const isLocked = q.isLocked === true;
+                const canRetake = q.canRetake !== false;
 
                 let url = 'javascript:void(0)';
                 let onclick = '';
@@ -544,8 +567,11 @@
 
                 if (isLocked) {
                     lockedState = 'opacity: 0.6; cursor: not-allowed;';
+                } else if (!canRetake) {
+                    lockedState = 'opacity: 0.6; cursor: not-allowed;';
+                    onclick = `onclick="alert('Bạn đã hết lượt làm bài tập này!')"`;
                 } else if (qId) {
-                    url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
+                    url = q.isSequential ? `/student/assignment/${qId}` : `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
                 } else {
                     onclick = `onclick="alert('Chưa có ID bài tập!')"`;
                 }
@@ -560,10 +586,10 @@
                                 <i class="bi bi-patch-question-fill"></i>
                             </div>
                             <div class="card-text flex-grow-1">
-                                <div class="card-title">${title}</div>
+                                <div class="card-title">${title} ${!canRetake ? '<span class="badge bg-danger ms-2" style="font-size:0.6rem">No Attempts Left</span>' : ''}</div>
                                 <div class="card-subtitle">${isSequential ? 'Bài tập nâng cao • Chấm thủ công' : 'Trắc nghiệm • Tự động'}</div>
                             </div>
-                            ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : '<i class="bi bi-chevron-right arrow-icon"></i>'}
+                            ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : (canRetake ? '<i class="bi bi-chevron-right arrow-icon"></i>' : '<i class="bi bi-slash-circle text-danger"></i>')}
                         </a>
                         ${!isLocked && latestResultId ? `
                             <div class="mt-2 pt-2 border-top d-flex justify-content-end w-100">
@@ -671,6 +697,84 @@
             </div>`;
         });
         membersContainer.innerHTML = html;
+    }
+
+    function renderAssignments(data) {
+        const container = document.getElementById('assignmentsTabContent');
+        if (!data.sessions || data.sessions.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center py-4 text-muted">Chưa có bài tập nào.</div>';
+            return;
+        }
+
+        let allQuizzes = [];
+        data.sessions.forEach(s => {
+            if (s.quizzes) {
+                s.quizzes.forEach(q => {
+                    allQuizzes.push({ ...q, sessionNo: s.sessionNo, sessionId: s.sessionId });
+                });
+            }
+        });
+
+        if (allQuizzes.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center py-4 text-muted">Chưa có bài tập nào cho lớp học này.</div>';
+            return;
+        }
+
+        let html = '';
+        allQuizzes.forEach(q => {
+            const isLocked = q.isLocked;
+            const canRetake = q.canRetake !== false; // Backend flag
+            const attemptsLeft = q.attemptsLeft ?? -1;
+            const isSequential = q.isSequential;
+            
+            let statusHtml = '';
+            if (isLocked) {
+                statusHtml = '<span class="badge bg-secondary">Chưa mở</span>';
+            } else if (!canRetake) {
+                statusHtml = '<span class="badge bg-danger">Hết lượt làm</span>';
+            } else if (q.latestResultId) {
+                statusHtml = `<span class="badge bg-success">Đã hoàn thành</span> <small class="text-muted">(Còn ${attemptsLeft === -1 ? '∞' : attemptsLeft} lượt)</small>`;
+            } else {
+                statusHtml = '<span class="badge bg-info">Chưa làm</span>';
+            }
+
+            const url = isLocked || !canRetake ? 'javascript:void(0)' : (isSequential ? `/student/assignment/${q.quizId}` : `/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${q.sessionId}`);
+
+            html += `
+            <div class="col-md-6 mb-3">
+                <div class="card border shadow-sm rounded-4 h-100 transition-all hover-card">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="rounded-3 bg-opacity-10 ${isSequential ? 'bg-primary' : 'bg-warning'} d-flex align-items-center justify-content-center" style="width:40px;height:40px">
+                                <i class="bi ${isSequential ? 'bi-journal-check text-primary' : 'bi-patch-question text-warning'} fs-5"></i>
+                            </div>
+                            ${statusHtml}
+                        </div>
+                        <h6 class="fw-bold mb-1">${q.lessonTitle || q.lessonName}</h6>
+                        <p class="text-muted small mb-3">Buổi học ${q.sessionNo} • ${isSequential ? 'Sequential flow' : 'Direct quiz'}</p>
+                        
+                        <div class="d-flex gap-2">
+                            ${!isLocked && canRetake ? `
+                                <a href="${url}" class="btn btn-sm btn-primary rounded-pill px-3 flex-grow-1">
+                                    <i class="bi bi-play-fill"></i> ${q.latestResultId ? 'Làm lại bài' : 'Bắt đầu làm'}
+                                </a>
+                            ` : `
+                                <button class="btn btn-sm btn-secondary rounded-pill px-3 flex-grow-1" disabled>
+                                    <i class="bi bi-lock-fill"></i> ${isLocked ? 'Chưa mở' : 'Hết lượt làm'}
+                                </button>
+                            `}
+                            ${q.latestResultId ? `
+                                <a href="${isSequential ? '/student/assignment/result/' : '/student/quiz/result/'}${q.latestResultId}" 
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    <i class="bi bi-eye"></i> Kết quả
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
     }
 
     // --- DATE UTILS ---

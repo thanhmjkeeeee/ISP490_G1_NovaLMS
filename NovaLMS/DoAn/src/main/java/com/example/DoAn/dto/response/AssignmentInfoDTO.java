@@ -27,4 +27,6 @@ public class AssignmentInfoDTO {
     private Long attemptsUsed;
     private Long maxAttempts;
     private Boolean attemptsExceeded;
+    private Integer attemptsLeft;
+    private Boolean canRetake;
 }
