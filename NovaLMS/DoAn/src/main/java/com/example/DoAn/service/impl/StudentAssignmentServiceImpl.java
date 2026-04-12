@@ -74,8 +74,8 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
             throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
         }
 
-        // Check attempts
-        long attemptsUsed = sessionRepository.countByQuizAndUser(quizId, user.getUserId().longValue());
+        // Check attempts using QuizResult (submitted ones)
+        long attemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
         Long maxAttempts = quiz.getMaxAttempts() != null ? quiz.getMaxAttempts().longValue() : null;
 
         // Find or create session
@@ -85,6 +85,21 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         AssignmentSession session = null;
         if (existing.isPresent()) {
             session = existing.get();
+            // If already completed, check if they can retake
+            if ("COMPLETED".equals(session.getStatus())) {
+                if (maxAttempts != null && attemptsUsed >= maxAttempts) {
+                    AssignmentInfoDTO dto = buildInfoDTO(quiz, session, attemptsUsed, maxAttempts, false);
+                    dto.setAttemptsExceeded(true);
+                    return dto;
+                }
+                // They can retake! Clear the old session state for a fresh start
+                session.setStatus("IN_PROGRESS");
+                session.setCurrentSkillIndex(0);
+                session.setSectionAnswers("{}");
+                session.setSectionStatuses("{}");
+                session.setStartedAt(LocalDateTime.now());
+                session = sessionRepository.save(session);
+            }
         } else {
             if (maxAttempts != null && attemptsUsed >= maxAttempts) {
                 AssignmentInfoDTO dto = new AssignmentInfoDTO();
@@ -97,7 +112,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
             session = sessionRepository.save(session);
         }
 
-        return buildInfoDTO(quiz, session, attemptsUsed, maxAttempts, existing.isEmpty());
+        return buildInfoDTO(quiz, session, attemptsUsed, maxAttempts, existing.isEmpty() || !"COMPLETED".equals(session.getStatus()));
     }
 
     private AssignmentSession createNewSession(Quiz quiz, User user) {
@@ -152,6 +167,11 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         dto.setAttemptsUsed(attemptsUsed);
         dto.setMaxAttempts(maxAttempts);
         dto.setAttemptsExceeded(maxAttempts != null && attemptsUsed >= maxAttempts);
+
+        // New flags for frontend logic
+        dto.setAttemptsLeft(maxAttempts != null ? (int) Math.max(0, maxAttempts - attemptsUsed) : -1);
+        dto.setCanRetake(maxAttempts == null || attemptsUsed < maxAttempts);
+
         return dto;
     }
 
@@ -420,6 +440,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         dto.setQuizTitle(quiz.getTitle());
         if (quiz.getClazz() != null) {
             dto.setClassName(quiz.getClazz().getClassName());
+            dto.setClassId(quiz.getClazz().getClassId());
         }
         dto.setSubmittedAt(result.getSubmittedAt());
 

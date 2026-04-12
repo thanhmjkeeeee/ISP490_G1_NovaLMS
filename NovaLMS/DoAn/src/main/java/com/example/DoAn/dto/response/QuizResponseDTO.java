@@ -35,6 +35,12 @@ public class QuizResponseDTO {
     private LocalDateTime updatedAt;
     private int totalQuestions;
     private boolean hasAttempts;
+    private String timeLimitPerSkill; // JSON string
+    private String openAt;            // datetime strings for FE
+    private String closeAt;
+    private String deadline;
+    private Boolean isSequential;
+    private String skillOrder; // JSON string
 
     private List<QuizQuestionResponseDTO> questions;
 

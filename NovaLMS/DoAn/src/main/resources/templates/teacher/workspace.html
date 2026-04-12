@@ -2615,45 +2615,45 @@
     }
 
     async function loadUnlockRequests(page = 0) {
-        const tbody = document.getElementById('wsRequestsTableBody');
-        if (!tbody) return;
-        
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-danger"></div></td></tr>';
-        
+        state.requestsPage = page;
         const classId = state.selectedClassId;
-        let url = `/api/v1/teacher/quiz-results/pending?page=${page}&size=50`;
-        // Filter by classId if needed (backend would need to support this, or we filter in JS)
-        
+        const container = document.getElementById('requestsContentContainer');
+        if (!container) return;
+
+        if (classId === 'ALL') {
+            renderClassSelectionTable(container, 'Xem yêu cầu <i class="bi bi-chevron-right ms-1"></i>');
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th width="60">#</th>
+                            <th>Thông tin bài thi & Vi phạm</th>
+                            <th>Học sinh</th>
+                            <th class="text-center">Số lần tabbing</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wsRequestsTableBody">
+                        <tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+
+        const tbody = document.getElementById('wsRequestsTableBody');
         try {
-            const res = await fetch(url);
+            const res = await fetch(`/api/v1/teacher/quiz-results/unlock-requests?page=${page}&size=50&classId=${classId}`);
             const result = await res.json();
             
-            let items = [];
-            if(result.status === 200 && result.data && result.data.items) {
-                // Filter locally by class if selectedClassId != 'ALL'
-                let rawItems = result.data.items.filter(i => i.isUnlockRequested);
-                if (classId !== 'ALL') {
-                    // Logic to find if student belongs to class would go here
-                    // For now, let's show all requests until we confirm backend filtering
-                    items = rawItems;
-                } else {
-                    items = rawItems;
-                }
-                
-                // Update badge
-                const badge = document.getElementById('wsRequestBadge');
-                if (items.length > 0) {
-                    badge.innerText = items.length;
-                    badge.style.display = 'block';
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
-
-            if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Không có yêu cầu mở khóa nào cần xử lý.</td></tr>';
+            if (result.status !== 200 || !result.data || !result.data.items || result.data.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Không có yêu cầu mở khóa nào cho lớp này.</td></tr>';
                 return;
             }
+
+            const items = result.data.items;
 
             tbody.innerHTML = items.map((item, index) => {
                 const date = item.submittedAt ? new Date(item.submittedAt).toLocaleString('vi-VN') : 'N/A';
@@ -2661,7 +2661,7 @@
                 
                 return `
                     <tr>
-                        <td>${index + 1}</td>
+                        <td>${(page * 50) + index + 1}</td>
                         <td>
                             <div class="fw-bold">${item.quizTitle}</div>
                             <div class="mt-2 p-2 bg-danger bg-opacity-10 border-start border-3 border-danger small text-danger mb-2">
@@ -2682,13 +2682,26 @@
                             <span class="badge bg-danger rounded-pill px-3">${item.violationCount || 3}</span>
                         </td>
                         <td class="text-end">
-                            <button onclick="unlockResult(${item.resultId})" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+                            <button onclick="unlockResult(${item.resultId})" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm">
                                 <i class="bi bi-unlock"></i> Duyệt Mở Khóa
                             </button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             }).join('');
+
+            const pagHtml = renderWsPagination({
+                number: result.data.pageNo,
+                totalPages: result.data.totalPages,
+                first: result.data.pageNo === 0,
+                last: result.data.last
+            }, 'loadUnlockRequests');
+
+            if (pagHtml) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" class="border-0">${pagHtml}</td>`;
+                tbody.appendChild(row);
+            }
+
         } catch (e) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải yêu cầu mở khóa.</td></tr>';
         }
