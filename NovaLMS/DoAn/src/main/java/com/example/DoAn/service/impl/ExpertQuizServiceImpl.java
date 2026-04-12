@@ -201,11 +201,36 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             quiz.setStatus(request.getStatus());
         }
 
+        if (request.getTimeLimitPerSkill() != null) {
+            try {
+                quiz.setTimeLimitPerSkill(objectMapper.writeValueAsString(request.getTimeLimitPerSkill()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidDataException("Lỗi định dạng timeLimitPerSkill");
+            }
+        }
+
         // Cập nhật course nếu thay đổi
-        if ("COURSE_QUIZ".equals(request.getQuizCategory()) && request.getCourseId() != null) {
+        if (("COURSE_QUIZ".equals(request.getQuizCategory()) || "COURSE_ASSIGNMENT".equals(request.getQuizCategory())) 
+                && request.getCourseId() != null) {
             Course course = courseRepository.findById(request.getCourseId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + request.getCourseId()));
             quiz.setCourse(course);
+        }
+
+        // Cập nhật schedule & sequential logic
+        quiz.setOpenAt(request.getOpenAt());
+        quiz.setCloseAt(request.getCloseAt());
+        quiz.setDeadline(request.getDeadline());
+        
+        if (request.getIsSequential() != null) {
+            quiz.setIsSequential(request.getIsSequential());
+        }
+        if (request.getSkillOrder() != null) {
+            try {
+                quiz.setSkillOrder(objectMapper.writeValueAsString(request.getSkillOrder()));
+            } catch (JsonProcessingException e) {
+                throw new InvalidDataException("Lỗi định dạng skillOrder");
+            }
         }
 
         quizRepository.save(quiz);
@@ -546,6 +571,12 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                         .distinct()
                         .count()))
                 .hasAttempts(hasAttempts)
+                .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
+                .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
+                .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
+                .deadline(quiz.getDeadline() != null ? quiz.getDeadline().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
+                .isSequential(quiz.getIsSequential())
+                .skillOrder(quiz.getSkillOrder())
                 .questions(questionDTOs)
                 .build();
     }
@@ -616,7 +647,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if ("COURSE_QUIZ".equals(cat) || "COURSE_ASSIGNMENT".equals(cat)) {
             // COURSE_ASSIGNMENT: vẫn kiểm tra per-skill time set nếu cần thiết
             if ("COURSE_ASSIGNMENT".equals(cat)) {
-                if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty()) {
+                if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty() || "{}".equals(quiz.getTimeLimitPerSkill().trim())) {
                     throw new InvalidDataException("COURSE_ASSIGNMENT requires per-skill time limits to be set.");
                 }
             }

@@ -632,9 +632,12 @@ public class StudentServiceImpl implements StudentService {
                             .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(lesson.getQuiz_id(), userId)
                             .orElse(null);
 
-                    Quiz qObj = (lesson.getQuiz_id() != null) 
-                            ? quizRepository.findById(lesson.getQuiz_id()).orElse(null) 
+                    Quiz qObj = (lesson.getQuiz_id() != null)
+                            ? quizRepository.findById(lesson.getQuiz_id()).orElse(null)
                             : null;
+
+                    int qMaxAttempts = (qObj != null && qObj.getMaxAttempts() != null) ? qObj.getMaxAttempts() : 0;
+                    long qAttemptsUsed = (qObj != null) ? quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(qObj.getQuizId(), userId, "IN_PROGRESS") : 0;
 
                     LessonResponseDTO lDTO = LessonResponseDTO.builder()
                             .lessonId(lesson.getLessonId())
@@ -643,12 +646,15 @@ public class StudentServiceImpl implements StudentService {
                             .lessonName(lesson.getLessonName())
                             .duration(lesson.getDuration())
                             .videoUrl(lesson.getVideoUrl())
-                            .quizId(lesson.getQuiz_id()) 
+                            .quizId(lesson.getQuiz_id())
                             .isCompleted(isComp)
                             .isLocked(isLocked)
                             .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                             .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                             .isSequential(qObj != null && Boolean.TRUE.equals(qObj.getIsSequential()))
+                            .canRetake(qMaxAttempts == 0 || qAttemptsUsed < qMaxAttempts)
+                            .attemptsLeft(qMaxAttempts > 0 ? (int) Math.max(0, qMaxAttempts - qAttemptsUsed) : -1)
+                            .maxAttempts(qMaxAttempts > 0 ? qMaxAttempts : null)
                             .build();
 
                     if ("QUIZ".equalsIgnoreCase(lDTO.getType())) quizzes.add(lDTO);
@@ -662,6 +668,9 @@ public class StudentServiceImpl implements StudentService {
                             .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(q.getQuizId(), userId)
                             .orElse(null);
 
+                    int qMaxAttempts = q.getMaxAttempts() != null ? q.getMaxAttempts() : 0;
+                    long qAttemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(q.getQuizId(), userId, "IN_PROGRESS");
+
                     quizzes.add(LessonResponseDTO.builder()
                             .quizId(q.getQuizId())
                             .lessonTitle("[Lớp] " + q.getTitle())
@@ -672,6 +681,9 @@ public class StudentServiceImpl implements StudentService {
                             .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                             .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                             .isSequential(Boolean.TRUE.equals(q.getIsSequential()))
+                            .canRetake(qMaxAttempts == 0 || qAttemptsUsed < qMaxAttempts)
+                            .attemptsLeft(qMaxAttempts > 0 ? (int) Math.max(0, qMaxAttempts - qAttemptsUsed) : -1)
+                            .maxAttempts(qMaxAttempts > 0 ? qMaxAttempts : null)
                             .build());
                 }
 
@@ -685,6 +697,9 @@ public class StudentServiceImpl implements StudentService {
                                 .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(q.getQuizId(), userId)
                                 .orElse(null);
 
+                        int qMaxAttempts = q.getMaxAttempts() != null ? q.getMaxAttempts() : 0;
+                        long qAttemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(q.getQuizId(), userId, "IN_PROGRESS");
+
                         quizzes.add(LessonResponseDTO.builder()
                                 .quizId(q.getQuizId())
                                 .lessonTitle("[Bổ trợ] " + q.getTitle())
@@ -695,6 +710,9 @@ public class StudentServiceImpl implements StudentService {
                                 .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                                 .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                                 .isSequential(Boolean.TRUE.equals(q.getIsSequential()))
+                                .canRetake(qMaxAttempts == 0 || qAttemptsUsed < qMaxAttempts)
+                                .attemptsLeft(qMaxAttempts > 0 ? (int) Math.max(0, qMaxAttempts - qAttemptsUsed) : -1)
+                                .maxAttempts(qMaxAttempts > 0 ? qMaxAttempts : null)
                                 .build());
                     }
                 }

@@ -119,8 +119,8 @@ public class TeacherClassSessionService {
                 m.put("quizTitle", s.getQuiz() != null ? s.getQuiz().getTitle() : null);
                 m.put("quizStatus", s.getQuiz() != null ? s.getQuiz().getStatus() : null);
 
-                // New multi-quiz from session_quiz table
-                List<SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionIdOrderByOrderIndexAsc(s.getSessionId());
+                // New multi-quiz from session_quiz table (ONLY COURSE_QUIZ for the Quiz tab)
+                List<SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionIdAndQuiz_QuizCategoryOrderByOrderIndexAsc(s.getSessionId(), "COURSE_QUIZ");
                 List<Map<String, Object>> quizzesList = sqList.stream().map(sq -> {
                     Map<String, Object> qm = new LinkedHashMap<>();
                     Quiz q = sq.getQuiz();
@@ -528,9 +528,7 @@ public class TeacherClassSessionService {
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
             Integer courseId = clazz != null && clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null;
 
-            List<Quiz> quizzes = quizRepository.findAll().stream()
-                    .filter(q -> q.getClazz() != null && Objects.equals(q.getClazz().getClassId(), classId))
-                    .toList();
+            List<Quiz> quizzes = quizRepository.findByClazz_ClassIdAndQuizCategory(classId, "COURSE_QUIZ");
 
             List<Map<String, Object>> result = quizzes.stream().map(q -> {
                 Map<String, Object> m = new LinkedHashMap<>();
