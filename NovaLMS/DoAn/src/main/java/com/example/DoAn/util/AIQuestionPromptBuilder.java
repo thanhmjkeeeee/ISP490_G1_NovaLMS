@@ -24,8 +24,10 @@ public class AIQuestionPromptBuilder {
             "A1", "A2", "B1", "B2", "C1", "C2"
     );
 
-    public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes) {
+    public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
+        String constraints = buildAdvancedConstraints(advancedOptions);
+
         return """
                 You are a professional English teacher. Generate exactly %d English questions
                 about the topic "%s" for students.
@@ -36,6 +38,7 @@ public class AIQuestionPromptBuilder {
                 - Question types: %s
                 - CEFR levels: mix from A1 to C2
                 - Skills: mix LISTENING, READING, WRITING, SPEAKING
+                %s
                 - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
@@ -66,12 +69,13 @@ public class AIQuestionPromptBuilder {
                     "correctPairs": [...]
                   }
                 ]
-                """.formatted(quantity, topic, types, topic);
+                """.formatted(quantity, topic, types, constraints, topic);
     }
 
     public String buildContextPrompt(String moduleName, String lessonSummary,
-                                     int quantity, List<String> questionTypes) {
+                                     int quantity, List<String> questionTypes, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
+        String constraints = buildAdvancedConstraints(advancedOptions);
         String truncated = lessonSummary.length() > 8000
                 ? lessonSummary.substring(0, 8000)
                 : lessonSummary;
@@ -87,6 +91,7 @@ public class AIQuestionPromptBuilder {
                 - Question types: %s
                 - CEFR levels: mix from A1 to C2
                 - Skills: mix LISTENING, READING, WRITING, SPEAKING
+                %s
                 - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
@@ -117,7 +122,7 @@ public class AIQuestionPromptBuilder {
                     "correctPairs": [...]
                   }
                 ]
-                """.formatted(moduleName, truncated, quantity, types, moduleName);
+                """.formatted(moduleName, truncated, quantity, types, constraints, moduleName);
     }
 
     /**
@@ -126,15 +131,37 @@ public class AIQuestionPromptBuilder {
      *                             explanation, questions: [{content, questionType, options, ...}] }
      */
     public String buildGroupPrompt(String topic, String skill, String cefrLevel,
-                                  int questionCount, List<String> questionTypes) {
+                                  int questionCount, List<String> questionTypes, Map<String, Object> advancedOptions) {
         String cefr = cefrLevel != null ? cefrLevel : "B1";
         String topicVal = topic != null ? topic : "General English";
         String skillVal = skill != null ? skill : "READING";
 
+        // Handle advanced options for constraints
+        String passageConstraint = "150-400 words";
+        String scenarioConstraint = "";
+        String matchingConstraint = "";
+
+        if (advancedOptions != null) {
+            String readLen = (String) advancedOptions.get("readingLength");
+            if ("SHORT".equalsIgnoreCase(readLen)) passageConstraint = "100-150 words";
+            else if ("MEDIUM".equalsIgnoreCase(readLen)) passageConstraint = "200-300 words";
+            else if ("LONG".equalsIgnoreCase(readLen)) passageConstraint = "400-600 words";
+
+            String listenType = (String) advancedOptions.get("listeningType");
+            if (listenType != null) {
+                scenarioConstraint = " Specifically, this MUST be a " + listenType + " scenario.";
+            }
+
+            Integer matchPairs = (Integer) advancedOptions.get("matchingPairs");
+            if (matchPairs != null) {
+                matchingConstraint = " For MATCHING questions, generate exactly " + matchPairs + " pairs.";
+            }
+        }
+
         // Xác định nhãn nội dung dựa trên skill
         String contentLabel = "LISTENING".equalsIgnoreCase(skillVal) ? "Transcript bài nghe" : "Đoạn văn đọc (Passage)";
         String taskInstruction = "LISTENING".equalsIgnoreCase(skillVal) 
-            ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. Nội dung cần có đối thoại hoặc thông báo rõ ràng."
+            ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. Nội dung cần có đối thoại hoặc thông báo rõ ràng." + scenarioConstraint
             : "Đoạn văn này dùng cho bài đọc hiểu.";
 
         StringBuilder sb = new StringBuilder();
@@ -144,7 +171,7 @@ public class AIQuestionPromptBuilder {
         sb.append("The content must be in English and appropriate for CEFR level ").append(cefr).append(".\n\n");
         sb.append("Return ONLY a valid JSON object with this exact structure:\n");
         sb.append("{\n");
-        sb.append("  \"passage\": \"<").append(contentLabel).append(" text, 150-400 words>\",\n");
+        sb.append("  \"passage\": \"<").append(contentLabel).append(" text, ").append(passageConstraint).append(">\",\n");
         sb.append("  \"audioUrl\": null,\n");
         sb.append("  \"imageUrl\": null,\n");
         sb.append("  \"skill\": \"").append(skillVal).append("\",\n");
@@ -170,11 +197,13 @@ public class AIQuestionPromptBuilder {
         sb.append("Rules:\n");
         sb.append("- Generate exactly ").append(questionCount).append(" questions.\n");
         sb.append("- FORBIDDEN: Do NOT generate WRITING or SPEAKING questions for Reading/Listening skills.\n");
-        sb.append("- Question types allowed: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING.\n");
+        sb.append("- Question types allowed: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING.");
+        if (!matchingConstraint.isEmpty()) sb.append(matchingConstraint);
+        sb.append("\n");
         sb.append("- MULTIPLE_CHOICE_SINGLE: exactly 1 correct answer, at least 3 distractors, all options in English.\n");
         sb.append("- MULTIPLE_CHOICE_MULTI: 2 or more correct answers (but not all).\n");
         sb.append("- FILL_IN_BLANK: must have a correctAnswer field. The answer must be found in the text.\n");
-        sb.append("- MATCHING: matchLeft (words/phrases) and matchRight (definitions/meanings) must have the same size (3-5 items each).\n");
+        sb.append("- MATCHING: matchLeft (words/phrases) and matchRight (definitions/meanings) must have the same size.\n");
         sb.append("  CRITICAL - correctPairs format: a JSON array of 1-based INTEGER indices into the matchRight array.\n");
         sb.append("  The Nth value in correctPairs is the 1-based index in matchRight that matches the Nth item in matchLeft.\n");
         sb.append("  Example: matchLeft=[\"Libraries\",\"Laboratories\"] matchRight=[\"books\",\"experiments\"]\n");
@@ -185,6 +214,22 @@ public class AIQuestionPromptBuilder {
         sb.append("- Every 'title' must be real English text, not null, empty, or just a number.\n");
         sb.append("- Return ONLY the JSON object, no markdown fences, no commentary.\n");
 
+        return sb.toString();
+    }
+
+    private String buildAdvancedConstraints(Map<String, Object> advancedOptions) {
+        if (advancedOptions == null || advancedOptions.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("\nAdvanced Constraints:\n");
+        
+        String listenType = (String) advancedOptions.get("listeningType");
+        if (listenType != null) sb.append("- Listening Type: MUST be a ").append(listenType).append("\n");
+        
+        Integer matchPairs = (Integer) advancedOptions.get("matchingPairs");
+        if (matchPairs != null) sb.append("- Matching Pairs: For MATCHING questions, generate exactly ").append(matchPairs).append(" pairs.\n");
+        
+        String readLen = (String) advancedOptions.get("readingLength");
+        if (readLen != null) sb.append("- Reading Length: Passage should be ").append(readLen).append("\n");
+        
         return sb.toString();
     }
 
@@ -258,9 +303,10 @@ public class AIQuestionPromptBuilder {
     @SuppressWarnings("unchecked")
     public String buildAdvancedContextPrompt(String moduleName, String lessonSummary,
                                              int quantity, List<String> questionTypes,
-                                             String cefrLevel) {
+                                             String cefrLevel, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String truncated = lessonSummary.length() > 8000 ? lessonSummary.substring(0, 8000) : lessonSummary;
+        String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
         String bloomInstruction = cfg.get("bloom_instruction").toString();
@@ -292,6 +338,7 @@ public class AIQuestionPromptBuilder {
             - Generate exactly %d questions following these Bloom levels and grammar focus.
             - Question types: %s
             - CEFR level: %s
+            %s
             - WRITING questions: %s
             - SPEAKING questions: %s
 
@@ -329,6 +376,7 @@ public class AIQuestionPromptBuilder {
                 "        - " + String.join("\n        - ", grammarFocus),
                 String.join(", ", skills),
                 quantity, types, cefrLevel,
+                constraints,
                 writingConstraint,
                 speakingConstraint,
                 cefrLevel, moduleName
@@ -338,8 +386,9 @@ public class AIQuestionPromptBuilder {
     @SuppressWarnings("unchecked")
     public String buildAdvancedQuickPrompt(String topic, int quantity,
                                            List<String> questionTypes,
-                                           String cefrLevel) {
+                                           String cefrLevel, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
+        String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
         String bloomInstruction = cfg.get("bloom_instruction").toString();
@@ -370,6 +419,7 @@ public class AIQuestionPromptBuilder {
             - Generate exactly %d questions following these Bloom levels and grammar focus.
             - Question types: %s
             - CEFR level: %s
+            %s
             - WRITING questions: %s
             - SPEAKING questions: %s
 
@@ -407,6 +457,7 @@ public class AIQuestionPromptBuilder {
                 "        - " + String.join("\n        - ", grammarFocus),
                 String.join(", ", skills),
                 quantity, types, cefrLevel,
+                constraints,
                 writingConstraint,
                 speakingConstraint,
                 cefrLevel, topic

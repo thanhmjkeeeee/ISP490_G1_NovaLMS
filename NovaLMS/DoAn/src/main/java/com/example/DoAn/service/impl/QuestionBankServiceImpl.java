@@ -50,7 +50,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     );
 
     private static final Set<String> VALID_STATUSES = Set.of(
-        "DRAFT", "PUBLISHED", "ARCHIVED"
+        "DRAFT", "PUBLISHED", "ARCHIVED", "PENDING_REVIEW"
     );
 
     // --- Loại câu hỏi KHÔNG cần answer options ---
@@ -372,8 +372,11 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
 
     @Override
     @Transactional
-    public QuestionBankResponseDTO changeStatus(Integer questionId, String type, String newStatus, String email) {
-        findExpert(email);
+    public QuestionBankResponseDTO changeStatus(Integer questionId, java.util.Map<String, String> body, String email) {
+        User expert = findExpert(email);
+        String newStatus = body.get("status");
+        String type = body.get("type");
+        String note = body.get("note");
 
         if (!VALID_STATUSES.contains(newStatus)) {
             throw new InvalidDataException("Trạng thái không hợp lệ: " + newStatus);
@@ -384,32 +387,49 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi ID: " + questionId));
             
             String currentStatus = group.getStatus();
-            if (newStatus.equals(currentStatus)) {
-                return toResponseDTO(group);
-            }
+            if (newStatus.equals(currentStatus)) return toResponseDTO(group);
 
             validateTransition(currentStatus, newStatus);
             group.setStatus(newStatus);
+            
+            // Record review metadata
+            group.setReviewerId(Long.valueOf(expert.getUserId()));
+            group.setReviewedAt(java.time.LocalDateTime.now());
+            group.setReviewNote(note);
+
             questionGroupRepository.save(group);
             return toResponseDTO(group);
         } else {
             Question question = findQuestion(questionId);
             String currentStatus = question.getStatus();
             
-            if (newStatus.equals(currentStatus)) {
-                return toResponseDTO(question);
-            }
+            if (newStatus.equals(currentStatus)) return toResponseDTO(question);
 
             validateTransition(currentStatus, newStatus);
             question.setStatus(newStatus);
+            
+            // Record review metadata
+            question.setReviewerId(Long.valueOf(expert.getUserId()));
+            question.setReviewedAt(java.time.LocalDateTime.now());
+            question.setReviewNote(note);
+
             questionRepository.save(question);
             return toResponseDTO(question);
         }
     }
 
     private void validateTransition(String currentStatus, String newStatus) {
-        // Validate transitions: DRAFT→PUBLISHED, PUBLISHED→ARCHIVED, PUBLISHED→DRAFT
+        // Validate transitions: 
+        // DRAFT -> PENDING_REVIEW (Teacher resubmitting)
+        // PENDING_REVIEW -> PUBLISHED (Expert approving)
+        // PENDING_REVIEW -> DRAFT (Expert rejecting)
+        // DRAFT -> PUBLISHED (Expert manual publish)
+        // PUBLISHED -> ARCHIVED
+        // PUBLISHED -> DRAFT (Expert un-publish)
         boolean valid =
+            ("DRAFT".equals(currentStatus) && "PENDING_REVIEW".equals(newStatus)) ||
+            ("PENDING_REVIEW".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
+            ("PENDING_REVIEW".equals(currentStatus) && "DRAFT".equals(newStatus)) ||
             ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
             ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
             ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));

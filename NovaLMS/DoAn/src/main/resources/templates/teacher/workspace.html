@@ -36,6 +36,16 @@
 
     /* Filter Box */
     .filter-box { max-width: 400px; }
+
+    /* Animations */
+    @keyframes pulse-soft {
+        0% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 0.5; }
+    }
+    .pulse-animation { animation: pulse-soft 2s infinite ease-in-out; }
+    
+    .modal-backdrop.show { opacity: 0.7; backdrop-filter: blur(4px); }
 </style>
 
 <main class="dash-main" id="dashMain">
@@ -623,72 +633,28 @@
                         </div>
                     </div>
 
-                    <!-- ======= TAB: AI GENERATE ======= -->
+                    <!-- ======= TAB: AI GENERATE (UPGRADED) ======= -->
                     <div id="wsAiPanel" class="d-none">
-                        <div class="alert alert-info small py-2 mb-3">
-                            <i class="bi bi-robot me-1"></i>
-                            AI sinh câu hỏi theo chủ đề bạn nhập. Chọn câu phù hợp rồi thêm vào quiz.
-                            Câu hỏi được tạo sẽ ở chế độ <strong>chờ duyệt</strong>.
+                        <div class="text-center py-5 border rounded-4 bg-light bg-opacity-50">
+                            <div class="mb-4">
+                                <i class="bi bi-robot fs-1 text-primary opacity-50 pulse-animation"></i>
+                            </div>
+                            <h5 class="fw-bold">AI Question Expert</h5>
+                            <p class="text-muted small px-5">Tận dụng sức mạnh trí tuệ nhân tạo để thiết kế câu hỏi tiếng Anh chuẩn CEFR với các tùy chọn nâng cao cho kỹ năng Nghe/Đọc.</p>
+                            <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="openAdvancedAiModal()">
+                                <i class="bi bi-stars me-1"></i> Mở trình cấu hình AI nâng cao
+                            </button>
                         </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-12">
-                                <label class="form-label fw-semibold small">Chủ đề <span class="text-danger">*</span></label>
-                                <textarea class="form-control rounded-3" id="wsAiTopic" rows="2" placeholder="VD: English Grammar - Present Perfect, Travel Vocabulary..."></textarea>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Số lượng câu hỏi</label>
-                                <input type="number" class="form-control rounded-3" id="wsAiQty" min="1" max="50" value="5">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">Kỹ năng (tùy chọn)</label>
-                                <select class="form-select rounded-3" id="wsAiSkill">
-                                    <option value="">-- Tất cả --</option>
-                                    <option value="READING">Reading</option>
-                                    <option value="LISTENING">Listening</option>
-                                    <option value="WRITING">Writing</option>
-                                    <option value="SPEAKING">Speaking</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold small">CEFR (tùy chọn)</label>
-                                <select class="form-select rounded-3" id="wsAiCefr">
-                                    <option value="">-- Tất cả --</option>
-                                    <option value="A1">A1</option><option value="A2">A2</option>
-                                    <option value="B1">B1</option><option value="B2">B2</option>
-                                    <option value="C1">C1</option><option value="C2">C2</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-semibold small">Loại câu hỏi (tùy chọn)</label>
-                                <div class="d-flex gap-3 flex-wrap">
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMcS" value="MULTIPLE_CHOICE_SINGLE"><label class="form-check-label small" for="wsAiTypeMcS">TN 1 đáp án</label></div>
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMcM" value="MULTIPLE_CHOICE_MULTI"><label class="form-check-label small" for="wsAiTypeMcM">TN nhiều đáp án</label></div>
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeFib" value="FILL_IN_BLANK"><label class="form-check-label small" for="wsAiTypeFib">Điền từ</label></div>
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeMatch" value="MATCHING"><label class="form-check-label small" for="wsAiTypeMatch">Nối từ</label></div>
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeWrite" value="WRITING"><label class="form-check-label small" for="wsAiTypeWrite">Viết</label></div>
-                                    <div class="form-check"><input type="checkbox" class="form-check-input" id="wsAiTypeSpeak" value="SPEAKING"><label class="form-check-label small" for="wsAiTypeSpeak">Nói</label></div>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="wsGenerateAI()">
-                                    <i class="bi bi-lightning-charge me-1"></i>Sinh câu hỏi bằng AI
-                                </button>
-                            </div>
-                        </div>
-                        <div id="wsAiLoading" class="text-center py-4" style="display:none;">
-                            <div class="spinner-border text-primary mb-2"></div>
-                            <p class="text-muted mb-0 small">AI đang sinh câu hỏi, vui lòng chờ...</p>
-                        </div>
-                        <div id="wsAiWarning" class="alert alert-warning small py-2" style="display:none;"></div>
-                        <div id="wsAiPreview" style="display:none;">
+                        
+                        <div id="wsAiPreview" style="display:none;" class="mt-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="m-0 fw-semibold"><i class="bi bi-check2-square me-1"></i>Kết quả (<span id="wsAiSelected">0</span>/<span id="wsAiTotal">0</span> đã chọn)</h6>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="wsToggleAllAI()">Chọn tất cả</button>
+                                <h6 class="m-0 fw-semibold text-primary"><i class="bi bi-check2-square me-1"></i>Câu hỏi vừa sinh (<span id="wsAiSelected">0</span>/<span id="wsAiTotal">0</span> đã chọn)</h6>
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="wsToggleAllAI()">Chọn tất cả</button>
                             </div>
-                            <div id="wsAiList" class="list-group mb-3" style="max-height:400px; overflow-y:auto;"></div>
+                            <div id="wsAiList" class="list-group mb-3 shadow-sm rounded-3 overflow-hidden" style="max-height:400px; overflow-y:auto;"></div>
                             <div class="text-end">
-                                <button class="btn text-white shadow-sm rounded-pill" style="background-color:#136ad5;" onclick="wsImportSelected()">
-                                    <i class="bi bi-check-lg me-1"></i>Thêm các câu đã chọn vào Quiz
+                                <button class="btn text-white shadow-sm rounded-pill px-4 fw-bold" style="background-color:#136ad5;" onclick="wsImportSelected()">
+                                    <i class="bi bi-plus-circle me-1"></i> Thêm các câu đã chọn vào Quiz
                                 </button>
                             </div>
                         </div>
@@ -707,14 +673,130 @@
                 </div>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="modal-footer border-0" id="wsQuizFooter">
-                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal" onclick="resetWsQuizBuilder()">Hủy</button>
-                <button type="button" class="btn btn-outline-primary rounded-pill d-none" id="wsBackBtn" onclick="wsSwitchStep(1)">
-                    <i class="bi bi-arrow-left me-1"></i>Quay lại
-                </button>
-                <button type="button" class="btn btn-primary rounded-pill shadow-sm" id="wsNextBtn" onclick="wsNextStep()">
-                    Tiếp theo <i class="bi bi-arrow-right ms-1"></i>
+            <!-- ═══════════════════════════════ AI GENERATOR MODAL (NEW) ═══════════════════════════════ -->
+<div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                        <i class="bi bi-stars text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h4 class="modal-title fw-bold">AI Question Expert</h4>
+                        <p class="text-muted small mb-0">Thiết kế câu hỏi thông minh với các tùy chọn nâng cao</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <!-- Left: Base Config -->
+                    <div class="col-md-6 border-end pe-md-4">
+                        <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ bản</label>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Chủ đề (Topic) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" id="adv-topic" placeholder="VD: Present Perfect, Workplace Communication...">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Kỹ năng</label>
+                                <select class="form-select rounded-3" id="adv-skill" onchange="toggleAiAdvancedFields()">
+                                    <option value="READING">Reading</option>
+                                    <option value="LISTENING">Listening</option>
+                                    <option value="WRITING">Writing</option>
+                                    <option value="SPEAKING">Speaking</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold">Trình độ CEFR</label>
+                                <select class="form-select rounded-3" id="adv-cefr">
+                                    <option value="A1">A1 - Beginner</option>
+                                    <option value="A2">A2 - Elementary</option>
+                                    <option value="B1" selected>B1 - Intermediate</option>
+                                    <option value="B2">B2 - Upper Intermediate</option>
+                                    <option value="C1">C1 - Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Loại câu hỏi (Chọn nhiều)</label>
+                            <div class="d-flex flex-wrap gap-2" id="adv-types">
+                                <input type="checkbox" class="btn-check" id="type-mc-s" value="MULTIPLE_CHOICE_SINGLE" checked>
+                                <label class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal" for="type-mc-s">Trắc nghiệm đơn</label>
+                                
+                                <input type="checkbox" class="btn-check" id="type-mc-m" value="MULTIPLE_CHOICE_MULTI">
+                                <label class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal" for="type-mc-m">Trắc nghiệm nhiều</label>
+                                
+                                <input type="checkbox" class="btn-check" id="type-fib" value="FILL_IN_BLANK">
+                                <label class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal" for="type-fib">Điền từ</label>
+                                
+                                <input type="checkbox" class="btn-check" id="type-match" value="MATCHING" onchange="toggleAiAdvancedFields()">
+                                <label class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal" for="type-match">Nối cặp</label>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small fw-bold">Số lượng câu hỏi</label>
+                            <input type="range" class="form-range" min="1" max="20" step="1" value="5" id="adv-qty" oninput="this.nextElementSibling.value = this.value">
+                            <output class="badge bg-primary rounded-pill">5</output>
+                        </div>
+                    </div>
+
+                    <!-- Right: Advanced Config -->
+                    <div class="col-md-6 ps-md-4">
+                        <label class="form-label fw-bold small text-uppercase text-primary">Tùy chọn nâng cao</label>
+                        
+                        <!-- Listening Options -->
+                        <div id="field-listening" class="mb-3">
+                            <label class="form-label small fw-bold">Loại kịch bản nghe (Listening Transcript)</label>
+                            <select class="form-select rounded-3" id="adv-listen-type">
+                                <option value="Dialogue">Dialogue (Hội thoại giữa 2-3 người)</option>
+                                <option value="Monologue">Monologue (Độc thoại, bài thuyết trình)</option>
+                                <option value="Announcement">Announcement (Thông báo công cộng)</option>
+                                <option value="Radio/Podcast">Radio/Podcast Segment</option>
+                            </select>
+                        </div>
+
+                        <!-- Reading Options -->
+                        <div id="field-reading" class="mb-3" style="display:none;">
+                            <label class="form-label small fw-bold">Độ dài đoạn văn (Reading Passage)</label>
+                            <div class="d-flex gap-2">
+                                <input type="radio" class="btn-check" name="adv-read-len" id="len-short" value="SHORT">
+                                <label class="btn btn-outline-light text-dark flex-grow-1 border p-2" for="len-short">Ngắn<br><small>(100-150w)</small></label>
+                                
+                                <input type="radio" class="btn-check" name="adv-read-len" id="len-med" value="MEDIUM" checked>
+                                <label class="btn btn-outline-light text-dark flex-grow-1 border p-2" for="len-med">Vừa<br><small>(200-300w)</small></label>
+                                
+                                <input type="radio" class="btn-check" name="adv-read-len" id="len-long" value="LONG">
+                                <label class="btn btn-outline-light text-dark flex-grow-1 border p-2" for="len-long">Dài<br><small>(400-600w)</small></label>
+                            </div>
+                        </div>
+
+                        <!-- Matching Options -->
+                        <div id="field-matching" class="mb-3" style="display:none;">
+                            <label class="form-label small fw-bold">Số lượng cặp nối (Matching Pairs)</label>
+                            <select class="form-select rounded-3" id="adv-match-pairs">
+                                <option value="3">3 cặp (Cơ bản)</option>
+                                <option value="4" selected>4 cặp (Trung bình)</option>
+                                <option value="5">5 cặp (Phức tạp)</option>
+                            </select>
+                        </div>
+
+                        <div class="p-3 rounded-4 border bg-white mt-4 shadow-sm">
+                            <div class="d-flex align-items-center gap-2 text-warning mb-2">
+                                <i class="bi bi-info-circle-fill"></i>
+                                <span class="fw-bold small">Lưu ý</span>
+                            </div>
+                            <p class="small text-muted mb-0">Các tùy chọn nâng cao sẽ giúp AI tập trung sinh nội dung chính xác hơn với mục đích của bài thi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="btn-run-ai" onclick="runAdvancedAiGeneration()">
+                    <span id="ai-loading-spinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Bắt đầu sinh câu hỏi
                 </button>
             </div>
         </div>
@@ -1780,48 +1862,105 @@
         } catch (e) { /* ignore */ }
     };
 
-    // --- AI Generation ---
-    const wsGenerateAI = async () => {
-        if (!wsCurrentQuizId) { alert('Vui lòng tạo quiz trước (bước 1)'); return; }
-        const topic = document.getElementById('wsAiTopic').value.trim();
-        const qty = parseInt(document.getElementById('wsAiQty').value);
-        if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
-        if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+    // --- Advanced AI Generation ---
+    let aiGenModal;
+    
+    const openAdvancedAiModal = () => {
+        if (!wsCurrentQuizId) { Swal.fire('Chú ý', 'Vui lòng tạo quiz cơ bản trước (Bước 1)', 'warning'); return; }
+        if (!aiGenModal) aiGenModal = new bootstrap.Modal('#aiGenerateModal');
+        
+        // Sync topic from workspace if any
+        const wsTopic = document.getElementById('wsQuizTitle')?.value || '';
+        document.getElementById('adv-topic').value = wsTopic;
+        
+        toggleAiAdvancedFields();
+        aiGenModal.show();
+    };
 
-        const body = { topic, quantity: qty };
-        const skill = document.getElementById('wsAiSkill').value;
-        const cefr = document.getElementById('wsAiCefr').value;
-        if (skill) body.skill = skill;
-        if (cefr) body.cefrLevel = cefr;
-        const types = [];
-        ['wsAiTypeMcS','wsAiTypeMcM','wsAiTypeFib','wsAiTypeMatch','wsAiTypeWrite','wsAiTypeSpeak'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && el.checked) types.push(el.value);
-        });
-        if (types.length > 0) body.questionTypes = types;
+    const toggleAiAdvancedFields = () => {
+        const skill = document.getElementById('adv-skill').value;
+        const isMatchingChecked = document.getElementById('type-match').checked;
+        
+        document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
+        document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
+        document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
+    };
 
-        document.getElementById('wsAiLoading').style.display = 'block';
-        document.getElementById('wsAiPreview').style.display = 'none';
-        document.getElementById('wsAiWarning').style.display = 'none';
+    const runAdvancedAiGeneration = async () => {
+        const topic = document.getElementById('adv-topic').value.trim();
+        const qty = parseInt(document.getElementById('adv-qty').value);
+        const skill = document.getElementById('adv-skill').value;
+        const cefr = document.getElementById('adv-cefr').value;
+        
+        if (!topic) { Swal.fire('Thiếu thông tin', 'Vui lòng nhập chủ đề câu hỏi.', 'warning'); return; }
+        
+        const types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
+        if (types.length === 0) { Swal.fire('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại câu hỏi.', 'warning'); return; }
+
+        // Advanced Options Map
+        const advancedOptions = {};
+        if (skill === 'LISTENING') advancedOptions.listeningType = document.getElementById('adv-listen-type').value;
+        if (skill === 'READING') {
+            const readLen = document.querySelector('input[name="adv-read-len"]:checked')?.value;
+            advancedOptions.readingLength = readLen;
+        }
+        if (types.includes('MATCHING')) {
+            advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
+        }
+
+        const payload = {
+            topic,
+            quantity: qty,
+            skill,
+            cefrLevel: cefr,
+            questionTypes: types,
+            mode: "ADVANCED",
+            advancedOptions
+        };
+
+        const btn = document.getElementById('btn-run-ai');
+        const spinner = document.getElementById('ai-loading-spinner');
+        btn.disabled = true;
+        spinner.style.display = 'inline-block';
 
         try {
             const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
             const result = await res.json();
-            if (!res.ok) { alert(result.message || 'Lỗi khi sinh câu hỏi.'); return; }
-            wsAiQuestions = result.data.questions || [];
-            wsAiSelected = new Set(wsAiQuestions.map((_, i) => i));
-            wsAllAiSelected = true;
-            wsRenderAIQuestions();
-            if (result.data.warning) {
-                const w = document.getElementById('wsAiWarning');
-                w.textContent = result.data.warning;
-                w.style.display = 'block';
+            
+            if (result.status === 200) {
+                wsAiQuestions = result.data.questions || [];
+                wsAiSelected = new Set(wsAiQuestions.map((_, i) => i));
+                wsAllAiSelected = true;
+                
+                aiGenModal.hide();
+                wsRenderAIQuestions();
+                
+                if (result.data.warning) {
+                    Swal.fire({
+                        title: 'Hoàn tất',
+                        text: result.data.warning,
+                        icon: 'info',
+                        confirmButtonText: 'Đã hiểu'
+                    });
+                }
+            } else {
+                Swal.fire('Lỗi sinh câu hỏi', result.message || 'Hệ thống AI đang bận.', 'error');
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-        finally { document.getElementById('wsAiLoading').style.display = 'none'; }
+        } catch (e) {
+            Swal.fire('Lỗi kết nối', e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    };
+
+    const wsGenerateAI = async () => {
+        // Obsolete - redirected to advanced modal
+        openAdvancedAiModal();
     };
 
     const wsRenderAIQuestions = () => {
