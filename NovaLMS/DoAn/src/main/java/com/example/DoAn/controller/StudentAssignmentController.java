@@ -79,6 +79,12 @@ public class StudentAssignmentController {
             Authentication auth,
             Model model) {
         model.addAttribute("resultId", resultId);
+        try {
+            var detail = assignmentService.getAssignmentResultDetail(resultId, auth.getName());
+            model.addAttribute("classId", detail.getClassId());
+        } catch (Exception e) {
+            // fallback
+        }
         return "student/assignment-complete";
     }
 

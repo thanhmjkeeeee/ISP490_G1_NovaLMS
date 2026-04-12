@@ -223,6 +223,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .build();
         }).collect(Collectors.toList());
 
+        int maxAttempts = quiz.getMaxAttempts() != null ? quiz.getMaxAttempts() : 0;
+        int attemptsLeft = maxAttempts > 0 ? (int) Math.max(0, maxAttempts - attemptCount) : -1;
+
         return QuizTakingDTO.builder()
                 .quizId(quiz.getQuizId())
                 .title(quiz.getTitle())
@@ -234,6 +237,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .questions(questionsDTO)
                 .classId(classId)
                 .sessionId(sessionId)
+                .canRetake(maxAttempts == 0 || attemptCount < maxAttempts)
+                .attemptsLeft(attemptsLeft)
+                .maxAttempts(maxAttempts > 0 ? maxAttempts : null)
                 .build();
     }
 
@@ -258,6 +264,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .quiz(quiz)
                 .user(user)
                 .submittedAt(LocalDateTime.now())
+                .status("SUBMITTED")
                 .build();
         quizResult = quizResultRepository.save(quizResult);
 

@@ -135,32 +135,67 @@ public class LearningServiceImpl implements LearningService {
                 }
             }
 
+            // Optimization: Load all attempts for this user in these quizzes to avoid N+1 query
+            List<Integer> quizIds = studentQuizzes.stream().map(Quiz::getQuizId).collect(Collectors.toList());
+            Map<Integer, Long> attemptCountMap = new HashMap<>();
+            if (!quizIds.isEmpty()) {
+                List<Object[]> attemptCounts = quizResultRepository.countAttemptsByUserPerQuiz(user.getUserId(), quizIds);
+                for (Object[] row : attemptCounts) {
+                    attemptCountMap.put((Integer) row[0], (Long) row[1]);
+                }
+            }
+
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
             List<CourseLearningInfoDTO.QuizInfoDTO> quizList = new ArrayList<>();
             for (Quiz quiz : studentQuizzes) {
-                long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserId(quiz.getQuizId(), user.getUserId());
+                Long attemptCount = attemptCountMap.getOrDefault(quiz.getQuizId(), 0L);
                 
                 // Get session-specific setting or fallback
                 SessionQuiz sq = sessionQuizMap.get(quiz.getQuizId());
                 boolean isAssignment = "COURSE_ASSIGNMENT".equals(quiz.getQuizCategory());
 
-                Boolean isOpen;
-                String openAtStr, closeAtStr;
+                Boolean isOpen = false;
+                String openAtStr = null;
+                String closeAtStr = null;
 
-                if (sq != null) {
-                    // Use settings from specific class session
-                    isOpen = sq.getIsOpen() != null ? sq.getIsOpen() : false;
-                    openAtStr = sq.getOpenAt() != null ? sq.getOpenAt().toString() : null;
-                    closeAtStr = sq.getCloseAt() != null ? sq.getCloseAt().toString() : null;
-                } else if (!isAssignment) {
-                    // Global Course Quizzes (Not Assignments) use global settings
-                    isOpen = quiz.getIsOpen() != null ? quiz.getIsOpen() : false;
-                    openAtStr = quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null;
-                    closeAtStr = quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null;
+                if (isAssignment) {
+                    // COURSE_ASSIGNMENT -> giữ nguyên logic cũ
+                    if (sq != null) {
+                        isOpen = sq.getIsOpen() != null ? sq.getIsOpen() : false;
+                        openAtStr = sq.getOpenAt() != null ? sq.getOpenAt().toString() : null;
+                        closeAtStr = sq.getCloseAt() != null ? sq.getCloseAt().toString() : null;
+                    } else {
+                        // Assignment but not in session_quiz for this class -> Fallback to Closed
+                        isOpen = false;
+                        openAtStr = null;
+                        closeAtStr = null;
+                    }
                 } else {
-                    // Assignment but not in session_quiz for this class -> Fallback to Closed
-                    isOpen = false;
-                    openAtStr = null;
-                    closeAtStr = null;
+                    // COURSE_QUIZ (quiz nhỏ) -> trạng thái lấy từ SessionQuiz
+                    if (sq != null) {
+                        if (Boolean.TRUE.equals(sq.getIsOpen())) {
+                            // Check thời gian (open_at, close_at)
+                            boolean withinTime =
+                                    (sq.getOpenAt() == null || now.isAfter(sq.getOpenAt())) &&
+                                    (sq.getCloseAt() == null || now.isBefore(sq.getCloseAt()));
+                            isOpen = withinTime;
+                        } else {
+                            isOpen = false;
+                        }
+                        openAtStr = sq.getOpenAt() != null ? sq.getOpenAt().toString() : null;
+                        closeAtStr = sq.getCloseAt() != null ? sq.getCloseAt().toString() : null;
+                    } else {
+                        // Fallback cho COURSE_QUIZ chưa gán buổi (hoặc quiz toàn cục)
+                        isOpen = quiz.getIsOpen() != null ? quiz.getIsOpen() : false;
+                        if (isOpen) {
+                            boolean withinTime =
+                                    (quiz.getOpenAt() == null || now.isAfter(quiz.getOpenAt())) &&
+                                    (quiz.getCloseAt() == null || now.isBefore(quiz.getCloseAt()));
+                            isOpen = withinTime;
+                        }
+                        openAtStr = quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null;
+                        closeAtStr = quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null;
+                    }
                 }
 
                 quizList.add(CourseLearningInfoDTO.QuizInfoDTO.builder()
@@ -171,7 +206,7 @@ public class LearningServiceImpl implements LearningService {
                         .totalQuestions(quiz.getQuizQuestions() != null ? quiz.getQuizQuestions().size() : 0)
                         .timeLimitMinutes(quiz.getTimeLimitMinutes())
                         .maxAttempts(quiz.getMaxAttempts())
-                        .attemptCount((int) attemptCount)
+                        .attemptCount(attemptCount.intValue())
                         .isOpen(isOpen)
                         .openAt(openAtStr)
                         .closeAt(closeAtStr)

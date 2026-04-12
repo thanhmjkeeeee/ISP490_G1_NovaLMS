@@ -24,6 +24,10 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
 
     long countByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
 
+    @Query("SELECT qr.quiz.quizId, COUNT(qr) FROM QuizResult qr WHERE qr.user.userId = :userId AND qr.quiz.quizId IN :quizIds GROUP BY qr.quiz.quizId")
+    List<Object[]> countAttemptsByUserPerQuiz(@Param("userId") Integer userId, @Param("quizIds") List<Integer> quizIds);
+
+
     long countByQuizQuizIdAndUserUserIdAndStatusNot(Integer quizId, Integer userId, String status);
 
     Optional<QuizResult> findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(Integer quizId, Integer userId);
