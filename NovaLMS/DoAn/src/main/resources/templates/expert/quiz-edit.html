@@ -165,20 +165,24 @@
                     </h6>
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">LISTENING</label>
-                            <input type="number" id="timeLimit_LISTENING" class="form-control" min="1">
+                            <label class="form-label fw-bold small text-muted">LISTENING <span class="text-danger">*</span></label>
+                            <input type="text" id="timeLimit_LISTENING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">READING</label>
-                            <input type="number" id="timeLimit_READING" class="form-control" min="1">
+                            <label class="form-label fw-bold small text-muted">READING <span class="text-danger">*</span></label>
+                            <input type="text" id="timeLimit_READING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">SPEAKING</label>
-                            <input type="number" id="timeLimit_SPEAKING" class="form-control" min="1">
+                            <label class="form-label fw-bold small text-muted">SPEAKING <span class="text-danger">*</span></label>
+                            <input type="text" id="timeLimit_SPEAKING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">WRITING</label>
-                            <input type="number" id="timeLimit_WRITING" class="form-control" min="1">
+                            <label class="form-label fw-bold small text-muted">WRITING <span class="text-danger">*</span></label>
+                            <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                     </div>
                 </div>
@@ -233,8 +237,8 @@
         <div class="d-flex justify-content-end gap-3">
             <button type="button" class="btn btn-lg btn-light px-4 fw-bold"
                     style="border-radius:12px;" onclick="window.history.back()">Hủy</button>
-            <button type="button" class="btn btn-lg text-white px-5 fw-bold"
-                    style="background-color:#136ad5; border-radius:12px;" onclick="goToStep(2)">
+            <button type="button" id="btnNextStep1" class="btn btn-lg text-white px-5 fw-bold"
+                    style="background-color:#136ad5; border-radius:12px;" onclick="validateAndGoToStep2()">
                 Tiếp theo: Câu hỏi <i class="bi bi-arrow-right ms-2"></i>
             </button>
         </div>
@@ -425,12 +429,22 @@
 
             if (q.quizCategory === 'COURSE_ASSIGNMENT') {
                 document.getElementById('perSkillTimeSection').style.display = 'block';
-                if (q.timeLimitPerSkill) {
-                    Object.entries(q.timeLimitPerSkill).forEach(([skill, minutes]) => {
+                document.getElementById('timeLimitMinutes').readOnly = true;
+
+                console.log("timeLimitPerSkill raw:", q.timeLimitPerSkill);
+                try {
+                    const skillTime = typeof q.timeLimitPerSkill === 'string' 
+                        ? JSON.parse(q.timeLimitPerSkill || '{}') 
+                        : (q.timeLimitPerSkill || {});
+                        
+                    Object.entries(skillTime).forEach(([skill, minutes]) => {
                         const el = document.getElementById('timeLimit_' + skill);
                         if (el) el.value = minutes;
                     });
+                } catch (e) {
+                    console.error("Error parsing timeLimitPerSkill:", e);
                 }
+                validateSkillTimes(); // Khởi tạo tính tổng lần đầu
             }
 
             // Load assignment schedule fields
@@ -454,6 +468,71 @@
             await loadQuizQuestions();
 
         } catch (e) { console.error(e); alert('Lỗi tải quiz.'); }
+    }
+
+    // ─── VALIDATION ──────────────────────────────────────────────────────
+
+    function validateAndGoToStep2() {
+        if (_currentCategory === 'COURSE_ASSIGNMENT') {
+            if (!validateSkillTimes()) return; 
+        }
+        goToStep(2);
+    }
+
+    let _debounceTimer;
+    function debouncedValidate() {
+        // Tức thì highlight lỗi nếu có xóa input (bắt buộc theo prompt)
+        validateSkillTimes(false); // fast un-debounced check for empty
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(() => validateSkillTimes(true), 400);
+    }
+
+    function validateSkillTimes(isFullCheck = true) {
+        if (_currentCategory !== 'COURSE_ASSIGNMENT') return true;
+        
+        const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+        let total = 0;
+        let isValid = true;
+        const regex = /^\d+$/;
+        
+        for (const skill of skills) {
+            const input = document.getElementById('timeLimit_' + skill);
+            const val = input.value.trim();
+            const isEmpty = val === '';
+            
+            let skillValid = true;
+
+            // Xóa là báo lỗi ngay
+            if (isEmpty) {
+                skillValid = false;
+            } else if (!regex.test(val)) {
+                skillValid = false; // Có chữ số âm / thập phân / kí tự đặc biệt
+            } else {
+                const num = parseInt(val, 10);
+                if (num <= 0 || num > 100) {
+                    skillValid = false;
+                }
+            }
+
+            if (!skillValid) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+                total += parseInt(val, 10);
+            }
+        }
+        
+        if (isValid) {
+            document.getElementById('timeLimitMinutes').value = total;
+        } else {
+            document.getElementById('timeLimitMinutes').value = '';
+        }
+        
+        const btnNext = document.getElementById('btnNextStep1');
+        if (btnNext) btnNext.disabled = !isValid;
+        
+        return isValid;
     }
 
     // ─── STEP 2 LOGIC ────────────────────────────────────────────────────

@@ -122,7 +122,8 @@
       showSkeletonLoading();
 
       try {
-          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=3&sort=${sortOrder}`;          const res  = await fetch(url, { signal: abortController.signal });
+          const url = `/api/v1/student/my-courses/data?keyword=${encodeURIComponent(keyword)}&categoryId=${categoryId}&page=${currentPage}&size=4&sort=${sortOrder}`;
+          const res  = await fetch(url, { signal: abortController.signal });
           const data = await res.json();
 
           if (data.status === 200) {

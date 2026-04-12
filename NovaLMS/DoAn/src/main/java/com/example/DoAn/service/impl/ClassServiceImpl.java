@@ -54,6 +54,17 @@ public class ClassServiceImpl implements IClassService {
             "Chiều (15:00 - 17:00)",
             "Tối (18:00 - 20:00)"
     );
+    private Integer getSlotNumberFromTime(String slotTime) {
+        if (slotTime == null || slotTime.isBlank()) return null;
+
+        if (slotTime.contains("7:00 - 9:00")) return 1;
+        if (slotTime.contains("9:00 - 11:00")) return 2;
+        if (slotTime.contains("13:00 - 15:00")) return 3;
+        if (slotTime.contains("15:00 - 17:00")) return 4;
+        if (slotTime.contains("18:00 - 20:00")) return 5;
+
+        return null; // Trả về null nếu không khớp
+    }
 
     private final ClassRepository classRepository;
     private final ClassSessionRepository classSessionRepository;
@@ -291,6 +302,7 @@ public class ClassServiceImpl implements IClassService {
                             .sessionDate(sessionDateTime)
                             .startTime(startTime)
                             .endTime(endTime)
+                            .slotNumber(getSlotNumberFromTime(clazz.getSlotTime()))
                             .build();
                     sessions.add(session);
                     break;
