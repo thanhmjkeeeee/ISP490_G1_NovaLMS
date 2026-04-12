@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class AssignmentGradingDetailDTO {
     private Integer resultId;
     private Long assignmentSessionId;
+    private Integer classId;
     private String studentName;
     private String quizTitle;
     private String className;

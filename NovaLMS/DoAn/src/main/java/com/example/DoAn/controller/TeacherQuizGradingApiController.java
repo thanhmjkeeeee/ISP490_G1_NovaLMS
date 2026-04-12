@@ -50,6 +50,23 @@ public class TeacherQuizGradingApiController {
         }
     }
 
+    @GetMapping("/unlock-requests")
+    public ResponseData<PageResponse<QuizResultPendingDTO>> getUnlockRequestsList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) Integer classId,
+            Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+
+        try {
+            PageResponse<QuizResultPendingDTO> list = quizResultService.getUnlockRequests(email, classId, page, size);
+            return ResponseData.success("Success", list);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
     @GetMapping("/graded")
     public ResponseData<PageResponse<QuizResultGradedDTO>> getGradedResults(
             @RequestParam(defaultValue = "0") int page,
