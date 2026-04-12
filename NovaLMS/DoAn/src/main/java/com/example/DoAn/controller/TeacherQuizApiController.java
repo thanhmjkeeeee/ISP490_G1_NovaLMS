@@ -251,4 +251,26 @@ public class TeacherQuizApiController {
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return teacherQuizService.importAIQuestions(request, email);
     }
+
+    /**
+     * Gửi câu hỏi lên expert để duyệt.
+     * POST /api/v1/teacher/quizzes/questions/{questionId}/submit
+     */
+    @PostMapping("/questions/{questionId}/submit")
+    public ResponseData<?> submitQuestionForReview(@PathVariable Integer questionId, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return teacherQuizService.submitQuestionForReview(questionId, email);
+    }
+
+    /**
+     * Gửi đồng loạt nhiều câu hỏi lên expert.
+     * POST /api/v1/teacher/quizzes/questions/submit-batch
+     */
+    @PostMapping("/questions/submit-batch")
+    public ResponseData<?> submitQuestionsBatch(@RequestBody List<Integer> questionIds, Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return teacherQuizService.submitQuestionsBatch(questionIds, email);
+    }
 }

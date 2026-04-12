@@ -29,6 +29,8 @@ public class AIGenerateRequestDTO {
     @Builder.Default
     private String mode = "NORMAL"; // "NORMAL" | "ADVANCED"
 
+    private java.util.Map<String, Object> advancedOptions;
+
     public boolean hasTopic() {
         return topic != null && !topic.isBlank();
     }

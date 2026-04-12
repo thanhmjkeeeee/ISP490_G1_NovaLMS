@@ -76,13 +76,15 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                         (String) module.getModuleName(), (String) lessonSummary,
                         (int) request.getQuantity().intValue(),
                         (java.util.List<String>) request.getQuestionTypes(),
-                        cefr);
+                        cefr,
+                        request.getAdvancedOptions());
             } else {
                 prompt = promptBuilder.buildAdvancedQuickPrompt(
                         (String) request.getTopic(),
                         (int) request.getQuantity().intValue(),
                         (java.util.List<String>) request.getQuestionTypes(),
-                        cefr);
+                        cefr,
+                        request.getAdvancedOptions());
             }
         } else {
             prompt = buildPrompt(request);
@@ -121,9 +123,9 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
         String prompt;
         if (isAdvanced) {
-            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr);
+            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr, request.getAdvancedOptions());
         } else {
-            prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes());
+            prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes(), request.getAdvancedOptions());
         }
         String rawJson = callGroq(prompt);
 
@@ -199,13 +201,16 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             Module module = moduleOpt.get();
             String lessonSummary = fetchLessonSummary(module.getModuleId());
             return promptBuilder.buildContextPrompt(
-                    (String) module.getModuleName(), (String) lessonSummary,
-                    (int) request.getQuantity().intValue(),
-                    (java.util.List<String>) request.getQuestionTypes());
+                    module.getModuleName(), lessonSummary,
+                    request.getQuantity().intValue(),
+                    request.getQuestionTypes(),
+                    request.getAdvancedOptions());
         } else {
             return promptBuilder.buildQuickPrompt(
-                    (String) request.getTopic(), (int) request.getQuantity().intValue(),
-                    (java.util.List<String>) request.getQuestionTypes());
+                    request.getTopic(), 
+                    request.getQuantity().intValue(),
+                    request.getQuestionTypes(),
+                    request.getAdvancedOptions());
         }
     }
 

@@ -50,8 +50,25 @@ public class QuestionGroup {
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private java.time.LocalDateTime updatedAt;
+
+    @Column(name = "reviewer_id")
+    private Long reviewerId;
+
+    @Column(name = "reviewed_at")
+    private java.time.LocalDateTime reviewedAt;
+
+    @Column(name = "review_note", length = 500)
+    private String reviewNote;
+
     @PrePersist
     protected void onCreate() {
-        createdAt = java.time.LocalDateTime.now();
+        createdAt = updatedAt = java.time.LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = java.time.LocalDateTime.now();
     }
 }
