@@ -34,11 +34,11 @@
 <main class="dash-main" id="dashMain">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold text-dark m-0">Account Management</h3>
+            <h3 class="fw-bold text-dark m-0">Quản lý tài khoản</h3>
             <p class="text-muted small m-0">Quản lý danh sách người dùng, phân quyền và trạng thái hệ thống.</p>
         </div>
         <a th:href="@{/admin/accounts/add}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4" style="background-color: #3b82f6; border: none;">
-            <i class="bi bi-plus-lg me-1"></i> Create New Account
+            <i class="bi bi-plus-lg me-1"></i> Tạo tài khoản mới
         </a>
     </div>
 
@@ -46,34 +46,34 @@
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label small fw-bold text-secondary">Search</label>
+                    <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Email...">
+                        <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Tên, Email...">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-secondary">Role</label>
+                    <label class="form-label small fw-bold text-secondary">Vai trò</label>
                     <select id="roleFilter" class="form-select bg-light">
-                        <option value="">All Roles</option>
-                        <option value="201">Admin</option>
-                        <option value="202">Manager</option>
-                        <option value="203">Expert</option>
-                        <option value="204">Teacher</option>
-                        <option value="205">Student</option>
+                        <option value="">Tất cả vai trò</option>
+                        <option value="201">Quản trị viên</option>
+                        <option value="202">Quản lý</option>
+                        <option value="203">Chuyên gia</option>
+                        <option value="204">Giảng viên</option>
+                        <option value="205">Học viên</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-secondary">Status</label>
+                    <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                     <select id="statusFilter" class="form-select bg-light">
-                        <option value="">All Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Active">Đang hoạt động</option>
+                        <option value="Inactive">Bị khóa</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <button type="button" onclick="loadAccountData(0)" class="btn btn-primary w-100 fw-bold shadow-sm justify-content-center" style="background-color: #3b82f6; border: none;">
-                        <i class="bi bi-filter me-2"></i> Filter
+                        <i class="bi bi-filter me-2"></i> Lọc dữ liệu
                     </button>
                 </div>
             </div>
@@ -87,10 +87,10 @@
                     <thead class="table-light">
                     <tr>
                         <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
-                        <th class="py-3 text-uppercase small text-muted">User Information</th>
-                        <th class="py-3 text-uppercase small text-muted">Role</th>
-                        <th class="py-3 text-uppercase small text-muted">Status</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
+                        <th class="py-3 text-uppercase small text-muted">Thông tin người dùng</th>
+                        <th class="py-3 text-uppercase small text-muted">Vai trò</th>
+                        <th class="py-3 text-uppercase small text-muted">Trạng thái</th>
+                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Thao tác</th>
                     </tr>
                     </thead>
                     <tbody id="accountDataBody">
@@ -101,7 +101,7 @@
 
         <div class="card-footer bg-white py-3 border-0">
             <div class="d-flex justify-content-between align-items-center small text-muted">
-                <span id="paginationInfo">Showing page...</span>
+                <span id="paginationInfo">Đang tải trang...</span>
                 <nav>
                     <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
                 </nav>
@@ -130,7 +130,7 @@
         if (status) url += `&status=${status}`;
 
         const tbody = document.getElementById('accountDataBody');
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Loading...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
 
         fetch(url)
             .then(res => res.json())
@@ -144,7 +144,7 @@
             })
             .catch(err => {
                 console.error("API Error:", err);
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Cannot connect to server</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Không thể kết nối máy chủ</td></tr>`;
             });
     }
 
@@ -153,20 +153,18 @@
         if (e.key === 'Enter') loadAccountData(0);
     });
 
-    // Hàm vẽ bảng (Tuân theo UI của Course)
+    // Hàm vẽ bảng
     function renderTable(users) {
     const tbody = document.getElementById('accountDataBody');
     if (!users || users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block"></i> No users found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block"></i> Không tìm thấy người dùng nào.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = users.map(u => {
-        // 1. Chuẩn hóa trạng thái về chữ thường để so sánh chính xác
         const statusRaw = u.status || 'Inactive';
         const statusLower = statusRaw.toLowerCase();
 
-        // 2. Quyết định màu sắc dựa trên status đã chuẩn hóa
         const isActive = (statusLower === 'active');
         const badgeClass = isActive ? 'bg-success text-success' : 'bg-danger text-danger';
 
@@ -179,7 +177,7 @@
                             <i class="bi bi-person text-primary fs-5"></i>
                         </div>
                         <div>
-                            <div class="fw-bold text-dark">${u.fullName || 'No Name'}</div>
+                            <div class="fw-bold text-dark">${u.fullName || 'Chưa có tên'}</div>
                             <div class="small text-muted">${u.email || 'N/A'}</div>
                         </div>
                     </div>
@@ -191,14 +189,14 @@
                 </td>
                 <td>
                     <span class="badge px-2 py-1 fw-bold bg-opacity-10 border ${badgeClass}" style="font-size: 11px; text-transform: uppercase;">
-                        ${statusRaw}
+                        ${isActive ? 'Hoạt động' : 'Bị khóa'}
                     </span>
                 </td>
                 <td class="text-end pe-4">
-                    <button class="btn btn-sm btn-light border shadow-sm" onclick="toggleStatus(${u.userId})" title="Toggle Lock">
+                    <button class="btn btn-sm btn-light border shadow-sm" onclick="toggleStatus(${u.userId})" title="${isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}">
                         <i class="bi ${isActive ? 'bi-lock text-danger' : 'bi-unlock text-success'}"></i>
                     </button>
-                    <a href="/admin/accounts/detail/${u.userId}" class="btn btn-sm btn-light border shadow-sm ms-1">
+                    <a href="/admin/accounts/detail/${u.userId}" class="btn btn-sm btn-light border shadow-sm ms-1" title="Chỉnh sửa">
                         <i class="bi bi-pencil-square text-primary"></i>
                     </a>
                 </td>
@@ -210,7 +208,7 @@
     // Hàm vẽ phân trang
     function renderPagination(currentPage, totalPages) {
         if (document.getElementById('paginationInfo')) {
-            document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
+            document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
         }
         NovaPagination.render('paginationButtons', totalPages, currentPage, 'loadAccountData');
     }

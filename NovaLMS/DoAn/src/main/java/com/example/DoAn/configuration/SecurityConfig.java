@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -44,11 +45,6 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PAGES = {
             "/", "/index", "/index.html",
-            "/placement-test", "/placement-test/**",
-            "/placement-test/results/**",
-            // Hybrid / Guest placement test
-            "/hybrid-entry", "/hybrid-entry/**",
-            "/hybrid/**",
             "/courses", "/courses.html",
             "/course-details", "/course-details.html",
             "/course/details", "/course/details/**",
@@ -80,27 +76,28 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(STATIC_RESOURCES).permitAll()
-                        .requestMatchers(PUBLIC_PAGES).permitAll()
-                        .requestMatchers("/login", "/login.html",
-                                "/register", "/register.html",
-                                "/reset-password", "/reset-password.html",
-                                "/error").permitAll() // Thêm /error
-                        .requestMatchers("/api/v1/auth/current-user").permitAll()
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/classes/**").permitAll()
-                        .requestMatchers("/api/v1/public/**").permitAll()
-                        .requestMatchers("/api/v1/files/preview").permitAll()
-                        .requestMatchers("/api/v1/payment/webhook").permitAll()
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers(Arrays.stream(STATIC_RESOURCES).map(AntPathRequestMatcher::antMatcher).toArray(AntPathRequestMatcher[]::new)).permitAll()
+                        .requestMatchers(Arrays.stream(PUBLIC_PAGES).map(AntPathRequestMatcher::antMatcher).toArray(AntPathRequestMatcher[]::new)).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/login"), AntPathRequestMatcher.antMatcher("/login.html"),
+                                AntPathRequestMatcher.antMatcher("/register"), AntPathRequestMatcher.antMatcher("/register.html"),
+                                AntPathRequestMatcher.antMatcher("/reset-password"), AntPathRequestMatcher.antMatcher("/reset-password.html"),
+                                AntPathRequestMatcher.antMatcher("/error")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/current-user")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/**")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/classes/**")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/public/**")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/files/preview")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/payment/webhook")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated()
 
                         // Phân quyền cứng
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/manager/**").hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers("/teacher/**").hasRole("TEACHER")
-                        .requestMatchers("/expert/**").hasAnyRole("EXPERT", "ADMIN")
-                        .requestMatchers("/api/v1/expert/assignments/**").hasAnyAuthority("ROLE_EXPERT", "ROLE_ADMIN")
-                        .requestMatchers("/student/**").hasRole("STUDENT")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/registrations/**")).hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/**")).hasRole("ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/manager/**")).hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/teacher/**")).hasRole("TEACHER")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/expert/**")).hasAnyRole("EXPERT", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/expert/assignments/**")).hasAnyAuthority("ROLE_EXPERT", "ROLE_ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/student/**")).hasRole("STUDENT")
 
                         .anyRequest().authenticated()
                 )

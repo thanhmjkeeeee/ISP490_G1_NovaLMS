@@ -10,27 +10,37 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class ClassViewController {
 
     @GetMapping("/list")
-    public String listPage() {
+    public String listPage(org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Danh Sách Lớp Học");
+        model.addAttribute("isDashboard", true);
         return "manager/class-list";
     }
 
     @GetMapping("/create")
-    public String createPage() {
+    public String createPage(org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Tạo Lớp Học Mới");
+        model.addAttribute("isDashboard", true);
         return "manager/class-create";
     }
 
     @GetMapping("/detail/{id}")
-    public String detailPage(@PathVariable Integer id) {
-        return "manager/class-create";
+    public String detailPage(@PathVariable Integer id, org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Chi Tiết Lớp Học");
+        model.addAttribute("isDashboard", true);
+        return "manager/class-create"; // Wait, is this correct? Re-check later.
     }
 
     @GetMapping("/edit/{id}")
-    public String editPage(@PathVariable Integer id) {
+    public String editPage(@PathVariable Integer id, org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Chỉnh Sửa Lớp Học");
+        model.addAttribute("isDashboard", true);
         return "manager/class-create";
     }
 
     @GetMapping("/students/{id}")
-    public String studentsPage(@PathVariable Integer id) {
+    public String studentsPage(@PathVariable Integer id, org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Danh Sách Học Viên");
+        model.addAttribute("isDashboard", true);
         return "manager/class-students";
     }
 }

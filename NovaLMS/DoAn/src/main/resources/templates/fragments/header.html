@@ -19,16 +19,6 @@
             <ul class="d-flex align-items-center w-100">
                 <li><a th:href="@{/}"
                        th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" href="#" data-bs-toggle="dropdown"
-                       th:classappend="${currentPage == 'placement-test' or currentPage == 'hybrid-entry'} ? 'active'">
-                        Kiểm tra đầu vào
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" th:href="@{/placement-test}">Chế độ đơn lẻ</a></li>
-                        <li><a class="dropdown-item" th:href="@{/hybrid-entry}">Chế độ Hybrid</a></li>
-                    </ul>
-                </li>
                 <li><a th:href="@{/classes}"
                        th:classappend="${currentPage == 'class'} ? 'active'">Lịch khai giảng</a></li>
                 <li><a th:href="@{/courses}"
@@ -46,12 +36,12 @@
                     <ul class="custom-user-dropdown shadow-sm">
                         <li sec:authorize="hasRole('ROLE_STUDENT')">
                             <a th:href="@{/student/dashboard}">
-                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Bảng điều khiển</span>
                             </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_TEACHER')">
                             <a th:href="@{/teacher/dashboard}">
-                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Bảng điều khiển</span>
                             </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_ADMIN')">
@@ -61,12 +51,12 @@
                         </li>
                         <li sec:authorize="hasRole('ROLE_MANAGER')">
                             <a th:href="@{/manager/dashboard}">
-                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Bảng điều khiển</span>
                             </a>
                         </li>
                         <li sec:authorize="hasRole('ROLE_EXPERT')">
                             <a th:href="@{/expert/dashboard}">
-                                <i class="bi bi-speedometer2 text-muted"></i> <span>Dashboard</span>
+                                <i class="bi bi-speedometer2 text-muted"></i> <span>Bảng điều khiển</span>
                             </a>
                         </li>
 

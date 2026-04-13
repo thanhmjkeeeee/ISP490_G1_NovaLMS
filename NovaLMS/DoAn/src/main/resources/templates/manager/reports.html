@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Báo Cáo Thống Kê')}"></head>
+
+<style>
+    .report-card { border: none; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); transition: transform 0.3s; }
+    .report-card:hover { transform: translateY(-5px); }
+    .export-btn { background: linear-gradient(135deg, #136ad5 0%, #2af598 100%); color: #fff; border: none; border-radius: 50px; padding: 12px 30px; font-weight: 700; transition: all 0.3s; }
+    .export-btn:hover { box-shadow: 0 5px 15px rgba(19, 106, 213, 0.4); transform: scale(1.05); color: #fff; }
+</style>
+
+<body class="dashboard-body">
+    <header th:replace="~{fragments/header :: dash-header(pageTitle='Manager Dashboard', breadcrumb='Reports')}"></header>
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='reports')}"></aside>
+    <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+    <main class="dash-main" id="dashMain">
+        <div class="row align-items-center mb-5">
+            <div class="col">
+                <h2 class="fw-bold m-0" style="color: #1e293b;">Báo Cáo Thống Kê</h2>
+                <p class="text-muted m-0">Trích xuất dữ liệu hoạt động của trung tâm.</p>
+            </div>
+            <div class="col-auto">
+                <a href="/api/v1/manager/reports/export/registrations" class="btn export-btn shadow-sm">
+                    <i class="bi bi-download me-2"></i> Xuất Báo Cáo CSV
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card report-card p-4 h-100">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
+                            <i class="bi bi-file-earmark-spreadsheet fs-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold m-0">Danh Sách Đăng Ký</h5>
+                            <p class="small text-muted m-0">Bao gồm thông tin học viên, khóa học và học phí.</p>
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush small mb-4">
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Thông tin định danh học viên (Tên, Email)</li>
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Chi tiết khóa học và lớp học</li>
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Thời gian đăng ký và trạng thái thanh toán</li>
+                    </ul>
+                    <div class="mt-auto">
+                        <a href="/api/v1/manager/reports/export/registrations" class="btn btn-outline-primary rounded-pill w-100 fw-bold">Tải File Ngay</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card report-card p-4 h-100" style="background: #f8fafc; border: 2px dashed #e2e8f0;">
+                    <div class="d-flex align-items-center mb-3 opacity-50">
+                        <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 p-3 me-3">
+                            <i class="bi bi-graph-up fs-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold m-0">Báo Cáo Doanh Thu (Sắp có)</h5>
+                            <p class="small text-muted m-0">Phân tích dòng tiền và lợi nhuận.</p>
+                        </div>
+                    </div>
+                    <p class="small text-muted fst-italic">Tính năng này đang được phát triển và sẽ sớm ra mắt trong các bản cập nhật tới.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+</body>
+</html>
