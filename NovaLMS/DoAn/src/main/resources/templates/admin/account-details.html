@@ -40,7 +40,7 @@
 
                     <div class="text-start">
                         <div class="d-flex justify-content-between mb-2 small">
-                            <span class="text-muted">User ID:</span>
+                            <span class="text-muted">ID người dùng:</span>
                             <span class="fw-bold" id="sideUserId">#0</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2 small">
@@ -161,7 +161,7 @@
 
                         // Đổ vào thẻ Profile bên trái
                         document.getElementById('sideFullName').innerText = u.fullName;
-                        document.getElementById('sideRole').innerText = u.roleName || 'User';
+                        document.getElementById('sideRole').innerText = u.roleName || 'Người dùng';
                         document.getElementById('sideUserId').innerText = '#' + u.userId;
 
                         const statusHTML = u.status === 'Active'

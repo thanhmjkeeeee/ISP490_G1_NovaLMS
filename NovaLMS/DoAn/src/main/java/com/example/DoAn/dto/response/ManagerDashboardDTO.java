@@ -12,4 +12,6 @@ public class ManagerDashboardDTO {
     private Long totalClasses;
     private Long newRegistrationsThisWeek;
     private List<RecentRegistrationDTO> recentRegistrations;
+    private java.util.Map<String, Long> registrationTrend; // Date -> Count
+    private java.util.Map<String, Long> statusDistribution; // Status -> Count
 }

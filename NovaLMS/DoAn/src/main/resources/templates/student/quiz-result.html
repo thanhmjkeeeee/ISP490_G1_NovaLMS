@@ -9,165 +9,287 @@
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-courses')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<main class="dash-main" id="dashMain">
-  <div class="container-fluid">
-    <div class="row justify-content-center">
-      <div class="col-lg-10">
-        
-        <!-- Score Banner -->
-        <div class="card shadow rounded-4 border-0 mb-4 overflow-hidden position-relative" th:classappend="${result.passed == true ? 'border-success' : (result.passed == false ? 'border-danger' : 'border-warning')}">
-          <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" th:classappend="${result.passed == true ? 'bg-success' : (result.passed == false ? 'bg-danger' : 'bg-warning')}"></div>
-          <div class="card-body p-5 text-center position-relative z-1">
-            <h2 class="fw-bold mb-3" th:text="${result.quizTitle}">Title</h2>
+<style>
+    :root {
+      --res-success-grad: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --res-danger-grad: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      --res-warning-grad: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      --res-glass: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Vibrant Banner */
+    .res-banner {
+      border-radius: 24px;
+      padding: 3.5rem 2rem;
+      position: relative;
+      overflow: hidden;
+      color: white;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      margin-bottom: 2.5rem;
+      transition: all 0.3s ease;
+    }
+    .res-banner.bg-success { background: var(--res-success-grad) !important; border: none; }
+    .res-banner.bg-danger { background: var(--res-danger-grad) !important; border: none; }
+    .res-banner.bg-warning { background: var(--res-warning-grad) !important; border: none; }
+
+    .res-banner::before {
+      content: '';
+      position: absolute; top: -50px; right: -50px;
+      width: 200px; height: 200px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+
+    /* Score Glass Card */
+    .score-glass {
+      background: var(--res-glass);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      display: inline-block;
+      min-width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .score-display {
+      font-size: 4rem;
+      font-weight: 850;
+      line-height: 1;
+      background: linear-gradient(to bottom, #1e293b, #475569);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .q-card {
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      transition: all 0.2s ease;
+      overflow: hidden;
+    }
+    .q-card:hover { 
+      border-color: #cbd5e1;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+    }
+
+    .q-num-badge {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 800;
+      padding: 0.5rem 1.25rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      padding: 0.6rem 1.25rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* AI Feedback Box - The fix for contrast */
+    .ai-feedback-box {
+      background: #f8fafc;
+      border-left: 5px solid #10b981;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+    .ai-feedback-box.reviewed { border-left-color: #3b82f6; }
+    .ai-feedback-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .ai-score-pill {
+      background: #ECFDF5;
+      color: #065F46;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .ai-feedback-text {
+      color: #334155;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .correct-answer-box {
+      background: #f0fdf4;
+      border: 1px dashed #22c55e;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+  </style>
+
+  <main class="dash-main" id="dashMain">
+    <div class="container-fluid">
+      <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-9">
+          
+          <!-- New Score Banner -->
+          <div class="res-banner text-center" 
+               th:classappend="${result.passed == true ? 'bg-success' : (result.passed == false ? 'bg-danger' : 'bg-warning')}">
+            <h1 class="fw-black mb-4" style="font-weight: 900; letter-spacing: -1px;" th:text="${result.quizTitle}">Title</h1>
             
             <div th:if="${result.passed != null}">
-               <div class="display-3 fw-bold mb-2 disabled" th:classappend="${result.passed ? 'text-success' : 'text-danger'}">
-                 <span th:text="${result.correctRate}"></span>%
+               <div class="score-glass">
+                 <div class="score-display">
+                   <span th:text="${result.correctRate}"></span>%
+                 </div>
+                 <p class="text-secondary fw-bold mb-3 fs-5">
+                   <span th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span> Điểm
+                 </p>
+                 <div class="badge status-badge mb-0" 
+                      th:classappend="${result.passed ? 'bg-success text-white' : 'bg-danger text-white'}" 
+                      th:text="${result.passed ? 'ĐẠT (PASSED)' : 'CHƯA ĐẠT (FAILED)'}"></div>
                </div>
-               <p class="text-muted fs-5 mb-4"><span th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span> Điểm</p>
-               
-               <div class="badge rounded-pill fw-bold fs-5 px-4 py-2 text-white" th:classappend="${result.passed ? 'bg-success' : 'bg-danger'}" th:text="${result.passed ? 'ĐẠT (PASSED)' : 'CHƯA ĐẠT (FAILED)'}"></div>
-               <p class="mt-3 text-muted" th:text="${result.passScoreDescription}">Passing score...</p>
+               <p class="mt-4 text-white opacity-75 fw-medium" th:text="${result.passScoreDescription}">Passing score...</p>
             </div>
             
             <div th:if="${result.passed == null}">
-               <div class="display-3 fw-bold mb-2 text-warning"><i class="bi bi-hourglass-split"></i></div>
-               <h4 class="fw-bold mt-3 text-warning">Chờ Chấm Điểm (PENDING)</h4>
-               <p class="text-muted mt-2">Bài làm của bạn có câu hỏi tự luận cần giáo viên chấm điểm.</p>
+               <div class="score-glass">
+                 <div class="display-3 fw-bold mb-2 text-warning"><i class="bi bi-hourglass-split"></i></div>
+                 <h4 class="fw-bold mt-2 text-dark">Chờ Chấm Điểm</h4>
+                 <p class="text-muted small mb-0">Bài làm có câu hỏi tự luận cần giáo viên chấm điểm.</p>
+               </div>
             </div>
             
             <div class="mt-4">
-               <a th:if="${sessionId != null and classId != null}"
-                  th:href="'/student/my-classes?classId=' + ${classId} + '&openSession=' + ${sessionId}"
-                  class="btn btn-outline-secondary rounded-pill fw-bold px-4">
-                  <i class="bi bi-arrow-left me-1"></i>Quay Lại Lớp Học
+               <a th:if="${sessionId != null}"
+                  th:href="'/student/my-classes?openSession=' + ${sessionId} + ( ${classId != null} ? '&classId=' + ${classId} : '' )"
+                  class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up">
+                  <i class="bi bi-arrow-left me-2"></i>Quay Lại Lớp Học
                </a>
-               <a th:if="${sessionId != null and classId == null}"
-                  th:href="'/student/my-classes?openSession=' + ${sessionId}"
-                  class="btn btn-outline-secondary rounded-pill fw-bold px-4">
-                  <i class="bi bi-arrow-left me-1"></i>Quay Lại Lớp Học
-               </a>
-               <a th:if="${sessionId == null and classId != null}"
-                  th:href="'/student/my-classes?classId=' + ${classId}"
-                  class="btn btn-outline-secondary rounded-pill fw-bold px-4">
-                  <i class="bi bi-arrow-left me-1"></i>Quay Lại Lớp Học
-               </a>
-               <button th:if="${sessionId == null and classId == null}"
-                       class="btn btn-outline-secondary rounded-pill fw-bold px-4"
+               <button th:if="${sessionId == null}"
+                       class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"
                        onclick="window.history.back()">
-                  Quay Lại
+                  <i class="bi bi-arrow-left me-2"></i>Quay Lại
                </button>
             </div>
           </div>
-        </div>
 
-        <!-- Questions Review -->
-        <h4 class="fw-bold mb-4">Chi tiết bài làm</h4>
-        
-        <div th:each="question, stat : ${result.questions}" class="card shadow-sm border-0 mb-4 rounded-4">
-          <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0">Câu <span th:text="${stat.count}"></span>
-              <!-- SPEAKING/WRITING AI status badges -->
-              <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
-                <span th:if="${question.aiGradingStatus == 'PENDING'}" class="badge bg-warning text-dark ms-2">
-                  <i class="bi bi-hourglass-split"></i> Đang AI chấm...
-                </span>
-                <span th:if="${question.aiGradingStatus == 'COMPLETED'}" class="badge bg-success ms-2">
-                  <i class="bi bi-robot"></i> AI đã chấm
-                </span>
-                <span th:if="${question.aiGradingStatus == 'REVIEWED'}" class="badge bg-primary ms-2">
-                  <i class="bi bi-check-circle"></i> Đã duyệt
-                </span>
-              </th:block>
-              <span class="badge ms-2" th:classappend="${question.isCorrect == true ? 'bg-success' : (question.isCorrect == false ? 'bg-danger' : 'bg-warning')}"
-                    th:text="${question.isCorrect == true ? '+ ' + question.points + ' Điểm' : (question.isCorrect == false ? '0 Điểm' : 'Chờ chấm')}"></span>
-            </h5>
+          <!-- Questions Review Section Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-black m-0" style="font-weight: 800;">Chi tiết bài làm</h3>
+            <div class="text-muted small fw-medium">
+              <i class="bi bi-info-circle me-1"></i> Kiểm tra lại các câu trả lời của bạn
+            </div>
           </div>
-          <div class="card-body p-4">
-            <div class="mb-4">
-              <p class="fs-5 mb-3" th:utext="${question.content}"></p>
-
-              <div th:if="${question.imageUrl != null and !question.imageUrl.isEmpty()}" class="mb-3">
-                <img th:src="${question.imageUrl}" class="img-fluid rounded border shadow-sm" style="max-height: 250px;">
-              </div>
-
-              <div th:if="${question.audioUrl != null and !question.audioUrl.isEmpty()}" class="mb-3">
-                <audio controls class="w-100" style="height: 35px;">
-                  <source th:src="${question.audioUrl}" type="audio/mpeg">
-                </audio>
-              </div>
-            </div>
-
-            <!-- User Answer (WRITING text) -->
-            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
-                 th:if="${question.questionType == 'WRITING' and question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
-               <p class="fw-bold mb-1 small text-muted">📝 Câu trả lời:</p>
-               <p class="mb-0 text-dark" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}"></p>
-            </div>
-
-            <!-- User Answer (other types) -->
-            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
-                 th:if="${question.questionType != 'WRITING' and question.questionType != 'SPEAKING' and question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
-               <p class="fw-bold mb-1 small text-muted">Câu trả lời của bạn:</p>
-               <p class="mb-0 text-dark" th:text="${question.userAnswerDisplay}"></p>
-            </div>
-            <div class="mb-3 p-3 rounded" style="background-color: #f8fafc;"
-                 th:if="${question.questionType != 'WRITING' and question.questionType != 'SPEAKING' and (question.userAnswerDisplay == null or question.userAnswerDisplay == '')}">
-               <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>
-            </div>
-
-            <!-- AI Grading Result for WRITING/SPEAKING -->
-            <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
-              <!-- PENDING -->
-              <div th:if="${question.aiGradingStatus == 'PENDING'}" class="alert alert-warning py-2 d-flex align-items-center gap-2">
-                <span class="spinner-border spinner-border-sm"></span>
-                <span>Đang chờ AI chấm điểm... Trang sẽ tự cập nhật khi có kết quả.</span>
-              </div>
-              <!-- COMPLETED -->
-              <div th:if="${question.aiGradingStatus == 'COMPLETED'}" class="mt-3 p-3 rounded border border-success bg-success bg-opacity-5">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                  <span class="badge bg-primary"><i class="bi bi-robot"></i> IELTS</span>
-                  <span class="fs-5 fw-bold text-success">
-                    <th:block th:text="${question.teacherOverrideScore != null ? question.teacherOverrideScore : (question.aiScore != null ? question.aiScore : '?')}">8/10</th:block>
-                    / <th:block th:text="${question.points}">10</th:block>
+          
+          <div th:each="question, stat : ${result.questions}" class="q-card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white p-4 border-bottom-0 d-flex justify-content-between align-items-center">
+              <span class="q-num-badge">Câu <span th:text="${stat.count}"></span></span>
+              
+              <div class="d-flex align-items-center gap-2">
+                <!-- AI Grading Badges -->
+                <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
+                  <span th:if="${question.aiGradingStatus == 'PENDING'}" class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-hourglass-split"></i> Đang chấm...
                   </span>
-                  <th:block th:if="${question.teacherOverrideScore != null}">
-                    <span class="badge bg-primary"><i class="bi bi-pencil-square"></i> Override</span>
+                  <span th:if="${question.aiGradingStatus == 'COMPLETED'}" class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-robot"></i> AI đã chấm
+                  </span>
+                </th:block>
+                
+                <!-- Score Badge -->
+                <span class="badge rounded-pill px-3 py-2" 
+                      th:classappend="${question.isCorrect == true ? 'bg-success' : (question.isCorrect == false ? 'bg-danger' : 'bg-warning')}"
+                      th:text="${question.isCorrect == true ? '+ ' + question.points + ' Điểm' : (question.isCorrect == false ? '0 Điểm' : 'Chờ chấm')}"></span>
+              </div>
+            </div>
+            
+            <div class="card-body p-4 pt-0">
+              <div class="mb-4">
+                <div class="fs-5 text-dark fw-medium lh-base mb-3" th:utext="${question.content}"></div>
+
+                <div th:if="${question.imageUrl != null and !question.imageUrl.isEmpty()}" class="mb-3">
+                  <img th:src="${question.imageUrl}" class="img-fluid rounded-4 border shadow-sm" style="max-height: 300px;">
+                </div>
+
+                <div th:if="${question.audioUrl != null and !question.audioUrl.isEmpty()}" class="mb-3">
+                  <audio controls class="w-100 rounded-pill" style="height: 40px; background: #f1f5f9;">
+                    <source th:src="${question.audioUrl}" type="audio/mpeg">
+                  </audio>
+                </div>
+              </div>
+
+              <!-- User Answer Display -->
+              <div class="bg-light bg-opacity-50 p-3 rounded-4 border border-light-subtle mb-3">
+                 <p class="fw-bold mb-2 small text-muted text-uppercase letter-spacing-1">
+                   <i class="bi bi-person-circle me-1"></i> Câu trả lời của bạn:
+                 </p>
+                 <div th:if="${question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
+                    <p class="mb-0 text-dark" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}"></p>
+                 </div>
+                 <div th:if="${question.userAnswerDisplay == null or question.userAnswerDisplay == ''}">
+                    <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>
+                 </div>
+              </div>
+
+              <!-- AI Grading Result Block (High Contrast Fix) -->
+              <th:block th:if="${question.questionType == 'WRITING' or question.questionType == 'SPEAKING'}">
+                <div th:if="${question.aiGradingStatus == 'PENDING'}" class="alert alert-warning border-0 rounded-4 py-3 shadow-none">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="spinner-border spinner-border-sm text-warning"></div>
+                    <span class="fw-medium">Đang chờ hệ thống AI hoàn tất chấm điểm... Kết quả sẽ tự hiển thị sau vài giây.</span>
+                  </div>
+                </div>
+
+                <div th:if="${question.aiGradingStatus == 'COMPLETED' or question.aiGradingStatus == 'REVIEWED'}" 
+                     class="ai-feedback-box" th:classappend="${question.aiGradingStatus == 'REVIEWED' ? 'reviewed' : ''}">
+                  <div class="ai-feedback-header">
+                    <span class="badge bg-dark rounded-pill px-2 py-1 small" style="font-size: 0.7rem;">AI FEEDBACK</span>
+                    <div class="ai-score-pill">
+                      <th:block th:text="${question.teacherOverrideScore != null ? question.teacherOverrideScore : (question.aiScore != null ? question.aiScore : '?')}">8/10</th:block>
+                      <span class="text-muted small fw-normal"> / <th:block th:text="${question.points}">10</th:block></span>
+                    </div>
+                    <span th:if="${question.teacherOverrideScore != null}" class="badge bg-primary rounded-pill"><i class="bi bi-pencil-square"></i> Đã duyệt</span>
+                  </div>
+                  
+                  <div class="ai-feedback-text mb-3" th:if="${question.aiFeedback != null}" th:text="${question.aiFeedback}"></div>
+                  
+                  <!-- Rubric -->
+                  <th:block th:if="${question.aiRubricJson != null}">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 mt-1" type="button"
+                            data-bs-toggle="collapse" th:attr="data-bs-target='#rubric-' + ${question.questionId}">
+                      <i class="bi bi-bar-chart-line me-1"></i> Chi tiết Rubric IELTS
+                    </button>
+                    <div class="collapse mt-3" th:id="'rubric-' + ${question.questionId}">
+                      <div class="rubric-breakdown bg-white p-3 rounded-4 shadow-sm"
+                           th:attr="data-rubric=${question.aiRubricJson}, data-qtype=${question.questionType}, data-is-teacher='false'">
+                      </div>
+                    </div>
                   </th:block>
                 </div>
-                <p class="text-muted mb-2 small" th:if="${question.aiFeedback != null}" th:text="${question.aiFeedback}"></p>
-                <!-- Rubric Breakdown (structured display) -->
-                <th:block th:if="${question.aiRubricJson != null}">
-                  <button class="btn btn-link btn-sm p-0 text-decoration-none" type="button"
-                          data-bs-toggle="collapse"
-                          th:attr="data-bs-target='#rubric-' + ${question.questionId}">
-                    <i class="bi bi-chevron-expand"></i> Xem chi tiết rubric (IELTS)
-                  </button>
-                  <div class="collapse mt-2" th:id="'rubric-' + ${question.questionId}">
-                    <div class="rubric-breakdown"
-                         th:attr="data-rubric=${question.aiRubricJson},
-                                   data-qtype=${question.questionType},
-                                   data-is-teacher='false'">
-                    </div>
-                  </div>
-                </th:block>
+              </th:block>
+
+              <!-- Correct Answer & Explanation -->
+              <div th:if="${result.showAnswer and question.correctAnswerDisplay != null}" class="correct-answer-box mt-3">
+                 <p class="fw-bold mb-2 small text-success text-uppercase">
+                   <i class="bi bi-check-circle-fill me-1"></i> Đáp án đúng:
+                 </p>
+                 <p class="mb-0 text-dark fw-bold" th:text="${question.correctAnswerDisplay}"></p>
+                 <div class="mt-2 pt-2 border-top border-success border-opacity-10 small text-muted" th:if="${question.explanation}">
+                   <i class="bi bi-lightbulb me-1"></i> <span th:text="${question.explanation}"></span>
+                 </div>
               </div>
-            </th:block>
 
-            <!-- Correct Answer -->
-            <div th:if="${result.showAnswer and question.correctAnswerDisplay != null}" class="mb-3 p-3 rounded bg-success bg-opacity-10 border border-success border-opacity-25">
-               <p class="fw-bold mb-1 small text-success">Đáp án đúng:</p>
-               <p class="mb-0 text-dark fw-medium" th:text="${question.correctAnswerDisplay}"></p>
-               <p class="mt-2 mb-0 small text-muted" th:if="${question.explanation}"><i class="bi bi-info-circle"></i> <span th:text="${question.explanation}"></span></p>
             </div>
-
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
-  </div>
-</main>
+    </div>
+  </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>

@@ -326,7 +326,7 @@
                     } },
                     { data: 'status', render: function(data) {
                         const statusStr = (data || '').toLowerCase();
-                        return statusStr === 'active' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                        return statusStr === 'active' ? '<span class="badge bg-success">Hoạt động</span>' : '<span class="badge bg-secondary">Tạm ẩn</span>';
                     }},
                     { data: null, render: function(data, type, row) {
                         const statusStr = (row.status || '').toLowerCase();
@@ -474,7 +474,8 @@
         }
 
         function toggleStatus(id, newStatus) {
-            if(!confirm(`Bạn chắc chắn muốn chuyển trạng thái thành ${newStatus}?`)) return;
+            const statusVn = newStatus === 'Active' ? 'Hoạt động' : 'Tạm ẩn';
+            if(!confirm(`Bạn chắc chắn muốn chuyển trạng thái thành ${statusVn}?`)) return;
             
             $.ajax({
                 url: `/api/settings/${id}`,

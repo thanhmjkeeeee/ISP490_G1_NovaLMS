@@ -129,6 +129,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     List<Registration> findTop10ByOrderByRegistrationTimeDesc();
 
     long countByRegistrationTimeAfter(java.time.LocalDateTime date);
+    long countByRegistrationTimeBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
 
     // Kiểm tra enrollment theo class (dùng cho quiz gắn với class)
     @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.clazz.classId = :classId AND r.status = 'Approved'")

@@ -52,12 +52,27 @@ public class ManagerDashboardServiceImpl implements ManagerDashboardService {
                         .build())
                 .collect(Collectors.toList());
 
+        // Trend (last 7 days)
+        java.util.Map<String, Long> trend = new java.util.LinkedHashMap<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDateTime startOfDay = LocalDateTime.now().minusDays(i).toLocalDate().atStartOfDay();
+            LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+            long count = registrationRepository.countByRegistrationTimeBetween(startOfDay, endOfDay);
+            trend.put(startOfDay.toLocalDate().toString(), count);
+        }
+
+        // Status Distribution
+        java.util.Map<String, Long> statusDist = registrationRepository.findAll().stream()
+                .collect(Collectors.groupingBy(r -> r.getStatus() != null ? r.getStatus() : "Pending", Collectors.counting()));
+
         return ManagerDashboardDTO.builder()
                 .totalStudents(studentsFromReg)
                 .totalCourses(totalCourses)
                 .totalClasses(totalClasses)
                 .newRegistrationsThisWeek(newRegs)
                 .recentRegistrations(recentDto)
+                .registrationTrend(trend)
+                .statusDistribution(statusDist)
                 .build();
     }
 }
