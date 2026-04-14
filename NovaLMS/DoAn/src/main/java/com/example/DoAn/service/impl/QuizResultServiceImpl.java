@@ -12,6 +12,8 @@ import com.example.DoAn.service.QuizResultService;
 import com.example.DoAn.util.IELTSScoreMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import com.example.DoAn.service.GroqGradingService;
+import com.example.DoAn.service.LessonQuizService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -45,9 +47,9 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final LearningService learningService;
     private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
-    private final com.example.DoAn.repository.SessionQuizRepository sessionQuizRepository;
-    private final com.example.DoAn.service.LessonQuizService lessonQuizService;
-    private final com.example.DoAn.service.GroqGradingService groqGradingService;
+    private final SessionQuizRepository sessionQuizRepository;
+    private final LessonQuizService lessonQuizService;
+    private final GroqGradingService groqGradingService;
     private final QuizQuestionRepository quizQuestionRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
@@ -76,7 +78,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .filter(sq -> Boolean.TRUE.equals(sq.getIsOpen()))
                     .filter(sq -> {
                         // Chỉ cho phép nếu quiz mở trong session thuộc class mà user đã đăng ký
-                        if (sq.getSession() == null || sq.getSession().getClazz() == null) return false;
+                        if (sq.getSession() == null || sq.getSession().getClazz() == null)
+                            return false;
                         Integer clazzId = sq.getSession().getClazz().getClassId();
                         return registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
                                 user.getUserId(), clazzId);
@@ -126,7 +129,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
                         user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
             }
-            if (!enrolled) throw new RuntimeException("User is not enrolled in this course");
+            if (!enrolled)
+                throw new RuntimeException("User is not enrolled in this course");
         }
 
         if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
@@ -141,18 +145,23 @@ public class QuizResultServiceImpl implements QuizResultService {
                 enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
                         user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
             }
-            if (!enrolled) throw new RuntimeException("User is not enrolled in this course");
+            if (!enrolled)
+                throw new RuntimeException("User is not enrolled in this course");
         }
 
         // Kiểm tra xem có attempt nào đang in progress/locked không
-        Optional<QuizResult> lockedOpt = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
+        Optional<QuizResult> lockedOpt = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email,
+                "LOCKED");
         if (lockedOpt.isPresent()) {
-            throw new RuntimeException("Bài làm của bạn đang bị khóa do hành vi vi phạm nội quy. Vui lòng liên hệ giáo viên để được mở khóa.");
+            throw new RuntimeException(
+                    "Bài làm của bạn đang bị khóa do hành vi vi phạm nội quy. Vui lòng liên hệ giáo viên để được mở khóa.");
         }
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
-        // Lưu ý: Loại trừ status 'IN_PROGRESS' để tránh bị tính là lượt làm bài khi đang bị vi phạm/đang làm.
-        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
+        // Lưu ý: Loại trừ status 'IN_PROGRESS' để tránh bị tính là lượt làm bài khi
+        // đang bị vi phạm/đang làm.
+        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(),
+                "IN_PROGRESS");
         if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
@@ -185,12 +194,11 @@ public class QuizResultServiceImpl implements QuizResultService {
                             .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
                             .sorted(Comparator.comparingInt(a -> a.getOrderIndex() != null ? a.getOrderIndex() : 0))
                             .toList();
-                    Function<AnswerOption, AnswerOptionPayloadDTO> toDto = opt ->
-                            AnswerOptionPayloadDTO.builder()
-                                    .answerOptionId(opt.getAnswerOptionId())
-                                    .title(opt.getTitle())
-                                    .matchTarget(opt.getMatchTarget())
-                                    .build();
+                    Function<AnswerOption, AnswerOptionPayloadDTO> toDto = opt -> AnswerOptionPayloadDTO.builder()
+                            .answerOptionId(opt.getAnswerOptionId())
+                            .title(opt.getTitle())
+                            .matchTarget(opt.getMatchTarget())
+                            .build();
                     optionsDTO = lefts.stream().map(toDto).toList();
                     matchRightOptionsDTO = rights.stream().map(toDto).toList();
                 } else {
@@ -204,7 +212,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
-            boolean noOptionsType = "WRITING".equals(q.getQuestionType()) || "SPEAKING".equals(q.getQuestionType()) || "FILL_IN_BLANK".equals(q.getQuestionType());
+            boolean noOptionsType = "WRITING".equals(q.getQuestionType()) || "SPEAKING".equals(q.getQuestionType())
+                    || "FILL_IN_BLANK".equals(q.getQuestionType());
 
             return QuizQuestionPayloadDTO.builder()
                     .questionId(q.getQuestionId())
@@ -251,7 +260,8 @@ public class QuizResultServiceImpl implements QuizResultService {
         Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
-        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
+        long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(),
+                "IN_PROGRESS");
         if (quiz.getMaxAttempts() != null && attemptCount >= quiz.getMaxAttempts()) {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
@@ -275,7 +285,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             Object userAnswerObj = answers != null ? answers.get(qId) : null;
             String answeredOptionsJson = "";
             try {
-                if(userAnswerObj != null) {
+                if (userAnswerObj != null) {
                     answeredOptionsJson = objectMapper.writeValueAsString(userAnswerObj);
                 }
             } catch (JsonProcessingException e) {
@@ -294,11 +304,13 @@ public class QuizResultServiceImpl implements QuizResultService {
                     if ("MULTIPLE_CHOICE_SINGLE".equals(qType)) {
                         Integer selectedId = Integer.valueOf(userAnswerObj.toString());
                         isCorrect = q.getAnswerOptions().stream()
-                                .anyMatch(opt -> opt.getAnswerOptionId().equals(selectedId) && Boolean.TRUE.equals(opt.getCorrectAnswer()));
+                                .anyMatch(opt -> opt.getAnswerOptionId().equals(selectedId)
+                                        && Boolean.TRUE.equals(opt.getCorrectAnswer()));
                     } else if ("MULTIPLE_CHOICE_MULTI".equals(qType)) {
                         List<Integer> selectedIds;
                         if (userAnswerObj instanceof List) {
-                            selectedIds = ((List<?>) userAnswerObj).stream().map(o -> Integer.valueOf(o.toString())).collect(Collectors.toList());
+                            selectedIds = ((List<?>) userAnswerObj).stream().map(o -> Integer.valueOf(o.toString()))
+                                    .collect(Collectors.toList());
                         } else {
                             selectedIds = List.of(Integer.valueOf(userAnswerObj.toString()));
                         }
@@ -309,14 +321,18 @@ public class QuizResultServiceImpl implements QuizResultService {
                     } else if ("FILL_IN_BLANK".equals(qType)) {
                         String userTxt = userAnswerObj.toString().trim();
                         isCorrect = q.getAnswerOptions().stream()
-                                .anyMatch(opt -> Boolean.TRUE.equals(opt.getCorrectAnswer()) && (opt.getTitle() != null && opt.getTitle().trim().equalsIgnoreCase(userTxt)));
+                                .anyMatch(opt -> Boolean.TRUE.equals(opt.getCorrectAnswer())
+                                        && (opt.getTitle() != null && opt.getTitle().trim().equalsIgnoreCase(userTxt)));
                     } else if ("MATCHING".equals(qType)) {
                         try {
-                            Map<String, String> userMatch = objectMapper.convertValue(userAnswerObj, new TypeReference<Map<String, String>>(){});
+                            Map<String, String> userMatch = objectMapper.convertValue(userAnswerObj,
+                                    new TypeReference<Map<String, String>>() {
+                                    });
                             boolean allCorrect = true;
                             for (AnswerOption opt : q.getAnswerOptions()) {
                                 String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
-                                if (userTarget == null || !userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
+                                if (userTarget == null
+                                        || !userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
                                     allCorrect = false;
                                     break;
                                 }
@@ -348,10 +364,12 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .pointsAwarded(!"WRITING".equals(qType) && !"SPEAKING".equals(qType) ? awardedPoints : null)
                     .pendingAiReview(
                             "WRITING".equals(qType) || "SPEAKING".equals(qType)
-                                    ? true : false)
+                                    ? true
+                                    : false)
                     .aiGradingStatus(
                             "WRITING".equals(qType) || "SPEAKING".equals(qType)
-                                    ? "PENDING" : null)
+                                    ? "PENDING"
+                                    : null)
                     .audioUrl(
                             "SPEAKING".equals(qType)
                                     ? extractRawString(answeredOptionsJson)
@@ -439,10 +457,12 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional(readOnly = true)
     public QuizResultDetailDTO getQuizResult(Integer resultId, String email) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Result not found"));
+        QuizResult qr = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Result not found"));
         boolean isStudent = qr.getUser().getEmail().equals(email);
 
-        // Teacher có quyền xem nếu: tạo quiz HOẶC được gán lớp quiz HOẶC phụ trách course quiz (qua lớp khác)
+        // Teacher có quyền xem nếu: tạo quiz HOẶC được gán lớp quiz HOẶC phụ trách
+        // course quiz (qua lớp khác)
         Quiz quiz = qr.getQuiz();
         boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
         boolean isAssignedTeacher = quiz.getClazz() != null
@@ -475,7 +495,8 @@ public class QuizResultServiceImpl implements QuizResultService {
             double points = qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0;
             totalPoints += points;
 
-            QuizAnswer userAns = answers.stream().filter(a -> a.getQuestion().getQuestionId().equals(q.getQuestionId())).findFirst().orElse(null);
+            QuizAnswer userAns = answers.stream().filter(a -> a.getQuestion().getQuestionId().equals(q.getQuestionId()))
+                    .findFirst().orElse(null);
 
             String userAnswerDisplay = "";
             if (userAns != null && userAns.getAnsweredOptions() != null) {
@@ -488,7 +509,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                                 .filter(o -> o.getAnswerOptionId().equals(selectedId))
                                 .findFirst().map(AnswerOption::getTitle).orElse(rawJson);
                     } else if ("MULTIPLE_CHOICE_MULTI".equals(qType)) {
-                        List<Integer> selectedIds = objectMapper.readValue(rawJson, new TypeReference<List<Integer>>(){});
+                        List<Integer> selectedIds = objectMapper.readValue(rawJson, new TypeReference<List<Integer>>() {
+                        });
                         List<String> titles = q.getAnswerOptions().stream()
                                 .filter(o -> selectedIds.contains(o.getAnswerOptionId()))
                                 .map(AnswerOption::getTitle)
@@ -497,7 +519,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     } else if ("FILL_IN_BLANK".equals(qType)) {
                         userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
                     } else if ("MATCHING".equals(qType)) {
-                        Map<String, String> userMatch = objectMapper.readValue(rawJson, new TypeReference<Map<String, String>>(){});
+                        Map<String, String> userMatch = objectMapper.readValue(rawJson,
+                                new TypeReference<Map<String, String>>() {
+                                });
                         List<String> matchDisplays = new ArrayList<>();
                         for (AnswerOption opt : q.getAnswerOptions()) {
                             String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
@@ -517,7 +541,8 @@ public class QuizResultServiceImpl implements QuizResultService {
             String correctAnswerDisplay = null;
             if (showAnswer) {
                 List<String> corrLogs = new ArrayList<>();
-                if ("MULTIPLE_CHOICE_SINGLE".equals(q.getQuestionType()) || "MULTIPLE_CHOICE_MULTI".equals(q.getQuestionType())) {
+                if ("MULTIPLE_CHOICE_SINGLE".equals(q.getQuestionType())
+                        || "MULTIPLE_CHOICE_MULTI".equals(q.getQuestionType())) {
                     for (AnswerOption op : q.getAnswerOptions()) {
                         if (Boolean.TRUE.equals(op.getCorrectAnswer())) {
                             corrLogs.add(op.getTitle());
@@ -525,12 +550,13 @@ public class QuizResultServiceImpl implements QuizResultService {
                     }
                     correctAnswerDisplay = String.join(", ", corrLogs);
                 } else if ("FILL_IN_BLANK".equals(q.getQuestionType())) {
-                    for(AnswerOption op: q.getAnswerOptions()) {
-                         if(Boolean.TRUE.equals(op.getCorrectAnswer())) corrLogs.add(op.getTitle());
+                    for (AnswerOption op : q.getAnswerOptions()) {
+                        if (Boolean.TRUE.equals(op.getCorrectAnswer()))
+                            corrLogs.add(op.getTitle());
                     }
                     correctAnswerDisplay = String.join(" OR ", corrLogs);
-                } else if("MATCHING".equals(q.getQuestionType())) {
-                    for(AnswerOption op: q.getAnswerOptions()) {
+                } else if ("MATCHING".equals(q.getQuestionType())) {
+                    for (AnswerOption op : q.getAnswerOptions()) {
                         corrLogs.add(op.getTitle() + " -> " + op.getMatchTarget());
                     }
                     correctAnswerDisplay = String.join(" | ", corrLogs);
@@ -601,7 +627,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .overallBand(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
                 .passed(qr.getPassed())
                 .showAnswer(showAnswer)
-                .passScoreDescription(quiz.getPassScore() != null ? "Passing score: " + quiz.getPassScore().toString() + "%" : "No passing score")
+                .passScoreDescription(
+                        quiz.getPassScore() != null ? "Passing score: " + quiz.getPassScore().toString() + "%"
+                                : "No passing score")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)
                 .build();
@@ -703,7 +731,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .studentEmail(qr.getUser() != null ? qr.getUser().getEmail() : "—")
                     .submittedAt(qr.getSubmittedAt())
                     .courseName(qr.getQuiz() != null && qr.getQuiz().getCourse() != null
-                            ? qr.getQuiz().getCourse().getTitle() : null)
+                            ? qr.getQuiz().getCourse().getTitle()
+                            : null)
                     .quizType(quizType)
                     .score(score)
                     .maxScore(maxScore)
@@ -724,9 +753,11 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category, String keyword) {
+    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category,
+            String keyword) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailAndCategory(email, category, keyword, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailAndCategory(email, category, keyword,
+                pageable);
 
         List<QuizResultHistoryDTO> list = resultPage.getContent().stream().map(qr -> {
             int maxScore = 0;
@@ -739,7 +770,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .resultId(qr.getResultId())
                     .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
                     .quizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "Unknown")
-                    .courseName(qr.getQuiz() != null && qr.getQuiz().getCourse() != null ? qr.getQuiz().getCourse().getTitle() : null)
+                    .courseName(qr.getQuiz() != null && qr.getQuiz().getCourse() != null
+                            ? qr.getQuiz().getCourse().getTitle()
+                            : null)
                     .quizCategory(qr.getQuiz() != null ? qr.getQuiz().getQuizCategory() : null)
                     .submittedAt(qr.getSubmittedAt())
                     .score(qr.getScore())
@@ -764,10 +797,12 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Result not found"));
+        QuizResult qr = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Result not found"));
         Quiz quiz = qr.getQuiz();
 
-        // Cho phép teacher đã tạo quiz HOẶC teacher được phân công lớp HOẶC teacher phụ trách course của quiz (qua lớp khác)
+        // Cho phép teacher đã tạo quiz HOẶC teacher được phân công lớp HOẶC teacher phụ
+        // trách course của quiz (qua lớp khác)
         boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
         boolean isAssignedTeacher = quiz.getClazz() != null
                 && quiz.getClazz().getTeacher() != null
@@ -791,14 +826,15 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
 
         Map<Integer, BigDecimal> gradeMap = gradingItems.stream()
-                .collect(Collectors.toMap(QuestionGradingRequestDTO::getQuestionId, QuestionGradingRequestDTO::getPointsAwarded));
+                .collect(Collectors.toMap(QuestionGradingRequestDTO::getQuestionId,
+                        QuestionGradingRequestDTO::getPointsAwarded));
 
         int newScore = 0;
 
         for (QuizAnswer ans : qr.getQuizAnswers()) {
             Integer qId = ans.getQuestion().getQuestionId();
             String qType = ans.getQuestion().getQuestionType();
-            
+
             // Apply teacher grading
             if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
                 if (gradeMap.containsKey(qId)) {
@@ -806,7 +842,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     ans.setPointsAwarded(awarded);
                     ans.setTeacherOverrideScore(awarded.toString());
                     ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
-                    
+
                     gradingItems.stream()
                             .filter(i -> i.getQuestionId().equals(qId))
                             .findFirst()
@@ -838,7 +874,8 @@ public class QuizResultServiceImpl implements QuizResultService {
             maxScoreAvailable += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
         }
 
-        BigDecimal correctRate = maxScoreAvailable > 0 ? BigDecimal.valueOf(100.0 * newScore / maxScoreAvailable) : BigDecimal.ZERO;
+        BigDecimal correctRate = maxScoreAvailable > 0 ? BigDecimal.valueOf(100.0 * newScore / maxScoreAvailable)
+                : BigDecimal.ZERO;
         Boolean passed = null;
         if (quiz.getPassScore() != null) {
             passed = correctRate.compareTo(quiz.getPassScore()) >= 0;
@@ -942,9 +979,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                 ans.setTeacherNote(item.getTeacherNote());
                 ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
                 ans.setPendingAiReview(false);
-            } else if (("WRITING".equals(qType) || "SPEAKING".equals(qType)) && item != null && item.getTeacherNote() != null) {
-                 ans.setTeacherNote(item.getTeacherNote());
-                 ans.setPendingAiReview(false);
+            } else if (("WRITING".equals(qType) || "SPEAKING".equals(qType)) && item != null
+                    && item.getTeacherNote() != null) {
+                ans.setTeacherNote(item.getTeacherNote());
+                ans.setPendingAiReview(false);
             }
 
             quizAnswerRepository.save(ans);
@@ -975,17 +1013,17 @@ public class QuizResultServiceImpl implements QuizResultService {
         recalculateQuizResult(resultId);
 
         // Fetch the updated record for email/notification
-        qr = quizResultRepository.findById(resultId).orElse(qr);
+        QuizResult updatedQr = quizResultRepository.findById(resultId).orElse(qr);
         int maxScoreAvailable = quiz.getQuizQuestions().stream()
                 .mapToInt(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
                 .sum();
-        int newScore = qr.getScore() != null ? qr.getScore() : 0;
-        BigDecimal correctRate = qr.getCorrectRate() != null ? qr.getCorrectRate() : BigDecimal.ZERO;
-        Boolean passed = qr.getPassed();
+        newScore = updatedQr.getScore() != null ? updatedQr.getScore() : 0;
+        BigDecimal correctRate = updatedQr.getCorrectRate() != null ? updatedQr.getCorrectRate() : BigDecimal.ZERO;
+        Boolean passed = updatedQr.getPassed();
 
         // ── Send email + in-app notification to student ──────────────────────
-        if (qr.getUser() != null && passed != null) {
-            User student = qr.getUser();
+        if (updatedQr.getUser() != null && passed != null) {
+            User student = updatedQr.getUser();
             String studentName = student.getFullName() != null ? student.getFullName() : "";
             String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
             String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
@@ -1022,7 +1060,8 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     /** Strip JSON quotes from a JSON-encoded string like "\"https://...\"" */
     private String extractRawString(String json) {
-        if (json == null) return null;
+        if (json == null)
+            return null;
         json = json.trim();
         if (json.startsWith("\"") && json.endsWith("\"")) {
             return json.substring(1, json.length() - 1)
@@ -1040,7 +1079,8 @@ public class QuizResultServiceImpl implements QuizResultService {
 
         QuizResult qr = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "IN_PROGRESS")
                 .orElseGet(() -> {
-                    Optional<QuizResult> locked = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "LOCKED");
+                    Optional<QuizResult> locked = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId,
+                            email, "LOCKED");
                     return locked.orElseGet(() -> QuizResult.builder()
                             .quiz(quiz)
                             .user(user)
@@ -1077,7 +1117,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     for (com.example.DoAn.model.SessionQuiz sq : sqList) {
                         if (sq.getSession() != null && sq.getSession().getClazz() != null) {
                             Integer classId = sq.getSession().getClazz().getClassId();
-                            if (registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(user.getUserId(), classId)) {
+                            if (registrationRepository
+                                    .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(user.getUserId(), classId)) {
                                 teacher = sq.getSession().getClazz().getTeacher();
                                 break;
                             }
@@ -1112,9 +1153,11 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional
     public void requestUnlock(Integer resultId, String email, String reason) {
         QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Not found"));
-        if (!qr.getUser().getEmail().equals(email)) throw new RuntimeException("Unauthorized");
-        if (!"LOCKED".equals(qr.getStatus())) throw new RuntimeException("Bài thi không bị khóa");
-        
+        if (!qr.getUser().getEmail().equals(email))
+            throw new RuntimeException("Unauthorized");
+        if (!"LOCKED".equals(qr.getStatus()))
+            throw new RuntimeException("Bài thi không bị khóa");
+
         qr.setIsUnlockRequested(true);
         qr.setStudentAppealReason(reason);
         quizResultRepository.save(qr);
@@ -1124,7 +1167,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional
     public void recalculateQuizResult(Integer resultId) {
         QuizResult result = quizResultRepository.findById(resultId).orElse(null);
-        if (result == null) return;
+        if (result == null)
+            return;
 
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
 
@@ -1148,7 +1192,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     try {
                         double teacherPts = Double.parseDouble(a.getTeacherOverrideScore());
                         skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 } else if (a.getAiScore() != null) {
                     try {
                         String scoreStr = a.getAiScore();
@@ -1156,7 +1201,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                         int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
                         double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
                         skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             } else {
                 if (Boolean.TRUE.equals(a.getIsCorrect())) {
@@ -1169,7 +1215,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         for (String skill : skillMaxScore.keySet()) {
             double raw = skillRawScore.getOrDefault(skill, 0.0);
             double max = skillMaxScore.get(skill);
-            
+
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
                 skillBands.put(skill, max > 0 ? (raw / max) * 9.0 : 0.0);
             } else {
@@ -1182,7 +1228,7 @@ public class QuizResultServiceImpl implements QuizResultService {
 
         double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
-        
+
         if (totalMax > 0) {
             result.setCorrectRate(BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP));
             result.setScore((int) Math.round(totalRaw));
