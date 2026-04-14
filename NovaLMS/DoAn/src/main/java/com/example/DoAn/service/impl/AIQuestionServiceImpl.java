@@ -77,6 +77,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                         (int) request.getQuantity().intValue(),
                         (java.util.List<String>) request.getQuestionTypes(),
                         cefr,
+                        request.getSkill(),
                         request.getAdvancedOptions());
             } else {
                 prompt = promptBuilder.buildAdvancedQuickPrompt(
@@ -84,13 +85,17 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                         (int) request.getQuantity().intValue(),
                         (java.util.List<String>) request.getQuestionTypes(),
                         cefr,
+                        request.getSkill(),
                         request.getAdvancedOptions());
             }
         } else {
             prompt = buildPrompt(request);
         }
 
+        log.info("[AI_GENERATE] Sending prompt to Groq (mode={}):\n{}", mode, prompt);
+
         String rawJson = callGroq(prompt);
+        log.info("[AI_GENERATE] Received raw JSON from Groq (mode={}):\n{}", mode, rawJson);
 
         List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
 
@@ -123,11 +128,15 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
         String prompt;
         if (isAdvanced) {
-            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr, request.getAdvancedOptions());
+            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr, skill, request.getAdvancedOptions());
         } else {
             prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes(), request.getAdvancedOptions());
         }
+        
+        log.info("[AI_GENERATE_GROUP] Sending prompt to Groq:\n{}", prompt);
+
         String rawJson = callGroq(prompt);
+        log.info("[AI_GENERATE_GROUP] Received raw JSON from Groq:\n{}", rawJson);
 
         AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
                 .skill(skill)

@@ -32,7 +32,7 @@
         </a>
         <h3 class="fw-bold text-dark m-0" id="pageTitle">Lớp: <span id="displayClassName">Đang tải...</span></h3>
       </div>
-      <div id="actionButtons">
+      <div id="actionButtons" style="display: none;">
         <button onclick="goToEdit()" class="btn btn-warning shadow-sm fw-bold rounded-pill px-4">
           <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
         </button>
@@ -82,8 +82,6 @@
                   <label class="btn btn-outline-warning btn-sm" for="stDraft">Nháp</label>
                   <input type="radio" class="btn-check" name="classStatus" id="stOpen" value="Open">
                   <label class="btn btn-outline-success btn-sm" for="stOpen">Mở</label>
-                  <input type="radio" class="btn-check" name="classStatus" id="stClosed" value="Closed">
-                  <label class="btn btn-outline-danger btn-sm" for="stClosed">Đóng</label>
                 </div>
               </div>
               <div id="classStatusError" class="text-danger small mt-1"></div>
@@ -161,8 +159,10 @@
 
           <div class="mt-4 pt-4 border-top d-flex justify-content-start gap-2">
             <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4">Hủy</a>
-            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
-              <i class="bi bi-check-lg me-1"></i> Lưu
+            <button type="submit" id="btnSubmitClass" class="btn btn-primary rounded-pill px-4 fw-bold">
+              <i class="bi bi-check-lg me-1"></i>
+              <span class="btn-text">Lưu</span>
+              <span class="spinner-border spinner-border-sm d-none" role="status"></span>
             </button>
           </div>
         </form>
@@ -298,9 +298,10 @@
   }
 
   function bindScheduleTeacherEvents() {
-      document.getElementById('teacherId').addEventListener('change', () => fetchAvailableSlots());
+      const getActiveSlot = () => document.getElementById('slotTime').value;
+      document.getElementById('teacherId').addEventListener('change', () => fetchAvailableSlots(getActiveSlot()));
       document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => {
-          cb.addEventListener('change', () => fetchAvailableSlots());
+          cb.addEventListener('change', () => fetchAvailableSlots(getActiveSlot()));
       });
   }
 
@@ -398,26 +399,13 @@
           renderSlotOptions(ALL_SLOT_TIMES);
           loadCourses(); loadTeachers();
           bindScheduleTeacherEvents(); bindAutoEndDate(); setupDateConstraints();
-          // Auto-fill Số buổi học khi chọn khóa học (Khôi phục logic call API count lesson)
-          document.getElementById('courseId').addEventListener('change', async function() {
+          // Auto-fill Số buổi học khi chọn khóa học từ data đã load
+          document.getElementById('courseId').addEventListener('change', function() {
               const courseId = this.value;
-              if (!courseId) {
-                  window.currentCourseLessonCount = 0;
-                  return;
-              }
-              try {
-                  // Gọi API lấy số lượng Lesson thực tế của khóa học
-                  const res = await fetch(`/api/v1/courses/${courseId}/lessons/count`);
-                  const result = await res.json();
-                  if (result.status === 200) {
-                      window.currentCourseLessonCount = parseInt(result.data);
-                      document.getElementById('numberOfSessions').value = window.currentCourseLessonCount;
-                      document.getElementById('numberOfSessions').classList.remove('is-invalid');
-                      document.getElementById('numberOfSessionsError').textContent = '';
-                      calculateEndDate();
-                  }
-              } catch (err) {
-                  console.error('Lỗi khi lấy số lượng bài học:', err);
+              if (courseId && courseDataMap[courseId]) {
+                  const course = courseDataMap[courseId];
+                  document.getElementById('numberOfSessions').value = course.numberOfSessions || 0;
+                  calculateEndDate();
               }
           });
       } else if (isEditMode && classId) {
@@ -436,7 +424,9 @@
   function showFormMode(isEdit = false) {
       document.getElementById('detailSection').style.display = 'none';
       document.getElementById('classFormSection').style.display = 'block';
-      document.getElementById('pageTitle').innerText = isEdit ? 'Chỉnh sửa lớp học' : 'Tạo lớp học mới';
+      const title = isEdit ? 'Chỉnh sửa lớp học' : 'Tạo lớp học mới';
+      document.getElementById('pageTitle').innerText = title;
+      document.getElementById('formTitle').innerText = title;
       document.getElementById('actionButtons').style.display = 'none';
   }
 
@@ -596,6 +586,10 @@
   // Form submit
   document.getElementById('classForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+      const submitBtn = document.getElementById('btnSubmitClass');
+      const btnText = submitBtn.querySelector('.btn-text');
+      const spinner = submitBtn.querySelector('.spinner-border');
+
       const setError = (id, msg) => { const el = document.getElementById(id + 'Error'); if (el) el.textContent = msg || ''; };
       const clearErrors = () => ['className','courseId','teacherId','schedule','numberOfSessions','meetLink','startDate'].forEach(id => setError(id,''));
       clearErrors();
@@ -637,6 +631,11 @@
           description: document.getElementById('description').value.trim()
       };
 
+      // Spam protection
+      submitBtn.disabled = true;
+      btnText.classList.add('d-none');
+      spinner.classList.remove('d-none');
+
       try {
           const url = classId ? `/api/v1/classes/${classId}` : '/api/v1/classes/';
           const method = classId ? 'PUT' : 'POST';
@@ -645,8 +644,18 @@
           if (result.status === 201 || result.status === 200 || result.status === 202) {
               alert('Lưu thành công!');
               window.location.href = '/manager/class/list';
-          } else { setError('className', result.message || 'Lưu thất bại.'); }
-      } catch (err) { setError('className','Không thể kết nối máy chủ.'); }
+          } else { 
+              setError('className', result.message || 'Lưu thất bại.');
+              submitBtn.disabled = false;
+              btnText.classList.remove('d-none');
+              spinner.classList.add('d-none');
+          }
+      } catch (err) { 
+          setError('className','Không thể kết nối máy chủ.');
+          submitBtn.disabled = false;
+          btnText.classList.remove('d-none');
+          spinner.classList.add('d-none');
+      }
   });
 </script>
 </body>

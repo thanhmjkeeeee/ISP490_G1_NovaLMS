@@ -31,5 +31,9 @@ public interface QuizResultService {
     
     void requestUnlock(Integer resultId, String email, String reason);
     
+    
     PageResponse<QuizResultPendingDTO> getUnlockRequests(String email, Integer classId, int page, int size);
+
+    /** Recalculates total score, correct rate, skill bands, and overall IELTS band */
+    void recalculateQuizResult(Integer resultId);
 }

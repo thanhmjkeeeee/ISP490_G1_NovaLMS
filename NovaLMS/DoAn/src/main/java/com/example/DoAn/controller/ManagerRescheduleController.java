@@ -16,8 +16,10 @@ public class ManagerRescheduleController {
 
     private final RescheduleService rescheduleService;
 
-    @GetMapping("/list")
-    public String listPage() {
+    @GetMapping({"", "/", "/list"})
+    public String listPage(org.springframework.ui.Model model) {
+        model.addAttribute("pageTitle", "Duyệt Đổi Lịch");
+        model.addAttribute("isDashboard", true);
         return "manager/reschedule-list";
     }
 

@@ -9,6 +9,7 @@ import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.INotificationService;
 import com.example.DoAn.service.LearningService;
 import com.example.DoAn.service.QuizResultService;
+import com.example.DoAn.util.IELTSScoreMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -255,9 +256,9 @@ public class QuizResultServiceImpl implements QuizResultService {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
 
-        int score = 0;
+        BigDecimal score = BigDecimal.ZERO;
         int totalGradedQuestions = 0;
-        int maxScoreAvailable = 0;
+        BigDecimal maxScoreAvailable = BigDecimal.ZERO;
         boolean hasPendingReview = false;
 
         QuizResult quizResult = QuizResult.builder()
@@ -328,11 +329,15 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
+            BigDecimal qPoints = qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE;
+            BigDecimal awardedPoints = BigDecimal.ZERO;
+
             if (Boolean.TRUE.equals(isCorrect)) {
-                score += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+                awardedPoints = qPoints;
+                score = score.add(awardedPoints);
             }
             if (!"WRITING".equals(qType) && !"SPEAKING".equals(qType)) {
-                maxScoreAvailable += qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+                maxScoreAvailable = maxScoreAvailable.add(qPoints);
             }
 
             QuizAnswer qa = QuizAnswer.builder()
@@ -340,6 +345,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .question(q)
                     .answeredOptions(answeredOptionsJson)
                     .isCorrect(isCorrect)
+                    .pointsAwarded(!"WRITING".equals(qType) && !"SPEAKING".equals(qType) ? awardedPoints : null)
                     .pendingAiReview(
                             "WRITING".equals(qType) || "SPEAKING".equals(qType)
                                     ? true : false)
@@ -379,16 +385,12 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
-        BigDecimal correctRate = totalGradedQuestions > 0 ? BigDecimal.valueOf(100.0 * score / maxScoreAvailable) : BigDecimal.ZERO;
-        Boolean passed = null;
-        if (!hasPendingReview && quiz.getPassScore() != null) {
-            passed = correctRate.compareTo(quiz.getPassScore()) >= 0;
-        }
+        // Apply IELTS logic
+        recalculateQuizResult(quizResult.getResultId());
 
-        quizResult.setScore(score);
-        quizResult.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
-        quizResult.setPassed(passed);
-        quizResultRepository.save(quizResult);
+        // Refresh for email data
+        quizResult = quizResultRepository.findById(quizResult.getResultId()).orElse(quizResult);
+        Boolean passed = quizResult.getPassed();
 
         // ── Send email + in-app notification to student (quiz auto-graded) ────
         if (passed != null && quiz.getPassScore() != null) {
@@ -418,6 +420,10 @@ public class QuizResultServiceImpl implements QuizResultService {
         // Update lesson quiz progress + unlock next quiz
         if (quiz.getLesson() != null) {
             try {
+                BigDecimal correctRate = maxScoreAvailable.compareTo(BigDecimal.ZERO) > 0
+                        ? score.multiply(new BigDecimal("100")).divide(maxScoreAvailable, 4, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
                 double scorePercent = correctRate.setScale(2, RoundingMode.HALF_UP).doubleValue();
                 lessonQuizService.updateProgressAfterSubmit(
                         quiz.getLesson().getLessonId(), quizId, user.getUserId(),
@@ -461,12 +467,12 @@ public class QuizResultServiceImpl implements QuizResultService {
         List<QuizAnswer> answers = qr.getQuizAnswers();
         boolean showAnswer = isTeacher || Boolean.TRUE.equals(quiz.getShowAnswerAfterSubmit());
 
-        Integer totalPoints = 0;
+        Double totalPoints = 0.0;
         List<QuestionResultDTO> questionsRes = new ArrayList<>();
 
         for (QuizQuestion qq : quiz.getQuizQuestions()) {
             Question q = qq.getQuestion();
-            int points = qq.getPoints() != null ? qq.getPoints().intValue() : 1;
+            double points = qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0;
             totalPoints += points;
 
             QuizAnswer userAns = answers.stream().filter(a -> a.getQuestion().getQuestionId().equals(q.getQuestionId())).findFirst().orElse(null);
@@ -538,6 +544,19 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .isCorrect(showAnswer ? opt.getCorrectAnswer() : null)
                     .build()).collect(Collectors.toList());
 
+            // Fix: Fallback for auto-graded questions that missed points_awarded in DB
+            Double pointsAwarded = null;
+            if (userAns != null) {
+                if (userAns.getPointsAwarded() != null) {
+                    pointsAwarded = userAns.getPointsAwarded().doubleValue();
+                } else if (Boolean.TRUE.equals(userAns.getIsCorrect())) {
+                    // Fallback to full points if marked correct but pointsAwarded is null
+                    pointsAwarded = points;
+                } else if (Boolean.FALSE.equals(userAns.getIsCorrect())) {
+                    pointsAwarded = 0.0;
+                }
+            }
+
             questionsRes.add(QuestionResultDTO.builder()
                     .questionId(q.getQuestionId())
                     .content(q.getContent())
@@ -552,8 +571,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .audioUrl(q.getAudioUrl())
                     .options(optDTOs)
                     .answerId(userAns != null ? userAns.getAnswerId() : null)
-                    .pointsAwarded(userAns != null ? userAns.getPointsAwarded() != null
-                            ? userAns.getPointsAwarded().intValue() : null : null)
+                    .pointsAwarded(pointsAwarded)
                     .teacherNote(userAns != null ? userAns.getTeacherNote() : null)
                     .aiScore(userAns != null ? userAns.getAiScore() : null)
                     .aiFeedback(userAns != null ? userAns.getAiFeedback() : null)
@@ -577,9 +595,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .quizTitle(quiz.getTitle())
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getTitle() : null)
                 .submittedAt(qr.getSubmittedAt())
-                .score(qr.getScore())
+                .score(qr.getScore() != null ? qr.getScore().doubleValue() : 0.0)
                 .totalPoints(totalPoints)
                 .correctRate(qr.getCorrectRate() != null ? qr.getCorrectRate().doubleValue() : null)
+                .overallBand(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
                 .passed(qr.getPassed())
                 .showAnswer(showAnswer)
                 .passScoreDescription(quiz.getPassScore() != null ? "Passing score: " + quiz.getPassScore().toString() + "%" : "No passing score")
@@ -774,15 +793,20 @@ public class QuizResultServiceImpl implements QuizResultService {
         Map<Integer, BigDecimal> gradeMap = gradingItems.stream()
                 .collect(Collectors.toMap(QuestionGradingRequestDTO::getQuestionId, QuestionGradingRequestDTO::getPointsAwarded));
 
-        int newScore = qr.getScore() != null ? qr.getScore() : 0;
+        int newScore = 0;
 
         for (QuizAnswer ans : qr.getQuizAnswers()) {
-            if ("WRITING".equals(ans.getQuestion().getQuestionType()) || "SPEAKING".equals(ans.getQuestion().getQuestionType())) {
-                Integer qId = ans.getQuestion().getQuestionId();
+            Integer qId = ans.getQuestion().getQuestionId();
+            String qType = ans.getQuestion().getQuestionType();
+            
+            // Apply teacher grading
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
                 if (gradeMap.containsKey(qId)) {
                     BigDecimal awarded = gradeMap.get(qId);
+                    ans.setPointsAwarded(awarded);
+                    ans.setTeacherOverrideScore(awarded.toString());
                     ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
-                    // Also save teacherNote if available in gradingItems
+                    
                     gradingItems.stream()
                             .filter(i -> i.getQuestionId().equals(qId))
                             .findFirst()
@@ -791,8 +815,20 @@ public class QuizResultServiceImpl implements QuizResultService {
                                     ans.setTeacherNote(item.getTeacherNote());
                                 }
                             });
-                    newScore += awarded.intValue();
+                    ans.setPendingAiReview(false);
                     quizAnswerRepository.save(ans);
+                }
+            }
+
+            // Sum up
+            if (ans.getPointsAwarded() != null) {
+                newScore += ans.getPointsAwarded().intValue();
+            } else {
+                int pts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId)
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                        .orElse(1);
+                if (Boolean.TRUE.equals(ans.getIsCorrect())) {
+                    newScore += pts;
                 }
             }
         }
@@ -892,40 +928,38 @@ public class QuizResultServiceImpl implements QuizResultService {
                         QuestionGradingRequestDTO::getQuestionId, Function.identity()))
                 : Collections.emptyMap();
 
-        int newScore = qr.getScore() != null ? qr.getScore() : 0;
+        int newScore = 0;
 
         for (QuizAnswer ans : qr.getQuizAnswers()) {
             Integer qId = ans.getQuestion().getQuestionId();
             QuestionGradingRequestDTO item = gradeMap.get(qId);
             String qType = ans.getQuestion().getQuestionType();
 
-            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                if (item != null) {
-                    ans.setPointsAwarded(item.getPointsAwarded());
-                    ans.setTeacherNote(item.getTeacherNote());
-                    ans.setIsCorrect(item.getPointsAwarded() != null
-                            && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
-                    newScore += item.getPointsAwarded().intValue();
-                }
+            // Apply teacher grading
+            if (item != null && item.getPointsAwarded() != null) {
+                ans.setPointsAwarded(item.getPointsAwarded());
+                ans.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                ans.setTeacherNote(item.getTeacherNote());
+                ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                ans.setPendingAiReview(false);
+            } else if (("WRITING".equals(qType) || "SPEAKING".equals(qType)) && item != null && item.getTeacherNote() != null) {
+                 ans.setTeacherNote(item.getTeacherNote());
+                 ans.setPendingAiReview(false);
+            }
+
+            quizAnswerRepository.save(ans);
+
+            // Sum up points
+            if (ans.getPointsAwarded() != null) {
+                newScore += ans.getPointsAwarded().intValue();
             } else {
-                // MC/FILL/MATCH — teacher can override
-                if (item != null && item.getPointsAwarded() != null) {
-                    ans.setPointsAwarded(item.getPointsAwarded());
-                    ans.setTeacherNote(item.getTeacherNote());
-                    ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
-                    // Recalculate: subtract old score contribution then add new
-                    int oldPts = ans.getPointsAwarded() != null
-                            ? ans.getPointsAwarded().intValue()
-                            : (Boolean.TRUE.equals(ans.getIsCorrect())
-                                    ? (quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
-                                            quiz.getQuizId(), qId)
-                                            .map(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
-                                            .orElse(1)) : 0);
-                    newScore = newScore - oldPts + item.getPointsAwarded().intValue();
+                int pts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId)
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
+                        .orElse(1);
+                if (Boolean.TRUE.equals(ans.getIsCorrect())) {
+                    newScore += pts;
                 }
             }
-            ans.setPendingAiReview(false);
-            quizAnswerRepository.save(ans);
         }
 
         // Save skillScores and overallNote
@@ -937,23 +971,17 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
-        // Recalculate total
+        // Recalculate everything using the centralized IELTS logic
+        recalculateQuizResult(resultId);
+
+        // Fetch the updated record for email/notification
+        qr = quizResultRepository.findById(resultId).orElse(qr);
         int maxScoreAvailable = quiz.getQuizQuestions().stream()
                 .mapToInt(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
                 .sum();
-
-        BigDecimal correctRate = maxScoreAvailable > 0
-                ? BigDecimal.valueOf(100.0 * newScore / maxScoreAvailable)
-                : BigDecimal.ZERO;
-
-        Boolean passed = quiz.getPassScore() != null
-                ? correctRate.compareTo(quiz.getPassScore()) >= 0
-                : true;
-
-        qr.setScore(newScore);
-        qr.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
-        qr.setPassed(passed);
-        quizResultRepository.save(qr);
+        int newScore = qr.getScore() != null ? qr.getScore() : 0;
+        BigDecimal correctRate = qr.getCorrectRate() != null ? qr.getCorrectRate() : BigDecimal.ZERO;
+        Boolean passed = qr.getPassed();
 
         // ── Send email + in-app notification to student ──────────────────────
         if (qr.getUser() != null && passed != null) {
@@ -1090,5 +1118,82 @@ public class QuizResultServiceImpl implements QuizResultService {
         qr.setIsUnlockRequested(true);
         qr.setStudentAppealReason(reason);
         quizResultRepository.save(qr);
+    }
+
+    @Override
+    @Transactional
+    public void recalculateQuizResult(Integer resultId) {
+        QuizResult result = quizResultRepository.findById(resultId).orElse(null);
+        if (result == null) return;
+
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+
+        Map<String, Double> skillRawScore = new HashMap<>();
+        Map<String, Double> skillMaxScore = new HashMap<>();
+
+        for (QuizAnswer a : answers) {
+            Question q = a.getQuestion();
+            String skill = (q.getSkill() != null ? q.getSkill() : "DEFAULT").toUpperCase();
+            String qType = q.getQuestionType();
+
+            double pts = quizQuestionRepository
+                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), q.getQuestionId())
+                    .map(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
+                    .orElse(1.0);
+
+            skillMaxScore.put(skill, skillMaxScore.getOrDefault(skill, 0.0) + pts);
+
+            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
+                if (a.getTeacherOverrideScore() != null) {
+                    try {
+                        double teacherPts = Double.parseDouble(a.getTeacherOverrideScore());
+                        skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
+                    } catch (Exception ignored) {}
+                } else if (a.getAiScore() != null) {
+                    try {
+                        String scoreStr = a.getAiScore();
+                        double scoreVal = Double.parseDouble(scoreStr.split("/")[0].trim());
+                        int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
+                        double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
+                        skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
+                    } catch (Exception ignored) {}
+                }
+            } else {
+                if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                    skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + pts);
+                }
+            }
+        }
+
+        Map<String, Double> skillBands = new HashMap<>();
+        for (String skill : skillMaxScore.keySet()) {
+            double raw = skillRawScore.getOrDefault(skill, 0.0);
+            double max = skillMaxScore.get(skill);
+            
+            if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
+                skillBands.put(skill, max > 0 ? (raw / max) * 9.0 : 0.0);
+            } else {
+                skillBands.put(skill, IELTSScoreMapper.mapRawToBand(raw, max, skill));
+            }
+        }
+
+        double overallBandScore = IELTSScoreMapper.calculateOverallBand(skillBands);
+        result.setOverallBand(BigDecimal.valueOf(overallBandScore));
+
+        double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
+        
+        if (totalMax > 0) {
+            result.setCorrectRate(BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP));
+            result.setScore((int) Math.round(totalRaw));
+        }
+
+        try {
+            result.setSectionScores(objectMapper.writeValueAsString(skillBands));
+        } catch (Exception e) {
+            log.error("Failed to serialize section scores", e);
+        }
+
+        quizResultRepository.save(result);
     }
 }

@@ -157,6 +157,10 @@ public class TeacherQuizGradingApiController {
             answer.setTeacherOverrideScore(score);
             answer.setAiGradingStatus("REVIEWED");
             quizAnswerRepository.save(answer);
+
+            // Tự động tính lại điểm IELTS cho cả bài
+            quizResultService.recalculateQuizResult(answer.getQuizResult().getResultId());
+
             return ResponseData.success("Đã cập nhật điểm override!");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());

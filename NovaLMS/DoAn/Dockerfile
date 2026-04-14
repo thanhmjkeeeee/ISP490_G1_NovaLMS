@@ -19,7 +19,8 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy the jar from build stage
-COPY --from=build /app/target/*.jar app.jar
+# Đảm bảo chỉ copy file jar thực thi (không copy -plain.jar nếu có)
+COPY --from=build /app/target/DoAn-0.0.1-SNAPSHOT.jar app.jar
 
 # Render dynamic port binding
 EXPOSE 8080

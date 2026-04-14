@@ -1,135 +1,147 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 
-<head th:replace="~{fragments/head :: common-head(pageTitle='Chấm Bài: ' + (${result != null ? result.quizTitle : 'Chi tiết'}))}"></head>
+<head
+    th:replace="~{fragments/head :: common-head(pageTitle='Chấm Bài: ' + (${result != null ? result.quizTitle : 'Chi tiết'}))}">
+</head>
 
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-bank')}"></aside>
-<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+    <header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm')}">
+    </header>
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-bank')}"></aside>
+    <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<main class="dash-main" id="dashMain">
+    <main class="dash-main" id="dashMain">
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body p-4">
-            <h4 class="fw-bold mb-3" th:text="${result != null ? result.quizTitle : 'Đang tải...'}"></h4>
-            <div class="row text-muted small">
-                <div class="col-md-4 mb-2">
-                    <i class="bi bi-clock me-1"></i>Nộp lúc:
-                    <span th:if="${result != null and result.submittedAt != null}" th:text="${#temporals.format(result.submittedAt, 'dd/MM/yyyy HH:mm')}"></span>
-                    <span th:unless="${result != null and result.submittedAt != null}" class="fst-italic">Chưa ghi nhận giờ nộp</span>
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3" th:text="${result != null ? result.quizTitle : 'Đang tải...'}"></h4>
+                <div class="row text-muted small">
+                    <div class="col-md-4 mb-2">
+                        <i class="bi bi-clock me-1"></i>Nộp lúc:
+                        <span th:if="${result != null and result.submittedAt != null}"
+                            th:text="${#temporals.format(result.submittedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                        <span th:unless="${result != null and result.submittedAt != null}" class="fst-italic">Chưa ghi
+                            nhận giờ nộp</span>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <i class="bi bi-journal-text me-1"></i>Khóa học:
+                        <span th:text="${result != null ? result.courseName : '—'}"></span>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <i class="bi bi-check-circle me-1"></i>Trạng thái:
+                        <span th:if="${result != null and result.passed == null}"
+                            class="badge bg-warning text-dark">Đang chờ chấm</span>
+                        <span th:if="${result != null and result.passed != null}" class="badge bg-success">Đã chấm
+                            điểm</span>
+                    </div>
                 </div>
-                <div class="col-md-4 mb-2">
-                    <i class="bi bi-journal-text me-1"></i>Khóa học:
-                    <span th:text="${result != null ? result.courseName : '—'}"></span>
-                </div>
-                <div class="col-md-4 mb-2">
-                    <i class="bi bi-check-circle me-1"></i>Trạng thái:
-                    <span th:if="${result != null and result.passed == null}" class="badge bg-warning text-dark">Đang chờ chấm</span>
-                    <span th:if="${result != null and result.passed != null}" class="badge bg-success">Đã chấm điểm</span>
+
+                <hr class="my-4">
+                <p class="text-primary fw-medium">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Chỉ các câu trả lời Tự Luận (WRITING/SPEAKING) mới yêu cầu chấm điểm.
+                    Điểm trắc nghiệm (Tự động chấm):
+                    <span class="fw-bold" th:text="${result != null ? result.score : 0}"></span> / <span
+                        th:text="${result != null ? result.totalPoints : 0}"></span>
+                    <span th:if="${result != null and result.overallBand != null}" class="badge bg-primary ms-3 fs-6">
+                        IELTS Band: <span th:text="${#numbers.formatDecimal(result.overallBand, 1, 1)}"></span>
+                    </span>
+                </p>
+                <div class="d-flex align-items-center">
+                    <a th:href="${result != null and result.passed != null ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
+                        class="btn btn-sm btn-outline-secondary rounded-pill me-3">
+                        <i class="bi bi-arrow-left"></i> Quay lại
+                    </a>
                 </div>
             </div>
+        </div>
 
-            <hr class="my-4">
-            <p class="text-primary fw-medium">
-                <i class="bi bi-info-circle me-2"></i>
-                Chỉ các câu trả lời Tự Luận (WRITING/SPEAKING) mới yêu cầu chấm điểm.
-                Điểm trắc nghiệm (Tự động chấm) hiện tại:
-                <span class="fw-bold" th:text="${result != null ? result.score : 0}"></span> / <span th:text="${result != null ? result.totalPoints : 0}"></span>
-            </p>
-            <div class="d-flex align-items-center">
-                <a th:href="${result != null and result.passed != null ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
-                   class="btn btn-sm btn-outline-secondary rounded-pill me-3">
-                    <i class="bi bi-arrow-left"></i> Quay lại
-                </a>
+        <ul class="nav nav-tabs mb-3" id="skillTabs">
+            <li class="nav-item"><span class="nav-link text-muted">Đang tải kỹ năng...</span></li>
+        </ul>
+
+        <div class="tab-content" id="tabContent"></div>
+
+        <div th:if="${result != null and result.passed == null}"
+            class="card border-0 shadow-sm rounded-4 mt-4 text-center">
+            <div class="card-body p-4">
+                <button id="submitGradesBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm">
+                    Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>
+                </button>
             </div>
         </div>
-    </div>
 
-    <ul class="nav nav-tabs mb-3" id="skillTabs">
-        <li class="nav-item"><span class="nav-link text-muted">Đang tải kỹ năng...</span></li>
-    </ul>
+    </main>
 
-    <div class="tab-content" id="tabContent"></div>
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
-    <div th:if="${result != null and result.passed == null}" class="card border-0 shadow-sm rounded-4 mt-4 text-center">
-        <div class="card-body p-4">
-            <button id="submitGradesBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm">
-                Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>
-            </button>
-        </div>
-    </div>
+    <script th:inline="javascript">
+        // ── Skill icon map ─────────────────────────────────────────────────────────
+        const SKILL_ICONS = {
+            LISTENING: '🎧',
+            READING: '📖',
+            SPEAKING: '🎤',
+            WRITING: '✍️'
+        };
 
-</main>
+        const SKILL_LABELS = {
+            LISTENING: 'Nghe',
+            READING: 'Đọc',
+            SPEAKING: 'Nói',
+            WRITING: 'Viết'
+        };
 
-<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+        // ── Load grading detail ─────────────────────────────────────────────────────
+        // ĐÃ FIX: Bọc an toàn cho các biến truyền từ Spring Boot sang JS
+        const resultId = /*[[${resultId}]]*/ null;
+        const isGraded = /*[[${result != null && result.passed != null}]]*/ false;
 
-<script th:inline="javascript">
-    // ── Skill icon map ─────────────────────────────────────────────────────────
-    const SKILL_ICONS = {
-        LISTENING: '🎧',
-        READING: '📖',
-        SPEAKING: '🎤',
-        WRITING: '✍️'
-    };
-
-    const SKILL_LABELS = {
-        LISTENING: 'Nghe',
-        READING: 'Đọc',
-        SPEAKING: 'Nói',
-        WRITING: 'Viết'
-    };
-
-    // ── Load grading detail ─────────────────────────────────────────────────────
-    // ĐÃ FIX: Bọc an toàn cho các biến truyền từ Spring Boot sang JS
-    const resultId = [[${resultId != null ? resultId : 'null'}]];
-    const isGraded = [[${result != null and result.passed != null}]];
-
-    (async () => {
-        if (!resultId) {
-            document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Lỗi: Không tìm thấy ID bài nộp.</div>`;
-            return;
-        }
-        try {
-            const resp = await fetch(`/api/v1/teacher/quiz-results/${resultId}/detail`);
-            const json = await resp.json();
-            if (json.status !== 200) {
-                document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Lỗi: ${json.message}</div>`;
+        (async () => {
+            if (!resultId) {
+                document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Lỗi: Không tìm thấy ID bài nộp.</div>`;
                 return;
             }
-            const data = json.data;
-            if (!data) {
-                throw new Error("Không có dữ liệu bài làm.");
+            try {
+                const resp = await fetch(`/api/v1/teacher/quiz-results/${resultId}/detail`);
+                const json = await resp.json();
+                if (json.status !== 200) {
+                    document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Lỗi: ${json.message}</div>`;
+                    return;
+                }
+                const data = json.data;
+                if (!data) {
+                    throw new Error("Không có dữ liệu bài làm.");
+                }
+                const skillsFound = data.skillsPresent || detectSkills(data.questions || []);
+                renderSkillTabs(skillsFound);
+                renderQuestions(data);
+
+                // Render Rubric
+                document.querySelectorAll('.rubric-breakdown').forEach(function (el) {
+                    renderRubric(el, el.getAttribute('data-is-teacher') === 'true');
+                });
+            } catch (e) {
+                document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Không thể tải chi tiết bài nộp.</div>`;
             }
-            const skillsFound = data.skillsPresent || detectSkills(data.questions || []);
-            renderSkillTabs(skillsFound);
-            renderQuestions(data);
+        })();
 
-            // Render Rubric
-            document.querySelectorAll('.rubric-breakdown').forEach(function(el) {
-                renderRubric(el, el.getAttribute('data-is-teacher') === 'true');
+        // ── Detect skills from questions ─────────────────────────────────────────────
+        function detectSkills(questions) {
+            if (!questions || !Array.isArray(questions)) return [];
+            const seen = new Set();
+            questions.forEach(q => {
+                if (q.skill) seen.add(q.skill);
             });
-        } catch (e) {
-            document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Không thể tải chi tiết bài nộp.</div>`;
+            return Array.from(seen);
         }
-    })();
 
-    // ── Detect skills from questions ─────────────────────────────────────────────
-    function detectSkills(questions) {
-        if (!questions || !Array.isArray(questions)) return [];
-        const seen = new Set();
-        questions.forEach(q => {
-            if (q.skill) seen.add(q.skill);
-        });
-        return Array.from(seen);
-    }
-
-    // ── Render skill tabs ─────────────────────────────────────────────────────────
-    function renderSkillTabs(skills) {
-        const nav = document.getElementById('skillTabs');
-        nav.innerHTML = skills.map((skill, i) => `
+        // ── Render skill tabs ─────────────────────────────────────────────────────────
+        function renderSkillTabs(skills) {
+            const nav = document.getElementById('skillTabs');
+            nav.innerHTML = skills.map((skill, i) => `
             <li class="nav-item">
             <button class="nav-link ${i === 0 ? 'active' : ''}"
             data-bs-toggle="tab"
@@ -139,52 +151,63 @@
             </button>
             </li>
         `).join('');
-    }
+        }
 
-    // ── Render all questions grouped by skill ────────────────────────────────────
-    function renderQuestions(data) {
-        if (!data || !data.questions) return;
-        const container = document.getElementById('tabContent');
-        const skills = data.skillsPresent || detectSkills(data.questions);
+        // ── Render all questions grouped by skill ────────────────────────────────────
+        function renderQuestions(data) {
+            if (!data || !data.questions) return;
+            const container = document.getElementById('tabContent');
+            const skills = data.skillsPresent || detectSkills(data.questions);
 
-        container.innerHTML = skills.map((skill, i) => {
-            const skillQs = data.questions.filter(q => q.skill === skill);
-            const isActive = i === 0 ? 'show active' : '';
-            return `
+            container.innerHTML = skills.map((skill, i) => {
+                const skillQs = data.questions.filter(q => q.skill === skill);
+                const isActive = i === 0 ? 'show active' : '';
+                return `
             <div class="tab-pane fade ${isActive}" id="skill-${skill}">
             <div class="d-flex flex-column gap-3">
             ${skillQs.map((q, qi) => renderQuestion(q, qi)).join('')}
             </div>
             </div>`;
-        }).join('');
-    }
+            }).join('');
+        }
 
-    // ── Render single question card ─────────────────────────────────────────────
-    function renderQuestion(q, qi) {
-        const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
-        const isCorrect = q.isCorrect;
-        const scoreVal = q.pointsAwarded ?? 0;
+        // ── Helper to format numbers (e.g. 1.0 -> 1, 0.5 -> 0.5) ─────────────────────
+        function fmt(num) {
+            if (num === null || num === undefined) return '0';
+            return Number.isInteger(num) ? num.toString() : num.toString();
+            // Number.isInteger might not work on older browsers but for modern it's fine.
+            // Or simply:
+            // return (num % 1 === 0) ? num.toFixed(0) : num.toString();
+        }
 
-        // Audio player for SPEAKING
-        let audioBlock = '';
-        if (q.questionType === 'SPEAKING') {
-            if (q.studentAudioUrl) {
-                audioBlock += `
+        const fmtNum = (n) => (n % 1 === 0) ? n.toFixed(0) : n.toString();
+
+        // ── Render single question card ─────────────────────────────────────────────
+        function renderQuestion(q, qi) {
+            const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
+            const isCorrect = q.isCorrect;
+            const scoreVal = q.pointsAwarded ?? 0;
+
+            // Audio player for SPEAKING
+            let audioBlock = '';
+            if (q.questionType === 'SPEAKING') {
+                if (q.studentAudioUrl) {
+                    audioBlock += `
                 <div class="mb-2">
                 <label class="form-label small fw-semibold text-muted">🎤 File ghi âm của student:</label>
                 <audio controls src="${q.studentAudioUrl}" class="w-100"></audio>
                 </div>`;
+                }
             }
-        }
 
-        // AI grading display for WRITING/SPEAKING
-        let aiBlock = '';
-        if (isManual) {
-            const aiStatus = q.aiGradingStatus || 'PENDING';
-            const aiStatusLabel = aiStatus === 'PENDING' ? '<span class="badge bg-warning text-dark">⏳ Đang chấm...</span>'
-                : aiStatus === 'COMPLETED' ? '<span class="badge bg-success">🤖 AI đã chấm</span>'
-                : '<span class="badge bg-primary">✅ Đã duyệt</span>';
-            aiBlock = `
+            // AI grading display for WRITING/SPEAKING
+            let aiBlock = '';
+            if (isManual) {
+                const aiStatus = q.aiGradingStatus || 'PENDING';
+                const aiStatusLabel = aiStatus === 'PENDING' ? '<span class="badge bg-warning text-dark">⏳ Đang chấm...</span>'
+                    : aiStatus === 'COMPLETED' ? '<span class="badge bg-success">🤖 AI đã chấm</span>'
+                        : '<span class="badge bg-primary">✅ Đã duyệt</span>';
+                aiBlock = `
             <div class="border rounded p-3 mb-3 bg-light">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="fw-bold small">🤖 Kết quả AI</span>
@@ -226,43 +249,43 @@
                     </div>
                 </div>` : ''}
             </div>`;
-        }
+            }
 
-        // Student answer
-        let answerBlock = '';
+            // Student answer
+            let answerBlock = '';
 
-        // ĐÃ FIX: Thêm && q.questionType !== 'SPEAKING'
-        // -> Bài WRITING vẫn hiện câu trả lời bình thường.
-        // -> Bài SPEAKING sẽ bị ẩn cái link Cloudinary đi (vì đã có trình phát Audio ở trên rồi).
-        if (q.userAnswerDisplay && q.questionType !== 'SPEAKING') {
-            const displayText = (q.userAnswerDisplay || '').replace(/&quot;/g, '"');
+            // ĐÃ FIX: Thêm && q.questionType !== 'SPEAKING'
+            // -> Bài WRITING vẫn hiện câu trả lời bình thường.
+            // -> Bài SPEAKING sẽ bị ẩn cái link Cloudinary đi (vì đã có trình phát Audio ở trên rồi).
+            if (q.userAnswerDisplay && q.questionType !== 'SPEAKING') {
+                const displayText = (q.userAnswerDisplay || '').replace(/&quot;/g, '"');
 
-            // Không gõ trực tiếp dấu backtick (`) để tránh lỗi Thymeleaf
-            const safeText = displayText.split(String.fromCharCode(96)).join('&#96;');
+                // Không gõ trực tiếp dấu backtick (`) để tránh lỗi Thymeleaf
+                const safeText = displayText.split(String.fromCharCode(96)).join('&#96;');
 
-            answerBlock = `
+                answerBlock = `
             <div class="p-3 bg-light rounded-3 mb-3">
                 <h6 class="fw-bold text-muted mb-2">📝 Câu trả lời:</h6>
                 <div class="text-dark" style="white-space:pre-wrap;">${safeText}</div>
             </div>`;
-        } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
-            const correctBadge = isCorrect === true ? '<span class="badge bg-success">✅ Đúng</span>'
-                : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
-                : '<span class="badge bg-secondary">Chưa rõ</span>';
-            answerBlock = `
+            } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
+                const correctBadge = isCorrect === true ? '<span class="badge bg-success">✅ Đúng</span>'
+                    : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
+                        : '<span class="badge bg-secondary">Chưa rõ</span>';
+                answerBlock = `
             <div class="p-3 bg-light rounded-3 mb-3">
                 <h6 class="fw-bold text-muted mb-2">Kết quả tự động:</h6>
                 ${correctBadge}
             </div>`;
-        }
+            }
 
-        // Grading input (only for WRITING/SPEAKING)
-        let inputBlock = '';
-        if (isManual) {
-            inputBlock = `
+            // Grading input (only for WRITING/SPEAKING)
+            let inputBlock = '';
+            if (isManual) {
+                inputBlock = `
             <div class="bg-success bg-opacity-10 p-4 rounded-3 grading-box" data-qid="${q.questionId}">
                 <label class="form-label fw-bold text-success">
-                    ${isGraded ? 'Điểm đã chấm:' : 'Chấm điểm thủ công (Tối đa: ' + q.points + ' điểm)'}
+                    ${isGraded ? 'Điểm đã chấm:' : 'Chấm điểm thủ công (Tối đa: ' + fmtNum(q.points) + ' điểm)'}
                 </label>
                 <input type="number" class="form-control score-input border-success d-inline-block"
                        style="max-width:120px" min="0" max="${q.points}" value="${scoreVal}" step="0.5"
@@ -275,22 +298,22 @@
                            ${isGraded ? 'readonly' : ''}>
                 </div>
             </div>`;
-        } else {
-            inputBlock = `
+            } else {
+                inputBlock = `
             <div class="grading-box" data-qid="${q.questionId}">
                 <input type="number" class="form-control d-none score-input" min="0" max="${q.points}" value="${scoreVal}">
                 <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">
-                    ${isCorrect ? '✅' : '❌'} — ${scoreVal} / ${q.points} điểm
+                    ${isCorrect ? '✅' : '❌'} — ${fmtNum(scoreVal)} / ${fmtNum(q.points)} điểm
                 </span>
             </div>`;
-        }
+            }
 
-        return `
+            return `
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="badge bg-secondary rounded-pill px-3 py-2 fw-medium text-uppercase">${q.skill}</span>
-                    <span class="badge bg-light text-dark border px-3 py-2 fw-medium">${q.points} Điểm</span>
+                    <span class="badge bg-light text-dark border px-3 py-2 fw-medium">${fmtNum(q.points)} Điểm</span>
                 </div>
                 <h5 class="fw-bold lh-base">
                     <span class="text-primary me-2">Câu ${qi + 1}:</span>
@@ -304,167 +327,168 @@
                 ${inputBlock}
             </div>
         </div>`;
-    }
-
-    // ── Submit Override ──────────────────────────────────────────────────────────
-    async function submitOverride(btn) {
-        const answerId = btn.getAttribute('data-answer-id');
-        const input = btn.closest('.override-input, div').querySelector('.override-input');
-        const score = input ? input.value.trim() : '';
-        if (!score || !answerId) {
-            alert('Vui lòng nhập điểm override.');
-            return;
         }
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        try {
-            const res = await fetch('/api/v1/teacher/quiz-results/override-score', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ answerId, score })
-            });
-            const data = await res.json();
-            if (data.status === 200) {
-                btn.innerHTML = '<i class="bi bi-check2"></i> Đã lưu!';
-                btn.classList.replace('btn-outline-danger', 'btn-success');
-                setTimeout(() => {
-                    btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
-                    btn.classList.replace('btn-success', 'btn-outline-danger');
-                    btn.disabled = false;
-                }, 2000);
-            } else {
-                alert(data.message || 'Lỗi khi lưu override');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
+
+        // ── Submit Override ──────────────────────────────────────────────────────────
+        async function submitOverride(btn) {
+            const answerId = btn.getAttribute('data-answer-id');
+            const input = btn.closest('.override-input, div').querySelector('.override-input');
+            const score = input ? input.value.trim() : '';
+            if (!score || !answerId) {
+                alert('Vui lòng nhập điểm override.');
+                return;
             }
-        } catch(e) {
-            alert('Lỗi kết nối!');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
-        }
-    }
-
-    // ── Rubric render ─────────────────────────────────────────────────────────────
-    function bandColor(score) {
-        if (score <= 4) return '#dc3545';
-        if (score <= 6) return '#ffc107';
-        return '#198754';
-    }
-
-    function bandColorCss(score) {
-        if (score <= 4) return 'bg-danger';
-        if (score <= 6) return 'bg-warning text-dark';
-        return 'bg-success';
-    }
-
-    var CRITERION_LABELS = {
-        'task_achievement': '📝 Task Achievement',
-        'lexical_resource': '📖 Lexical Resource',
-        'grammatical_range': '🔤 Grammatical Range & Accuracy',
-        'coherence_cohesion':'🔗 Coherence & Cohesion',
-        'fluency_cohesion': '🎤 Fluency & Coherence',
-        'pronunciation': '🔊 Pronunciation'
-    };
-
-    function renderRubric(container, isTeacher) {
-        var rubricJson = container.getAttribute('data-rubric');
-        if (!rubricJson) return;
-        try {
-            // Giải mã JSON an toàn (Bản fix của bạn hoạt động ở đây)
-            var rubric = JSON.parse(decodeURIComponent(rubricJson));
-        } catch(e) {
-            container.innerHTML = '<pre class="small text-muted">Không thể đọc chi tiết Rubric</pre>';
-            return;
-        }
-        var isNewFormat = rubric && typeof rubric === 'object' &&
-            Object.values(rubric).some(function(v) { return v && typeof v === 'object' && v.score !== undefined; });
-        if (!isNewFormat) {
-            container.innerHTML = '<pre class="small text-muted">Dữ liệu Rubric không hợp lệ</pre>';
-            return;
-        }
-
-        var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
-        html += '<thead><tr class="small text-muted">' +
-            '<th style="width:35%">Tiêu chí</th>' +
-            '<th style="width:15%">Band</th>' +
-            '<th style="width:40%">Progress</th>' +
-            '<th style="width:10%">Điểm</th></tr></thead><tbody>';
-
-        for (var key in rubric) {
-            var c = rubric[key];
-            if (!c || typeof c.score === 'undefined') continue;
-            var label = CRITERION_LABELS[key] || key;
-            var pct = Math.round((c.score / c.max) * 100);
-            var color = bandColor(c.score);
-            var colorCls = bandColorCss(c.score);
-            var bandDisp = c.bandLabel || (c.score % 1 === 0 ? String(c.score) : c.score.toFixed(1));
-
-            html += '<tr>' +
-                '<td><span class="small fw-semibold">' + label + '</span><br>' +
-                '<span class="text-muted" style="font-size:0.7rem;font-style:italic">' + (c.bandDescription || '') + '</span></td>' +
-                '<td><span class="badge ' + colorCls + '">' + bandDisp + '</span></td>' +
-                '<td><div class="progress" style="height:10px">' +
-                '<div class="progress-bar" role="progressbar" style="width:' + pct + '%;background-color:' + color + '"></div></div></td>' +
-                '<td><span class="small fw-bold">' + c.score + '/' + c.max + '</span></td></tr>';
-        }
-        html += '</tbody></table></div>';
-
-        if (isTeacher) {
-            for (var key in rubric) {
-                var c = rubric[key];
-                if (!c || !c.aiReasoning) continue;
-                var label = CRITERION_LABELS[key] || key;
-                html += '<div class="mt-2 p-2 bg-light rounded small text-secondary">' +
-                    '<strong>💡 ' + label + ':</strong> ' + c.aiReasoning + '</div>';
-            }
-        }
-        container.innerHTML = html;
-    }
-
-    // ── Submit ───────────────────────────────────────────────────────────────────
-    const submitBtn = document.getElementById('submitGradesBtn');
-    if (submitBtn) {
-        submitBtn.addEventListener('click', async () => {
-            const gradingItems = [];
-            document.querySelectorAll('.grading-box').forEach(box => {
-                const qId = parseInt(box.getAttribute('data-qid'));
-                const scoreInput = box.querySelector('.score-input');
-                const noteInput = box.querySelector('.note-input');
-                if (scoreInput) {
-                    gradingItems.push({
-                        questionId: qId,
-                        pointsAwarded: parseFloat(scoreInput.value) || 0,
-                        teacherNote: noteInput ? (noteInput.value || '') : ''
-                    });
-                }
-            });
-
-            const btn = document.getElementById('submitGradesBtn');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
             btn.disabled = true;
-
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             try {
-                const res = await fetch(`/api/v1/teacher/quiz-results/${resultId}/grade-extended`, {
+                const res = await fetch('/api/v1/teacher/quiz-results/override-score', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gradingItems, skillScores: null, overallNote: '' })
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ answerId, score })
                 });
                 const data = await res.json();
                 if (data.status === 200) {
-                    alert('Chấm điểm thành công!');
-                    window.location.href = '/teacher/workspace?tab=graded';
+                    btn.innerHTML = '<i class="bi bi-check2"></i> Đã lưu!';
+                    btn.classList.replace('btn-outline-danger', 'btn-success');
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
+                        btn.classList.replace('btn-success', 'btn-outline-danger');
+                        btn.disabled = false;
+                    }, 2000);
                 } else {
-                    alert(data.message || 'Có lỗi xảy ra!');
+                    alert(data.message || 'Lỗi khi lưu override');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
                 }
-            } catch(e) {
-                alert('Lỗi kết nối máy chủ!');
-            } finally {
-                btn.innerHTML = 'Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>';
+            } catch (e) {
+                alert('Lỗi kết nối!');
                 btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
             }
-        });
-    }
-</script>
+        }
+
+        // ── Rubric render ─────────────────────────────────────────────────────────────
+        function bandColor(score) {
+            if (score <= 4) return '#dc3545';
+            if (score <= 6) return '#ffc107';
+            return '#198754';
+        }
+
+        function bandColorCss(score) {
+            if (score <= 4) return 'bg-danger';
+            if (score <= 6) return 'bg-warning text-dark';
+            return 'bg-success';
+        }
+
+        var CRITERION_LABELS = {
+            'task_achievement': '📝 Task Achievement',
+            'lexical_resource': '📖 Lexical Resource',
+            'grammatical_range': '🔤 Grammatical Range & Accuracy',
+            'coherence_cohesion': '🔗 Coherence & Cohesion',
+            'fluency_cohesion': '🎤 Fluency & Coherence',
+            'pronunciation': '🔊 Pronunciation'
+        };
+
+        function renderRubric(container, isTeacher) {
+            var rubricJson = container.getAttribute('data-rubric');
+            if (!rubricJson) return;
+            try {
+                // Giải mã JSON an toàn (Bản fix của bạn hoạt động ở đây)
+                var rubric = JSON.parse(decodeURIComponent(rubricJson));
+            } catch (e) {
+                container.innerHTML = '<pre class="small text-muted">Không thể đọc chi tiết Rubric</pre>';
+                return;
+            }
+            var isNewFormat = rubric && typeof rubric === 'object' &&
+                Object.values(rubric).some(function (v) { return v && typeof v === 'object' && v.score !== undefined; });
+            if (!isNewFormat) {
+                container.innerHTML = '<pre class="small text-muted">Dữ liệu Rubric không hợp lệ</pre>';
+                return;
+            }
+
+            var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
+            html += '<thead><tr class="small text-muted">' +
+                '<th style="width:35%">Tiêu chí</th>' +
+                '<th style="width:15%">Band</th>' +
+                '<th style="width:40%">Progress</th>' +
+                '<th style="width:10%">Điểm</th></tr></thead><tbody>';
+
+            for (var key in rubric) {
+                var c = rubric[key];
+                if (!c || typeof c.score === 'undefined') continue;
+                var label = CRITERION_LABELS[key] || key;
+                var pct = Math.round((c.score / c.max) * 100);
+                var color = bandColor(c.score);
+                var colorCls = bandColorCss(c.score);
+                var bandDisp = c.bandLabel || (c.score % 1 === 0 ? String(c.score) : c.score.toFixed(1));
+
+                html += '<tr>' +
+                    '<td><span class="small fw-semibold">' + label + '</span><br>' +
+                    '<span class="text-muted" style="font-size:0.7rem;font-style:italic">' + (c.bandDescription || '') + '</span></td>' +
+                    '<td><span class="badge ' + colorCls + '">' + bandDisp + '</span></td>' +
+                    '<td><div class="progress" style="height:10px">' +
+                    '<div class="progress-bar" role="progressbar" style="width:' + pct + '%;background-color:' + color + '"></div></div></td>' +
+                    '<td><span class="small fw-bold">' + c.score + '/' + c.max + '</span></td></tr>';
+            }
+            html += '</tbody></table></div>';
+
+            if (isTeacher) {
+                for (var key in rubric) {
+                    var c = rubric[key];
+                    if (!c || !c.aiReasoning) continue;
+                    var label = CRITERION_LABELS[key] || key;
+                    html += '<div class="mt-2 p-2 bg-light rounded small text-secondary">' +
+                        '<strong>💡 ' + label + ':</strong> ' + c.aiReasoning + '</div>';
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        // ── Submit ───────────────────────────────────────────────────────────────────
+        const submitBtn = document.getElementById('submitGradesBtn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async () => {
+                const gradingItems = [];
+                document.querySelectorAll('.grading-box').forEach(box => {
+                    const qId = parseInt(box.getAttribute('data-qid'));
+                    const scoreInput = box.querySelector('.score-input');
+                    const noteInput = box.querySelector('.note-input');
+                    if (scoreInput) {
+                        gradingItems.push({
+                            questionId: qId,
+                            pointsAwarded: parseFloat(scoreInput.value) || 0,
+                            teacherNote: noteInput ? (noteInput.value || '') : ''
+                        });
+                    }
+                });
+
+                const btn = document.getElementById('submitGradesBtn');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch(`/api/v1/teacher/quiz-results/${resultId}/grade-extended`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ gradingItems, skillScores: null, overallNote: '' })
+                    });
+                    const data = await res.json();
+                    if (data.status === 200) {
+                        alert('Chấm điểm thành công!');
+                        window.location.href = '/teacher/workspace?tab=graded';
+                    } else {
+                        alert(data.message || 'Có lỗi xảy ra!');
+                    }
+                } catch (e) {
+                    alert('Lỗi kết nối máy chủ!');
+                } finally {
+                    btn.innerHTML = 'Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>';
+                    btn.disabled = false;
+                }
+            });
+        }
+    </script>
 
 </body>
+
 </html>

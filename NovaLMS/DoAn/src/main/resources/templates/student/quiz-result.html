@@ -142,10 +142,12 @@
             <div th:if="${result.passed != null}">
                <div class="score-glass">
                  <div class="score-display">
-                   <span th:text="${result.correctRate}"></span>%
+                   <span th:if="${result.overallBand != null}" th:text="'Band ' + ${#numbers.formatDecimal(result.overallBand, 1, 1)}"></span>
+                   <span th:if="${result.overallBand == null}" th:text="${result.correctRate} + '%'"></span>
                  </div>
                  <p class="text-secondary fw-bold mb-3 fs-5">
-                   <span th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span> Điểm
+                   <span th:text="${result.score}"></span> / <span th:text="${result.totalPoints}"></span> Points 
+                   <span th:if="${result.overallBand != null}" th:text="'(' + ${result.correctRate} + '%)'"></span>
                  </p>
                  <div class="badge status-badge mb-0" 
                       th:classappend="${result.passed ? 'bg-success text-white' : 'bg-danger text-white'}" 
@@ -407,7 +409,7 @@
                 if (allDone) location.reload();
             })
             .catch(function() {});
-    }, 15000);
+    }, 3000);
 })();
 </script>
 

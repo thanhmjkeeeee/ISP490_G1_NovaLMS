@@ -48,10 +48,11 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH c.teacher " +
            "WHERE (qr.passed IS NULL OR qr.status = 'LOCKED') " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
-           "AND (:classId IS NULL OR (c.classId = :classId AND reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
+           "AND (:classId IS NULL OR (reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
-           "     OR c.teacher.email = :email " +
-           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
+           "     OR (q.clazz IS NOT NULL AND q.clazz.teacher.email = :email) " +
+           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email) " +
+           "     OR EXISTS (SELECT 1 FROM Lesson l JOIN l.module m WHERE l.lessonId = q.lesson.lessonId AND m.course.courseId = reg.clazz.course.courseId)) " +
            "ORDER BY COALESCE(qr.submittedAt, qr.startedAt) ASC")
     Page<QuizResult> findPendingGradingForTeacher(
             @org.springframework.data.repository.query.Param("email") String email,
@@ -68,10 +69,11 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH c.teacher " +
            "WHERE qr.passed IS NOT NULL " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
-           "AND (:classId IS NULL OR (c.classId = :classId AND reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
+           "AND (:classId IS NULL OR (reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
-           "     OR c.teacher.email = :email " +
-           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email)) " +
+           "     OR (q.clazz IS NOT NULL AND q.clazz.teacher.email = :email) " +
+           "     OR EXISTS (SELECT 1 FROM Clazz tc WHERE tc.course = q.course AND tc.teacher.email = :email) " +
+           "     OR EXISTS (SELECT 1 FROM Lesson l JOIN l.module m WHERE l.lessonId = q.lesson.lessonId AND m.course.courseId = reg.clazz.course.courseId)) " +
            "ORDER BY qr.submittedAt DESC")
     Page<QuizResult> findGradedForTeacher(
             @org.springframework.data.repository.query.Param("email") String email,

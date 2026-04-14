@@ -13,12 +13,6 @@ public class ManagerViewController {
 
 
 
-    @GetMapping({"/reschedule", "/reschedule/list"})
-    public String viewReschedule(Model model) {
-        model.addAttribute("pageTitle", "Duyệt Đổi Lịch");
-        model.addAttribute("isDashboard", true);
-        return "manager/reschedule-list";
-    }
 
     @GetMapping("/registrations/pending")
     public String viewPendingRegistrations(Model model) {

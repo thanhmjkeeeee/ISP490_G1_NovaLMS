@@ -68,6 +68,53 @@
     .pulse-animation { animation: pulse-soft 2s infinite ease-in-out; }
     
     .modal-backdrop.show { opacity: 0.7; backdrop-filter: blur(4px); }
+
+    /* AI Modal Premium Selectors */
+    .ai-selector-group .btn-check + .btn {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #64748b;
+        transition: all 0.2s ease;
+        padding: 10px 15px;
+        font-weight: 500;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        min-width: 80px;
+    }
+    .ai-selector-group .btn-check:checked + .btn {
+        border-color: #0d6efd;
+        background: rgba(13, 110, 253, 0.05);
+        color: #0d6efd;
+        box-shadow: 0 0 0 1px #0d6efd;
+        font-weight: 700;
+    }
+    .ai-selector-group .btn-check:checked + .btn i {
+        color: #0d6efd;
+    }
+    .ai-selector-group .btn-check + .btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    /* Type Pills Contrast Fix */
+    #adv-types .btn-check + .btn {
+        border-color: #dee2e6;
+        background: #fff;
+        color: #475569;
+        font-weight: 500;
+    }
+    #adv-types .btn-check:checked + .btn {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
+    }
+
+    /* Range Slider Styling */
+    .form-range::-webkit-slider-thumb { background: #0d6efd; }
+    .form-range::-moz-range-thumb { background: #0d6efd; }
 </style>
 
 <main class="dash-main" id="dashMain">
@@ -742,25 +789,56 @@
                             <label class="form-label small fw-bold">Chủ đề (Topic) <span class="text-danger">*</span></label>
                             <input type="text" class="form-control rounded-3" id="adv-topic" placeholder="VD: Present Perfect, Workplace Communication...">
                         </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
                                 <label class="form-label small fw-bold">Kỹ năng</label>
-                                <select class="form-select rounded-3" id="adv-skill" onchange="toggleAiAdvancedFields()">
-                                    <option value="READING">Reading</option>
-                                    <option value="LISTENING">Listening</option>
-                                    <option value="WRITING">Writing</option>
-                                    <option value="SPEAKING">Speaking</option>
-                                </select>
+                                <div class="ai-selector-group d-flex gap-2" id="skill-selector">
+                                    <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-reading" value="READING" checked onchange="updateAdvSkill(this.value)">
+                                    <label class="btn rounded-4 py-3 shadow-none flex-grow-1" for="skill-reading">
+                                        <i class="bi bi-book fs-4"></i>
+                                        <span class="small mt-1">Reading</span>
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-listening" value="LISTENING" onchange="updateAdvSkill(this.value)">
+                                    <label class="btn rounded-4 py-3 shadow-none flex-grow-1" for="skill-listening">
+                                        <i class="bi bi-headphones fs-4"></i>
+                                        <span class="small mt-1">Listening</span>
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-writing" value="WRITING" onchange="updateAdvSkill(this.value)">
+                                    <label class="btn rounded-4 py-3 shadow-none flex-grow-1" for="skill-writing">
+                                        <i class="bi bi-pencil-square fs-4"></i>
+                                        <span class="small mt-1">Writing</span>
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-speaking" value="SPEAKING" onchange="updateAdvSkill(this.value)">
+                                    <label class="btn rounded-4 py-3 shadow-none flex-grow-1" for="skill-speaking">
+                                        <i class="bi bi-mic fs-4"></i>
+                                        <span class="small mt-1">Speaking</span>
+                                    </label>
+                                </div>
+                                <input type="hidden" id="adv-skill" value="READING">
                             </div>
-                            <div class="col-6">
+
+                            <div class="col-12">
                                 <label class="form-label small fw-bold">Trình độ CEFR</label>
-                                <select class="form-select rounded-3" id="adv-cefr">
-                                    <option value="A1">A1 - Beginner</option>
-                                    <option value="A2">A2 - Elementary</option>
-                                    <option value="B1" selected>B1 - Intermediate</option>
-                                    <option value="B2">B2 - Upper Intermediate</option>
-                                    <option value="C1">C1 - Advanced</option>
-                                </select>
+                                <div class="ai-selector-group d-flex flex-wrap gap-2" id="cefr-selector">
+                                    <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-a1" value="A1" onchange="updateAdvCefr(this.value)">
+                                    <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-a1">A1</label>
+                                    
+                                    <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-a2" value="A2" onchange="updateAdvCefr(this.value)">
+                                    <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-a2">A2</label>
+                                    
+                                    <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-b1" value="B1" checked onchange="updateAdvCefr(this.value)">
+                                    <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-b1">B1</label>
+                                    
+                                    <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-b2" value="B2" onchange="updateAdvCefr(this.value)">
+                                    <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-b2">B2</label>
+                                    
+                                    <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-c1" value="C1" onchange="updateAdvCefr(this.value)">
+                                    <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-c1">C1</label>
+                                </div>
+                                <input type="hidden" id="adv-cefr" value="B1">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -1153,11 +1231,9 @@
             if (json.status !== 200) return;
 
             document.getElementById('weekRangeLabel').textContent = `${json.data.weekStart} - ${json.data.weekEnd}`;
-
-            // Set dynamic dates for header
-            // json.data.weekStart is in "dd/MM" format
-            const [startD, startM] = json.data.weekStart.split('/').map(Number);
-            const baseDate = new Date(year, startM - 1, startD);
+            
+            // baseDate is now in yyyy-MM-dd format from API
+            const baseDate = new Date(json.data.weekStart);
 
             for (let d = 1; d <= 7; d++) {
                 const headDate = document.getElementById(`date-${d}`);
@@ -2128,6 +2204,15 @@
         aiGenModal.show();
     };
 
+    window.updateAdvSkill = function(val) {
+        document.getElementById('adv-skill').value = val;
+        toggleAiAdvancedFields();
+    };
+
+    window.updateAdvCefr = function(val) {
+        document.getElementById('adv-cefr').value = val;
+    };
+
     window.toggleAiAdvancedFields = function() {
         const skill = document.getElementById('adv-skill').value;
         const isMatchingChecked = document.getElementById('type-match').checked;
@@ -2773,16 +2858,19 @@
         let quizUrl = `/api/v1/teacher/quiz-results/graded?page=${page}&size=50&classId=${classId}`;
 
         try {
+            console.log("Loading graded results for class:", classId);
             const [assRes, quizRes] = await Promise.all([
                 fetch(assUrl).then(r => r.json()),
                 fetch(quizUrl).then(r => r.json())
             ]);
+            console.log("Graded API Response:", { assRes, quizRes });
 
             const uniqueMap = new Map();
 
             // Assignments
-            if (assRes.status === 200 && assRes.data && assRes.data.content) {
-                assRes.data.content.forEach(i => {
+            if (assRes.status === 200 && assRes.data && (assRes.data.content || assRes.data)) {
+                const list = assRes.data.content || (Array.isArray(assRes.data) ? assRes.data : []);
+                list.forEach(i => {
                     uniqueMap.set(i.resultId, {
                         ...i,
                         type: 'ASSIGNMENT',
@@ -2792,8 +2880,9 @@
             }
 
             // Quizzes
-            if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
-                quizRes.data.items.forEach(i => {
+            if (quizRes.status === 200 && quizRes.data && (quizRes.data.items || quizRes.data)) {
+                const list = quizRes.data.items || (Array.isArray(quizRes.data) ? quizRes.data : []);
+                list.forEach(i => {
                     if (!uniqueMap.has(i.resultId)) {
                         uniqueMap.set(i.resultId, {
                             resultId: i.resultId,
@@ -2801,7 +2890,7 @@
                             studentEmail: i.studentEmail,
                             quizTitle: i.quizTitle,
                             submittedAt: i.submittedAt || i.startedAt,
-                            totalScore: i.totalScore || i.score || 0,
+                            totalScore: (i.score !== undefined ? i.score : i.totalScore) || 0,
                             type: 'QUIZ',
                             badgeClass: 'bg-primary'
                         });
