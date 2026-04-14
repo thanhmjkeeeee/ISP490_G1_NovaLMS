@@ -2,6 +2,40 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head th:with="isDashboard=true">
   <th:block th:replace="~{fragments/head :: common-head(pageTitle='Thêm khóa học mới')}"></th:block>
+  <style>
+    .searchable-dropdown {
+      position: relative;
+    }
+    .dropdown-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 1050;
+      background: #fff;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      border-radius: 8px;
+      margin-top: 4px;
+    }
+    .dropdown-results.show {
+      display: block;
+    }
+    .dropdown-item {
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 0.9rem;
+    }
+    .dropdown-item:hover {
+      background-color: #f1f5f9;
+    }
+    .dropdown-item.active {
+      background-color: #3b82f6;
+      color: #fff;
+    }
+  </style>
 </head>
 <html class="dashboard-body">
 
@@ -43,9 +77,11 @@
 
               <div class="col-md-4">
                 <label class="form-label fw-bold small">Chương trình (Category) <span class="text-danger">*</span></label>
-                <select id="categoryId" class="form-select" required>
-                  <option value="">-- Chọn chương trình --</option>
-                </select>
+                <div class="searchable-dropdown" id="categoryContainer">
+                  <input type="text" id="categorySearch" class="form-control" placeholder="Tìm chương trình..." autocomplete="off">
+                  <input type="hidden" id="categoryId">
+                  <div class="dropdown-results shadow-sm border" id="categoryResults"></div>
+                </div>
                 <div id="categoryIdError" class="text-danger small mt-1"></div>
               </div>
 
@@ -58,9 +94,11 @@
 
               <div class="col-md-4">
                 <label class="form-label fw-bold small">Chuyên gia (Expert) <span class="text-danger">*</span></label>
-                <select id="expertId" class="form-select" required>
-                  <option value="">-- Chọn chuyên gia --</option>
-                </select>
+                <div class="searchable-dropdown" id="expertContainer">
+                  <input type="text" id="expertSearch" class="form-control" placeholder="Tìm chuyên gia..." autocomplete="off">
+                  <input type="hidden" id="expertId">
+                  <div class="dropdown-results shadow-sm border" id="expertResults"></div>
+                </div>
                 <div id="expertIdError" class="text-danger small mt-1"></div>
               </div>
 
@@ -167,19 +205,60 @@
     new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
   }
 
+  // Utility function for searchable dropdowns
+  function initializeSearchableDropdown(idPrefix, data, labelField, valueField) {
+    const searchInput = document.getElementById(idPrefix + 'Search');
+    const hiddenInput = document.getElementById(idPrefix + 'Id');
+    const resultsContainer = document.getElementById(idPrefix + 'Results');
+
+    function renderResults(filteredData) {
+      resultsContainer.innerHTML = '';
+      if (filteredData.length === 0) {
+        resultsContainer.innerHTML = '<div class="dropdown-item text-muted">Không tìm thấy kết quả</div>';
+      } else {
+        filteredData.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'dropdown-item';
+          div.textContent = item[labelField];
+          div.onclick = () => {
+            searchInput.value = item[labelField];
+            hiddenInput.value = item[valueField];
+            resultsContainer.classList.remove('show');
+          };
+          resultsContainer.appendChild(div);
+        });
+      }
+      resultsContainer.classList.add('show');
+    }
+
+    searchInput.addEventListener('focus', () => {
+      if (data && data.length > 0) renderResults(data);
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      const val = e.target.value.toLowerCase();
+      const filtered = data.filter(item => 
+        item[labelField].toLowerCase().includes(val)
+      );
+      renderResults(filtered);
+      // Clear ID if value doesn't match exactly? optional, but safer to let user select
+      // hiddenInput.value = ''; 
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
+        resultsContainer.classList.remove('show');
+      }
+    });
+  }
+
   async function loadCategories() {
     try {
       const res = await fetch('/api/settings?type=COURSE_CATEGORY');
       const result = await res.json();
-      const select = document.getElementById('categoryId');
-      select.innerHTML = '<option value="">-- Chọn chương trình --</option>';
       if (result.data) {
-        result.data.forEach(cat => {
-          const opt = document.createElement('option');
-          opt.value = cat.settingId;
-          opt.textContent = cat.name;
-          select.appendChild(opt);
-        });
+        window.allCategories = result.data;
+        initializeSearchableDropdown('category', result.data, 'name', 'settingId');
       }
     } catch (err) {
       console.error('Error loading categories:', err);
@@ -190,15 +269,14 @@
     try {
       const res = await fetch('/api/v1/accounts/experts');
       const result = await res.json();
-      const select = document.getElementById('expertId');
-      select.innerHTML = '<option value="">-- Chọn chuyên gia --</option>';
       if (result.data) {
-        result.data.forEach(expert => {
-          const opt = document.createElement('option');
-          opt.value = expert.userId;
-          opt.textContent = expert.fullName + ' (' + (expert.email || '') + ')';
-          select.appendChild(opt);
-        });
+        // Prepare label for experts (Name + Email)
+        const experts = result.data.map(exp => ({
+          ...exp,
+          displayName: exp.fullName + ' (' + (exp.email || '') + ')'
+        }));
+        window.allExperts = experts;
+        initializeSearchableDropdown('expert', experts, 'displayName', 'userId');
       }
     } catch (err) {
       console.error('Error loading experts:', err);
@@ -228,7 +306,12 @@
         bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
         await loadCategories();
         if (result.data && result.data.settingId) {
-          setTimeout(() => { document.getElementById('categoryId').value = result.data.settingId; }, 300);
+          // Update searchable input
+          const cat = window.allCategories.find(c => c.settingId == result.data.settingId);
+          if (cat) {
+            document.getElementById('categorySearch').value = cat.name;
+            document.getElementById('categoryId').value = cat.settingId;
+          }
         }
       } else {
         errorEl.textContent = result.message || 'Lỗi khi lưu.';
@@ -240,11 +323,10 @@
     }
   }
 
-  // Chờ dropdown có > 1 option (tức đã load xong), rồi chạy callback
-  function waitForDropdown(selectId, callback) {
-    const el = document.getElementById(selectId);
+  // Chờ data load xong (dùng cho edit mode)
+  function waitForData(globalVar, callback) {
     const check = () => {
-      if (el && el.options.length > 1) {
+      if (window[globalVar] && window[globalVar].length > 0) {
         callback();
       } else {
         setTimeout(check, 100);
@@ -291,15 +373,23 @@
               document.getElementById('numberOfSessions').value = course.numberOfSessions;
             }
 
-            // Chờ dropdowns load xong rồi set giá trị
+            // Chờ data load xong rồi set giá trị hiển thị cho search input
             if (course.categoryId) {
-              waitForDropdown('categoryId', () => {
-                document.getElementById('categoryId').value = course.categoryId;
+              waitForData('allCategories', () => {
+                const cat = window.allCategories.find(c => c.settingId == course.categoryId);
+                if (cat) {
+                  document.getElementById('categorySearch').value = cat.name;
+                  document.getElementById('categoryId').value = cat.settingId;
+                }
               });
             }
             if (course.expertId) {
-              waitForDropdown('expertId', () => {
-                document.getElementById('expertId').value = course.expertId;
+              waitForData('allExperts', () => {
+                const exp = window.allExperts.find(e => e.userId == course.expertId);
+                if (exp) {
+                  document.getElementById('expertSearch').value = exp.displayName;
+                  document.getElementById('expertId').value = exp.userId;
+                }
               });
             }
 
@@ -322,7 +412,9 @@
 
       const courseId = document.getElementById('courseId').value;
       const categoryId = document.getElementById('categoryId').value;
+      const categorySearch = document.getElementById('categorySearch').value;
       const expertId = document.getElementById('expertId').value;
+      const expertSearch = document.getElementById('expertSearch').value;
       const status = document.getElementById('status').value;
       const courseName = document.getElementById('courseName').value.trim();
       const price = parseFloat(document.getElementById('price').value);
@@ -348,13 +440,13 @@
         hasError = true;
       }
 
-      if (!categoryId) {
-        setError('categoryId', 'Vui lòng chọn chương trình.');
+      if (!categoryId || !categorySearch) {
+        setError('categoryId', 'Vui lòng chọn chương trình từ danh sách.');
         hasError = true;
       }
 
-      if (!expertId) {
-        setError('expertId', 'Vui lòng chọn chuyên gia.');
+      if (!expertId || !expertSearch) {
+        setError('expertId', 'Vui lòng chọn chuyên gia từ danh sách.');
         hasError = true;
       }
 
@@ -364,7 +456,7 @@
       }
 
       if (!avatar) {
-        setError('avatar', 'Vui lòng nhập Avatar URL.');
+        setError('avatar', 'Vui lòng tải lên ảnh đại diện.');
         hasError = true;
       }
 

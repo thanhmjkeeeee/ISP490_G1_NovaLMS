@@ -211,14 +211,6 @@ textarea.q-input { resize:vertical; min-height:110px; line-height:1.6; }
   background:transparent; cursor:pointer; transition:all .2s;
 }
 .btn-rec:hover,.btn-rec.recording { background:var(--danger); color:#fff; }
-.btn-upload-a {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:7px 14px; border-radius:50px;
-  font-size:.8rem; font-weight:700;
-  border:1.5px solid var(--border); color:var(--text-2);
-  background:transparent; cursor:pointer; transition:all .2s;
-}
-.btn-upload-a:hover { border-color:var(--accent); color:var(--accent); }
 .spk-status { font-size:.76rem; color:var(--text-3); }
 .spk-status.ok { color:var(--success); font-weight:600; }
 .spk-timer { font-family:'DM Mono',monospace; font-size:.82rem; color:var(--danger); }
@@ -665,11 +657,6 @@ function buildAnswer(q) {
                   onclick="toggleRec('${q.questionId}')">
             <i class="bi bi-mic"></i> Ghi âm
           </button>
-          <label class="btn-upload-a">
-            <i class="bi bi-upload"></i> Tải file
-            <input type="file" accept="audio/*" style="display:none"
-                   onchange="onAudioUpload(this,'${q.questionId}')">
-          </label>
           <span class="spk-timer" id="spkTimer_${q.questionId}"></span>
         </div>
         <div class="spk-status" id="spkSt_${q.questionId}">Chưa ghi âm</div>
@@ -728,6 +715,35 @@ function activateSkill(idx) {
   renderQGrid(idx);
   updateSidebar(idx);
   startTimer(skill.timeSecs, idx);
+  
+  /* Update submit button text and action based on whether it is the last section */
+  const isLast = idx >= ES.skills.length - 1;
+  document.querySelectorAll('.btn-submit').forEach(btn => {
+    if (isLast) {
+      btn.innerHTML = '<i class="bi bi-check2-circle"></i>NỘP BÀI';
+      btn.onclick = () => submitQuiz(false);
+      btn.style.background = 'var(--accent)';
+    } else {
+      btn.innerHTML = 'Tiếp tục <i class="bi bi-arrow-right-circle ms-1"></i>';
+      btn.onclick = async () => {
+        const unset = ES.skills[ES.currentIdx].questions.filter(q => !hasAns(q.questionId)).length;
+        if(unset > 0) {
+          const r = await Swal.fire({
+            title: 'Chưa hoàn thành',
+            text: `Bạn còn ${unset} câu chưa trả lời trong phần này. Chú ý: bạn sẽ KHÔNG THỂ quay lại phần này khi qua thẻ mới.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Vẫn chuyển',
+            cancelButtonText: 'Ở lại'
+          });
+          if(!r.isConfirmed) return;
+        }
+        goNextSkill();
+      };
+      btn.style.background = 'var(--success)';
+    }
+  });
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -896,10 +912,6 @@ function startSpeakTimer(secs, qid) {
     }
     r--;
   }, 1000);
-}
-
-async function onAudioUpload(input, qid) {
-  if (input.files[0]) await uploadAudio(input.files[0], qid);
 }
 
 async function uploadAudio(file, qid) {

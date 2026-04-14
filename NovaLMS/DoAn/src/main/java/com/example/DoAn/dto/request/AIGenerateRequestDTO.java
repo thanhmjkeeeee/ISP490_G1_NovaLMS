@@ -16,8 +16,7 @@ public class AIGenerateRequestDTO {
     private Integer moduleId;
 
     @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
-    @Max(value = 50, message = "Quantity cannot exceed 50")
+    @Max(value = 25, message = "Số lượng câu hỏi không được vượt quá 25 mỗi lần sinh để đảm bảo ổn định")
     private Integer quantity;
 
     private String skill;
@@ -28,6 +27,8 @@ public class AIGenerateRequestDTO {
 
     @Builder.Default
     private String mode = "NORMAL"; // "NORMAL" | "ADVANCED"
+
+    private java.util.Map<String, Object> advancedOptions;
 
     public boolean hasTopic() {
         return topic != null && !topic.isBlank();

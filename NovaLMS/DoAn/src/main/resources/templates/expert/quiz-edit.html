@@ -40,6 +40,15 @@
         .skill-status-card.missing { border-color: #f59e0b; background: #fffbeb; }
         .preview-icon-ok { font-size: 2.5rem; color: #10b981; }
         .preview-icon-warn { font-size: 2.5rem; color: #f59e0b; }
+
+        /* Animations */
+        @keyframes pulse-soft {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+        .pulse-animation { animation: pulse-soft 2s infinite ease-in-out; }
+        .modal-backdrop.show { opacity: 0.7; backdrop-filter: blur(4px); }
     </style>
 </head>
 <body class="dashboard-body">
@@ -99,6 +108,7 @@
                             <option value="COURSE_QUIZ">Bài kiểm tra khóa học (Course Quiz)</option>
                             <option value="COURSE_ASSIGNMENT">Bài tập lớn khóa học (Course Assignment)</option>
                             <option value="MODULE_QUIZ">Quiz Chương (Module Quiz)</option>
+                            <option value="MODULE_ASSIGNMENT">Bài tập lớn chương (Module Assignment)</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -237,6 +247,8 @@
         <div class="d-flex justify-content-end gap-3">
             <button type="button" class="btn btn-lg btn-light px-4 fw-bold"
                     style="border-radius:12px;" onclick="window.history.back()">Hủy</button>
+            <button type="button" class="btn btn-lg btn-outline-primary px-4 fw-bold"
+                    style="border-radius:12px;" onclick="doSaveDraft()">Lưu thay đổi</button>
             <button type="button" id="btnNextStep1" class="btn btn-lg text-white px-5 fw-bold"
                     style="background-color:#136ad5; border-radius:12px;" onclick="validateAndGoToStep2()">
                 Tiếp theo: Câu hỏi <i class="bi bi-arrow-right ms-2"></i>
@@ -264,8 +276,13 @@
                     </div>
                     <!-- Right: Question Bank Browser -->
                     <div class="col-md-7 p-0 bg-light bg-opacity-10 d-flex flex-column">
+                        <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">Ngân hàng câu hỏi</h5>
+                            <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="openAdvancedAiModal()">
+                                <i class="bi bi-robot me-1"></i> Sinh bằng AI
+                            </button>
+                        </div>
                         <div class="p-4 border-bottom bg-white">
-                            <h5 class="fw-bold mb-3">Ngân hàng câu hỏi</h5>
                             <!-- Filters for Bank -->
                             <div class="row g-2">
                                 <div class="col-md-4">
@@ -345,7 +362,8 @@
                 </div>
 
                 <div class="d-flex justify-content-center gap-3">
-                    <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại sửa</button>
+                    <button class="btn btn-lg btn-outline-secondary px-4" onclick="goToStep(2)">Quay lại sửa</button>
+                    <button class="btn btn-lg btn-outline-primary px-4 fw-bold" onclick="doSaveDraft()">Lưu thay đổi</button>
                     <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal" onclick="publishQuiz()">
                         <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
                     </button>
@@ -354,6 +372,136 @@
         </div>
     </div>
 
+    <!-- ── MODAL: ADVANCED AI GENERATOR ──────────────────────────────── -->
+    <div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="modal-header border-0 bg-primary bg-gradient text-white p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3 pulse-animation">
+                            <i class="bi bi-robot fs-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0">Advanced AI Question Generator</h5>
+                            <p class="small mb-0 text-white-50">Tạo câu hỏi chất lượng cao theo từng kỹ năng</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light bg-opacity-50">
+                    <div class="row g-4">
+                        <!-- Left: Core Info -->
+                        <div class="col-md-5">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                                <div class="card-body p-4">
+                                    <h6 class="fw-bold text-primary mb-3">Cài đặt chung</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Chủ đề (Topic)</label>
+                                        <input type="text" id="adv-topic" class="form-control" placeholder="E.g. Daily Life, Technology...">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Số lượng câu hỏi</label>
+                                        <input type="number" id="adv-qty" class="form-control" value="5" min="1" max="20">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Kỹ năng</label>
+                                        <select id="adv-skill" class="form-select" onchange="toggleAiAdvancedFields()">
+                                            <option value="LISTENING">Listening</option>
+                                            <option value="READING" selected>Reading</option>
+                                            <option value="WRITING">Writing</option>
+                                            <option value="SPEAKING">Speaking</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label small fw-bold">Độ khó (CEFR)</label>
+                                        <select id="adv-cefr" class="form-select">
+                                            <option value="A1">A1</option><option value="A2">A2</option>
+                                            <option value="B1" selected>B1</option><option value="B2">B2</option>
+                                            <option value="C1">C1</option><option value="C2">C2</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Skill Specific Details -->
+                        <div class="col-md-7">
+                            <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
+                                <div class="card-body p-4">
+                                    <h6 class="fw-bold text-primary mb-3">Tùy chọn chi tiết</h6>
+                                    
+                                    <div class="mb-4">
+                                        <label class="form-label small fw-bold mb-2">Loại câu hỏi muốn sinh</label>
+                                        <div id="adv-types" class="d-flex flex-wrap gap-2">
+                                            <div class="form-check bg-light border rounded-pill px-3 py-1">
+                                                <input class="form-check-input" type="checkbox" value="MULTIPLE_CHOICE_SINGLE" id="type-mcs" checked>
+                                                <label class="form-check-label small" for="type-mcs">Trắc nghiệm (1)</label>
+                                            </div>
+                                            <div class="form-check bg-light border rounded-pill px-3 py-1">
+                                                <input class="form-check-input" type="checkbox" value="MULTIPLE_CHOICE_MULTI" id="type-mcm">
+                                                <label class="form-check-label small" for="type-mcm">Trắc nghiệm (n)</label>
+                                            </div>
+                                            <div class="form-check bg-light border rounded-pill px-3 py-1">
+                                                <input class="form-check-input" type="checkbox" value="FILL_IN_BLANK" id="type-fib">
+                                                <label class="form-check-label small" for="type-fib">Điền từ</label>
+                                            </div>
+                                            <div class="form-check bg-light border rounded-pill px-3 py-1">
+                                                <input class="form-check-input" type="checkbox" value="MATCHING" id="type-match" onchange="toggleAiAdvancedFields()">
+                                                <label class="form-check-label small" for="type-match">Nối đáp án</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Listening Option -->
+                                    <div id="field-listening" class="mb-3" style="display:none;">
+                                        <label class="form-label small fw-bold">Scenario Type (Listening)</label>
+                                        <select id="adv-listen-type" class="form-select">
+                                            <option value="Dialogue">Dialogue (Hội thoại)</option>
+                                            <option value="Monologue">Monologue (Độc thoại)</option>
+                                            <option value="Announcement">Announcement (Thông báo)</option>
+                                            <option value="Radio/Podcast">Radio Host/Podcast</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Reading Option -->
+                                    <div id="field-reading" class="mb-3">
+                                        <label class="form-label small fw-bold mb-2">Độ dài đoạn văn (Reading Passage)</label>
+                                        <div class="d-flex gap-2">
+                                            <input type="radio" class="btn-check" name="adv-read-len" id="len-short" value="SHORT">
+                                            <label class="btn btn-sm btn-outline-secondary px-3" for="len-short">Ngắn (100-150 từ)</label>
+                                            
+                                            <input type="radio" class="btn-check" name="adv-read-len" id="len-med" value="MEDIUM" checked>
+                                            <label class="btn btn-sm btn-outline-secondary px-3" for="len-med">Vừa (200-300 từ)</label>
+                                            
+                                            <input type="radio" class="btn-check" name="adv-read-len" id="len-long" value="LONG">
+                                            <label class="btn btn-sm btn-outline-secondary px-3" for="len-long">Dài (400-600 từ)</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Matching Option -->
+                                    <div id="field-matching" class="mb-3" style="display:none;">
+                                        <label class="form-label small fw-bold">Số lượng cặp nối (Matching Pairs)</label>
+                                        <select id="adv-match-pairs" class="form-select">
+                                            <option value="3">3 cặp</option>
+                                            <option value="4" selected>4 cặp</option>
+                                            <option value="5">5 cặp</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" id="btn-run-ai" class="btn btn-primary rounded-pill px-5 fw-bold" onclick="runAdvancedAiGeneration()">
+                        <span id="ai-loading-spinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
+                        <i class="bi bi-stars me-1"></i> Bắt đầu sinh câu hỏi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
@@ -364,11 +512,21 @@
     let _currentCategory = null;
     let _quizData = null;
 
+    const wsToast = (msg, icon = 'success') => {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+        Toast.fire({ icon: icon, title: msg });
+    };
+
     // ─── STEPPER ─────────────────────────────────────────────────────────
     async function goToStep(step) {
         if (step > 1) {
-            const title = document.getElementById('title')?.value?.trim();
-            if (!title) { alert('Vui lòng nhập tên quiz trước.'); return; }
+            if (!validateStep1()) return;
         }
 
         document.querySelectorAll('.wizard-section').forEach(s => s.style.display = 'none');
@@ -377,6 +535,57 @@
 
         if (step === 2) initStep2();
         if (step === 3) initPreview();
+    }
+
+    function validateStep1() {
+        const title = document.getElementById('title')?.value?.trim();
+        if (!title) {
+            highlightField('title', true);
+            alert('Vui lòng nhập tên quiz trước.');
+            return false;
+        }
+        highlightField('title', false);
+
+        const cat = _currentCategory || document.getElementById('quizCategory').value;
+        if (cat === 'COURSE_ASSIGNMENT' || cat === 'MODULE_ASSIGNMENT') {
+            const deadline = document.getElementById('deadline')?.value;
+            if (!deadline) {
+                highlightField('deadline', true);
+                alert('Bài tập lớn (Assignment) bắt buộc phải có Deadline nộp bài.');
+                return false;
+            }
+            highlightField('deadline', false);
+
+            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+            let missingSkill = false;
+            skills.forEach(s => {
+                const el = document.getElementById('timeLimit_' + s);
+                if (!el?.value) {
+                    highlightField('timeLimit_' + s, true);
+                    missingSkill = true;
+                } else {
+                    highlightField('timeLimit_' + s, false);
+                }
+            });
+
+            if (missingSkill) {
+                alert('Vui lòng thiết lập thời gian cho tất cả 4 kỹ năng của Bài tập lớn.');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function highlightField(id, isError) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (isError) {
+            el.classList.add('is-invalid');
+            el.style.borderColor = '#dc3545';
+        } else {
+            el.classList.remove('is-invalid');
+            el.style.borderColor = '';
+        }
     }
 
     function updateStepperUI(currentStep) {
@@ -427,7 +636,7 @@
                 document.getElementById('attemptWarning').style.display = 'flex';
             }
 
-            if (q.quizCategory === 'COURSE_ASSIGNMENT') {
+            if (q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
                 document.getElementById('perSkillTimeSection').style.display = 'block';
                 document.getElementById('timeLimitMinutes').readOnly = true;
 
@@ -448,14 +657,14 @@
             }
 
             // Load assignment schedule fields
-            if (q.quizCategory === 'COURSE_ASSIGNMENT') {
+            if (q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
                 document.getElementById('openAt').value = q.openAt || '';
                 document.getElementById('closeAt').value = q.closeAt || '';
                 document.getElementById('deadline').value = q.deadline || '';
             }
 
             // Show course section for COURSE_QUIZ / COURSE_ASSIGNMENT
-            if (q.quizCategory === 'COURSE_QUIZ' || q.quizCategory === 'COURSE_ASSIGNMENT') {
+            if (q.quizCategory === 'COURSE_QUIZ' || q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
                 document.getElementById('courseSection').style.display = 'block';
             }
 
@@ -470,6 +679,109 @@
         } catch (e) { console.error(e); alert('Lỗi tải quiz.'); }
     }
 
+    // ─── AI GENERATION LOGIC ─────────────────────────────────────────────
+    let aiGenModal;
+
+    function openAdvancedAiModal() {
+        if (!aiGenModal) aiGenModal = new bootstrap.Modal('#aiGenerateModal');
+        
+        // Sync topic from quiz title if any
+        const currentTitle = document.getElementById('title')?.value || '';
+        document.getElementById('adv-topic').value = currentTitle;
+        
+        toggleAiAdvancedFields();
+        aiGenModal.show();
+    }
+
+    function toggleAiAdvancedFields() {
+        const skill = document.getElementById('adv-skill').value;
+        const isMatchingChecked = document.getElementById('type-match').checked;
+        
+        document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
+        document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
+        document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
+    }
+
+    async function runAdvancedAiGeneration() {
+        const topic = document.getElementById('adv-topic').value.trim();
+        const qty = parseInt(document.getElementById('adv-qty').value);
+        const skill = document.getElementById('adv-skill').value;
+        const cefr = document.getElementById('adv-cefr').value;
+        
+        if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
+        
+        const types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
+        if (types.length === 0) { alert('Vui lòng chọn ít nhất 1 loại câu hỏi.'); return; }
+
+        const advancedOptions = {};
+        if (skill === 'LISTENING') advancedOptions.listeningType = document.getElementById('adv-listen-type').value;
+        if (skill === 'READING') {
+            const readLen = document.querySelector('input[name="adv-read-len"]:checked')?.value;
+            advancedOptions.readingLength = readLen;
+        }
+        if (types.includes('MATCHING')) {
+            advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
+        }
+
+        const payload = {
+            topic,
+            quantity: qty,
+            skill,
+            cefrLevel: cefr,
+            questionTypes: types,
+            mode: "ADVANCED",
+            advancedOptions
+        };
+
+        const btn = document.getElementById('btn-run-ai');
+        const spinner = document.getElementById('ai-loading-spinner');
+        btn.disabled = true; spinner.style.display = 'inline-block';
+
+        try {
+            const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            
+            if (result.status === 200) {
+                // To simplify for the Expert view, we'll automatically import these into the current quiz
+                const newQuestions = result.data.questions || [];
+                if (newQuestions.length > 0) {
+                    await importAiQuestionsToQuiz(newQuestions);
+                    aiGenModal.hide();
+                    Swal.fire('Thành công', `Đã sinh và thêm ${newQuestions.length} câu hỏi vào đề thi.`, 'success');
+                }
+            } else {
+                alert(result.message || 'Lỗi sinh câu hỏi.');
+            }
+        } catch (e) { alert('Lỗi kết nối: ' + e.message); }
+        finally { btn.disabled = false; spinner.style.display = 'none'; }
+    }
+
+    async function importAiQuestionsToQuiz(questions) {
+        try {
+            const payload = {
+                quizId: parseInt(quizId),
+                questions: questions
+            };
+            
+            const res = await fetch(`/api/v1/teacher/quizzes/ai/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (result.status === 200) {
+                await loadQuizQuestions();
+            } else {
+                alert('Lỗi khi import câu hỏi: ' + (result.message || 'Unknown error'));
+            }
+        } catch (e) { 
+            console.error('Lỗi khi import:', e);
+            alert('Lỗi kết nối khi import câu hỏi AI.');
+        }
     // ─── VALIDATION ──────────────────────────────────────────────────────
 
     function validateAndGoToStep2() {
@@ -869,7 +1181,10 @@
 
     async function doSaveDraft() {
         const title = document.getElementById('title')?.value?.trim();
-        if (!title) { alert('Vui lòng nhập tên quiz.'); return; }
+        if (!title) {
+            Swal.fire('Chú ý', 'Vui lòng nhập tên quiz.', 'warning');
+            return;
+        }
 
         const body = buildUpdateBody();
         try {
@@ -880,12 +1195,14 @@
             });
             const result = await res.json();
             if (res.ok) {
-                alert('Đã lưu nháp!');
-                window.location.href = '/expert/quiz-management';
+                wsToast('Đã lưu thay đổi thành công!');
+                setTimeout(() => {
+                    window.location.href = '/expert/quiz-bank/course/' + (body.courseId || '');
+                }, 1000);
             } else {
-                alert(result.message || 'Có lỗi xảy ra.');
+                Swal.fire('Thất bại', result.message || 'Có lỗi xảy ra.', 'error');
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
+        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
     }
 
     async function saveAndGoToStep3() {

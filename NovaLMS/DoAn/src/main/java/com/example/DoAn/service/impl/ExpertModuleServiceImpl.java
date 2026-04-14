@@ -50,6 +50,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
                 .course(course)
                 .moduleName(request.getModuleName())
                 .orderIndex(orderIndex)
+                .cefrLevel(request.getCefrLevel())
                 .build();
 
         moduleRepository.save(module);
@@ -73,6 +74,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
 
         if (request.getModuleName() != null) module.setModuleName(request.getModuleName());
         if (request.getOrderIndex() != null) module.setOrderIndex(request.getOrderIndex());
+        if (request.getCefrLevel() != null) module.setCefrLevel(request.getCefrLevel());
 
         moduleRepository.save(module);
         return toResponseDTO(module);
@@ -152,6 +154,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
                 .orderIndex(module.getOrderIndex())
                 .lessonCount(lessonCount)
                 .questionCount(questionCount)
+                .cefrLevel(module.getCefrLevel())
                 .build();
     }
 

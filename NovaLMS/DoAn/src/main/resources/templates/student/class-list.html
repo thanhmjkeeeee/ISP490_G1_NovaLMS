@@ -147,9 +147,9 @@
         <div class="course-col" style="animation-delay:${i*70}ms">
           <div class="course-card" onclick="location.href='/student/my-classes/detail/${c.classId}'" style="cursor: pointer;">
             <div class="course-img-wrapper">
-              <img src="${c.courseImage || '/assets/img/course-placeholder.jpg'}"
-                   onerror="this.src='/assets/img/course-placeholder.jpg'"
-                   alt="${esc(c.className)}" loading="lazy">
+              <img src="${c.courseImage || '/assets/img/default-course.png'}"
+                   class="card-img-top course-image" alt="${esc(c.className)}"
+                   onerror="this.onerror=null;this.src='/assets/img/default-course.png'" loading="lazy">
               <span class="course-badge">
                 <i class="bi bi-tag-fill"></i>${c.status === 'Closed' ? 'Đã hoàn thành' : 'Đang học'}
               </span>

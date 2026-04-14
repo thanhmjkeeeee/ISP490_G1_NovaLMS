@@ -55,7 +55,9 @@
                         <div class="col-md-6 col-lg-4 mb-4">
                             <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 progress-card">
                                 <div class="position-relative">
-                                    <img src="${course.courseImage || '/assets/img/course-placeholder.jpg'}" class="card-img-top" style="height: 160px; object-fit: cover;" alt="${course.courseName}">
+                                    <img src="${course.courseImage || '/assets/img/default-course.png'}" 
+                                         class="card-img-top" style="height: 160px; object-fit: cover;" alt="${course.courseName}"
+                                         onerror="this.onerror=null;this.src='/assets/img/default-course.png'">
                                     <div class="position-absolute top-0 end-0 m-3">
                                         <span class="badge ${course.status === 'Hoàn thành' ? 'bg-success' : 'bg-primary'} rounded-pill px-3 shadow-sm">
                                             ${course.status}

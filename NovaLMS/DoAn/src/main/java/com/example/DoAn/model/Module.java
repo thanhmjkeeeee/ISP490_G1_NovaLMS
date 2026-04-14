@@ -41,4 +41,6 @@ public class Module {
     @OneToMany(mappedBy = "module", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<QuizAssignment> quizAssignments;
-}
+    @Column(name = "cefr_level")
+    private String cefrLevel;
+}

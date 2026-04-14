@@ -4,185 +4,189 @@
 <head th:with="isDashboard=true">
     <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý khóa học')}"></th:block>
     <style>
-        html, body, .dashboard-body {
-             height: auto !important;
-             overflow: visible !important;
-         }
+        html,
+        body,
+        .dashboard-body {
+            height: auto !important;
+            overflow: visible !important;
+        }
 
-         .dash-main {
-             height: auto !important;
-             min-height: 100vh !important;
-             overflow-y: visible !important;
-             padding-bottom: 5rem !important;
-             display: block !important;
-         }
+        .dash-main {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: visible !important;
+            padding-bottom: 5rem !important;
+            display: block !important;
+        }
 
 
-         .filter-section .form-control,
-         .filter-section .form-select,
-         .filter-section .input-group-text,
-         .filter-section .btn {
-             height: 40px !important;
-         }
+        .filter-section .form-control,
+        .filter-section .form-select,
+        .filter-section .input-group-text,
+        .filter-section .btn {
+            height: 40px !important;
+        }
 
-         .badge-active {
-             background-color: rgba(25, 135, 84, 0.1) !important;
-             color: #198754 !important;
-             border: 1px solid rgba(25, 135, 84, 0.2);
-         }
+        .badge-active {
+            background-color: rgba(25, 135, 84, 0.1) !important;
+            color: #198754 !important;
+            border: 1px solid rgba(25, 135, 84, 0.2);
+        }
     </style>
 </head>
 
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý khóa học', breadcrumb='Khóa học')}"></header>
+    <header th:replace="~{fragments/header :: dash-header(pageTitle='Quản lý khóa học', breadcrumb='Khóa học')}">
+    </header>
 
-<aside id="dashSidebar" class="dash-sidebar">
-    <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
-</aside>
+    <aside id="dashSidebar" class="dash-sidebar">
+        <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
+    </aside>
 
-<div id="dashOverlay" class="dash-overlay"></div>
+    <div id="dashOverlay" class="dash-overlay"></div>
 
-<main class="dash-main" id="dashMain">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold text-dark m-0">Course Management</h3>
-            <p class="text-muted small m-0">Manage courses, assign experts/managers & content.</p>
+    <main class="dash-main" id="dashMain">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold text-dark m-0">Quản lý khóa học</h3>
+                <p class="text-muted small m-0">Quản lý các khóa học, phân công chuyên gia/quản lý & nội dung.</p>
+            </div>
+            <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4"
+                style="background-color: #3b82f6; border: none;">
+                <i class="bi bi-plus-lg me-1"></i> Tạo khóa học mới
+            </a>
         </div>
-        <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4" style="background-color: #3b82f6; border: none;">
-            <i class="bi bi-plus-lg me-1"></i> Create New Course
-        </a>
-    </div>
 
-    <div class="card mb-4 border-0 shadow-sm filter-section">
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label small fw-bold text-secondary">Search</label>
-                    <div class="input-group">
-                    <span class="input-group-text border-end-0 text-muted">
-                        <i class="bi bi-search"></i>
-                    </span>
-                        <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Name, Code...">
+        <div class="card mb-4 border-0 shadow-sm filter-section">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-end-0 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="searchInput" class="form-control border-start-0 bg-light"
+                                placeholder="Tên, Mã khóa học...">
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Trạng thái</label>
+                        <select id="statusFilter" class="form-select bg-light">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active">Đang hoạt động</option>
+                            <option value="draft">Bản nháp</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="button" onclick="loadCourseData(0)"
+                            class="btn btn-primary w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center"
+                            style="background-color: #3b82f6; border: none;">
+                            <i class="bi bi-filter me-2"></i> Lọc dữ liệu
+                        </button>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="col-md-4">
-                    <label class="form-label small fw-bold text-secondary">Status</label>
-                    <select id="statusFilter" class="form-select bg-light">
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="draft">Draft</option>
-                    </select>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
+                                <th class="py-3 text-uppercase small text-muted">Thông tin khóa học</th>
+                                <th class="py-3 text-uppercase small text-muted">Chuyên gia</th>
+                                <th class="py-3 text-uppercase small text-muted">Học phí</th>
+                                <th class="py-3 text-uppercase small text-muted">Trạng thái</th>
+                                <th class="text-end pe-4 py-3 text-uppercase small text-muted">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="courseDataBody">
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                <div class="col-md-3">
-                    <button type="button" onclick="loadCourseData(0)" class="btn btn-primary w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center" style="background-color: #3b82f6; border: none;">
-                        <i class="bi bi-filter me-2"></i> Filter
-                    </button>
+            <div class="card-footer bg-white py-3 border-0">
+                <div class="d-flex justify-content-between align-items-center small text-muted">
+                    <span id="paginationInfo">Đang tải trang...</span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
-                        <th class="py-3 text-uppercase small text-muted">Course Info</th>
-                        <th class="py-3 text-uppercase small text-muted">Chuyên gia</th>
-                        <th class="py-3 text-uppercase small text-muted">Price</th>
-                        <th class="py-3 text-uppercase small text-muted">Status</th>
-                        <th class="text-end pe-4 py-3 text-uppercase small text-muted">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody id="courseDataBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
-        <div class="card-footer bg-white py-3 border-0">
-            <div class="d-flex justify-content-between align-items-center small text-muted">
-                <span id="paginationInfo">Showing page...</span>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0" id="paginationButtons"></ul>
-                </nav>
-            </div>
-        </div>
-    </div>
-</main>
-
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        loadCourseData(0);
-    });
-
-    // Hàm load dữ liệu chính
-    function loadCourseData(pageNo) {
-    const pageSize = 10;
-
-    // 1. Lấy giá trị từ các ô nhập liệu
-    const search = document.getElementById('searchInput').value;
-    const status = document.getElementById('statusFilter').value;
-
-    // 2. Xây dựng URL với Query Parameters (Khớp với Backend của bạn)
-    // Giả sử Backend nhận tham số: search và status
-    let url = `/api/v1/courses/list?pageNo=${pageNo}&pageSize=${pageSize}`;
-
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (status) url += `&status=${encodeURIComponent(status)}`;
-
-    const tbody = document.getElementById('courseDataBody');
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Loading...</td></tr>`;
-
-    fetch(url)
-        .then(response => response.json())
-        .then(res => {
-            if (res.status === 200) {
-                renderTable(res.data.items);
-                renderPagination(res.data.pageNo, res.data.totalPage);
-            } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
-            }
-        })
-        .catch(err => {
-            console.error("API Error:", err);
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Cannot connect to server</td></tr>`;
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadCourseData(0);
         });
-}
 
-// Thêm sự kiện nhấn "Enter" ở ô search để kích hoạt tìm kiếm luôn
-document.getElementById('searchInput').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        loadCourseData(0);
-    }
-});
+        // Hàm load dữ liệu chính
+        function loadCourseData(pageNo) {
+            const pageSize = 10;
 
-    // Hàm vẽ bảng
-    function renderTable(courses) {
-    const tbody = document.getElementById('courseDataBody');
-    if (!courses || courses.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> No courses found.</td></tr>`;
-        return;
-    }
+            // 1. Lấy giá trị từ các ô nhập liệu
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('statusFilter').value;
 
-    tbody.innerHTML = courses.map(course => {
-        // CHUYỂN HẾT VỀ CHỮ THƯỜNG ĐỂ SO SÁNH
-        const status = (course.status || 'draft').toLowerCase();
+            // 2. Xây dựng URL với Query Parameters (Khớp với Backend của bạn)
+            let url = `/api/v1/courses/list?pageNo=${pageNo}&pageSize=${pageSize}`;
 
-        // Xác định class màu sắc đồng nhất
-        let badgeClass = 'bg-warning bg-opacity-10 text-warning'; // Mặc định cho draft
-        if (status === 'active') {
-            badgeClass = 'bg-success bg-opacity-10 text-success';
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (status) url += `&status=${encodeURIComponent(status)}`;
+
+            const tbody = document.getElementById('courseDataBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status === 200) {
+                        renderTable(res.data.items);
+                        renderPagination(res.data.pageNo, res.data.totalPage);
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
+                    }
+                })
+                .catch(err => {
+                    console.error("API Error:", err);
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Không thể kết nối với máy chủ</td></tr>`;
+                });
         }
 
-        return `
+        // Thêm sự kiện nhấn "Enter" ở ô search để kích hoạt tìm kiếm luôn
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadCourseData(0);
+            }
+        });
+
+        // Hàm vẽ bảng
+        function renderTable(courses) {
+            const tbody = document.getElementById('courseDataBody');
+            if (!courses || courses.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> Không tìm thấy khóa học nào.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = courses.map(course => {
+                const status = (course.status || 'draft').toLowerCase();
+
+                let badgeClass = 'bg-warning bg-opacity-10 text-warning'; 
+                if (status === 'active') {
+                    badgeClass = 'bg-success bg-opacity-10 text-success';
+                }
+
+                return `
             <tr>
                 <td class="ps-4 text-muted small">#${course.courseId}</td>
                 <td>
@@ -191,8 +195,8 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                             <i class="bi bi-journal-code text-primary fs-5"></i>
                         </div>
                         <div>
-                            <div class="fw-bold text-dark">${course.courseName || 'No Name'}</div>
-                            <div class="small text-muted">Code: ${course.courseCode || 'N/A'}</div>
+                            <div class="fw-bold text-dark">${course.courseName || 'Chưa có tên'}</div>
+                            <div class="small text-muted">Mã: ${course.courseCode || 'N/A'}</div>
                         </div>
                     </div>
                 </td>
@@ -204,49 +208,50 @@ document.getElementById('searchInput').addEventListener('keypress', function (e)
                 <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
                 <td>
                     <span class="badge px-2 py-1 fw-bold text-uppercase ${badgeClass}" style="font-size: 10px;">
-                        ${status}
+                        ${status === 'active' ? 'Hoạt động' : 'Bản nháp'}
                     </span>
                 </td>
                 <td class="text-end pe-4">
-                    <a href="/admin/courses/detail/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="View">
+                    <a href="/admin/courses/details/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
                         <i class="bi bi-eye text-primary"></i>
                     </a>
                     ${(!course.registrationCount || course.registrationCount === 0)
-                        ? `<button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Delete">
+                        ? `<button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Xóa">
                                <i class="bi bi-trash text-danger"></i>
                            </button>`
                         : ''}
                 </td>
             </tr>
         `;
-    }).join('');
-}
-
-    // Hàm vẽ phân trang
-    function renderPagination(currentPage, totalPages) {
-        if (document.getElementById('paginationInfo')) {
-            document.getElementById('paginationInfo').innerText = `Page ${currentPage + 1} of ${totalPages || 1}`;
+            }).join('');
         }
-        NovaPagination.render('paginationButtons', totalPages, currentPage, 'loadCourseData');
-    }
 
-    // Hàm xóa khóa học (Kết nối với @DeleteMapping của bạn)
-    function deleteCourse(id) {
-        if (confirm("Are you sure you want to delete this course?")) {
-            fetch(`/api/v1/courses/${id}`, {
-                method: 'DELETE'
-            })
-            .then(response => {
-                if (response.ok || response.status === 204) {
-                    alert("Deleted successfully!");
-                    loadCourseData(0); // Load lại bảng
-                } else {
-                    alert("Delete failed!");
-                }
-            })
-            .catch(err => console.error("Error:", err));
+        // Hàm vẽ phân trang
+        function renderPagination(currentPage, totalPages) {
+            if (document.getElementById('paginationInfo')) {
+                document.getElementById('paginationInfo').innerText = `Trang ${currentPage + 1} / ${totalPages || 1}`;
+            }
+            NovaPagination.render('paginationButtons', totalPages, currentPage, 'loadCourseData');
         }
-    }
-</script>
+
+        // Hàm xóa khóa học
+        function deleteCourse(id) {
+            if (confirm("Bạn có chắc chắn muốn xóa khóa học này không?")) {
+                fetch(`/api/v1/courses/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => {
+                        if (response.ok || response.status === 204) {
+                            alert("Đã xóa thành công!");
+                            loadCourseData(0); 
+                        } else {
+                            alert("Xóa thất bại!");
+                        }
+                    })
+                    .catch(err => console.error("Error:", err));
+            }
+        }
+    </script>
 </body>
+
 </html>

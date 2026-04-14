@@ -12,7 +12,7 @@ public interface QuizResultService {
     Integer submitQuiz(Integer quizId, String email, Map<Integer, Object> answers);
     QuizResultDetailDTO getQuizResult(Integer resultId, String email);
 
-    PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category);
+    PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category, String keyword);
 
     PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size);
 
@@ -31,5 +31,9 @@ public interface QuizResultService {
     
     void requestUnlock(Integer resultId, String email, String reason);
     
+    
     PageResponse<QuizResultPendingDTO> getUnlockRequests(String email, Integer classId, int page, int size);
+
+    /** Recalculates total score, correct rate, skill bands, and overall IELTS band */
+    void recalculateQuizResult(Integer resultId);
 }

@@ -328,7 +328,7 @@ public class TeacherQuizService {
                     .explanation(request.getExplanation())
                     .audioUrl(request.getAudioUrl())
                     .imageUrl(request.getImageUrl())
-                    .status("PENDING_REVIEW")
+                    .status("DRAFT")
                     .source("TEACHER_PRIVATE")
                     .user(teacher)
                     .build();
@@ -434,12 +434,37 @@ public class TeacherQuizService {
                 return ResponseData.error(403, "Bạn không sở hữu câu hỏi này");
             }
 
-            if (!"PENDING_REVIEW".equals(question.getStatus())) {
-                return ResponseData.error(400, "Chỉ câu hỏi đang chờ duyệt mới có thể gửi duyệt");
+            if ("PUBLISHED".equals(question.getStatus())) {
+                return ResponseData.error(400, "Câu hỏi đã được duyệt rồi");
             }
 
-            // Status giữ nguyên PENDING_REVIEW, expert sẽ chuyển -> PUBLISHED
+            question.setStatus("PENDING_REVIEW");
+            questionRepository.save(question);
             return ResponseData.success("Đã gửi câu hỏi chờ duyệt", toTeacherQuestionDTO(question));
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    /**
+     * Gửi nhiều câu hỏi lên expert để duyệt.
+     */
+    @Transactional
+    public ResponseData<Void> submitQuestionsBatch(List<Integer> questionIds, String email) {
+        try {
+            User teacher = userRepository.findByEmail(email).orElse(null);
+            if (teacher == null) return ResponseData.error(401, "Unauthorized");
+
+            List<Question> questions = questionRepository.findAllById(questionIds);
+            for (Question q : questions) {
+                if (q.getUser() != null && q.getUser().getUserId().equals(teacher.getUserId())) {
+                    if ("DRAFT".equals(q.getStatus())) {
+                        q.setStatus("PENDING_REVIEW");
+                    }
+                }
+            }
+            questionRepository.saveAll(questions);
+            return ResponseData.success("Đã gửi " + questions.size() + " câu hỏi chờ duyệt");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -473,6 +498,9 @@ public class TeacherQuizService {
                                 .build())
                         .collect(Collectors.toList());
 
+                Integer groupId = q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupId() : null;
+                String groupContent = q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupContent() : null;
+
                 return QuestionBankSimpleDTO.builder()
                         .questionId(q.getQuestionId())
                         .content(q.getContent())
@@ -481,6 +509,8 @@ public class TeacherQuizService {
                         .cefrLevel(q.getCefrLevel())
                         .topic(q.getTopic())
                         .status(q.getStatus())
+                        .groupId(groupId)
+                        .groupContent(groupContent)
                         .options(optDTOs)
                         .build();
             }).collect(Collectors.toList());
@@ -758,6 +788,8 @@ public class TeacherQuizService {
         private String cefrLevel;
         private String topic;
         private String status;
+        private Integer groupId;
+        private String groupContent;
         private List<AnswerOptionSimpleDTO> options;
 
         @lombok.Data
@@ -821,7 +853,7 @@ public class TeacherQuizService {
                         .explanation(q.getExplanation())
                         .audioUrl(q.getAudioUrl())
                         .imageUrl(q.getImageUrl())
-                        .status("PENDING_REVIEW")
+                        .status("DRAFT")
                         .source("TEACHER_PRIVATE")
                         .user(teacher)
                         .build();

@@ -48,7 +48,7 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm rounded-4 text-center py-3 bg-danger bg-opacity-10">
                 <div class="card-body p-0">
-                    <div class="text-muted small">Bị từ chối</div>
+                    <div class="text-muted small">Nháp / Bị từ chối</div>
                     <div class="fw-bold fs-4 text-danger" id="count-draft">…</div>
                 </div>
             </div>
@@ -76,7 +76,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" data-status="DRAFT" data-bs-toggle="tab" type="button">
-                        ✗ Bị từ chối
+                        ✗ Nháp / Từ chối
                     </button>
                 </li>
             </ul>
@@ -210,7 +210,7 @@ function buildCard(q) {
         badgeClass = 'bg-warning text-dark';
         statusIcon = '⏳';
     } else if (q.status === 'DRAFT') {
-        badge      = 'Bị từ chối';
+        badge      = 'Nháp / Từ chối';
         badgeClass = 'bg-danger';
         statusIcon = '✗';
     } else {
@@ -286,9 +286,44 @@ function buildCard(q) {
                     </div>
                     ${reviewMeta}
                 </div>
+                <div class="ms-auto">
+                    ${q.status === 'DRAFT' ? `
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="submitForReview(${q.questionId})">
+                            <i class="bi bi-send me-1"></i> Gửi phê duyệt
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         </div>
     </div>`;
+}
+
+// ─── Actions ────────────────────────────────────────────────────────
+async function submitForReview(id) {
+    const result = await Swal.fire({
+        title: 'Xác nhận gửi?',
+        text: 'Câu hỏi sẽ được gửi lên Expert để kiểm duyệt trước khi đưa vào Bank.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Gửi ngay',
+        cancelButtonText: 'Để sau'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const resp = await fetch(`/api/v1/teacher/quizzes/questions/${id}/submit`, { method: 'POST' });
+        const json = await resp.json();
+        if (json.status === 200) {
+            Swal.fire('Thành công', 'Câu hỏi đã được gửi đi!', 'success');
+            loadSummary();
+            loadQuestions(currentPage);
+        } else {
+            Swal.fire('Thất bại', json.message || 'Lỗi khi gửi', 'error');
+        }
+    } catch (e) {
+        Swal.fire('Lỗi kết nối', e.message, 'error');
+    }
 }
 
 function renderPagination(pageData) {

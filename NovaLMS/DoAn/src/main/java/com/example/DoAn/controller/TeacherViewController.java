@@ -332,11 +332,12 @@ public class TeacherViewController {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("year", year);
         result.put("week", week);
-        result.put("weekStart", weekStart.format(dateFmt));
-        result.put("weekEnd", weekEnd.minusDays(1).format(dateFmt));
+        DateTimeFormatter isoFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        result.put("weekStart", weekStart.format(isoFmt));
+        result.put("weekEnd", weekEnd.minusDays(1).format(isoFmt));
         result.put("grid", grid);
 
-        return ResponseData.success("Timetable", result);
+        return ResponseData.success("Timetable loaded", result);
     }
 
     @GetMapping("/api/session/{sessionId}/detail")
@@ -494,20 +495,14 @@ public class TeacherViewController {
     }
 
     private int getSlotIndex(String startTime) {
-        if (startTime == null || startTime.length() < 5) return 6;
-        int hour;
-        try {
-            hour = Integer.parseInt(startTime.substring(0, 2));
-        } catch (NumberFormatException e) {
-            return 6;
-        }
-        if (hour >= 7 && hour < 9) return 1;
-        if (hour >= 9 && hour < 11) return 2;
-        if (hour >= 13 && hour < 15) return 3;
-        if (hour >= 15 && hour < 17) return 4;
-        if (hour >= 18 && hour < 20) return 5;
-        if (hour < 7) return 0;
-        return Math.min(12, hour - 7 + 1);
+        if (startTime == null || startTime.length() < 5) return 0;
+        String time = startTime.substring(0, 5); // Take "HH:mm"
+        if ("08:00".equals(time)) return 1;
+        if ("10:00".equals(time)) return 2;
+        if ("13:00".equals(time)) return 3;
+        if ("15:00".equals(time)) return 4;
+        if ("18:00".equals(time)) return 5;
+        return 0;
     }
 
     private Integer getTeacherId(Principal principal) {
