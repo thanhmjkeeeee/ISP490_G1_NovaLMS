@@ -88,7 +88,6 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/public/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/files/preview")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/payment/webhook")).permitAll()
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/admin/debug/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated()
 
                         // Phân quyền cứng

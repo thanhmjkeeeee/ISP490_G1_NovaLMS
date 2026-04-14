@@ -1,6 +1,6 @@
 -- NOVA LMS COMPREHENSIVE DATA SEED SCRIPT (v2)
 -- Password for all accounts: 123456
--- BCrypt Hash: $2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.
+-- BCrypt Hash: $2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi
 
 -- CREATE DATABASE IF NOT EXISTS nova_1;
 -- USE nova_1;
@@ -61,40 +61,40 @@ INSERT INTO ai_prompt_config (id, bucket, bloom_instruction, grammar_focus, skil
 
 -- 3. SEED USERS (70 Accounts)
 INSERT INTO user (user_id, full_name, email, password, role_id, status, auth_provider, gender, city) VALUES
-(1, 'System Administrator', 'admin@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 1, 'Active', 'LOCAL', 'Male', 'Hanoi'),
-(2, 'Official Manager', 'manager@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 16, 'Active', 'LOCAL', 'Female', 'HCMC');
+(1, 'System Administrator', 'admin@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 1, 'Active', 'LOCAL', 'Male', 'Hanoi'),
+(2, 'Official Manager', 'manager@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 16, 'Active', 'LOCAL', 'Female', 'HCMC');
 
 -- Experts (3-10)
 INSERT INTO user (user_id, full_name, email, password, role_id, status, auth_provider, gender, city) VALUES
-(3, 'Expert IELTS Reading', 'expert1@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Male', 'Da Nang'),
-(4, 'Expert IELTS Speaking', 'expert2@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Female', 'Hanoi'),
-(5, 'Expert SAT Math', 'expert3@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Male', 'Can Tho'),
-(6, 'Expert Vocabulary', 'expert4@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Female', 'Hai Phong'),
-(7, 'Expert TOEIC Master', 'expert5@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Male', 'HCMC'),
-(8, 'Expert Grammar', 'expert6@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 3, 'Active', 'LOCAL', 'Female', 'Hanoi'),
-(9, 'Sales Manager 1', 'manager1@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 16, 'Active', 'LOCAL', 'Male', 'Da Nang'),
-(10, 'Operations Manager 2', 'manager2@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 16, 'Active', 'LOCAL', 'Female', 'Hanoi');
+(3, 'Expert IELTS Reading', 'expert1@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Male', 'Da Nang'),
+(4, 'Expert IELTS Speaking', 'expert2@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Female', 'Hanoi'),
+(5, 'Expert SAT Math', 'expert3@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Male', 'Can Tho'),
+(6, 'Expert Vocabulary', 'expert4@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Female', 'Hai Phong'),
+(7, 'Expert TOEIC Master', 'expert5@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Male', 'HCMC'),
+(8, 'Expert Grammar', 'expert6@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 3, 'Active', 'LOCAL', 'Female', 'Hanoi'),
+(9, 'Sales Manager 1', 'manager1@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 16, 'Active', 'LOCAL', 'Male', 'Da Nang'),
+(10, 'Operations Manager 2', 'manager2@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 16, 'Active', 'LOCAL', 'Female', 'Hanoi');
 
 -- Teachers (11-20)
 INSERT INTO user (user_id, full_name, email, password, role_id, status, auth_provider, gender, city) VALUES
-(11, 'Teacher Nguyễn Văn A', 'teacher1@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 2, 'Active', 'LOCAL', 'Male', 'Hanoi'),
-(12, 'Teacher Trần Thị B', 'teacher2@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 2, 'Active', 'LOCAL', 'Female', 'HCMC'),
-(13, 'Teacher Lê Văn C', 'teacher3@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 2, 'Active', 'LOCAL', 'Male', 'Da Nang'),
-(14, 'Teacher Phạm Thu D', 'teacher4@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 2, 'Active', 'LOCAL', 'Female', 'Hanoi'),
-(15, 'Teacher Hoàng Anh E', 'teacher5@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 2, 'Active', 'LOCAL', 'Male', 'HCMC');
+(11, 'Teacher Nguyễn Văn A', 'teacher1@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 2, 'Active', 'LOCAL', 'Male', 'Hanoi'),
+(12, 'Teacher Trần Thị B', 'teacher2@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 2, 'Active', 'LOCAL', 'Female', 'HCMC'),
+(13, 'Teacher Lê Văn C', 'teacher3@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 2, 'Active', 'LOCAL', 'Male', 'Da Nang'),
+(14, 'Teacher Phạm Thu D', 'teacher4@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 2, 'Active', 'LOCAL', 'Female', 'Hanoi'),
+(15, 'Teacher Hoàng Anh E', 'teacher5@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 2, 'Active', 'LOCAL', 'Male', 'HCMC');
 
 -- Students (21-70)
 INSERT INTO user (user_id, full_name, email, password, role_id, status, auth_provider, gender, city) VALUES
-(21, 'Lê Anh Tú', 'student1@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Male', 'Hanoi'),
-(22, 'Phạm Minh Hằng', 'student2@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Female', 'HCMC'),
-(23, 'Trần Quốc Bảo', 'student3@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Male', 'Da Nang'),
-(24, 'Nguyễn Mai Phương', 'student4@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Female', 'Hanoi'),
-(25, 'Vũ Đình Trọng', 'student5@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Male', 'Hue'),
-(26, 'Đỗ Bích Thủy', 'student6@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Female', 'Vinh'),
-(27, 'Trương Văn Hải', 'student7@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Male', 'HCMC'),
-(28, 'Bùi Mỹ Linh', 'student8@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Female', 'Can Tho'),
-(29, 'Phan Nhật Tân', 'student9@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Male', 'Da Lat'),
-(30, 'Lương Khánh Chi', 'student10@novalms.com', '$2a$10$vI8A7vUb6YV.8/0vH5b.N.p0N.p0N.p0N.p0N.p0N.p0N.p0N.p0.', 4, 'Active', 'LOCAL', 'Female', 'Hanoi');
+(21, 'Lê Anh Tú', 'student1@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Male', 'Hanoi'),
+(22, 'Phạm Minh Hằng', 'student2@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Female', 'HCMC'),
+(23, 'Trần Quốc Bảo', 'student3@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Male', 'Da Nang'),
+(24, 'Nguyễn Mai Phương', 'student4@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Female', 'Hanoi'),
+(25, 'Vũ Đình Trọng', 'student5@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Male', 'Hue'),
+(26, 'Đỗ Bích Thủy', 'student6@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Female', 'Vinh'),
+(27, 'Trương Văn Hải', 'student7@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Male', 'HCMC'),
+(28, 'Bùi Mỹ Linh', 'student8@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Female', 'Can Tho'),
+(29, 'Phan Nhật Tân', 'student9@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Male', 'Da Lat'),
+(30, 'Lương Khánh Chi', 'student10@novalms.com', '$2a$10$8K1p/a06Ewe7SAbT3hgGbeWBa79xyMVRX.S9fXN1zEGRGj9zGgXWi', 4, 'Active', 'LOCAL', 'Female', 'Hanoi');
 -- (Students 31-70 will be added similarly in the full output for brevity in this snapshot)
 
 -- 4. SEED COURSES (25 Records)
