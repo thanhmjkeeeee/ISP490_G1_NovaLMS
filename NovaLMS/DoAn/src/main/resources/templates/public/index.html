@@ -92,48 +92,6 @@
     </div>
   </section>
 
-  <section id="featured-instructors" class="featured-instructors section">
-    <div class="container section-title" data-aos="fade-up">
-      <h2>Đội Ngũ Giảng Viên</h2>
-      <p>Học cùng các chuyên gia hàng đầu, tận tâm và giàu kinh nghiệm sư phạm</p>
-    </div>
-    <div class="container" data-aos="fade-up" data-aos-delay="100">
-      <div class="row gy-4">
-        <div class="col-xl-3 col-lg-4 col-md-6" th:each="teacher, iterStat : ${teachers}"
-             data-aos="fade-up" th:data-aos-delay="${200 + (iterStat.index * 50)}">
-          <div class="instructor-card">
-            <div class="instructor-image">
-              <img th:src="${teacher.avatarUrl != null ? teacher.avatarUrl : '/assets/img/education/teacher-2.webp'}"
-                   class="img-fluid" th:alt="${teacher.fullName}">
-              <div class="overlay-content">
-                <div class="rating-stars">
-                  <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
-                  <span>4.8</span>
-                </div>
-                <div class="course-count">
-                  <i class="bi bi-play-circle"></i>
-                  <span>12 Khóa học</span>
-                </div>
-              </div>
-            </div>
-            <div class="instructor-info">
-              <h5 th:text="${teacher.fullName}">Tên Giảng Viên</h5>
-              <p class="specialty">Senior Instructor</p>
-              <p class="description" th:text="${#strings.abbreviate(teacher.note != null ? teacher.note : 'Chuyên gia đào tạo giàu kinh nghiệm.', 80)}">Mô tả...</p>
-<!--              <div class="action-buttons">-->
-<!--                <a th:href="@{'/instructor/profile/' + ${teacher.userId}}" class="btn-view">View Profile</a>-->
-<!--                <div class="social-links">-->
-<!--                  <a href="#"><i class="bi bi-linkedin"></i></a>-->
-<!--                  <a href="#"><i class="bi bi-facebook"></i></a>-->
-<!--                </div>-->
-<!--              </div>-->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
 </main>
 
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
