@@ -26,6 +26,11 @@ public class CoursePublicManagementController {
         return ResponseEntity.ok("pong");
     }
 
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("pong");
+    }
+
     /**
      * API Lọc và tìm kiếm khóa học cho Guest (AJAX) có phân trang.
      * URL: /api/v1/public/courses/filter
