@@ -1,5 +1,7 @@
 package com.example.DoAn.dto.request;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.math.BigDecimal;
@@ -23,8 +25,14 @@ public class QuizRequestDTO {
     private Integer classId;         // gắn quiz với lớp học (cho teacher tạo quiz)
     private Integer moduleId;        // cho MODULE_QUIZ
     private Integer lessonId;        // cho LESSON_QUIZ
+    @Min(value = 1, message = "Thời gian làm bài tối thiểu là 1 phút")
     private Integer timeLimitMinutes;
+
+    @Min(value = 0, message = "Điểm đạt tối thiểu là 0%")
+    @Max(value = 100, message = "Điểm đạt tối đa là 100%")
     private BigDecimal passScore;
+
+    @Min(value = 1, message = "Số lần làm lại tối thiểu là 1")
     private Integer maxAttempts;
     private Integer numberOfQuestions;
     private String questionOrder;    // FIXED | RANDOM
