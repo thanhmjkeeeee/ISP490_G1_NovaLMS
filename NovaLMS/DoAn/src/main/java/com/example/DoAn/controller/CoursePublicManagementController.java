@@ -26,11 +26,6 @@ public class CoursePublicManagementController {
         return ResponseEntity.ok("pong");
     }
 
-    @GetMapping("/ping")
-    public ResponseEntity<String> ping() {
-        return ResponseEntity.ok("pong");
-    }
-
     /**
      * API Lọc và tìm kiếm khóa học cho Guest (AJAX) có phân trang.
      * URL: /api/v1/public/courses/filter
@@ -44,7 +39,8 @@ public class CoursePublicManagementController {
             @RequestParam(defaultValue = "6") int size) {
 
         // Gọi service lấy dữ liệu đã được map sang DTO có phân trang
-        PageResponse<CoursePublicResponseDTO> data = courseService.searchAndFilterCourses(keyword, categoryId, sortBy, page, size);
+        PageResponse<CoursePublicResponseDTO> data = courseService.searchAndFilterCourses(keyword, categoryId, sortBy,
+                page, size);
 
         return ResponseEntity.ok(new ResponseData<>(200, "Tải danh sách thành công", data));
     }
