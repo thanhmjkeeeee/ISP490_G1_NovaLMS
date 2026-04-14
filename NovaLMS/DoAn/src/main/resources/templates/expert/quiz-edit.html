@@ -148,15 +148,15 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
-                        <input type="number" id="timeLimitMinutes" class="form-control" min="1">
+                        <input type="number" id="timeLimitMinutes" class="form-control" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
-                        <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01">
+                        <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01" oninput="if(this.value < 0) this.value = 0; if(this.value > 100) this.value = 100;">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
-                        <input type="number" id="maxAttempts" class="form-control" min="1">
+                        <input type="number" id="maxAttempts" class="form-control" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Thứ tự câu hỏi</label>
@@ -176,22 +176,22 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">LISTENING <span class="text-danger">*</span></label>
-                            <input type="text" id="timeLimit_LISTENING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <input type="text" id="timeLimit_LISTENING" class="form-control skill-time-input" placeholder="Phút" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
                             <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">READING <span class="text-danger">*</span></label>
-                            <input type="text" id="timeLimit_READING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <input type="text" id="timeLimit_READING" class="form-control skill-time-input" placeholder="Phút" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
                             <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">SPEAKING <span class="text-danger">*</span></label>
-                            <input type="text" id="timeLimit_SPEAKING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <input type="text" id="timeLimit_SPEAKING" class="form-control skill-time-input" placeholder="Phút" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
                             <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">WRITING <span class="text-danger">*</span></label>
-                            <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input" placeholder="Phút" oninput="debouncedValidate()">
+                            <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input" placeholder="Phút" oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
                             <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên 1-100</div>
                         </div>
                     </div>
