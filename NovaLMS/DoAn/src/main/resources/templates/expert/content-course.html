@@ -59,6 +59,18 @@
                     <input type="number" id="moduleOrder" class="form-control"
                            placeholder="Để trống = tự động sắp xếp" min="1">
                 </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Cấp độ (CEFR)</label>
+                    <select id="moduleLevel" class="form-select">
+                        <option value="">-- Chọn cấp độ --</option>
+                        <option value="A1">A1 - Beginner</option>
+                        <option value="A2">A2 - Elementary</option>
+                        <option value="B1">B1 - Intermediate</option>
+                        <option value="B2">B2 - Upper Intermediate</option>
+                        <option value="C1">C1 - Advanced</option>
+                        <option value="C2">C2 - Proficiency</option>
+                    </select>
+                </div>
                 <div id="moduleError" class="text-danger small" style="display:none;"></div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -114,13 +126,13 @@
                            placeholder="https://youtube.com/watch?v=... hoặc https://youtu.be/..."
                            autocomplete="off"
                            oninput="previewYouTube(this.value)">
-                    <div id="ytPreview" class="mt-2" style="display:none;">
-                        <div class="ratio ratio-16x9" style="max-width:320px;">
-                            <iframe id="ytPreviewFrame" allowfullscreen></iframe>
-                        </div>
-                        <small class="text-success mt-1 d-block"><i class="bi bi-check-circle me-1"></i>Video hợp lệ</small>
-                    </div>
-                    <div id="ytPreviewError" class="form-text text-danger" style="display:none;"></div>
+                    <div class="form-text text-danger" id="ytPreviewError" style="display:none;"></div>
+                </div>
+
+                <!-- Video Description (New) -->
+                <div class="mb-3" id="field-videoDescription">
+                    <label class="form-label small fw-bold text-secondary">Mô tả video</label>
+                    <textarea id="lessonVideoDescription" class="form-control" rows="3" placeholder="Nhập mô tả cho video bài học..."></textarea>
                 </div>
 
                 <!-- DOC fields -->
@@ -493,6 +505,7 @@ function openModuleModal() {
     document.getElementById('moduleId').value = '';
     document.getElementById('moduleName').value = '';
     document.getElementById('moduleOrder').value = '';
+    document.getElementById('moduleLevel').value = '';
     document.getElementById('moduleError').style.display = 'none';
     moduleModal.show();
 }
@@ -505,6 +518,7 @@ function editModule(moduleId) {
     document.getElementById('moduleId').value = m.moduleId;
     document.getElementById('moduleName').value = m.moduleName || '';
     document.getElementById('moduleOrder').value = m.orderIndex || '';
+    document.getElementById('moduleLevel').value = m.cefrLevel || '';
     document.getElementById('moduleError').style.display = 'none';
     moduleModal.show();
 }
@@ -513,6 +527,7 @@ async function saveModule() {
     var moduleId = document.getElementById('moduleId').value;
     var moduleName = document.getElementById('moduleName').value.trim();
     var orderStr = document.getElementById('moduleOrder').value.trim();
+    var level = document.getElementById('moduleLevel').value;
     var errorEl = document.getElementById('moduleError');
 
     if (!moduleName) {
@@ -520,7 +535,8 @@ async function saveModule() {
     }
 
     var body = { courseId: COURSE_ID, moduleName: moduleName,
-                 orderIndex: orderStr ? parseInt(orderStr) : null };
+                 orderIndex: orderStr ? parseInt(orderStr) : null,
+                 cefrLevel: level || null };
     var method = moduleId ? 'PUT' : 'POST';
     var url = moduleId ? '/api/v1/expert/modules/' + moduleId : '/api/v1/expert/modules';
 
@@ -618,6 +634,7 @@ function closeVideoModal() {
 function onLessonTypeChange() {
     var type = document.getElementById('lessonType').value;
     document.getElementById('field-videoUrl').style.display  = type === 'VIDEO' ? 'block' : 'none';
+    document.getElementById('field-videoDescription').style.display = type === 'VIDEO' ? 'block' : 'none';
     document.getElementById('field-doc-group').style.display = type === 'DOC'  ? 'block' : 'none';
     if (type !== 'VIDEO') {
         document.getElementById('ytPreview').style.display = 'none';
@@ -672,6 +689,7 @@ function openLessonModal(moduleId) {
     document.getElementById('lessonType').value = 'VIDEO';
     document.getElementById('lessonOrder').value = '';
     document.getElementById('lessonVideoUrl').value = '';
+    document.getElementById('lessonVideoDescription').value = '';
     document.getElementById('lessonError').style.display = 'none';
     // Clear YouTube preview iframe — prevent stale data leaking between create/edit
     document.getElementById('ytPreviewFrame').src = '';
@@ -702,7 +720,8 @@ function editLesson(moduleId, lessonId) {
     document.getElementById('lessonOrder').value = l.orderIndex || '';
     // Load VIDEO / DOC content
     document.getElementById('lessonVideoUrl').value = l.videoUrl || '';
-    document.getElementById('lessonContentText').value = l.contentText || '';
+    document.getElementById('lessonVideoDescription').value = (l.type === 'VIDEO') ? (l.contentText || '') : '';
+    document.getElementById('lessonContentText').value = (l.type === 'DOC') ? (l.contentText || '') : '';
     var docUrl = (l.type === 'DOC') ? l.videoUrl : '';
     document.getElementById('uploadedDocUrl').value = docUrl || '';
     document.getElementById('lessonDocFile').value = '';
@@ -727,6 +746,7 @@ async function saveLesson() {
     var type = document.getElementById('lessonType').value;
     var orderStr = document.getElementById('lessonOrder').value.trim();
     var videoUrl = document.getElementById('lessonVideoUrl').value.trim();
+    var videoDesc = document.getElementById('lessonVideoDescription').value.trim();
     var contentText = document.getElementById('lessonContentText').value.trim();
     var errorEl = document.getElementById('lessonError');
     var docFile = document.getElementById('lessonDocFile').files[0];
@@ -772,7 +792,7 @@ async function saveLesson() {
         lessonName: lessonName,
         type: type,
         videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
-        contentText: type === 'DOC' ? contentText : null,
+        contentText: type === 'VIDEO' ? videoDesc : (type === 'DOC' ? contentText : null),
         allowDownload: document.getElementById('lessonAllowDownload').checked,
         orderIndex: orderStr ? parseInt(orderStr) : null
     };

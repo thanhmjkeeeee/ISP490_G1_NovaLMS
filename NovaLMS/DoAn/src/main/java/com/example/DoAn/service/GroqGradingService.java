@@ -7,14 +7,7 @@ package com.example.DoAn.service;
  */
 public interface GroqGradingService {
 
-    /**
-     * Fire-and-forget: grade WRITING/SPEAKING answer asynchronously.
-     *
-     * @param placementResultId the PlacementTestResult ID
-     * @param questionId        the Question ID
-     * @param questionType      "WRITING" or "SPEAKING"
-     */
-    void fireAndForget(Integer placementResultId, Integer questionId, String questionType);
+
 
     /**
      * Fire-and-forget: grade a QuizAnswer (Lesson Quiz or Assignment)

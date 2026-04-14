@@ -25,13 +25,26 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-8">
+                <div class="col-md-5">
                     <label class="form-label fw-bold">Chủ đề <span class="text-danger">*</span></label>
                     <input type="text" id="aiTopic" class="form-control" placeholder="VD: Travel and Tourism, Climate Change...">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-bold">Số lượng (1-50) <span class="text-danger">*</span></label>
-                    <input type="number" id="aiQty" class="form-control" min="1" max="50" value="5">
+                    <label class="form-label fw-bold">Kỹ năng</label>
+                    <select id="aiSkill" class="form-select">
+                        <option value="MIXED">Tất cả / Mixed</option>
+                        <option value="READING">Reading</option>
+                        <option value="LISTENING">Listening</option>
+                        <option value="WRITING">Writing</option>
+                        <option value="SPEAKING">Speaking</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Số lượng (1-25) <span class="text-danger">*</span></label>
+                    <input type="number" id="aiQty" class="form-control" min="1" max="25" value="10">
+                    <div class="form-text small" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle me-1"></i>Giới hạn 25 câu.
+                    </div>
                 </div>
             </div>
             <div class="mt-3 text-end">
@@ -81,12 +94,13 @@
 
     async function generateAI() {
         const topic = document.getElementById('aiTopic').value.trim();
+        const skill = document.getElementById('aiSkill').value;
         const qty = parseInt(document.getElementById('aiQty').value);
 
         if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
-        if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+        if (!qty || qty < 1 || qty > 25) { alert('Số lượng phải từ 1-25.'); return; }
 
-        const body = { topic: topic, quantity: qty };
+        const body = { topic: topic, skill: skill, quantity: qty };
         
         document.getElementById('aiLoading').style.display = 'block';
         document.getElementById('aiPreview').style.display = 'none';
@@ -99,6 +113,7 @@
                 body: JSON.stringify(body)
             });
             const result = await res.json();
+            console.log("AI Generation Result:", result);
             if (!res.ok) { alert(result.message || 'Lỗi khi sinh câu hỏi.'); return; }
 
             aiQuestions = result.data.questions || [];
@@ -109,6 +124,10 @@
                 const w = document.getElementById('aiWarning');
                 w.textContent = result.data.warning;
                 w.style.display = 'block';
+            }
+
+            if (aiQuestions.length === 0) {
+                alert('AI đã hoàn tất nhưng không trả về câu hỏi nào hợp lệ. Hãy thử chủ đề khác hoặc giảm số lượng.');
             }
         } catch (e) { 
             alert('Lỗi: ' + e.message); 
@@ -143,7 +162,7 @@
                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">${q.cefrLevel}</span>
                             ${q.topic ? `<span class="badge bg-light text-dark border rounded-pill">${q.topic}</span>` : ''}
                         </div>
-                        <h6 class="mb-2 fw-bold text-dark">${escapeHtml(q.content || '')}</h6>
+                        <h6 class="mb-2 fw-bold text-dark">Câu ${i + 1}: ${escapeHtml(q.content || '')}</h6>
                         ${q.options && q.options.length > 0 ? `
                             <div class="row g-2 mt-2">
                                 ${q.options.map(o => `
@@ -167,7 +186,6 @@
         else aiSelectedSet.add(idx);
         document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
         // Cập nhật background cho item được chọn/bỏ chọn
-        loadQuestions(); // (Fake name, render lại)
         renderAIQuestions();
     }
 

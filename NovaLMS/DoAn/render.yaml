@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: nova-lms-backend
+    env: docker
+    plan: free # Change to starter or higher if needed
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/public/health # Adjust if you have a health check endpoint
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false # Set this in Render Dashboard (e.g. jdbc:mysql://...)
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: APP_URL
+        sync: false # Your Render URL (e.g. https://nova-lms-backend.onrender.com)
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: PAYOS_CLIENT_ID
+        sync: false
+      - key: PAYOS_API_KEY
+        sync: false
+      - key: PAYOS_CHECKSUM_KEY
+        sync: false

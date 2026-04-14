@@ -190,11 +190,15 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     }
 
     private String deriveOverallStatus(AssignmentGradingQueueDTO dto) {
-        boolean spk = "GRADED".equals(dto.getSpeaking() != null ? dto.getSpeaking().getGradingStatus() : null);
-        boolean wrt = "GRADED".equals(dto.getWriting() != null ? dto.getWriting().getGradingStatus() : null);
-        if (spk && wrt) return "ALL_GRADED";
-        if (!spk && !wrt) return "PENDING_BOTH";
-        return spk ? "PENDING_WRITING" : "PENDING_SPEAKING";
+        boolean spkNeeded = (dto.getSpeaking() != null);
+        boolean wrtNeeded = (dto.getWriting() != null);
+
+        boolean spkGraded = !spkNeeded || "GRADED".equals(dto.getSpeaking().getGradingStatus());
+        boolean wrtGraded = !wrtNeeded || "GRADED".equals(dto.getWriting().getGradingStatus());
+
+        if (spkGraded && wrtGraded) return "ALL_GRADED";
+        if (!spkGraded && !wrtGraded) return "PENDING_BOTH";
+        return spkGraded ? "PENDING_WRITING" : "PENDING_SPEAKING";
     }
 
     // ─── Grading Detail ───────────────────────────────────────────────────────

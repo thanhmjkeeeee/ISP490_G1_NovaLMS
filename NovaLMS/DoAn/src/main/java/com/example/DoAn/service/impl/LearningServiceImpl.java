@@ -339,8 +339,8 @@ public class LearningServiceImpl implements LearningService {
     @Transactional
     public ResponseData<Void> trackTime(String email, int seconds) {
         try {
-            // Anti-cheating: Không cho phép ping quá 60s (do FE đang setup 30s ping 1 lần)
-            if (seconds > 60 || seconds <= 0) {
+            // Anti-cheating: Không cho phép ping quá 120s (do FE đang setup 30-90s ping 1 lần)
+            if (seconds > 120 || seconds <= 0) {
                 return ResponseData.error(400, "Dữ liệu thời gian không hợp lệ");
             }
 

@@ -97,6 +97,7 @@
                     <select id="filterStatus" class="form-select form-select-sm" onchange="loadQuestions()">
                         <option value="">Tất cả</option>
                         <option value="DRAFT">Draft</option>
+                        <option value="PENDING_REVIEW">Chờ phê duyệt</option>
                         <option value="PUBLISHED">Published</option>
                         <option value="ARCHIVED">Archived</option>
                     </select>
@@ -256,8 +257,13 @@ let currentPage = 0;
 const pageSize = 10;
 
 const statusBadge = (s) => {
-    const map = { DRAFT: 'bg-warning text-dark', PUBLISHED: 'bg-success', ARCHIVED: 'bg-secondary' };
-    return `<span class="badge ${map[s] || 'bg-light text-dark'}">${s}</span>`;
+    const map = { 
+        DRAFT: 'bg-warning text-dark', 
+        PENDING_REVIEW: 'bg-info text-dark', 
+        PUBLISHED: 'bg-success', 
+        ARCHIVED: 'bg-secondary' 
+    };
+    return `<span class="badge ${map[s] || 'bg-light text-dark'}">${s === 'PENDING_REVIEW' ? 'REVIEWING' : s}</span>`;
 };
 
 const typeName = (t) => {
@@ -340,7 +346,11 @@ function renderTable(data) {
                 <td class="px-3">
                     <div class="d-flex justify-content-center gap-1">
                         <a href="/expert/question-bank/${q.id}/edit?type=${q.type}" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
-                        ${q.status !== 'PUBLISHED' ? `<button class="btn btn-sm btn-outline-success" onclick="changeStatus(${q.id}, '${q.type}', 'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
+                        ${q.status === 'PENDING_REVIEW' ? `
+                            <button class="btn btn-sm btn-success" onclick="changeStatus(${q.id}, '${q.type}', 'PUBLISHED')" title="Duyệt"><i class="bi bi-check-lg"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="changeStatus(${q.id}, '${q.type}', 'DRAFT')" title="Từ chối"><i class="bi bi-x-lg"></i></button>
+                        ` : ''}
+                        ${q.status === 'DRAFT' ? `<button class="btn btn-sm btn-outline-success" onclick="changeStatus(${q.id}, '${q.type}', 'PUBLISHED')" title="Xuất bản"><i class="bi bi-check-lg"></i></button>` : ''}
                         ${q.usedInQuizCount === 0 ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${q.id}, '${q.type}')" title="Xóa"><i class="bi bi-trash"></i></button>` : ''}
                     </div>
                 </td>
@@ -399,19 +409,37 @@ function renderPagination(data) {
 }
 
 async function changeStatus(id, type, newStatus) {
-    if (!confirm(`Chuyển trạng thái sang ${newStatus}?`)) return;
+    let note = '';
+    if (newStatus === 'DRAFT') {
+        const result = await Swal.fire({
+            title: 'Từ chối câu hỏi?',
+            input: 'textarea',
+            inputLabel: 'Lý do từ chối (gửi cho giáo viên)',
+            inputPlaceholder: 'Nội dung chưa đạt CEFR...',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận từ chối',
+            cancelButtonText: 'Hủy'
+        });
+        if (!result.isConfirmed) return;
+        note = result.value || 'Nội dung chưa hợp lệ.';
+    } else {
+        if (!confirm(`Xác nhận duyệt câu hỏi này thành PUBLISHED?`)) return;
+    }
+
     try {
         const res = await fetch(`/api/v1/expert/question-bank/${id}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus, type: type })
+            body: JSON.stringify({ status: newStatus, type: type, note: note })
         });
-        if (res.ok) loadQuestions(currentPage);
-        else {
+        if (res.ok) {
+            Swal.fire('Thành công', 'Đã cập nhật trạng thái', 'success');
+            loadQuestions(currentPage);
+        } else {
             const err = await res.json();
-            alert(err.message || 'Lỗi khi cập nhật trạng thái.');
+            Swal.fire('Lỗi', err.message || 'Lỗi khi cập nhật trạng thái.', 'error');
         }
-    } catch (e) { alert('Lỗi: ' + e.message); }
+    } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
 }
 
 async function deleteQuestion(id, type) {

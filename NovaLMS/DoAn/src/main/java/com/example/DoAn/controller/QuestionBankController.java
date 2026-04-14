@@ -94,9 +94,7 @@ public class QuestionBankController {
             @PathVariable Integer questionId,
             @RequestBody Map<String, String> body,
             Principal principal) {
-        String newStatus = body.get("status");
-        String type = body.get("type"); // SINGLE or GROUP
         return ResponseData.success("Trạng thái đã được cập nhật.",
-                questionBankService.changeStatus(questionId, type, newStatus, getEmail(principal)));
+                questionBankService.changeStatus(questionId, body, getEmail(principal)));
     }
 }

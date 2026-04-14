@@ -1,160 +1,449 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:with="isDashboard=true">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:with="isDashboard=true">
 
-<!-- 1. Gọi Head Fragment (Mới) -->
 <head th:replace="~{fragments/head :: common-head(pageTitle='Manager Dashboard')}"></head>
 
-<!-- Thêm class chuẩn cho thẻ body -->
+<!-- Import Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --success-gradient: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+        --bg-glass: rgba(255, 255, 255, 0.85);
+        --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.03);
+    }
+
+    body {
+        background-color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .dash-main {
+        padding: 2rem;
+    }
+
+    .stat-card {
+        border: none;
+        border-radius: 20px;
+        background: white;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .glass-panel {
+        background: var(--bg-glass);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 24px;
+        box-shadow: var(--card-shadow);
+    }
+
+    .chart-box {
+        padding: 1.5rem;
+        border-radius: 20px;
+        background: white;
+        box-shadow: var(--card-shadow);
+    }
+
+    .table-custom thead th {
+        background-color: #f1f5f9;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+        color: #475569;
+        border: none;
+    }
+
+    .table-custom tbody td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .badge-soft {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+
+    .badge-success-soft { background: #dcfce7; color: #15803d; }
+    .badge-warning-soft { background: #fef9c3; color: #854d0e; }
+    .badge-danger-soft { background: #fee2e2; color: #b91c1c; }
+
+    .quick-link {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        text-decoration: none;
+        color: #1e293b;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        margin-bottom: 0.75rem;
+    }
+
+    .quick-link:hover {
+        background: #f1f5f9;
+        border-color: #4f46e5;
+        color: #4f46e5;
+        transform: scale(1.02);
+    }
+
+    .quick-link i {
+        font-size: 1.25rem;
+        margin-right: 1rem;
+    }
+
+    .trend-indicator {
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+</style>
+
 <body class="dashboard-body">
 
-<!-- 2. Gọi Header (Topbar) -->
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Dashboard Overview', breadcrumb='Admin')}"></header>
+    <header th:replace="~{fragments/header :: dash-header(pageTitle='Manager Dashboard', breadcrumb='Analytics')}"></header>
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+    <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<!-- 3. Gọi Sidebar & Overlay (Mới) -->
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
-<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
-
-<!-- 4. Thẻ main đổi thành class dash-main và thêm id -->
-<main class="dash-main d-flex flex-column" id="dashMain">
-
-    <!-- ========================================== -->
-    <!-- GIỮ NGUYÊN 100% NỘI DUNG CODE GỐC CỦA BẠN  -->
-    <!-- ========================================== -->
-    <div class="d-flex justify-content-between align-items-end mb-4">
-        <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Dashboard Overview</h3>
-            <p class="text-muted small m-0">Welcome back, Manager.</p>
+    <main class="dash-main" id="dashMain">
+        <!-- Dashboard Welcome -->
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <h2 class="fw-bold text-dark mb-1">Manager Overview</h2>
+                <p class="text-muted mb-0">Hệ thống quản lý NovaLMS • Dữ liệu thời gian thực</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-white border shadow-sm rounded-pill px-3 py-2 btn-sm fw-bold">
+                    <i class="bi bi-download me-2"></i> Báo cáo
+                </button>
+                <button class="btn btn-primary shadow-sm rounded-pill px-4 py-2 btn-sm fw-bold">
+                    <i class="bi bi-plus-lg me-2"></i> Tạo Lớp
+                </button>
+            </div>
         </div>
-<!--        <div>-->
-<!--            <a th:href="@{/admin/courses/new}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">-->
-<!--                <i class="bi bi-plus-lg me-1"></i> New Course-->
-<!--            </a>-->
-<!--        </div>-->
-    </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px; background-color: rgba(19, 106, 213, 0.1); color: #136ad5;">
-                        <i class="bi bi-people-fill"></i>
+        <!-- Metric Grid -->
+        <div class="row g-4 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card p-4">
+                    <div class="stat-icon" style="background: var(--primary-gradient);">
+                        <i class="bi bi-people"></i>
                     </div>
-                    <div>
-                        <h6 class="text-muted small text-uppercase fw-bold mb-1">Students</h6>
-                        <h4 class="fw-bold mb-0 text-dark" id="statStudents">-</h4>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small fw-bold text-uppercase mb-1">Tổng Học Viên</p>
+                            <h2 class="fw-bold mb-0" id="statStudents">0</h2>
+                        </div>
+                        <span class="trend-indicator text-success">
+                            <i class="bi bi-graph-up-arrow"></i> +12%
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card p-4">
+                    <div class="stat-icon" style="background: var(--accent-gradient);">
+                        <i class="bi bi-book"></i>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small fw-bold text-uppercase mb-1">Khóa Học</p>
+                            <h2 class="fw-bold mb-0" id="statCourses">0</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card p-4">
+                    <div class="stat-icon" style="background: var(--success-gradient);">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted small fw-bold text-uppercase mb-1">Lớp Đang Mở</p>
+                            <h2 class="fw-bold mb-0" id="statClasses">0</h2>
+                        </div>
+                        <span class="trend-indicator text-primary">Live</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="stat-card p-4" style="background: #1e293b; color: white;">
+                    <div class="stat-icon" style="background: var(--warning-gradient); color: #1e293b;">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-white-50 small fw-bold text-uppercase mb-1">Đăng Ký Mới (Tuần)</p>
+                            <h2 class="text-white fw-bold mb-0" id="statNewRegs">0</h2>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
-                        <i class="bi bi-journal-bookmark-fill"></i>
+
+        <div class="row g-4 mb-4">
+            <!-- Charts -->
+            <div class="col-lg-8">
+                <div class="chart-box h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold m-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Xu Thế Đăng Ký</h5>
+                        <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill">
+                            <option>7 ngày qua</option>
+                            <option>30 ngày qua</option>
+                        </select>
                     </div>
-                    <div>
-                        <h6 class="text-muted small text-uppercase fw-bold mb-1">Courses</h6>
-                        <h4 class="fw-bold mb-0 text-dark" id="statCourses">-</h4>
+                    <div style="height: 320px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-box h-100">
+                    <h5 class="fw-bold mb-4"><i class="bi bi-pie-chart me-2 text-primary"></i>Phân Bổ Trạng Thái</h5>
+                    <div style="height: 250px;" class="d-flex align-items-center justify-content-center">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div id="chartLegend" class="mt-4 row g-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Table -->
+            <div class="col-xl-8">
+                <div class="chart-box p-0">
+                    <div class="p-4 d-flex justify-content-between align-items-center border-bottom">
+                        <h5 class="fw-bold m-0">Đăng Ký Gần Đây</h5>
+                        <a href="/manager/registrations" class="btn btn-sm btn-link text-primary text-decoration-none fw-bold">Xem tất cả</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-custom align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Người Đăng Ký</th>
+                                    <th>Khóa Học</th>
+                                    <th>Ngày</th>
+                                    <th class="text-end pe-4">Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentRegistrationsTbody">
+                                <tr><td colspan="4" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="col-xl-4">
+                <div class="chart-box">
+                    <h5 class="fw-bold mb-4">Thao Tác Nhanh</h5>
+                    <a href="/manager/class/create" class="quick-link">
+                        <i class="bi bi-plus-circle-fill text-primary"></i>
+                        <span>Tạo lớp học mới</span>
+                        <i class="bi bi-chevron-right ms-auto small text-muted"></i>
+                    </a>
+                    <a href="/manager/reschedule/list" class="quick-link">
+                        <i class="bi bi-calendar2-range-fill text-warning"></i>
+                        <span>Duyệt yêu cầu đổi lịch</span>
+                        <i class="bi bi-chevron-right ms-auto small text-muted"></i>
+                    </a>
+                    <a href="/manager/registrations" class="quick-link">
+                        <i class="bi bi-person-check-fill text-success"></i>
+                        <span>Phê duyệt đăng ký</span>
+                        <i class="bi bi-chevron-right ms-auto small text-muted"></i>
+                    </a>
+                    <a href="/manager/reports" class="quick-link">
+                        <i class="bi bi-file-earmark-bar-graph-fill text-info"></i>
+                        <span>Xuất báo cáo hệ thống</span>
+                        <i class="bi bi-chevron-right ms-auto small text-muted"></i>
+                    </a>
+
+                    <div class="mt-4 p-3 rounded-4 bg-light border-start border-4 border-primary">
+                        <p class="small mb-0 text-muted"><i class="bi bi-info-circle me-2"></i>Bạn có 3 yêu cầu đổi lịch đang chờ phê duyệt.</p>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
-                        <i class="bi bi-easel-fill"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted small text-uppercase fw-bold mb-1">Classes</h6>
-                        <h4 class="fw-bold mb-0 text-dark" id="statClasses">-</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card h-100 p-3 shadow-sm border-0 rounded-4">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center me-3" style="width:50px; height:50px; font-size:24px;">
-                        <i class="bi bi-person-plus-fill"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted small text-uppercase fw-bold mb-1">New Enrollments</h6>
-                        <h4 class="fw-bold mb-0 text-dark" id="statNewRegs">-</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    </main>
 
-    <!-- Thêm mb-auto để đẩy các thành phần nếu có xuống đáy -->
-    <div class="card border-0 shadow-sm mb-auto rounded-4 mb-4">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h6 class="m-0 fw-bold" style="color: #223a58;">Recent Registrations</h6>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-               <table class="table table-hover align-middle mb-0">
-                  <thead class="table-light text-muted small">
-                     <tr>
-                        <th class="ps-4">Student</th>
-                        <th>Email</th>
-                        <th>Course</th>
-                        <th>Date Enrolled</th>
-                        <th>Status</th>
-                     </tr>
-                  </thead>
-                  <tbody id="recentRegistrationsTbody">
-                     <tr><td colspan="5" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm" role="status"></div> Loading...</td></tr>
-                  </tbody>
-               </table>
-            </div>
-        </div>
-    </div>
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
-</main>
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", async function () {
+            try {
+                const response = await fetch('/manager/api/v1/dashboard/data');
+                const data = await response.json();
 
-<!-- 5. Gọi Script Components thay cho admin-footer cũ -->
-<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
-
-<script>
-    document.addEventListener("DOMContentLoaded", async function() {
-        try {
-            const response = await fetch('/manager/api/v1/dashboard/data');
-            const data = await response.json();
-            
-            if (data) {
-                document.getElementById('statStudents').textContent = data.totalStudents || 0;
-                document.getElementById('statCourses').textContent = data.totalCourses || 0;
-                document.getElementById('statClasses').textContent = data.totalClasses || 0;
-                document.getElementById('statNewRegs').textContent = data.newRegistrationsThisWeek || 0;
-                
-                const tbody = document.getElementById('recentRegistrationsTbody');
-                if (data.recentRegistrations && data.recentRegistrations.length > 0) {
-                    tbody.innerHTML = data.recentRegistrations.map(r => `
-                        <tr>
-                            <td class="ps-4 fw-medium text-dark">${r.studentName}</td>
-                            <td class="text-muted">${r.studentEmail}</td>
-                            <td>${r.courseName}</td>
-                            <td>${new Date(r.enrolledAt).toLocaleDateString('vi-VN')}</td>
-                            <td>
-                                <span class="badge ${r.status === 'Approved' ? 'bg-success bg-opacity-10 text-success' : 'bg-warning bg-opacity-10 text-warning'}">${r.status}</span>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No recent registrations found.</td></tr>';
+                if (data) {
+                    renderStats(data);
+                    renderTrendChart(data.registrationTrend);
+                    renderStatusChart(data.statusDistribution);
+                    renderRecentRegistrations(data.recentRegistrations);
                 }
+            } catch (error) {
+                console.error("Dashboard error:", error);
             }
-        } catch (error) {
-            console.error("Dashboard error:", error);
-            document.getElementById('recentRegistrationsTbody').innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to load data.</td></tr>';
-        }
-    });
-</script>
+        });
 
+        function renderStats(data) {
+            document.getElementById('statStudents').textContent = data.totalStudents || 0;
+            document.getElementById('statCourses').textContent = data.totalCourses || 0;
+            document.getElementById('statClasses').textContent = data.totalClasses || 0;
+            document.getElementById('statNewRegs').textContent = data.newRegistrationsThisWeek || 0;
+        }
+
+        function renderTrendChart(trendData = {}) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const labels = Object.keys(trendData).map(d => new Date(d).toLocaleDateString('vi-VN', {day:'2-digit', month:'short'}));
+            const values = Object.values(trendData);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Đăng ký',
+                        data: values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, canvas} = chart;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
+                            gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+                            return gradient;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#4f46e5',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false } },
+                        x: { grid: { display: false }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderStatusChart(statusDist = {}) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const labels = Object.keys(statusDist);
+            const values = Object.values(statusDist);
+            const colors = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        hoverOffset: 10,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Render custom legend
+            const legendDiv = document.getElementById('chartLegend');
+            labels.forEach((label, i) => {
+                legendDiv.innerHTML += `
+                    <div class="col-6">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="width:10px; height:10px; border-radius:3px; background:${colors[i]}"></span>
+                            <span class="small text-muted fw-bold">${label}: ${values[i]}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderRecentRegistrations(registrations = []) {
+            const tbody = document.getElementById('recentRegistrationsTbody');
+            if (registrations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4">Chưa có dữ liệu.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = registrations.map(r => `
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-sm me-3 bg-light rounded-circle d-flex align-items-center justify-content-center fw-bold text-primary" style="width:36px; height:36px;">
+                                ${r.studentName.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">${r.studentName}</div>
+                                <div class="text-muted small">${r.studentEmail}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="fw-medium text-dark">${r.courseName}</span></td>
+                    <td class="text-muted">${new Date(r.enrolledAt).toLocaleDateString('vi-VN')}</td>
+                    <td class="text-end pe-4">
+                        <span class="badge-soft ${getStatusClass(r.status)}">${r.status}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusClass(status) {
+            status = status?.toLowerCase() || '';
+            if (status.includes('approved')) return 'badge-success-soft';
+            if (status.includes('rejected')) return 'badge-danger-soft';
+            return 'badge-warning-soft';
+        }
+    </script>
 </body>
 </html>

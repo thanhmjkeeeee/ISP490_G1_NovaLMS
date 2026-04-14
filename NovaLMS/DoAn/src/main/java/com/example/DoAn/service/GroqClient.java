@@ -302,8 +302,8 @@ public class GroqClient {
             Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
             {
               "overallBand": <(task_achievement + lexical_resource + grammatical_range + coherence_cohesion) / 4>,
-              "displayScore": <overallBand * 2.5>,
-              "maxScore": 10,
+              "displayScore": <overallBand>,
+              "maxScore": 9,
               "feedback": "<nhận xét tổng 2-3 câu bằng tiếng Việt, gợi ý cải thiện>",
               "overallBandDescriptor": "<VD: 'Good User (7.0)'>",
               "rubric": {
@@ -330,8 +330,8 @@ public class GroqClient {
             Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
             {
               "overallBand": <(fluency_cohesion + lexical_resource + grammatical_range + pronunciation) / 4>,
-              "displayScore": <overallBand * 2.5>,
-              "maxScore": 10,
+              "displayScore": <overallBand>,
+              "maxScore": 9,
               "feedback": "<nhận xét tổng 2-3 câu bằng tiếng Việt, gợi ý cải thiện>",
               "overallBandDescriptor": "<VD: 'Good User (7.0)'>",
               "rubric": {

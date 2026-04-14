@@ -13,9 +13,10 @@ public class QuizResultDetailDTO {
     private String quizTitle;
     private String courseName;
     private LocalDateTime submittedAt;
-    private Integer score;
-    private Integer totalPoints;
+    private Double score;
+    private Double totalPoints;
     private Double correctRate;
+    private Double overallBand;
     private Boolean passed;
     private Boolean showAnswer;
     private String passScoreDescription;

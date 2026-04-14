@@ -48,7 +48,7 @@
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
             <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'workspace'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-grid-1x2"></i><span>Workspace</span>
+                <i class="bi bi-grid-1x2"></i><span>Không gian làm việc</span>
             </a>
             <a th:href="@{/teacher/my-questions}" th:classappend="${activePage == 'my-questions'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-list-task"></i><span>Câu hỏi của tôi</span>
@@ -62,7 +62,7 @@
                 <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
             </a>
             <a th:href="@{/admin/list}" th:classappend="${activePage == 'users'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-people-fill"></i><span>Người dùng</span> <span class="dash-nav-badge">New</span>
+                <i class="bi bi-people-fill"></i><span>Người dùng</span> <span class="dash-nav-badge">Mới</span>
             </a>
             <a th:href="@{/admin/courses}" th:classappend="${activePage == 'course'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-book-half"></i><span>Khóa học</span>
@@ -75,11 +75,17 @@
 
         <div sec:authorize="hasAnyRole('ROLE_MANAGER', 'ROLE_ADMIN')">
 
+            <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/manager/dashboard}" th:classappend="${activePage == 'dashboard'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-speedometer2"></i><span>Tổng quan</span>
+            </a>
             <a th:href="@{/manager/class/list}" th:classappend="${activePage == 'classes'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-building"></i><span>Lớp học</span>
             </a>
             <a th:href="@{/manager/reschedule/list}" th:classappend="${activePage == 'reschedule'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-calendar-range"></i><span>Duyệt đổi lịch</span>
+            </a>
+            <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/admin/registrations}" th:classappend="${activePage == 'registrations'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-clipboard-check"></i><span>Duyệt đăng ký</span>
             </a>
         </div>
 

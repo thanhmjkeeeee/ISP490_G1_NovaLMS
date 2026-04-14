@@ -12,7 +12,7 @@ public class QuestionResultDTO {
     private String questionType;
     private String skill;
     private String cefrLevel;
-    private Integer points;
+    private Double points;
     private Boolean isCorrect;
     private String userAnswerDisplay;
     private String correctAnswerDisplay;
@@ -22,7 +22,7 @@ public class QuestionResultDTO {
     private List<AnswerOptionDTO> options;
     // ── Grading fields ────────────────────────────────────────────────────
     private Integer answerId;         // QuizAnswer answerId — used for override API
-    private Integer pointsAwarded;  // teacher-assigned score for this question
+    private Double pointsAwarded;  // teacher-assigned score for this question
     private String teacherNote;       // teacher's per-question note
     private String aiScore;           // e.g. "8/10" — from AI grading
     private String aiFeedback;        // AI verbal feedback

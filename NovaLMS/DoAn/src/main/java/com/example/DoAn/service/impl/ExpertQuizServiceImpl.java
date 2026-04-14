@@ -163,8 +163,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         Quiz quiz = findQuiz(quizId);
 
         // Kiểm tra đã có học viên làm chưa
-        if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus())) {
-            throw new InvalidDataException("Không thể cập nhật quiz đã có học viên làm bài. Hãy chuyển về Draft trước.");
+        // Cho phép cập nhật nếu quiz đang ở Draft HOẶC đang chuyển về Draft
+        if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus()) && !"DRAFT".equals(request.getStatus())) {
+            throw new InvalidDataException("Không thể cập nhật cấu hình quiz đã có học viên làm bài. Hãy chuyển trạng thái về Draft trước.");
         }
 
         // Lấy lại danh mục và courseId nếu update không gửi lên
@@ -503,6 +504,18 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (!VALID_CATEGORIES.contains(request.getQuizCategory())) {
             throw new InvalidDataException("Loại quiz không hợp lệ: " + request.getQuizCategory());
         }
+
+        // Kiểm tra validation cho Assignment
+        QuizCategory cat = QuizCategory.fromValue(request.getQuizCategory());
+        if (cat != null && cat.isAssignment()) {
+            if (request.getDeadline() == null) {
+                throw new InvalidDataException("Bài tập lớn (Assignment) bắt buộc phải có Deadline nộp bài.");
+            }
+            if (request.getTimeLimitPerSkill() == null || request.getTimeLimitPerSkill().isEmpty()) {
+                throw new InvalidDataException("Bài tập lớn (Assignment) bắt buộc phải thiết lập thời gian cho từng kỹ năng (Listening, Reading, Speaking, Writing).");
+            }
+        }
+
         if (Set.of("COURSE_QUIZ").contains(request.getQuizCategory()) && request.getCourseId() == null) {
             throw new InvalidDataException("Course Quiz phải gắn với một khóa học (courseId bắt buộc).");
         }
