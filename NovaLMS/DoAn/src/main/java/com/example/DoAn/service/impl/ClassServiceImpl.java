@@ -6,6 +6,7 @@ import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.RegistrationResponseDTO;
 import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.ClassSession;
+import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Lesson;
 import com.example.DoAn.model.SessionLesson;
 import com.example.DoAn.model.User;
@@ -138,11 +139,19 @@ public class ClassServiceImpl implements IClassService {
             }
         }
 
-        // Validate number of sessions vs lesson count
+        // Validate number of sessions vs course/lesson count
         if (request.getCourseId() != null && request.getNumberOfSessions() != null) {
-            long lessonCount = lessonRepository.countByModuleCourse_CourseId(request.getCourseId());
-            if (request.getNumberOfSessions() < lessonCount) {
-                throw new RuntimeException("Số buổi học (" + request.getNumberOfSessions() + ") không được nhỏ hơn tổng số bài học trong khóa (" + lessonCount + ")");
+            Course course = courseRepository.findById(request.getCourseId()).orElse(null);
+            Integer minSessions = 1;
+            
+            if (course != null && course.getNumberOfSessions() != null && course.getNumberOfSessions() > 0) {
+                minSessions = course.getNumberOfSessions();
+            } else {
+                minSessions = (int) lessonRepository.countByModuleCourse_CourseId(request.getCourseId());
+            }
+
+            if (request.getNumberOfSessions() < minSessions) {
+                throw new RuntimeException("Số buổi học (" + request.getNumberOfSessions() + ") không được nhỏ hơn yêu cầu tối thiểu của khóa (" + minSessions + ")");
             }
         }
     }

@@ -66,6 +66,9 @@ public class QuizResult {
     @Column(name = "section_scores", columnDefinition = "JSON")
     private String sectionScores;
 
+    @Column(name = "overall_band", precision = 3, scale = 1)
+    private BigDecimal overallBand;
+
     @OneToMany(mappedBy = "quizResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<QuizAnswer> quizAnswers;
 }

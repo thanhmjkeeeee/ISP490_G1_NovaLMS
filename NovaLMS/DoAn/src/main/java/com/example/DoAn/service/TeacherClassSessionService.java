@@ -37,6 +37,7 @@ public class TeacherClassSessionService {
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
     private final AssignmentSessionRepository assignmentSessionRepository;
+    private final UserLessonRepository userLessonRepository;
     private final INotificationService notificationService;
     private final EmailService emailService;
 
@@ -65,24 +66,30 @@ public class TeacherClassSessionService {
 
     private ClassSession getSessionWithAuth(String email, Integer sessionId) {
         Integer teacherId = getTeacherId(email);
-        if (teacherId == null) return null;
+        if (teacherId == null)
+            return null;
         ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
-        if (session == null) return null;
-        if (!isTeacherOfClass(teacherId, session.getClazz().getClassId())) return null;
+        if (session == null)
+            return null;
+        if (!isTeacherOfClass(teacherId, session.getClazz().getClassId()))
+            return null;
         return session;
     }
 
     private List<String> parseMaterials(String materialsJson) {
-        if (materialsJson == null || materialsJson.isBlank()) return List.of();
+        if (materialsJson == null || materialsJson.isBlank())
+            return List.of();
         try {
-            return objectMapper.readValue(materialsJson, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(materialsJson, new TypeReference<List<String>>() {
+            });
         } catch (Exception e) {
             return List.of();
         }
     }
 
     private String serializeMaterials(List<String> materials) {
-        if (materials == null || materials.isEmpty()) return null;
+        if (materials == null || materials.isEmpty())
+            return null;
         try {
             return objectMapper.writeValueAsString(materials);
         } catch (Exception e) {
@@ -91,15 +98,17 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  GET SESSIONS (now includes multi-quiz + materials)
+    // GET SESSIONS (now includes multi-quiz + materials)
     // ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public ResponseData<List<Map<String, Object>>> getSessionsByClass(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             List<ClassSession> sessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
 
@@ -120,7 +129,9 @@ public class TeacherClassSessionService {
                 m.put("quizStatus", s.getQuiz() != null ? s.getQuiz().getStatus() : null);
 
                 // New multi-quiz from session_quiz table (ONLY COURSE_QUIZ for the Quiz tab)
-                List<SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionIdAndQuiz_QuizCategoryOrderByOrderIndexAsc(s.getSessionId(), "COURSE_QUIZ");
+                List<SessionQuiz> sqList = sessionQuizRepository
+                        .findBySessionSessionIdAndQuiz_QuizCategoryOrderByOrderIndexAsc(s.getSessionId(),
+                                "COURSE_QUIZ");
                 List<Map<String, Object>> quizzesList = sqList.stream().map(sq -> {
                     Map<String, Object> qm = new LinkedHashMap<>();
                     Quiz q = sq.getQuiz();
@@ -152,11 +163,14 @@ public class TeacherClassSessionService {
     public ResponseData<Map<String, Object>> getClassSessionsDetail(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
-            if (clazz == null) return ResponseData.error(404, "Không tìm thấy lớp");
+            if (clazz == null)
+                return ResponseData.error(404, "Không tìm thấy lớp");
 
             Map<String, Object> info = new LinkedHashMap<>();
             info.put("classId", clazz.getClassId());
@@ -175,19 +189,23 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  CREATE / UPDATE / DELETE SESSION
+    // CREATE / UPDATE / DELETE SESSION
     // ─────────────────────────────────────────────────────────────
 
     @Transactional
     public ResponseData<Integer> createSession(String email, Integer classId, Integer sessionNumber,
-            java.time.LocalDateTime sessionDate, String startTime, String endTime, String topic, String notes, Integer quizId) {
+            java.time.LocalDateTime sessionDate, String startTime, String endTime, String topic, String notes,
+            Integer quizId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
-            if (clazz == null) return ResponseData.error(404, "Không tìm thấy lớp");
+            if (clazz == null)
+                return ResponseData.error(404, "Không tìm thấy lớp");
 
             Quiz quiz = null;
             if (quizId != null) {
@@ -218,14 +236,18 @@ public class TeacherClassSessionService {
 
     @Transactional
     public ResponseData<Void> updateSession(String email, Integer sessionId, Integer sessionNumber,
-            java.time.LocalDateTime sessionDate, String startTime, String endTime, String topic, String notes, Integer quizId) {
+            java.time.LocalDateTime sessionDate, String startTime, String endTime, String topic, String notes,
+            Integer quizId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
 
             ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
-            if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
-            if (!isTeacherOfClass(teacherId, session.getClazz().getClassId())) return ResponseData.error(403, "Không có quyền");
+            if (session == null)
+                return ResponseData.error(404, "Không tìm thấy buổi học");
+            if (!isTeacherOfClass(teacherId, session.getClazz().getClassId()))
+                return ResponseData.error(403, "Không có quyền");
 
             // Capture old values for reschedule notification
             java.time.LocalDateTime oldDate = session.getSessionDate();
@@ -234,12 +256,18 @@ public class TeacherClassSessionService {
             boolean dateChanged = sessionDate != null && !sessionDate.equals(session.getSessionDate());
             boolean timeChanged = startTime != null && !startTime.equals(session.getStartTime());
 
-            if (sessionNumber != null) session.setSessionNumber(sessionNumber);
-            if (sessionDate != null) session.setSessionDate(sessionDate);
-            if (startTime != null) session.setStartTime(startTime);
-            if (endTime != null) session.setEndTime(endTime);
-            if (topic != null) session.setTopic(topic);
-            if (notes != null) session.setNotes(notes);
+            if (sessionNumber != null)
+                session.setSessionNumber(sessionNumber);
+            if (sessionDate != null)
+                session.setSessionDate(sessionDate);
+            if (startTime != null)
+                session.setStartTime(startTime);
+            if (endTime != null)
+                session.setEndTime(endTime);
+            if (topic != null)
+                session.setTopic(topic);
+            if (notes != null)
+                session.setNotes(notes);
             if (quizId != null) {
                 Quiz quiz = quizRepository.findById(quizId).orElse(null);
                 session.setQuiz(quiz);
@@ -262,11 +290,14 @@ public class TeacherClassSessionService {
     public ResponseData<Void> deleteSession(String email, Integer sessionId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
 
             ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
-            if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
-            if (!isTeacherOfClass(teacherId, session.getClazz().getClassId())) return ResponseData.error(403, "Không có quyền");
+            if (session == null)
+                return ResponseData.error(404, "Không tìm thấy buổi học");
+            if (!isTeacherOfClass(teacherId, session.getClazz().getClassId()))
+                return ResponseData.error(403, "Không có quyền");
 
             // ── Notify enrolled students ─────────────────────────────────
             notifyStudentsSessionCancelled(session);
@@ -279,7 +310,7 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  QUIZ MANAGEMENT (multi-quiz per session)
+    // QUIZ MANAGEMENT (multi-quiz per session)
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -289,10 +320,12 @@ public class TeacherClassSessionService {
     public ResponseData<Map<String, Object>> addQuizToSession(String email, Integer sessionId, Integer quizId) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             if (sessionQuizRepository.existsBySessionSessionIdAndQuizQuizId(sessionId, quizId)) {
                 return ResponseData.error(400, "Quiz này đã được gắn vào buổi học");
@@ -329,7 +362,8 @@ public class TeacherClassSessionService {
     public ResponseData<Void> removeQuizFromSession(String email, Integer sessionId, Integer quizId) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             if (!sessionQuizRepository.existsBySessionSessionIdAndQuizQuizId(sessionId, quizId)) {
                 return ResponseData.error(404, "Quiz không tồn tại trong buổi học này");
@@ -349,10 +383,12 @@ public class TeacherClassSessionService {
     public ResponseData<Map<String, Object>> toggleQuizOpenInSession(String email, Integer sessionId, Integer quizId) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             SessionQuiz sq = sessionQuizRepository.findBySessionSessionIdAndQuizQuizId(sessionId, quizId).orElse(null);
-            if (sq == null) return ResponseData.error(404, "Quiz không tồn tại trong buổi học này");
+            if (sq == null)
+                return ResponseData.error(404, "Quiz không tồn tại trong buổi học này");
 
             Boolean current = sq.getIsOpen();
             Boolean updated = (current == null || !current);
@@ -378,7 +414,8 @@ public class TeacherClassSessionService {
     public ResponseData<List<Map<String, Object>>> openAllQuizzesInSession(String email, Integer sessionId) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             List<SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionId(sessionId);
             if (sqList.isEmpty()) {
@@ -411,7 +448,8 @@ public class TeacherClassSessionService {
     public ResponseData<List<Map<String, Object>>> closeAllQuizzesInSession(String email, Integer sessionId) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             List<SessionQuiz> sqList = sessionQuizRepository.findBySessionSessionId(sessionId);
             for (SessionQuiz sq : sqList) {
@@ -434,7 +472,7 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  MATERIALS (FILE UPLOAD)
+    // MATERIALS (FILE UPLOAD)
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -444,7 +482,8 @@ public class TeacherClassSessionService {
     public ResponseData<List<String>> uploadMaterials(String email, Integer sessionId, List<MultipartFile> files) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             if (files == null || files.isEmpty()) {
                 return ResponseData.error(400, "Không có file nào được chọn");
@@ -457,13 +496,16 @@ public class TeacherClassSessionService {
             List<String> savedFiles = new ArrayList<>(parseMaterials(session.getMaterials()));
 
             for (MultipartFile file : files) {
-                if (file.isEmpty()) continue;
+                if (file.isEmpty())
+                    continue;
 
                 String originalFilename = file.getOriginalFilename();
-                if (originalFilename == null || originalFilename.isBlank()) continue;
+                if (originalFilename == null || originalFilename.isBlank())
+                    continue;
 
                 // Sanitize filename
-                String safeFilename = System.currentTimeMillis() + "_" + originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+                String safeFilename = System.currentTimeMillis() + "_"
+                        + originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
                 Path filePath = uploadPath.resolve(safeFilename);
                 Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
@@ -488,7 +530,8 @@ public class TeacherClassSessionService {
     public ResponseData<List<String>> deleteMaterial(String email, Integer sessionId, String filename) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             List<String> materials = new ArrayList<>(parseMaterials(session.getMaterials()));
             String target = "session_" + sessionId + "/" + filename;
@@ -515,15 +558,17 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  AVAILABLE QUIZZES
+    // AVAILABLE QUIZZES
     // ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public ResponseData<List<Map<String, Object>>> getAvailableQuizzes(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
             Integer courseId = clazz != null && clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null;
@@ -546,25 +591,43 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  WORKSPACE ADDITIONS (Students, Course Content, Mapping)
+    // WORKSPACE ADDITIONS (Students, Course Content, Mapping)
     // ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public ResponseData<List<Map<String, Object>>> getStudentsByClass(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             List<Registration> regs = registrationRepository.findApprovedByClassId(classId);
-            List<Map<String, Object>> result = regs.stream().map(r -> {
+            List<Map<String, Object>> result = new ArrayList<>();
+
+            Clazz clazz = clazzRepository.findById(classId).orElse(null);
+            if (clazz == null || clazz.getCourse() == null) {
+                return ResponseData.error(404, "Lớp học hoặc khóa học không tồn tại");
+            }
+            Integer courseId = clazz.getCourse().getCourseId();
+            long totalLessons = lessonRepository.countByModuleCourse_CourseId(courseId);
+
+            for (Registration r : regs) {
                 Map<String, Object> m = new LinkedHashMap<>();
-                m.put("studentId", r.getUser().getUserId());
-                m.put("fullName", r.getUser().getFullName());
-                m.put("email", r.getUser().getEmail());
-                m.put("progress", 0); // Mock progress for now
-                return m;
-            }).toList();
+                User student = r.getUser();
+                m.put("studentId", student.getUserId());
+                m.put("fullName", student.getFullName());
+                m.put("email", student.getEmail());
+
+                // Calculate actual progress for this student in this course
+                long completedLessons = userLessonRepository
+                        .countCompletedLessonsByUserIdAndCourseId(student.getUserId(), courseId);
+                int progress = totalLessons > 0 ? (int) (completedLessons * 100 / totalLessons) : 0;
+
+                m.put("progress", progress + "%");
+                result.add(m);
+            }
 
             return ResponseData.success("Danh sách học viên", result);
         } catch (Exception e) {
@@ -576,14 +639,18 @@ public class TeacherClassSessionService {
     public ResponseData<Map<String, Object>> getCourseContentForMapping(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
-            if (clazz == null || clazz.getCourse() == null) return ResponseData.error(404, "Không tìm thấy khóa học của lớp");
+            if (clazz == null || clazz.getCourse() == null)
+                return ResponseData.error(404, "Không tìm thấy khóa học của lớp");
 
             // Fetch current mappings for this class
-            List<SessionLesson> currentMappings = sessionLessonRepository.findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
+            List<SessionLesson> currentMappings = sessionLessonRepository
+                    .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
             Map<Integer, Integer> lessonToSessionMap = new HashMap<>(); // lessonId -> sessionId
             for (SessionLesson sl : currentMappings) {
                 if (sl.getLesson() != null && sl.getSession() != null) {
@@ -591,18 +658,18 @@ public class TeacherClassSessionService {
                 }
             }
 
-            List<com.example.DoAn.model.Module> modules = moduleRepository.findByCourse_CourseIdOrderByOrderIndexAsc(clazz.getCourse().getCourseId());
-            
+            List<com.example.DoAn.model.Module> modules = moduleRepository
+                    .findByCourse_CourseIdOrderByOrderIndexAsc(clazz.getCourse().getCourseId());
+
             List<Map<String, Object>> moduleList = modules.stream().map(m -> {
                 Map<String, Object> mm = new LinkedHashMap<>();
                 mm.put("moduleId", m.getModuleId());
                 mm.put("moduleName", m.getModuleName());
-                
+
                 List<Map<String, Object>> lessons = m.getLessons().stream().map(l -> {
                     Map<String, Object> lm = new LinkedHashMap<>();
                     lm.put("lessonId", l.getLessonId());
                     lm.put("lessonName", l.getLessonName());
-                    // Find if this lesson is already mapped to a session in this class
                     lm.put("sessionId", lessonToSessionMap.get(l.getLessonId()));
                     return lm;
                 }).toList();
@@ -622,28 +689,33 @@ public class TeacherClassSessionService {
     public ResponseData<Void> saveMapping(String email, Integer classId, List<Map<String, Integer>> mappings) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             // 1. Clear old mappings for this class
             sessionLessonRepository.deleteBySession_Clazz_ClassId(classId);
-            
+
             // 2. Clear topics for all sessions in this class (for refresh)
-            List<ClassSession> classSessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
+            List<ClassSession> classSessions = classSessionRepository
+                    .findByClazzClassIdOrderBySessionNumberAsc(classId);
             for (ClassSession s : classSessions) {
-                s.setTopic("Chưa cập nhật chủ đề..."); 
+                s.setTopic("Chưa cập nhật chủ đề...");
                 classSessionRepository.save(s);
             }
 
-            // 3. Save new mappings
+            // 3. Save new mappings and group topics
+            Map<Integer, List<String>> sessionTopicsMap = new HashMap<>();
+
             for (Map<String, Integer> map : mappings) {
                 Integer lessonId = map.get("lessonId");
                 Integer sessionId = map.get("sessionId");
-                
+
                 if (lessonId != null && sessionId != null) {
                     ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
                     Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
-                    
+
                     if (session != null && lesson != null && session.getClazz().getClassId().equals(classId)) {
                         // Create persistent link
                         SessionLesson sl = SessionLesson.builder()
@@ -653,10 +725,19 @@ public class TeacherClassSessionService {
                                 .build();
                         sessionLessonRepository.save(sl);
 
-                        // Update session topic for UI display
-                        session.setTopic(lesson.getLessonName());
-                        classSessionRepository.save(session);
+                        // Collect topics
+                        sessionTopicsMap.computeIfAbsent(sessionId, k -> new ArrayList<>()).add(lesson.getLessonName());
                     }
+                }
+            }
+
+            // 4. Update session topics with joined strings
+            for (Map.Entry<Integer, List<String>> entry : sessionTopicsMap.entrySet()) {
+                ClassSession session = classSessionRepository.findById(entry.getKey()).orElse(null);
+                if (session != null) {
+                    String joinedTopic = String.join(", ", entry.getValue());
+                    session.setTopic(joinedTopic);
+                    classSessionRepository.save(session);
                 }
             }
 
@@ -667,14 +748,15 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  MEET LINK UPDATE (per-session override)
+    // MEET LINK UPDATE (per-session override)
     // ─────────────────────────────────────────────────────────────
 
     @Transactional
     public ResponseData<Void> updateMeetLink(String email, Integer sessionId, String meetLink) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
-            if (session == null) return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            if (session == null)
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
 
             session.setMeetLink(meetLink != null && !meetLink.isBlank() ? meetLink.trim() : null);
             classSessionRepository.save(session);
@@ -686,22 +768,24 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  ASSIGNMENT MANAGEMENT (PRO)
+    // ASSIGNMENT MANAGEMENT (PRO)
     // ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public ResponseData<List<Map<String, Object>>> getExpertAssignmentsByClass(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             // 1. Get all expert quizzes for this class's course
             List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
 
             // 2. Get all session assignments for this class to check status
             List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
-            
+
             // 3. Map status
             List<Map<String, Object>> result = expertQuizzes.stream().map(q -> {
                 Map<String, Object> m = new LinkedHashMap<>();
@@ -742,8 +826,10 @@ public class TeacherClassSessionService {
     public ResponseData<List<Map<String, Object>>> getAssignmentsByClass(String email, Integer classId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
-            if (!isTeacherOfClass(teacherId, classId)) return ResponseData.error(403, "Không có quyền");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
+            if (!isTeacherOfClass(teacherId, classId))
+                return ResponseData.error(403, "Không có quyền");
 
             // 1. Get all expert assignments for this class's course
             List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
@@ -789,13 +875,16 @@ public class TeacherClassSessionService {
     }
 
     @Transactional
-    public ResponseData<Void> updateAssignmentSchedule(String email, Integer sessionQuizId, AssignmentScheduleRequestDTO request) {
+    public ResponseData<Void> updateAssignmentSchedule(String email, Integer sessionQuizId,
+            AssignmentScheduleRequestDTO request) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
 
             SessionQuiz sq = sessionQuizRepository.findById(sessionQuizId).orElse(null);
-            if (sq == null) return ResponseData.error(404, "Không tìm thấy cấu hình assignment");
+            if (sq == null)
+                return ResponseData.error(404, "Không tìm thấy cấu hình assignment");
 
             if (!isTeacherOfClass(teacherId, sq.getSession().getClazz().getClassId())) {
                 return ResponseData.error(403, "Không có quyền");
@@ -807,15 +896,16 @@ public class TeacherClassSessionService {
             if (request.getCloseAt() != null && request.getCloseAt().isBefore(LocalDateTime.now())) {
                 return ResponseData.error(400, "Thời gian đóng không được ở trong quá khứ");
             }
-            if (request.getOpenAt() != null && request.getCloseAt() != null && !request.getCloseAt().isAfter(request.getOpenAt())) {
+            if (request.getOpenAt() != null && request.getCloseAt() != null
+                    && !request.getCloseAt().isAfter(request.getOpenAt())) {
                 return ResponseData.error(400, "Thời gian đóng phải sau thời gian mở");
             }
 
             sq.setOpenAt(request.getOpenAt());
             sq.setCloseAt(request.getCloseAt());
-            // If openAt is in the past and closeAt is in the future, maybe auto-open? 
+            // If openAt is in the past and closeAt is in the future, maybe auto-open?
             // For now, let teacher manually toggle isOpen as well.
-            
+
             sessionQuizRepository.save(sq);
             return ResponseData.success("Cập nhật thời gian thành công");
         } catch (Exception e) {
@@ -823,15 +913,17 @@ public class TeacherClassSessionService {
         }
     }
 
-
     @Transactional
     public ResponseData<Void> resetStudentAttempt(String email, Integer quizId, Long studentId) {
         try {
             Integer teacherId = getTeacherId(email);
-            if (teacherId == null) return ResponseData.error(401, "Unauthorized");
+            if (teacherId == null)
+                return ResponseData.error(401, "Unauthorized");
 
-            AssignmentSession session = assignmentSessionRepository.findByQuizQuizIdAndUserUserId(quizId, studentId).orElse(null);
-            if (session == null) return ResponseData.error(404, "Không tìm thấy bài làm của học viên");
+            AssignmentSession session = assignmentSessionRepository.findByQuizQuizIdAndUserUserId(quizId, studentId)
+                    .orElse(null);
+            if (session == null)
+                return ResponseData.error(404, "Không tìm thấy bài làm của học viên");
 
             assignmentSessionRepository.delete(session);
             return ResponseData.success("Đã reset lượt làm bài cho học viên");
@@ -841,19 +933,21 @@ public class TeacherClassSessionService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  NOTIFICATIONS
+    // NOTIFICATIONS
     // ─────────────────────────────────────────────────────────────
 
     private void notifyStudentsSessionCreated(ClassSession session, Clazz clazz) {
         try {
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
             String dateStr = session.getSessionDate() != null
-                    ? session.getSessionDate().toLocalDate().toString() : "";
+                    ? session.getSessionDate().toLocalDate().toString()
+                    : "";
             String timeStr = session.getStartTime() != null ? session.getStartTime() : "";
 
             for (Registration reg : registrations) {
                 User student = reg.getUser();
-                if (student == null || student.getUserId() == null) continue;
+                if (student == null || student.getUserId() == null)
+                    continue;
 
                 String studentName = student.getFullName() != null ? student.getFullName() : "";
                 String email = student.getEmail();
@@ -867,27 +961,30 @@ public class TeacherClassSessionService {
                         clazz.getClassName(),
                         session.getTopic(),
                         dateStr,
-                        session.getMeetLink()
-                );
+                        session.getMeetLink());
             }
         } catch (Exception e) {
             System.err.println("Error notifying session creation: " + e.getMessage());
         }
     }
 
-    private void notifyStudentsSessionRescheduled(ClassSession session, java.time.LocalDateTime oldDate, String oldTime) {
+    private void notifyStudentsSessionRescheduled(ClassSession session, java.time.LocalDateTime oldDate,
+            String oldTime) {
         try {
             Clazz clazz = session.getClazz();
-            if (clazz == null) return;
+            if (clazz == null)
+                return;
 
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
             String oldDateStr = oldDate != null ? oldDate.toLocalDate().toString() : "";
-            String newDateStr = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
+            String newDateStr = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString()
+                    : "";
             String newTimeStr = session.getStartTime() != null ? session.getStartTime() : "";
 
             for (Registration reg : registrations) {
                 User student = reg.getUser();
-                if (student == null || student.getUserId() == null) continue;
+                if (student == null || student.getUserId() == null)
+                    continue;
 
                 String studentName = student.getFullName() != null ? student.getFullName() : "";
                 String email = student.getEmail();
@@ -901,8 +998,7 @@ public class TeacherClassSessionService {
                         clazz.getClassName(),
                         newDateStr,
                         newTimeStr,
-                        "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber()
-                );
+                        "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber());
             }
         } catch (Exception e) {
             System.err.println("Error notifying session reschedule: " + e.getMessage());
@@ -912,7 +1008,8 @@ public class TeacherClassSessionService {
     private void notifyStudentsSessionCancelled(ClassSession session) {
         try {
             Clazz clazz = session.getClazz();
-            if (clazz == null) return;
+            if (clazz == null)
+                return;
 
             List<Registration> registrations = registrationRepository.findApprovedByClassId(clazz.getClassId());
             String dateStr = session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "";
@@ -920,7 +1017,8 @@ public class TeacherClassSessionService {
 
             for (Registration reg : registrations) {
                 User student = reg.getUser();
-                if (student == null || student.getUserId() == null) continue;
+                if (student == null || student.getUserId() == null)
+                    continue;
 
                 String studentName = student.getFullName() != null ? student.getFullName() : "";
                 String email = student.getEmail();
@@ -933,12 +1031,10 @@ public class TeacherClassSessionService {
                         Long.valueOf(student.getUserId()),
                         clazz.getClassName(),
                         dateStr,
-                        "Buổi học số " + session.getSessionNumber() + " đã bị hủy."
-                );
+                        "Buổi học số " + session.getSessionNumber() + " đã bị hủy.");
             }
         } catch (Exception e) {
             System.err.println("Error notifying session cancellation: " + e.getMessage());
         }
     }
 }
-
