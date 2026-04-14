@@ -705,9 +705,9 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category) {
+    public PageResponse<QuizResultHistoryDTO> getStudentQuizHistory(String email, int page, int size, String category, String keyword) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailAndCategory(email, category, null, pageable);
+        Page<QuizResult> resultPage = quizResultRepository.findByUserEmailAndCategory(email, category, keyword, pageable);
 
         List<QuizResultHistoryDTO> list = resultPage.getContent().stream().map(qr -> {
             int maxScore = 0;

@@ -48,7 +48,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     // OkHttpClient — uses OS DNS resolver, works on all environments
     private static final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .build();
 
@@ -204,12 +204,14 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     module.getModuleName(), lessonSummary,
                     request.getQuantity().intValue(),
                     request.getQuestionTypes(),
+                    request.getSkill(),
                     request.getAdvancedOptions());
         } else {
             return promptBuilder.buildQuickPrompt(
                     request.getTopic(), 
                     request.getQuantity().intValue(),
                     request.getQuestionTypes(),
+                    request.getSkill(),
                     request.getAdvancedOptions());
         }
     }
@@ -234,7 +236,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", groqModel);
         body.put("temperature", 0.7);
-        body.put("max_tokens", 8192);
+        body.put("max_tokens", 6000);
 
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "user", "content", prompt)
@@ -264,6 +266,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                                 code, waitMs, attempt + 1, maxRetries);
                         Thread.sleep(waitMs);
                         continue;
+                    }
+
+                    if (code == 413 || code == 429) {
+                        throw new AIException("Số lượng câu hỏi yêu cầu quá lớn hoặc quá nhanh so với giới hạn tài khoản Groq của bạn. Vui lòng giảm số câu hỏi hoặc thử lại sau.", null);
                     }
 
                     if (!resp.isSuccessful()) {
@@ -343,8 +349,9 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             }
             return valid;
         } catch (JsonProcessingException e) {
-            log.error("Failed to parse AI JSON: {}", cleaned.substring(0, Math.min(200, cleaned.length())));
-            throw new AIException("AI trả về định dạng không hợp lệ.", e);
+            log.error("Failed to parse AI JSON. Raw length: {}. Preview: {}",
+                    cleaned.length(), cleaned.substring(0, Math.min(500, cleaned.length())));
+            throw new AIException("AI trả về định dạng không hợp lệ hoặc bị cắt cụt. Vui lòng thử lại với số lượng ít hơn.", e);
         }
     }
 

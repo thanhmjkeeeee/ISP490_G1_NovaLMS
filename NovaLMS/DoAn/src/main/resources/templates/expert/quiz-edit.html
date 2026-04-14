@@ -247,6 +247,8 @@
         <div class="d-flex justify-content-end gap-3">
             <button type="button" class="btn btn-lg btn-light px-4 fw-bold"
                     style="border-radius:12px;" onclick="window.history.back()">Hủy</button>
+            <button type="button" class="btn btn-lg btn-outline-primary px-4 fw-bold"
+                    style="border-radius:12px;" onclick="doSaveDraft()">Lưu thay đổi</button>
             <button type="button" id="btnNextStep1" class="btn btn-lg text-white px-5 fw-bold"
                     style="background-color:#136ad5; border-radius:12px;" onclick="validateAndGoToStep2()">
                 Tiếp theo: Câu hỏi <i class="bi bi-arrow-right ms-2"></i>
@@ -360,7 +362,8 @@
                 </div>
 
                 <div class="d-flex justify-content-center gap-3">
-                    <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại sửa</button>
+                    <button class="btn btn-lg btn-outline-secondary px-4" onclick="goToStep(2)">Quay lại sửa</button>
+                    <button class="btn btn-lg btn-outline-primary px-4 fw-bold" onclick="doSaveDraft()">Lưu thay đổi</button>
                     <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal" onclick="publishQuiz()">
                         <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
                     </button>
@@ -508,6 +511,17 @@
     const quizId = /*[[${quizId}]]*/ 0;
     let _currentCategory = null;
     let _quizData = null;
+
+    const wsToast = (msg, icon = 'success') => {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+        Toast.fire({ icon: icon, title: msg });
+    };
 
     // ─── STEPPER ─────────────────────────────────────────────────────────
     async function goToStep(step) {
@@ -665,7 +679,6 @@
         } catch (e) { console.error(e); alert('Lỗi tải quiz.'); }
     }
 
-<<<<<<< HEAD
     // ─── AI GENERATION LOGIC ─────────────────────────────────────────────
     let aiGenModal;
 
@@ -769,7 +782,6 @@
             console.error('Lỗi khi import:', e);
             alert('Lỗi kết nối khi import câu hỏi AI.');
         }
-=======
     // ─── VALIDATION ──────────────────────────────────────────────────────
 
     function validateAndGoToStep2() {
@@ -833,7 +845,6 @@
         if (btnNext) btnNext.disabled = !isValid;
         
         return isValid;
->>>>>>> 79245ea8f7b3a740e1cf575e98548202799438f7
     }
 
     // ─── STEP 2 LOGIC ────────────────────────────────────────────────────
@@ -1170,7 +1181,10 @@
 
     async function doSaveDraft() {
         const title = document.getElementById('title')?.value?.trim();
-        if (!title) { alert('Vui lòng nhập tên quiz.'); return; }
+        if (!title) {
+            Swal.fire('Chú ý', 'Vui lòng nhập tên quiz.', 'warning');
+            return;
+        }
 
         const body = buildUpdateBody();
         try {
@@ -1181,12 +1195,14 @@
             });
             const result = await res.json();
             if (res.ok) {
-                alert('Đã lưu nháp!');
-                window.location.href = '/expert/quiz-management';
+                wsToast('Đã lưu thay đổi thành công!');
+                setTimeout(() => {
+                    window.location.href = '/expert/quiz-bank/course/' + (body.courseId || '');
+                }, 1000);
             } else {
-                alert(result.message || 'Có lỗi xảy ra.');
+                Swal.fire('Thất bại', result.message || 'Có lỗi xảy ra.', 'error');
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
+        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
     }
 
     async function saveAndGoToStep3() {

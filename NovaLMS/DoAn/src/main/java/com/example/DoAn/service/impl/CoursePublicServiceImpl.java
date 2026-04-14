@@ -115,10 +115,15 @@ public class CoursePublicServiceImpl implements CourseService {
         // 4. Chuẩn bị dữ liệu cơ bản
         String categoryName = (course.getCategory() != null) ? course.getCategory().getName() : "N/A";
         long studentCount = registrationRepository.countByCourse_CourseIdAndStatus(id, "Approved");
-        String imgUrl = (course.getAvatar() != null && !course.getAvatar().isEmpty())
-                ? course.getAvatar()
-                : (course.getImageUrl() != null && !course.getImageUrl().isEmpty()
-                    ? course.getImageUrl() : "/assets/img/default-course.png");
+        String rawAvatar = course.getAvatar();
+        String rawImageUrl = course.getImageUrl();
+
+        String imgUrl = "/assets/img/default-course.png";
+        if (rawAvatar != null && !rawAvatar.isBlank() && !rawAvatar.contains("placeholder")) {
+            imgUrl = rawAvatar;
+        } else if (rawImageUrl != null && !rawImageUrl.isBlank() && !rawImageUrl.contains("placeholder")) {
+            imgUrl = rawImageUrl;
+        }
 
         // 5. Trả về DTO tổng thể (Khớp các trường dữ liệu của Record)
         return new CoursePublicResponseDTO(

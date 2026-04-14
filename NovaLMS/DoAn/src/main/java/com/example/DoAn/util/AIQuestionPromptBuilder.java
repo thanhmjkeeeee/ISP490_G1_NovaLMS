@@ -24,20 +24,25 @@ public class AIQuestionPromptBuilder {
             "A1", "A2", "B1", "B2", "C1", "C2"
     );
 
-    public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, Map<String, Object> advancedOptions) {
+    public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, String skill, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String constraints = buildAdvancedConstraints(advancedOptions);
+        String skillConstraint = (skill != null && !skill.equalsIgnoreCase("MIXED")) 
+                ? "- Skills: ONLY " + skill.toUpperCase()
+                : "- Skills: mix LISTENING, READING, WRITING, SPEAKING";
 
         return """
                 You are a professional English teacher. Generate exactly %d English questions
                 about the topic "%s" for students.
+                
+                CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.
 
                 IMPORTANT: ALL question content, answer options, and explanations MUST be in ENGLISH only. No Vietnamese.
 
                 Requirements:
                 - Question types: %s
                 - CEFR levels: mix from A1 to C2
-                - Skills: mix LISTENING, READING, WRITING, SPEAKING
+                %s
                 %s
                 - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
@@ -69,13 +74,16 @@ public class AIQuestionPromptBuilder {
                     "correctPairs": [...]
                   }
                 ]
-                """.formatted(quantity, topic, types, constraints, topic);
+                """.formatted(quantity, topic, quantity, types, skillConstraint, constraints, topic);
     }
 
     public String buildContextPrompt(String moduleName, String lessonSummary,
-                                     int quantity, List<String> questionTypes, Map<String, Object> advancedOptions) {
+                                     int quantity, List<String> questionTypes, String skill, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String constraints = buildAdvancedConstraints(advancedOptions);
+        String skillConstraint = (skill != null && !skill.equalsIgnoreCase("MIXED")) 
+                ? "- Skills: ONLY " + skill.toUpperCase()
+                : "- Skills: mix LISTENING, READING, WRITING, SPEAKING";
         String truncated = lessonSummary.length() > 8000
                 ? lessonSummary.substring(0, 8000)
                 : lessonSummary;
@@ -84,13 +92,15 @@ public class AIQuestionPromptBuilder {
                 %s
 
                 Generate exactly %d English questions appropriate for this content.
+                
+                CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.
 
                 IMPORTANT: ALL question content, answer options, and explanations MUST be in ENGLISH only. No Vietnamese.
 
                 Requirements:
                 - Question types: %s
                 - CEFR levels: mix from A1 to C2
-                - Skills: mix LISTENING, READING, WRITING, SPEAKING
+                %s
                 %s
                 - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
@@ -122,7 +132,7 @@ public class AIQuestionPromptBuilder {
                     "correctPairs": [...]
                   }
                 ]
-                """.formatted(moduleName, truncated, quantity, types, constraints, moduleName);
+                """.formatted(moduleName, truncated, quantity, quantity, types, skillConstraint, constraints, moduleName);
     }
 
     /**
@@ -195,7 +205,7 @@ public class AIQuestionPromptBuilder {
         sb.append("}\n\n");
 
         sb.append("Rules:\n");
-        sb.append("- Generate exactly ").append(questionCount).append(" questions.\n");
+        sb.append("- Generate EXACTLY ").append(questionCount).append(" questions objects in the 'questions' array. This is strict.\n");
         sb.append("- FORBIDDEN: Do NOT generate WRITING or SPEAKING questions for Reading/Listening skills.\n");
         sb.append("- Question types allowed: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING.");
         if (!matchingConstraint.isEmpty()) sb.append(matchingConstraint);
@@ -320,6 +330,8 @@ public class AIQuestionPromptBuilder {
             The module "%s" has the following lesson content:
             %s
 
+            CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.
+
             IMPORTANT: ALL question content, answer options, and explanations MUST be in ENGLISH only. No Vietnamese.
 
             ## ADVANCED MODE REQUIREMENTS
@@ -371,7 +383,7 @@ public class AIQuestionPromptBuilder {
               }
             ]
             """.formatted(
-                cefrLevel, moduleName, truncated,
+                cefrLevel, moduleName, truncated, quantity,
                 bloomInstruction,
                 "        - " + String.join("\n        - ", grammarFocus),
                 String.join(", ", skills),
@@ -400,6 +412,8 @@ public class AIQuestionPromptBuilder {
         return """
             You are a professional English teacher specializing in advanced question design for CEFR level %s.
             Generate exactly %d advanced English questions about the topic "%s".
+            
+            CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.
 
             IMPORTANT: ALL question content, answer options, and explanations MUST be in ENGLISH only. No Vietnamese.
 
@@ -452,7 +466,7 @@ public class AIQuestionPromptBuilder {
               }
             ]
             """.formatted(
-                cefrLevel, quantity, topic,
+                cefrLevel, quantity, topic, quantity,
                 bloomInstruction,
                 "        - " + String.join("\n        - ", grammarFocus),
                 String.join(", ", skills),
