@@ -18,9 +18,9 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-# Copy the jar from build stage
-# Đảm bảo chỉ copy file jar thực thi (không copy -plain.jar nếu có)
+# Copy the jar and SQL seed file from build stage (or root)
 COPY --from=build /app/target/DoAn-0.0.1-SNAPSHOT.jar app.jar
+COPY massive_seed_v2.sql .
 
 # Render dynamic port binding
 EXPOSE 8080
