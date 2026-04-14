@@ -498,6 +498,9 @@ public class TeacherQuizService {
                                 .build())
                         .collect(Collectors.toList());
 
+                Integer groupId = q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupId() : null;
+                String groupContent = q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupContent() : null;
+
                 return QuestionBankSimpleDTO.builder()
                         .questionId(q.getQuestionId())
                         .content(q.getContent())
@@ -506,6 +509,8 @@ public class TeacherQuizService {
                         .cefrLevel(q.getCefrLevel())
                         .topic(q.getTopic())
                         .status(q.getStatus())
+                        .groupId(groupId)
+                        .groupContent(groupContent)
                         .options(optDTOs)
                         .build();
             }).collect(Collectors.toList());
@@ -783,6 +788,8 @@ public class TeacherQuizService {
         private String cefrLevel;
         private String topic;
         private String status;
+        private Integer groupId;
+        private String groupContent;
         private List<AnswerOptionSimpleDTO> options;
 
         @lombok.Data

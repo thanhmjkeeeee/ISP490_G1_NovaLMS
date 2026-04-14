@@ -154,6 +154,28 @@
                 
                 window.showToast(message, type);
             };
+
+            /**
+             * NOVA LMS — GLOBAL IMAGE ERROR HANDLER
+             * Catches broken images and replaces them with defaults to prevent 404 loops.
+             */
+            window.addEventListener('error', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    const img = e.target;
+                    // Stop recursion
+                    if (img.dataset.errorHandled) return;
+                    img.dataset.errorHandled = "true";
+                    img.onerror = null;
+
+                    const src = img.src || "";
+                    if (src.includes('/person/') || img.classList.contains('avatar') || img.classList.contains('rounded-circle')) {
+                        img.src = '/assets/img/default-avatar.png';
+                    } else {
+                        img.src = '/assets/img/default-course.png';
+                    }
+                    console.warn("Fixed broken image:", src, "->", img.src);
+                }
+            }, true);
         })();
     </script>
 

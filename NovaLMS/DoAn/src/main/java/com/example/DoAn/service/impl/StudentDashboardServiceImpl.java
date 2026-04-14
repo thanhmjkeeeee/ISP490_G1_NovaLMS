@@ -57,10 +57,15 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
 
             LocalDate enrolledAt = reg.getRegistrationTime() != null ? reg.getRegistrationTime().toLocalDate() : null;
 
+            String thumbnailUrl = course.getImageUrl();
+            if (thumbnailUrl == null || thumbnailUrl.isBlank() || thumbnailUrl.contains("placeholder")) {
+                thumbnailUrl = "/assets/img/default-course.png";
+            }
+
             enrolledCourses.add(EnrolledCourseDTO.builder()
                     .courseId(courseId)
                     .title(course.getTitle())
-                    .thumbnailUrl(course.getImageUrl())
+                    .thumbnailUrl(thumbnailUrl)
                     .teacherName(reg.getClazz() != null && reg.getClazz().getTeacher() != null ? reg.getClazz().getTeacher().getFullName() : "N/A")
                     .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "N/A")
                     .totalLessons((int) totalLessons)

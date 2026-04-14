@@ -13,6 +13,28 @@
     .workspace-tabs .nav-link:hover:not(.active) { background-color: #f8fafc; color: #0d6efd; }
     .workspace-tabs .nav-link.active { background-color: #0d6efd !important; color: #ffffff !important; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2); }
 
+    #wsQuizWizardTabs .nav-link { 
+        border: 2px solid transparent; 
+        transition: all 0.2s ease;
+        opacity: 0.6;
+    }
+    #wsQuizWizardTabs .nav-link.active { 
+        background-color: rgba(19, 106, 213, 0.1) !important; 
+        color: #136ad5 !important; 
+        border-color: #136ad5 !important; 
+        font-weight: 700;
+        opacity: 1;
+    }
+    #wsQuizWizardTabs .nav-link:not(.active):hover {
+        background-color: #f1f5f9;
+        opacity: 0.9;
+    }
+    #wsQuizWizardTabs .nav-link.locked {
+        cursor: not-allowed;
+        background-color: #f8fafc;
+        color: #94a3b8;
+    }
+
     .w-card { background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; min-height: 500px; }
 
     /* Table Styles */
@@ -514,13 +536,22 @@
                 <input type="hidden" id="wsQuizModalSessionId">
                 <!-- ======= STEP 1: Quiz Info ======= -->
                 <div id="wsQuizStep1">
-                    <!-- Chọn buổi học -->
+                    <!-- Chọn buổi học (Searchable) -->
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Gắn vào buổi học <span class="text-danger">*</span></label>
-                        <select class="form-select rounded-3" id="wsSessionSelect" onchange="wsOnSessionChange(this)">
-                            <option value="">-- Chọn buổi học --</option>
-                        </select>
-                        <div class="form-text small">Quiz sẽ hiển thị cho học sinh khi họ buổi học này.</div>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control border-start-0" id="wsSessionSearch" placeholder="Tìm kiếm buổi học..." oninput="wsFilterSessions(this.value)">
+                        </div>
+                        <div id="wsSessionListContainer" class="border rounded-3 overflow-auto" style="max-height: 180px; background-color: #f8fafc;">
+                            <div class="p-3 text-center text-muted small">Đang tải danh sách buổi học...</div>
+                        </div>
+                        <div id="wsSelectedSessionDisplay" class="mt-2 p-2 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-3 d-none">
+                            <i class="bi bi-link-45deg"></i> Đã chọn: <strong id="wsSelectedSessionName"></strong>
+                            <button type="button" class="btn-close float-end" style="font-size: 0.7rem;" onclick="wsDeselectSession()"></button>
+                        </div>
+                        <input type="hidden" id="wsSessionSelect"> <!-- Hidden field to maintain compatibility with existing logic -->
+                        <div class="form-text small">Quiz sẽ hiển thị cho học sinh khi họ mở buổi học này.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Tên Quiz <span class="text-danger">*</span></label>
@@ -671,7 +702,20 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer bg-light border-0 py-3 px-4">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 d-none" id="wsBackBtn" onclick="wsSwitchStep(1)">
+                        <i class="bi bi-arrow-left me-1"></i>Quay lại
+                    </button>
+                    <div class="flex-grow-1"></div>
+                    <button type="button" class="btn btn-light rounded-pill px-4 me-2" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary rounded-pill shadow-sm px-4" id="wsNextBtn" onclick="wsNextStep()">
+                        Tiếp theo <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
 
             <!-- ═══════════════════════════════ AI GENERATOR MODAL (NEW) ═══════════════════════════════ -->
 <div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
@@ -1503,18 +1547,49 @@
     let wsQuizModal;
     let wsCurrentQuizId = null;
     let wsCurrentStep = 1;
+
+    const wsToast = (msg, icon = 'success') => {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
+        Toast.fire({ icon: icon, title: msg });
+    };
+
+    const wsConfirmToast = async (title, text) => {
+        return await Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Có',
+            cancelButtonText: 'Không',
+            width: '350px',
+            padding: '1rem',
+            customClass: {
+                popup: 'shadow-lg border border-primary border-opacity-25'
+            }
+        });
+    };
+
     let wsSelectedQuestions = [];
     let wsBankCache = new Map();
     let wsAiQuestions = [];
     let wsAiSelected = new Set();
     let wsAllAiSelected = false;
     let wsIsEditing = false;
+    let wsAllSessions = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         wsQuizModal = new bootstrap.Modal(document.getElementById('wsQuizModal'));
     });
-
-    const openCreateQuizModal = async () => {
+    window.openCreateQuizModal = async function() {
         if (state.selectedClassId === 'ALL') {
             Swal.fire('Chú ý', 'Vui lòng chọn lớp học trước.', 'warning');
             return;
@@ -1526,24 +1601,88 @@
         document.getElementById('wsQuizModalSubtitle').textContent = cls?.courseName || '';
 
         // Load sessions for this class
-        const sel = document.getElementById('wsSessionSelect');
-        sel.innerHTML = '<option value="">-- Chọn buổi học --</option><option value="">Không gắn buổi (quiz chung)</option>';
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
             const json = await res.json();
-            if (json.status === 200 && json.data && json.data.length > 0) {
-                json.data.forEach(s => {
-                    const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
-                    sel.innerHTML += `<option value="${s.sessionId}">Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}</option>`;
-                });
-            }
-        } catch (e) { /* ignore */ }
+            wsAllSessions = (json.status === 200 && json.data) ? json.data : [];
+            wsRenderSessions(wsAllSessions);
+            document.getElementById('wsSessionListContainer').classList.add('d-none');
+        } catch (e) { wsAllSessions = []; wsRenderSessions([]); }
 
         wsSwitchStep(1);
         wsQuizModal.show();
     };
 
-    const openWsQuizBuilder = async (quizId) => {
+    window.wsRenderSessions = function(list) {
+        const container = document.getElementById('wsSessionListContainer');
+        if (!list || list.length === 0) {
+            container.innerHTML = '<div class="p-3 text-center text-muted small">Không có buổi học nào.</div>';
+            return;
+        }
+        
+        let html = `
+            <div class="list-group list-group-flush">
+                <button type="button" class="list-group-item list-group-item-action py-2 small" onclick="wsSelectSession('', 'Không gắn buổi (quiz chung)')">
+                    <i class="bi bi-circle me-2"></i>Không gắn buổi (quiz chung)
+                </button>
+        `;
+        
+        list.forEach(s => {
+            const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+            const label = `Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}`;
+            const isSelected = document.getElementById('wsSessionSelect').value == s.sessionId;
+            
+            html += `
+                <button type="button" class="list-group-item list-group-item-action py-2 small ${isSelected ? 'bg-primary bg-opacity-10 fw-bold' : ''}" 
+                        onclick="wsSelectSession(${s.sessionId}, '${wsEscape(label)}')">
+                    <i class="bi ${isSelected ? 'bi-check-circle-fill text-primary' : 'bi-circle'} me-2"></i>${wsEscape(label)}
+                </button>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    };
+
+    window.wsFilterSessions = function(query) {
+        const q = query.toLowerCase().trim();
+        const container = document.getElementById('wsSessionListContainer');
+        if (!q) {
+            container.classList.add('d-none');
+            return;
+        }
+        const filtered = wsAllSessions.filter(s => {
+            const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+            const content = `Buổi ${s.sessionNumber} ${dateStr} ${s.topic || ''}`.toLowerCase();
+            return content.includes(q);
+        });
+        container.classList.remove('d-none');
+        wsRenderSessions(filtered);
+    };
+
+    window.wsSelectSession = function(id, label) {
+        document.getElementById('wsSessionSelect').value = id;
+        document.getElementById('wsSelectedSessionName').textContent = label;
+        document.getElementById('wsSelectedSessionDisplay').classList.remove('d-none');
+        
+        // Auto-fill title if empty or matches old pattern
+        const titleInput = document.getElementById('wsQuizTitle');
+        const match = label.match(/Buổi (\d+)/);
+        if (match && (!titleInput.value.trim() || titleInput.value.includes('Quiz — Buổi'))) {
+            titleInput.value = `Quiz — Buổi ${match[1]}`;
+        }
+        
+        wsRenderSessions(wsAllSessions); // Refresh highlight
+        document.getElementById('wsSessionListContainer').classList.add('d-none');
+        document.getElementById('wsSessionSearch').value = ''; // Optional: clear search after select
+    };
+
+    window.wsDeselectSession = function() {
+        document.getElementById('wsSessionSelect').value = '';
+        document.getElementById('wsSelectedSessionDisplay').classList.add('d-none');
+        wsRenderSessions(wsAllSessions);
+    };
+
+    window.openWsQuizBuilder = async function(quizId) {
         if (!quizId) return;
         resetWsQuizBuilder();
         wsIsEditing = true;
@@ -1567,17 +1706,20 @@
             else document.getElementById('wsStatusDraft').checked = true;
 
             // Load sessions for this class
-            const sel = document.getElementById('wsSessionSelect');
-            sel.innerHTML = '<option value="">-- Chọn buổi học --</option><option value="">Không gắn buổi (quiz chung)</option>';
             const sRes = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
             const sJson = await sRes.json();
-            if (sJson.status === 200 && sJson.data) {
-                sJson.data.forEach(s => {
+            wsAllSessions = (sJson.status === 200 && sJson.data) ? sJson.data : [];
+            
+            // Handle pre-selection
+            if (q.classSessionId) {
+                const s = wsAllSessions.find(x => x.sessionId == q.classSessionId);
+                if (s) {
                     const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
-                    const isSelected = q.classSessionId == s.sessionId ? 'selected' : '';
-                    sel.innerHTML += `<option value="${s.sessionId}" ${isSelected}>Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}</option>`;
-                });
+                    const label = `Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}`;
+                    wsSelectSession(s.sessionId, label);
+                }
             }
+            wsRenderSessions(wsAllSessions);
 
             // Load questions into builder
             if (q.questions && q.questions.length > 0) {
@@ -1616,6 +1758,9 @@
         document.getElementById('wsQuizIdBadge').classList.add('d-none');
         document.getElementById('wsCreatedQuizId').textContent = '';
         document.getElementById('wsSessionSelect').value = '';
+        document.getElementById('wsSessionSearch').value = '';
+        document.getElementById('wsSessionListContainer').classList.add('d-none');
+        document.getElementById('wsSelectedSessionDisplay').classList.add('d-none');
         document.getElementById('wsQuizTitle').value = '';
         document.getElementById('wsQuizDescription').value = '';
         document.getElementById('wsQuizTimeLimit').value = '';
@@ -1624,7 +1769,6 @@
         document.getElementById('wsStatusDraft').checked = true;
         document.getElementById('wsStatusPublish').checked = false;
         document.getElementById('wsAiPreview').style.display = 'none';
-        document.getElementById('wsAiWarning').style.display = 'none';
         document.getElementById('wsSelectedList').innerHTML = '<div class="text-center py-3 text-muted small">Chưa có câu hỏi nào.</div>';
         document.getElementById('wsQuizQuestionCount').textContent = '0';
         wsSwitchStep(1);
@@ -1642,14 +1786,31 @@
         }
     };
 
-    const wsSwitchStep = (step) => {
+    window.wsSwitchStep = function(step) {
+        // Guard: Prevent going to Step 2 without Saving Step 1
+        if (step === 2 && !wsCurrentQuizId) {
+            Swal.fire({
+                title: 'Chú ý',
+                text: 'Vui lòng điền thông tin và nhấn "Tiếp theo" để lưu Quiz trước khi thêm câu hỏi.',
+                icon: 'warning',
+                confirmButtonText: 'Đã hiểu'
+            });
+            return;
+        }
+
         wsCurrentStep = step;
         document.getElementById('wsQuizStep1').classList.toggle('d-none', step !== 1);
         document.getElementById('wsQuizStep2').classList.toggle('d-none', step !== 2);
-        document.getElementById('wsStep1Tab').classList.toggle('active', step === 1);
-        document.getElementById('wsStep2Tab').classList.toggle('active', step === 2);
-        document.getElementById('wsStep1Tab').classList.toggle('text-muted', step === 1);
-        document.getElementById('wsStep2Tab').classList.toggle('text-muted', step === 2);
+        
+        const tab1 = document.getElementById('wsStep1Tab');
+        const tab2 = document.getElementById('wsStep2Tab');
+
+        tab1.classList.toggle('active', step === 1);
+        tab2.classList.toggle('active', step === 2);
+        
+        // Update locked status
+        if (tab2) tab2.classList.toggle('locked', !wsCurrentQuizId);
+
         document.getElementById('wsBackBtn').classList.toggle('d-none', step === 1);
 
         const nextBtn = document.getElementById('wsNextBtn');
@@ -1665,7 +1826,7 @@
         if (step === 2 && wsCurrentQuizId) wsLoadBankOnTab();
     };
 
-    const wsSwitchQuestionTab = (tab) => {
+    window.wsSwitchQuestionTab = function(tab) {
         document.getElementById('wsBankPanel').classList.toggle('d-none', tab !== 'bank');
         document.getElementById('wsAiPanel').classList.toggle('d-none', tab !== 'ai');
         document.getElementById('wsTabBank').classList.toggle('active', tab === 'bank');
@@ -1676,19 +1837,13 @@
             wsAiSelected.clear();
             wsAllAiSelected = false;
             document.getElementById('wsAiPreview').style.display = 'none';
-            document.getElementById('wsAiWarning').style.display = 'none';
             document.getElementById('wsAiList').innerHTML = '';
             document.getElementById('wsAiSelected').textContent = '0';
             document.getElementById('wsAiTotal').textContent = '0';
-            document.getElementById('wsAiTopic').value = '';
-            document.getElementById('wsAiQty').value = '5';
-            document.getElementById('wsAiSkill').value = '';
-            document.getElementById('wsAiCefr').value = '';
-            document.querySelectorAll('[id^="wsAiType"]').forEach(cb => cb.checked = false);
         }
     };
 
-    const wsNextStep = async () => {
+    window.wsNextStep = async function() {
         if (wsCurrentStep === 1) {
             const title = document.getElementById('wsQuizTitle').value.trim();
             if (!title) { alert('Vui lòng nhập tên quiz'); return; }
@@ -1711,8 +1866,9 @@
                     body: JSON.stringify(payload)
                 });
                 const json = await res.json();
+                console.log("Quiz Save Response:", json);
                 if (json.status === 200 || json.status === 201) {
-                    wsCurrentQuizId = json.data.quizId;
+                    wsCurrentQuizId = json.data.quizId || json.data.id;
                     document.getElementById('wsQuizModalSessionId').value = sessionId;
                     document.getElementById('wsQuizIdBadge').classList.remove('d-none');
                     document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
@@ -1723,10 +1879,10 @@
             } catch (e) {
                 Swal.fire('Lỗi kết nối', e.message, 'error');
             }
-        } else {
-            // Finalize: attach to session, publish if needed
-            const sessionId = document.getElementById('wsQuizModalSessionId').value;
-            const isPub = document.getElementById('wsStatusPublish').checked;
+            if (isPub) {
+                const confirm = await wsConfirmToast('Xác nhận xuất bản?', 'Quiz sẽ hiển thị cho học sinh.');
+                if (!confirm.isConfirmed) return;
+            }
 
             // Gắn quiz vào session (nếu có)
             if (sessionId && wsCurrentQuizId) {
@@ -1751,12 +1907,12 @@
 
             wsQuizModal.hide();
             loadQuizzes();
-            alert(isPub ? 'Quiz đã được xuất bản và gắn vào buổi học!' : 'Quiz đã được lưu dạng nháp.');
+            wsToast(isPub ? 'Đã xuất bản và gắn vào buổi học!' : 'Đã lưu quiz dạng nháp.');
         }
     };
 
     // --- Bank Loading ---
-    const wsLoadBank = async () => {
+    window.wsLoadBank = async function() {
         const skill = document.getElementById('wsBankSkill').value;
         const cefr = document.getElementById('wsBankCefr').value;
         const type = document.getElementById('wsBankType').value;
@@ -1795,42 +1951,120 @@
                 'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án', 'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
                 'FILL_IN_BLANK': 'Điền từ', 'MATCHING': 'Nối từ', 'WRITING': 'Viết', 'SPEAKING': 'Nói'
             };
-            list.innerHTML = json.data.map(q => {
+            // Group questions by groupId
+            const grouped = [];
+            const groupsMap = new Map();
+
+            json.data.forEach(q => {
                 wsBankCache.set(q.questionId, q);
-                const isAdded = wsSelectedQuestions.some(sq => sq.questionId === q.questionId);
-                let optsHtml = '';
-                if (q.options && q.options.length > 0 && !['WRITING','SPEAKING'].includes(q.questionType)) {
-                    optsHtml = q.options.map(o => `<div class="small ${o.correctAnswer ? 'text-success fw-semibold' : 'text-muted'}"><i class="bi ${o.correctAnswer ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${wsEscape(o.title || '')}</div>`).join('');
+                if (q.groupId) {
+                    if (!groupsMap.has(q.groupId)) {
+                        const groupObj = {
+                            isGroup: true,
+                            groupId: q.groupId,
+                            groupContent: q.groupContent,
+                            skill: q.skill,
+                            cefrLevel: q.cefrLevel,
+                            questions: []
+                        };
+                        groupsMap.set(q.groupId, groupObj);
+                        grouped.push(groupObj);
+                    }
+                    groupsMap.get(q.groupId).questions.push(q);
+                } else {
+                    grouped.push({
+                        isGroup: false,
+                        ...q
+                    });
                 }
-                return `<div class="border rounded-3 p-3 mb-2 bg-white">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex gap-2 mb-1 flex-wrap">
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.skill || ''}</span>
-                                <span class="badge bg-info bg-opacity-10 text-info border">${q.cefrLevel || ''}</span>
-                                <span class="badge bg-warning bg-opacity-10 text-warning border">${typeLabels[q.questionType] || q.questionType}</span>
+            });
+
+            list.innerHTML = grouped.map(item => {
+                if (item.isGroup) {
+                    const qsHtml = item.questions.map(q => {
+                        const isAdded = wsSelectedQuestions.some(sq => sq.questionId === q.questionId);
+                        let optsHtml = '';
+                        if (q.options && q.options.length > 0 && !['WRITING','SPEAKING'].includes(q.questionType)) {
+                            optsHtml = q.options.map(o => `<div class="small ${o.correctAnswer ? 'text-success fw-semibold' : 'text-muted'}"><i class="bi ${o.correctAnswer ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${wsEscape(o.title || '')}</div>`).join('');
+                        }
+                        return `
+                        <div class="p-3 border-top bg-light bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="badge bg-warning bg-opacity-10 text-warning border mb-1">${typeLabels[q.questionType] || q.questionType}</div>
+                                    <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
+                                    ${optsHtml ? `<div class="mt-1">${optsHtml}</div>` : ''}
+                                </div>
+                                <div class="ms-2">
+                                    ${isAdded
+                                        ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="wsRemoveBankQ(${q.questionId})" title="Xóa khỏi quiz"><i class="bi bi-dash-lg"></i></button>`
+                                        : `<button class="btn btn-sm btn-success rounded-pill" onclick="wsAddBankQ(${q.questionId})" title="Thêm vào quiz"><i class="bi bi-plus"></i></button>`
+                                    }
+                                </div>
                             </div>
-                            <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
-                            ${optsHtml ? `<div class="mt-1">${optsHtml}</div>` : ''}
+                        </div>`;
+                    }).join('');
+
+                    return `
+                    <div class="border rounded-3 mb-2 bg-white overflow-hidden shadow-sm">
+                        <div class="p-3 bg-primary bg-opacity-10 border-bottom">
+                            <div class="d-flex gap-2 mb-2">
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">${item.skill || ''}</span>
+                                <span class="badge bg-info bg-opacity-10 text-info border">${item.cefrLevel || ''}</span>
+                                <span class="badge bg-dark bg-opacity-10 text-dark border">BỘ CÂU HỎI</span>
+                            </div>
+                            <div class="small text-dark fw-bold mb-1">Passage / Đề bài:</div>
+                            <div class="small text-muted" style="max-height: 100px; overflow-y: auto;">
+                                ${wsEscape(item.groupContent || 'Nội dung bộ câu hỏi...')}
+                            </div>
                         </div>
-                        <div class="ms-2">
-                            ${isAdded
-                                ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="wsRemoveBankQ(${q.questionId})" title="Xóa khỏi quiz"><i class="bi bi-dash-lg"></i></button>`
-                                : `<button class="btn btn-sm btn-success rounded-pill" onclick="wsAddBankQ(${q.questionId})" title="Thêm vào quiz"><i class="bi bi-plus"></i></button>`
-                            }
+                        ${qsHtml}
+                    </div>`;
+                } else {
+                    const q = item;
+                    const isAdded = wsSelectedQuestions.some(sq => sq.questionId === q.questionId);
+                    let optsHtml = '';
+                    if (q.options && q.options.length > 0 && !['WRITING','SPEAKING'].includes(q.questionType)) {
+                        optsHtml = q.options.map(o => `<div class="small ${o.correctAnswer ? 'text-success fw-semibold' : 'text-muted'}"><i class="bi ${o.correctAnswer ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${wsEscape(o.title || '')}</div>`).join('');
+                    }
+                    return `
+                    <div class="border rounded-3 p-3 mb-2 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex gap-2 mb-1 flex-wrap">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.skill || ''}</span>
+                                    <span class="badge bg-info bg-opacity-10 text-info border">${q.cefrLevel || ''}</span>
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border">${typeLabels[q.questionType] || q.questionType}</span>
+                                </div>
+                                <p class="mb-1 small fw-medium">${wsEscape(q.content || '')}</p>
+                                ${optsHtml ? `<div class="mt-1">${optsHtml}</div>` : ''}
+                            </div>
+                            <div class="ms-2">
+                                ${isAdded
+                                    ? `<button class="btn btn-sm btn-outline-danger rounded-pill" onclick="wsRemoveBankQ(${q.questionId})" title="Xóa khỏi quiz"><i class="bi bi-dash-lg"></i></button>`
+                                    : `<button class="btn btn-sm btn-success rounded-pill" onclick="wsAddBankQ(${q.questionId})" title="Thêm vào quiz"><i class="bi bi-plus"></i></button>`
+                                }
+                            </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
+                }
             }).join('');
         } catch (e) {
             list.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi: ' + e.message + '</div>';
         }
     };
 
-    const wsLoadBankOnTab = () => { if (wsCurrentQuizId) wsLoadBank(); };
+    window.wsLoadBankOnTab = () => { 
+        console.log("Switching to Bank tab, quizId:", wsCurrentQuizId);
+        if (wsCurrentQuizId) wsLoadBank(); 
+    };
 
-    const wsAddBankQ = async (qId) => {
-        if (!wsCurrentQuizId) return;
+    window.wsAddBankQ = async function(qId) {
+        if (!wsCurrentQuizId) { 
+            Swal.fire('Chú ý', 'Không tìm thấy ID Quiz. Vui lòng lưu thông tin ở Bước 1 trước.', 'warning');
+            console.error("Quiz: No currentQuizId"); 
+            return; 
+        }
         const data = wsBankCache.get(qId);
         try {
             const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions`, {
@@ -1838,8 +2072,16 @@
                 body: JSON.stringify({ questionIdForQuiz: qId })
             });
             const json = await res.json();
+            console.log("Quiz: Add question response:", json);
             if (json.status === 200 || json.status === 201) {
-                if (!wsSelectedQuestions.some(sq => sq.questionId === qId)) {
+                // Better sync: use backend returned questions if available
+                if (json.data && (json.data.questions || json.data.quizQuestions)) {
+                    const qs = json.data.questions || json.data.quizQuestions;
+                    wsSelectedQuestions = qs.map(sq => ({
+                        questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
+                        skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
+                    }));
+                } else if (!wsSelectedQuestions.some(sq => sq.questionId === qId)) {
                     wsSelectedQuestions.push(data ? { questionId: qId, content: data.content, questionType: data.questionType, skill: data.skill, cefrLevel: data.cefrLevel, status: data.status, source: 'EXPERT_BANK' }
                         : { questionId: qId, content: '', questionType: '', skill: '', cefrLevel: '', status: 'PUBLISHED', source: 'EXPERT_BANK' });
                 }
@@ -1849,23 +2091,32 @@
         } catch (e) { alert('Lỗi kết nối: ' + e.message); }
     };
 
-    const wsRemoveBankQ = async (qId) => {
+    window.wsRemoveBankQ = async function(qId) {
         if (!wsCurrentQuizId) return;
         try {
             const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions/${qId}`, { method: 'DELETE' });
             const json = await res.json();
+            console.log("Quiz: Remove question response:", json);
             if (json.status === 200 || json.status === 201) {
-                wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
+                if (json.data && (json.data.questions || json.data.quizQuestions)) {
+                    const qs = json.data.questions || json.data.quizQuestions;
+                    wsSelectedQuestions = qs.map(sq => ({
+                        questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
+                        skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
+                    }));
+                } else {
+                    wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
+                }
                 wsRenderSelected();
                 wsLoadBank();
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) { console.error("Quiz: Remove error", e); }
     };
 
     // --- Advanced AI Generation ---
     let aiGenModal;
     
-    const openAdvancedAiModal = () => {
+    window.openAdvancedAiModal = function() {
         if (!wsCurrentQuizId) { Swal.fire('Chú ý', 'Vui lòng tạo quiz cơ bản trước (Bước 1)', 'warning'); return; }
         if (!aiGenModal) aiGenModal = new bootstrap.Modal('#aiGenerateModal');
         
@@ -1877,7 +2128,7 @@
         aiGenModal.show();
     };
 
-    const toggleAiAdvancedFields = () => {
+    window.toggleAiAdvancedFields = function() {
         const skill = document.getElementById('adv-skill').value;
         const isMatchingChecked = document.getElementById('type-match').checked;
         
@@ -1886,7 +2137,7 @@
         document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
     };
 
-    const runAdvancedAiGeneration = async () => {
+    window.runAdvancedAiGeneration = async function() {
         const topic = document.getElementById('adv-topic').value.trim();
         const qty = parseInt(document.getElementById('adv-qty').value);
         const skill = document.getElementById('adv-skill').value;
@@ -2005,19 +2256,19 @@
             </div>`).join('');
     };
 
-    const wsToggleAI = (idx) => {
+    window.wsToggleAI = function(idx) {
         if (wsAiSelected.has(idx)) wsAiSelected.delete(idx); else wsAiSelected.add(idx);
         document.getElementById('wsAiSelected').textContent = wsAiSelected.size;
         wsRenderAIQuestions();
     };
 
-    const wsToggleAllAI = () => {
+    window.wsToggleAllAI = function() {
         wsAllAiSelected = !wsAllAiSelected;
         wsAiSelected = wsAllAiSelected ? new Set(wsAiQuestions.map((_, i) => i)) : new Set();
         wsRenderAIQuestions();
     };
 
-    const wsImportSelected = async () => {
+    window.wsImportSelected = async function() {
         if (!wsCurrentQuizId) return;
         if (wsAiSelected.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
         const selected = wsAiQuestions.filter((_, i) => wsAiSelected.has(i));
@@ -2031,8 +2282,10 @@
             // Reload questions
             const qRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}`);
             const qJson = await qRes.json();
-            if (qJson.status === 200 && qJson.data && qJson.data.questions) {
-                wsSelectedQuestions = qJson.data.questions.map(sq => ({
+            if (qJson.status === 200 && qJson.data) {
+                const quizData = qJson.data;
+                const qs = quizData.questions || quizData.quizQuestions || [];
+                wsSelectedQuestions = qs.map(sq => ({
                     questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
                     skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
                 }));
@@ -2048,7 +2301,7 @@
         } catch (e) { alert('Lỗi kết nối: ' + e.message); }
     };
 
-    const wsRenderSelected = () => {
+    window.wsRenderSelected = function() {
         const container = document.getElementById('wsSelectedList');
         document.getElementById('wsQuizQuestionCount').textContent = wsSelectedQuestions.length;
         if (wsSelectedQuestions.length === 0) {
@@ -2079,7 +2332,7 @@
     let wsAttachSessionId = null;
     let wsAttachAvailableQuizzes = [];
 
-    const wsAttachQuizToSession = async (sessionId) => {
+    window.wsAttachQuizToSession = async function(sessionId) {
         wsAttachSessionId = sessionId;
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}/quizzes`);
@@ -2114,30 +2367,46 @@
         } catch (e) { alert('Lỗi: ' + e.message); }
     };
 
-    const wsToggleQuizOpen = async (sessionId, quizId, newOpen) => {
+    window.wsToggleQuizOpen = async function(sessionId, quizId, newOpen) {
+        if (newOpen) {
+            const confirm = await wsConfirmToast('Công khai Quiz?', 'Cho phép học sinh làm bài ngay bây giờ?');
+            if (!confirm.isConfirmed) return;
+        }
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
             const json = await res.json();
-            if (json.status === 200) refreshActiveTab();
-            else alert(json.message || 'Lỗi khi mở/đóng quiz');
-        } catch (e) { alert('Lỗi: ' + e.message); }
+            if (json.status === 200) {
+                refreshActiveTab();
+                wsToast(newOpen ? 'Đã mở quiz' : 'Đã đóng quiz');
+            } else Swal.fire('Lỗi', json.message || 'Lỗi khi mở/đóng quiz', 'error');
+        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
     };
 
-    const wsRemoveQuizFromSession = async (sessionId, quizId) => {
-        if (!confirm('Xóa quiz này khỏi buổi học?')) return;
+    window.wsRemoveQuizFromSession = async function(sessionId, quizId) {
+        const confirmResult = await Swal.fire({
+            title: 'Gỡ quiz?',
+            text: 'Bạn có chắc chắn muốn gỡ quiz này khỏi buổi học?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Gỡ ngay',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#dc3545',
+            reverseButtons: true
+        });
+        if (!confirmResult.isConfirmed) return;
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}`, { method: 'DELETE' });
             const json = await res.json();
             if (json.status === 200) {
                 loadQuizzes();
-                alert('Đã xóa quiz khỏi buổi học.');
+                wsToast('Đã gỡ quiz khỏi buổi học');
             } else {
-                alert(json.message || 'Lỗi khi xóa quiz');
+                Swal.fire('Thất bại', json.message || 'Lỗi khi gỡ quiz', 'error');
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
+        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
     };
 
-    const wsRemoveSelected = async (qId) => {
+    window.wsRemoveSelected = async function(qId) {
         wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
         wsRenderSelected();
         if (wsCurrentQuizId) {

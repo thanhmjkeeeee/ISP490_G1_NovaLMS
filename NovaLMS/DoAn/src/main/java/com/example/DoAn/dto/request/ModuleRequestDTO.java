@@ -17,4 +17,7 @@ public class ModuleRequestDTO {
     private String moduleName;
 
     private Integer orderIndex;
+
+    private String cefrLevel;
 }
+

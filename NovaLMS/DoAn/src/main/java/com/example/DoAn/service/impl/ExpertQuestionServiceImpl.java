@@ -333,7 +333,7 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                     .explanation(qdto.getExplanation())
                     .audioUrl(qdto.getAudioUrl())
                     .imageUrl(qdto.getImageUrl())
-                    .status("DRAFT")
+                    .status("PUBLISHED")
                     .source("EXPERT_BANK")
                     .createdMethod("AI_GENERATED")
                     .user(expert)
@@ -396,7 +396,7 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .cefrLevel(request.getCefrLevel() != null ? request.getCefrLevel().toUpperCase() : "B1")
                 .topic(request.getTopic())
                 .explanation(request.getExplanation())
-                .status(request.getStatus() != null ? request.getStatus() : "DRAFT")
+                .status("PUBLISHED")
                 .user(expert)
                 .build();
         questionGroupRepository.save(group);

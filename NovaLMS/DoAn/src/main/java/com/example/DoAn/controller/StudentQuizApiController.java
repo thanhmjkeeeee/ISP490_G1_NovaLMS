@@ -30,12 +30,13 @@ public class StudentQuizApiController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
 
         try {
-            PageResponse<QuizResultHistoryDTO> res = quizResultService.getStudentQuizHistory(email, page, size, category);
+            PageResponse<QuizResultHistoryDTO> res = quizResultService.getStudentQuizHistory(email, page, size, category, keyword);
             return ResponseData.success("Success", res);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());

@@ -163,8 +163,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         Quiz quiz = findQuiz(quizId);
 
         // Kiểm tra đã có học viên làm chưa
-        if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus())) {
-            throw new InvalidDataException("Không thể cập nhật quiz đã có học viên làm bài. Hãy chuyển về Draft trước.");
+        // Cho phép cập nhật nếu quiz đang ở Draft HOẶC đang chuyển về Draft
+        if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus()) && !"DRAFT".equals(request.getStatus())) {
+            throw new InvalidDataException("Không thể cập nhật cấu hình quiz đã có học viên làm bài. Hãy chuyển trạng thái về Draft trước.");
         }
 
         // Lấy lại danh mục và courseId nếu update không gửi lên

@@ -13,4 +13,6 @@ public class ModuleResponseDTO {
     private Integer orderIndex;
     private int lessonCount;
     private int questionCount;
+    private String cefrLevel;
 }
+
