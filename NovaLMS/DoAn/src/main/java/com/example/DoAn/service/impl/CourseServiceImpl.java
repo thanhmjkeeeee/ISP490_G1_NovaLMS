@@ -52,7 +52,7 @@ public class CourseServiceImpl implements ICourseService {
                 .sale(request.getSale())
                 .numberOfSessions(request.getNumberOfSessions())
                 .avatar(request.getAvatar())
-                .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
+                .status(request.getStatus() != null ? request.getStatus() : "Active")
                 .category(category)
                 .expert(expert)
                 .build();

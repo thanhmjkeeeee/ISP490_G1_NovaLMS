@@ -48,7 +48,9 @@ public class HomeServiceImpl implements HomeService {
 
     @Override
     public List<User> getFeaturedTeachers() {
-        // Giữ nguyên logic lấy giáo viên theo Role ID (105)
-        return userRepository.findByRole_SettingIdAndStatus(105, "Active");
+        // Find Teacher role dynamically instead of hardcoded ID
+        return settingRepository.findRoleByValue("ROLE_TEACHER")
+                .map(role -> userRepository.findByRole_SettingIdAndStatus(role.getSettingId(), "Active"))
+                .orElse(java.util.Collections.emptyList());
     }
 }
