@@ -99,12 +99,12 @@ INSERT INTO user (user_id, full_name, email, password, role_id, status, auth_pro
 
 -- 4. SEED COURSES (25 Records)
 INSERT INTO course (course_id, course_name, title, level_tag, status, price, category_id, expert_id, number_of_sessions) VALUES
-(1, 'IELTS Academic 6.5 Intensive', 'Complete IELTS Masterclass', 'LVL_B2', 'Published', 3200000, 5, 3, 24),
-(2, 'IELTS Speaking Success', 'Band 7.0 Strategy for Speaking', 'LVL_B2', 'Published', 2200000, 5, 4, 12),
-(3, 'TOEIC Listening & Reading', 'TOEIC 750+ Targeted', 'LVL_B1', 'Published', 1500000, 7, 7, 20),
-(4, 'SAT Digital Preparation', 'Mathematics & English Mastery', 'LVL_B2', 'Published', 4800000, 8, 5, 15),
-(5, 'Fundamental Grammar', 'English Grammar from Zero', 'LVL_A1', 'Published', 800000, 9, 8, 30),
-(6, 'Academic Vocabulary', 'Top 5000 Words for IELTS', 'LVL_B2', 'Published', 1200000, 10, 6, 20);
+(1, 'IELTS Academic 6.5 Intensive', 'Complete IELTS Masterclass', 'LVL_B2', 'Active', 3200000, 5, 3, 24),
+(2, 'IELTS Speaking Success', 'Band 7.0 Strategy for Speaking', 'LVL_B2', 'Active', 2200000, 5, 4, 12),
+(3, 'TOEIC Listening & Reading', 'TOEIC 750+ Targeted', 'LVL_B1', 'Active', 1500000, 7, 7, 20),
+(4, 'SAT Digital Preparation', 'Mathematics & English Mastery', 'LVL_B2', 'Active', 4800000, 8, 5, 15),
+(5, 'Fundamental Grammar', 'English Grammar from Zero', 'LVL_A1', 'Active', 800000, 9, 8, 30),
+(6, 'Academic Vocabulary', 'Top 5000 Words for IELTS', 'LVL_B2', 'Active', 1200000, 10, 6, 20);
 
 -- 5. SEED MODULES (3 per course)
 INSERT INTO module (module_id, module_name, order_index, course_id, cefr_level) VALUES

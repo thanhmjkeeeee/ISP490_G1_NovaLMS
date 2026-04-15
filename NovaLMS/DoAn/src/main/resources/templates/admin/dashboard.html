@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:with="isDashboard=true">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:with="isDashboard=true">
 
 <!-- 1. Gọi Head Fragment (Mới) -->
+
 <head th:replace="~{fragments/head :: common-head(pageTitle='Bảng điều khiển Quản trị')}"></head>
 
 <!-- Thêm class chuẩn cho thẻ body -->
@@ -11,369 +11,403 @@
     .hover-lift {
         transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
+
     .hover-lift:hover {
         transform: translateY(-5px);
-        box-shadow: 0 1rem 3rem rgba(0,0,0,0.1) !important;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.1) !important;
     }
+
     .extra-small {
         font-size: 10px;
     }
 </style>
+
 <body class="dashboard-body">
 
-<!-- 2. Gọi Header (Topbar) -->
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan hệ thống', breadcrumb='Quản trị viên')}"></header>
+    <!-- 2. Gọi Header (Topbar) -->
+    <header th:replace="~{fragments/header :: dash-header(pageTitle='Tổng quan hệ thống', breadcrumb='Quản trị viên')}">
+    </header>
 
-<!-- 3. Gọi Sidebar & Overlay (Mới) -->
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
-<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+    <!-- 3. Gọi Sidebar & Overlay (Mới) -->
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"></aside>
+    <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<!-- 4. Thẻ main đổi thành class dash-main và thêm id -->
-<main class="dash-main d-flex flex-column" id="dashMain">
+    <!-- 4. Thẻ main đổi thành class dash-main và thêm id -->
+    <main class="dash-main d-flex flex-column" id="dashMain">
 
-    <!-- ========================================== -->
-    <!-- GIỮ NGUYÊN 100% NỘI DUNG CODE GỐC CỦA BẠN  -->
-    <!-- ========================================== -->
-    <div class="d-flex justify-content-between align-items-end mb-4">
-        <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Tổng quan hệ thống</h3>
-            <p class="text-muted small m-0">Chào mừng bạn trở lại, Quản trị viên.</p>
-        </div>
-        <div>
-            <a th:href="@{/admin/courses/new}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
-                <i class="bi bi-plus-lg me-1"></i> Tạo khóa học mới
-            </a>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <!-- Card 1: Học viên -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(19, 106, 213, 0.05) 0%, rgba(19, 106, 213, 0.02) 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
-                         style="width:40px; height:40px; font-size:20px; background-color: #136ad5; color: #fff;">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Học viên</h6>
-                        <h5 class="fw-bold mb-0 text-dark" th:text="${studentCount != null ? studentCount : 0}">0</h5>
-                    </div>
-                </div>
+        <!-- ========================================== -->
+        <!-- GIỮ NGUYÊN 100% NỘI DUNG CODE GỐC CỦA BẠN  -->
+        <!-- ========================================== -->
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <h3 class="fw-bold m-0" style="color: #223a58;">Tổng quan hệ thống</h3>
+                <p class="text-muted small m-0">Chào mừng bạn trở lại, Quản trị viên.</p>
+            </div>
+            <div>
+                <a th:href="@{/admin/courses/new}"
+                    class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white"
+                    style="background-color: #136ad5;">
+                    <i class="bi bi-plus-lg me-1"></i> Tạo khóa học mới
+                </a>
             </div>
         </div>
 
-        <!-- Card 2: Khóa học -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.05) 0%, rgba(25, 135, 84, 0.02) 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" 
-                         style="width:40px; height:40px; font-size:20px; background-color: #198754; color: #fff;">
-                        <i class="bi bi-journal-bookmark-fill"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Khóa học</h6>
-                        <h5 class="fw-bold mb-0 text-dark" th:text="${courseCount != null ? courseCount : 0}">0</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Card 3: Giảng viên -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(253, 126, 20, 0.05) 0%, rgba(253, 126, 20, 0.02) 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" 
-                         style="width:40px; height:40px; font-size:20px; background-color: #fd7e14; color: #fff;">
-                        <i class="bi bi-person-video3"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Giảng viên</h6>
-                        <h5 class="fw-bold mb-0 text-dark" th:text="${teacherCount != null ? teacherCount : 0}">0</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Card 4: Lượt đăng ký -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" 
-                         style="width:40px; height:40px; font-size:20px; background-color: #dc3545; color: #fff;">
-                        <i class="bi bi-ui-checks"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Lượt ĐK</h6>
-                        <h5 class="fw-bold mb-0 text-dark" th:text="${registrationCount != null ? registrationCount : 0}">0</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 5: Bài kiểm tra (Quiz) -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(111, 66, 193, 0.05) 0%, rgba(111, 66, 193, 0.02) 100%);">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" 
-                         style="width:40px; height:40px; font-size:20px; background-color: #6f42c1; color: #fff;">
-                        <i class="bi bi-clipboard2-check"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Bài thi</h6>
-                        <h5 class="fw-bold mb-0 text-dark" th:text="${quizCount != null ? quizCount : 0}">0</h5>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 6: Doanh thu -->
-        <div class="col-xl-2 col-md-4">
-            <div class="card border-0 shadow-sm h-100 p-3 rounded-4" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(13, 110, 253, 0.02) 100%);">
-                <div class="d-flex align-items-center justify-content-between">
+        <div class="row g-4 mb-4">
+            <!-- Card 1: Học viên -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(19, 106, 213, 0.05) 0%, rgba(19, 106, 213, 0.02) 100%);">
                     <div class="d-flex align-items-center">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" 
-                             style="width:40px; height:40px; font-size:20px; background-color: #0d6efd; color: #fff;">
-                            <i class="bi bi-currency-dollar"></i>
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                            style="width:40px; height:40px; font-size:20px; background-color: #136ad5; color: #fff;">
+                            <i class="bi bi-people-fill"></i>
                         </div>
                         <div>
-                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Doanh thu</h6>
-                            <h5 class="fw-bold mb-0 text-primary" th:text="${#numbers.formatDecimal(totalRevenue != null ? totalRevenue : 0, 0, 'COMMA', 0, 'POINT')}">0</h5>
+                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Học viên</h6>
+                            <h5 class="fw-bold mb-0 text-dark" th:text="${studentCount != null ? studentCount : 0}">0
+                            </h5>
                         </div>
                     </div>
-                    <a th:href="@{/admin/revenue/export}" class="text-primary hover-scale" title="Xuất báo cáo Excel">
-                        <i class="bi bi-file-earmark-excel-fill fs-5"></i>
-                    </a>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- KHU VỰC NGHIỆP VỤ CHÍNH -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h5 class="fw-bold mb-3" style="color: #223a58;">
-                <i class="bi bi-briefcase me-2"></i>Nghiệp vụ Admin chính
-            </h5>
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <a th:href="@{/admin/registrations}" class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-patch-check-fill text-success fs-4 me-3"></i>
-                            <div>
-                                <div class="fw-bold">Duyệt đăng ký</div>
-                                <div class="small text-muted">Xử lý yêu cầu mới</div>
-                            </div>
+            <!-- Card 2: Khóa học -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.05) 0%, rgba(25, 135, 84, 0.02) 100%);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                            style="width:40px; height:40px; font-size:20px; background-color: #198754; color: #fff;">
+                            <i class="bi bi-journal-bookmark-fill"></i>
                         </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a th:href="@{/admin/users}" class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-person-plus-fill text-primary fs-4 me-3"></i>
-                            <div>
-                                <div class="fw-bold">Quản lý User</div>
-                                <div class="small text-muted">Thêm/Chỉnh sửa tk</div>
-                            </div>
+                        <div>
+                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Khóa học</h6>
+                            <h5 class="fw-bold mb-0 text-dark" th:text="${courseCount != null ? courseCount : 0}">0</h5>
                         </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a th:href="@{/admin/quizzes/approve}" class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-check-all text-warning fs-4 me-3"></i>
-                            <div>
-                                <div class="fw-bold">Phê duyệt câu hỏi</div>
-                                <div class="small text-muted">Duyệt nội dung quiz</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-3">
-                    <a th:href="@{/admin/settings}" class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
-                        <div class="d-flex align-items-center">
-                            <i class="bi bi-gear-wide-connected text-secondary fs-4 me-3"></i>
-                            <div>
-                                <div class="fw-bold">Cài đặt hệ thống</div>
-                                <div class="small text-muted">Cấu hình tham số</div>
-                            </div>
-                        </div>
-                    </a>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- KHU VỰC BIỂU ĐỒ -->
-    <div class="row mb-4 g-4">
-        <!-- Biểu đồ Doanh thu -->
-        <div class="col-xl-8 col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
-                    <h6 class="m-0 fw-bold" style="color: #223a58;">Doanh thu theo tháng (2026)</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="revenueChart" style="min-height: 300px; width: 100%;"></canvas>
-                </div>
-            </div>
-        </div>
-        <!-- Biểu đồ Tỷ trọng -->
-        <div class="col-xl-4 col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white border-0 py-3">
-                    <h6 class="m-0 fw-bold" style="color: #223a58;">Tỷ trọng theo danh mục</h6>
-                </div>
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <canvas id="categoryChart" style="max-height: 250px;"></canvas>
+            <!-- Card 3: Giảng viên -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(253, 126, 20, 0.05) 0%, rgba(253, 126, 20, 0.02) 100%);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                            style="width:40px; height:40px; font-size:20px; background-color: #fd7e14; color: #fff;">
+                            <i class="bi bi-person-video3"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Giảng viên</h6>
+                            <h5 class="fw-bold mb-0 text-dark" th:text="${teacherCount != null ? teacherCount : 0}">0
+                            </h5>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- BẢNG ĐĂNG KÝ GẦN ĐÂY -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-            <h6 class="m-0 fw-bold" style="color: #223a58;">Đăng ký mới gần đây</h6>
-            <a th:href="@{/admin/registrations}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 11px;">
-                Xem tất cả <i class="bi bi-arrow-right ms-1"></i>
-            </a>
+            <!-- Card 4: Lượt đăng ký -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.02) 100%);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                            style="width:40px; height:40px; font-size:20px; background-color: #dc3545; color: #fff;">
+                            <i class="bi bi-ui-checks"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Lượt ĐK</h6>
+                            <h5 class="fw-bold mb-0 text-dark"
+                                th:text="${registrationCount != null ? registrationCount : 0}">0</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 5: Bài kiểm tra (Quiz) -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(111, 66, 193, 0.05) 0%, rgba(111, 66, 193, 0.02) 100%);">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                            style="width:40px; height:40px; font-size:20px; background-color: #6f42c1; color: #fff;">
+                            <i class="bi bi-clipboard2-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Bài thi</h6>
+                            <h5 class="fw-bold mb-0 text-dark" th:text="${quizCount != null ? quizCount : 0}">0</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 6: Doanh thu -->
+            <div class="col-xl-2 col-md-4">
+                <div class="card border-0 shadow-sm h-100 p-3 rounded-4"
+                    style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.05) 0%, rgba(13, 110, 253, 0.02) 100%);">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm"
+                                style="width:40px; height:40px; font-size:20px; background-color: #0d6efd; color: #fff;">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted extra-small text-uppercase fw-bold mb-0">Doanh thu</h6>
+                                <h5 class="fw-bold mb-0 text-primary"
+                                    th:text="${#numbers.formatDecimal(totalRevenue != null ? totalRevenue : 0, 0, 'COMMA', 0, 'POINT')}">
+                                    0</h5>
+                            </div>
+                        </div>
+                        <a th:href="@{/admin/revenue/export}" class="text-primary hover-scale"
+                            title="Xuất báo cáo Excel">
+                            <i class="bi bi-file-earmark-excel-fill fs-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">Học viên</th>
-                            <th>Khóa học</th>
-                            <th>Ngày đăng ký</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end pe-4">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="reg : ${recentRegistrations}">
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-light border p-1 me-2 text-center" style="width: 32px; height: 32px;">
-                                        <i class="bi bi-person text-muted"></i>
-                                    </div>
-                                    <div class="fw-bold" th:text="${reg.user.fullName}">Tên học viên</div>
+
+        <!-- KHU VỰC NGHIỆP VỤ CHÍNH -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h5 class="fw-bold mb-3" style="color: #223a58;">
+                    <i class="bi bi-briefcase me-2"></i>Nghiệp vụ Admin chính
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a th:href="@{/admin/registrations}"
+                            class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-patch-check-fill text-success fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Duyệt đăng ký</div>
+                                    <div class="small text-muted">Xử lý yêu cầu mới</div>
                                 </div>
-                            </td>
-                            <td>
-                                <div th:text="${reg.course.courseName}" class="text-truncate" style="max-width: 200px;">Tên khóa học</div>
-                                <div class="small text-muted" th:text="${reg.clazz.className}">Tên lớp</div>
-                            </td>
-                            <td th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">01/01/2026</td>
-                            <td>
-                                <span th:if="${reg.status == 'Approved'}" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Đã duyệt</span>
-                                <span th:if="${reg.status == 'PENDING' || reg.status == 'Submitted'}" class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">Đang chờ</span>
-                                <span th:if="${reg.status == 'CANCELLED' || reg.status == 'FAILED'}" class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Đã hủy</span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <a th:href="@{/admin/registrations}" class="btn btn-sm btn-light border rounded-pill px-3 shadow-none">
-                                    Chi tiết
-                                </a>
-                            </td>
-                        </tr>
-                        <tr th:if="${recentRegistrations == null || #lists.isEmpty(recentRegistrations)}">
-                            <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
-                                Chưa có đăng ký nào mới.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a th:href="@{/admin/users}"
+                            class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person-plus-fill text-primary fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Quản lý User</div>
+                                    <div class="small text-muted">Thêm/Chỉnh sửa tk</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a th:href="@{/admin/quizzes/approve}"
+                            class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-all text-warning fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Phê duyệt câu hỏi</div>
+                                    <div class="small text-muted">Duyệt nội dung quiz</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a th:href="@{/admin/settings}"
+                            class="card border-0 shadow-sm p-3 text-decoration-none text-dark hover-lift rounded-3 h-100">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-gear-wide-connected text-secondary fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Cài đặt hệ thống</div>
+                                    <div class="small text-muted">Cấu hình tham số</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-</main>
+        <!-- KHU VỰC BIỂU ĐỒ -->
+        <div class="row mb-4 g-4">
+            <!-- Biểu đồ Doanh thu -->
+            <div class="col-xl-8 col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3 d-flex align-items-center">
+                        <h6 class="m-0 fw-bold" style="color: #223a58;">Doanh thu theo tháng (2026)</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="revenueChart" style="min-height: 300px; width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Biểu đồ Tỷ trọng -->
+            <div class="col-xl-4 col-lg-5">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="m-0 fw-bold" style="color: #223a58;">Tỷ trọng theo danh mục</h6>
+                    </div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <canvas id="categoryChart" style="max-height: 250px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- 5. Gọi Script Components thay cho admin-footer cũ -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script th:inline="javascript">
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- 1. BIỂU ĐỒ DOANH THU (Line Chart) ---
-        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        const revenueLabels = [[${revenueLabels}]]; // List [1, 2, ..., 12]
-        const revenueValues = [[${revenueValues}]];
+        <!-- BẢNG ĐĂNG KÝ GẦN ĐÂY -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold" style="color: #223a58;">Đăng ký mới gần đây</h6>
+                <a th:href="@{/admin/registrations}"
+                    class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 11px;">
+                    Xem tất cả <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Học viên</th>
+                                <th>Khóa học</th>
+                                <th>Ngày đăng ký</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end pe-4">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="reg : ${recentRegistrations}">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-light border p-1 me-2 text-center"
+                                            style="width: 32px; height: 32px;">
+                                            <i class="bi bi-person text-muted"></i>
+                                        </div>
+                                        <div class="fw-bold" th:text="${reg.user.fullName}">Tên học viên</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div th:text="${reg.course.courseName}" class="text-truncate"
+                                        style="max-width: 200px;">Tên khóa học</div>
+                                    <div class="small text-muted" th:text="${reg.clazz.className}">Tên lớp</div>
+                                </td>
+                                <td th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">01/01/2026
+                                </td>
+                                <td>
+                                    <span th:if="${reg.status == 'Approved'}"
+                                        class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Đã
+                                        duyệt</span>
+                                    <span th:if="${reg.status == 'PENDING' || reg.status == 'Submitted'}"
+                                        class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">Đang
+                                        chờ</span>
+                                    <span th:if="${reg.status == 'CANCELLED' || reg.status == 'FAILED'}"
+                                        class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Đã
+                                        hủy</span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a th:href="@{/admin/registrations}"
+                                        class="btn btn-sm btn-light border rounded-pill px-3 shadow-none">
+                                        Chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${recentRegistrations == null || #lists.isEmpty(recentRegistrations)}">
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                                    Chưa có đăng ký nào mới.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-        new Chart(revenueCtx, {
-            type: 'line',
-            data: {
-                labels: revenueLabels.map(m => 'Tháng ' + m),
-                datasets: [{
-                    label: 'Doanh thu (VNĐ)',
-                    data: revenueValues,
-                    borderColor: '#136ad5',
-                    backgroundColor: 'rgba(19, 106, 213, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#136ad5'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+    </main>
+
+    <!-- 5. Gọi Script Components thay cho admin-footer cũ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 1. BIỂU ĐỒ DOANH THU (Line Chart) ---
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueLabels = /*[[${revenueLabels}]]*/ []; 
+            const revenueValues = /*[[${revenueValues}]]*/ [];
+
+            new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: revenueLabels.map(m => 'Tháng ' + m),
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: revenueValues,
+                        borderColor: '#136ad5',
+                        backgroundColor: 'rgba(19, 106, 213, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#136ad5'
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { borderDash: [5, 5] },
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('vi-VN') + ' đ';
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [5, 5] },
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // --- 2. BIỂU ĐỒ Tỷ trọng (Doughnut Chart) ---
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const categoryLabels = /*[[${categoryLabels}]]*/ [];
+            const categoryValues = /*[[${categoryValues}]]*/ [];
+
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryValues,
+                        backgroundColor: [
+                            '#136ad5', '#198754', '#fd7e14', '#dc3545', '#6f42c1', '#0dcefd'
+                        ],
+                        hoverOffset: 4,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { size: 11 }
                             }
                         }
                     },
-                    x: { grid: { display: false } }
+                    cutout: '70%'
                 }
-            }
+            });
         });
+    </script>
 
-        // --- 2. BIỂU ĐỒ Tỷ trọng (Doughnut Chart) ---
-        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-        const categoryLabels = [[${categoryLabels}]];
-        const categoryValues = [[${categoryValues}]];
-
-        new Chart(categoryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: categoryLabels,
-                datasets: [{
-                    data: categoryValues,
-                    backgroundColor: [
-                        '#136ad5', '#198754', '#fd7e14', '#dc3545', '#6f42c1', '#0dcefd'
-                    ],
-                    hoverOffset: 4,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20,
-                            font: { size: 11 }
-                        }
-                    }
-                },
-                cutout: '70%'
-            }
-        });
-    });
-</script>
-
-<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 </body>
+
 </html>
