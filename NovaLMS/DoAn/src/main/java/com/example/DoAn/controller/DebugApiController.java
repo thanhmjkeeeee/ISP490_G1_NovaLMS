@@ -31,15 +31,17 @@ public class DebugApiController {
     private final com.example.DoAn.repository.UserRepository userRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
-    @GetMapping("/reset-admin")
-    public ResponseData<String> resetAdmin() {
-        return userRepository.findByEmail("admin@novalms.com")
-                .map(user -> {
-                    user.setPassword(passwordEncoder.encode("123456"));
-                    user.setStatus("Active");
-                    userRepository.save(user);
-                    return ResponseData.success("Admin password reset to 123456 successfully!", (String)null);
-                })
-                .orElse(ResponseData.error(404, "Admin account not found. Please seed the database first."));
+    @GetMapping("/reset-all-passwords")
+    public ResponseData<String> resetAllPasswords() {
+        List<com.example.DoAn.model.User> users = userRepository.findAll();
+        String encodedPassword = passwordEncoder.encode("123456");
+        
+        for (com.example.DoAn.model.User user : users) {
+            user.setPassword(encodedPassword);
+            user.setStatus("Active");
+        }
+        
+        userRepository.saveAll(users);
+        return ResponseData.success("Successfully reset passwords for " + users.size() + " users to '123456'!", null);
     }
 }
