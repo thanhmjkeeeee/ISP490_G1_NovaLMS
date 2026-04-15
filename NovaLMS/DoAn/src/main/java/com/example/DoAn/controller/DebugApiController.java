@@ -27,4 +27,19 @@ public class DebugApiController {
             return ResponseData.error(500, "Seed failed: " + e.getMessage());
         }
     }
+
+    private final com.example.DoAn.repository.UserRepository userRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @GetMapping("/reset-admin")
+    public ResponseData<String> resetAdmin() {
+        return userRepository.findByEmail("admin@novalms.com")
+                .map(user -> {
+                    user.setPassword(passwordEncoder.encode("123456"));
+                    user.setStatus("Active");
+                    userRepository.save(user);
+                    return ResponseData.success("Admin password reset to 123456 successfully!", (String)null);
+                })
+                .orElse(ResponseData.error(404, "Admin account not found. Please seed the database first."));
+    }
 }
