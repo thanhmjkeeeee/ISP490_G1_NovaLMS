@@ -241,7 +241,7 @@ public class DatabaseSeederService {
                 .category(category)
                 .levelTag(levels[i % levels.length])
                 .price(1000000.0 + (i * 200000))
-                .status("Published")
+                .status("Active")
                 .description("Comprehensive course for mastering " + titles[i])
                 .numberOfSessions(20)
                 .build()));
