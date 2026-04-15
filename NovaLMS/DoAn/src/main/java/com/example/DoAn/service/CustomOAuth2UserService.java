@@ -41,7 +41,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         if (user == null) {
             // Case: User mới -> Tạo User
-            Setting studentRole = settingRepository.findRoleByName("ROLE_STUDENT")
+            Setting studentRole = settingRepository.findRoleByValue("ROLE_STUDENT")
                     .orElseThrow(() -> new ResourceNotFoundException("Role"));
 
             user = User.builder()
