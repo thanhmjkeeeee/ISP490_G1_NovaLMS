@@ -22,4 +22,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Integer> {
     Optional<Lesson> findByQuizId(@Param("quizId") Integer quizId);
 
     long countByModule_Course_Expert_UserId(Integer userId);
+
+    @Query("SELECT l FROM Lesson l JOIN l.module m WHERE m.course.courseId = :courseId ORDER BY m.orderIndex ASC, l.orderIndex ASC")
+    List<Lesson> findAllByCourseIdSorted(@Param("courseId") Integer courseId);
 }
