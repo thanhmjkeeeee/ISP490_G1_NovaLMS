@@ -445,26 +445,44 @@
 
 <!-- ======== ASSIGN QUIZ MODAL ======== -->
 <div class="modal fade" id="assignQuizModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold">Gắn Quiz vào buổi học</h5>
+            <div class="modal-header border-0 bg-light">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">Gắn Quiz vào buổi học</h5>
+                    <small class="text-muted">Chọn các bài quiz bạn muốn gắn. Những quiz đã gắn sẽ bị ẩn.</small>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
                 <input type="hidden" id="assignQuizSessionId">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Chọn Quiz có sẵn</label>
-                    <select class="form-select rounded-3" id="assignQuizSelect">
-                        <option value="">-- Chọn Quiz --</option>
-                    </select>
-                    <div id="assignQuizError" class="text-danger small mt-1 d-none"></div>
+                
+                <!-- Quick Select Options -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="multiSelectAllQuizzes(true)">
+                        <i class="bi bi-check-all me-1"></i>Chọn tất cả
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="multiSelectAllQuizzes(false)">
+                        <i class="bi bi-x-lg me-1"></i>Bỏ chọn tất cả
+                    </button>
                 </div>
+
+                <!-- Quiz List with Checkboxes -->
+                <div id="assignQuizCheckboxList" class="mb-3">
+                    <div class="text-center py-4 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        Đang tải quiz...
+                    </div>
+                </div>
+
+                <div id="assignQuizError" class="alert alert-danger small mt-2 d-none" role="alert"></div>
+                <div id="assignQuizSuccess" class="alert alert-info small mt-2 d-none" role="alert"></div>
             </div>
-            <div class="modal-footer border-0">
+            <div class="modal-footer border-top">
+                <span id="assignQuizSelectedCount" class="text-muted small">Chọn 0 bài quiz</span>
                 <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="assignQuiz()">
-                    <i class="bi bi-plus-lg me-1"></i>Thêm Quiz
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="assignMultipleQuizzes()">
+                    <i class="bi bi-plus-lg me-1"></i>Gắn Quiz
                 </button>
             </div>
         </div>
@@ -1459,56 +1477,155 @@
     };
 
     // ======== PUBLISH QUIZ ========
-    // ======== ASSIGN EXISTING QUIZ TO SESSION ========
+    // ======== ASSIGN EXISTING QUIZ TO SESSION (Multi-select) ========
+    let availableQuizzesForAssign = [];
+    let selectedQuizzesForAssign = new Set();
+
     const openAssignQuizModal = (sessionId) => {
         document.getElementById('assignQuizSessionId').value = sessionId;
         document.getElementById('assignQuizError').classList.add('d-none');
+        document.getElementById('assignQuizSuccess').classList.add('d-none');
+        selectedQuizzesForAssign.clear();
+        
         (async () => {
-            const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
-            const json = await res.json();
-            const quizSelect = document.getElementById('assignQuizSelect');
-            quizSelect.innerHTML = '<option value="">-- Chọn Quiz --</option>';
-            if (json.status === 200 && json.data) {
-                // Filter out quizzes already in this session
-                const session = sessions.find(s => s.sessionId == sessionId);
-                const existingIds = new Set((session.quizzes || []).map(q => q.quizId));
-                json.data.forEach(q => {
-                    if (!existingIds.has(q.quizId)) {
-                        quizSelect.innerHTML += `<option value="${q.quizId}">${q.title} (${q.status})</option>`;
+            try {
+                const res = await fetch(`/api/v1/teacher/class-sessions/${classId}/quizzes`);
+                const json = await res.json();
+                
+                if (json.status === 200 && json.data) {
+                    // Filter out quizzes already in this session
+                    const session = sessions.find(s => s.sessionId == sessionId);
+                    const existingIds = new Set((session.quizzes || []).map(q => q.quizId));
+                    
+                    availableQuizzesForAssign = json.data.filter(q => !existingIds.has(q.quizId));
+                    
+                    if (availableQuizzesForAssign.length === 0) {
+                        document.getElementById('assignQuizCheckboxList').innerHTML = 
+                            '<div class="alert alert-info small">Tất cả quiz đã được gắn vào buổi học này.</div>';
+                    } else {
+                        renderQuizCheckboxList();
                     }
-                });
+                }
+            } catch (e) {
+                console.error('Error fetching quizzes:', e);
+                showAssignQuizError('Lỗi khi tải danh sách quiz: ' + e.message);
             }
         })();
+        
         assignQuizModal.show();
     };
 
-    const assignQuiz = async () => {
-        const sessionId = document.getElementById('assignQuizSessionId').value;
-        const quizId = document.getElementById('assignQuizSelect').value;
+    const renderQuizCheckboxList = () => {
+        const container = document.getElementById('assignQuizCheckboxList');
+        const html = availableQuizzesForAssign.map(q => `
+            <div class="form-check border rounded-3 p-3 mb-2">
+                <input class="form-check-input quizCheckbox" type="checkbox" value="${q.quizId}" 
+                       id="quizCheck_${q.quizId}" onchange="updateAssignQuizCount()">
+                <label class="form-check-label w-100 cursor-pointer" for="quizCheck_${q.quizId}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-medium">${escape(q.title || 'Quiz')}</div>
+                            <div class="small text-muted mt-1">
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary">${q.status || 'DRAFT'}</span>
+                                <span class="ms-2"><i class="bi bi-question-circle me-1"></i>${q.questionCount || 0} câu</span>
+                            </div>
+                        </div>
+                        <div class="text-muted small">${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</div>
+                    </div>
+                </label>
+            </div>
+        `).join('');
+        
+        container.innerHTML = html;
+        updateAssignQuizCount();
+    };
 
-        if (!quizId) {
-            document.getElementById('assignQuizError').textContent = 'Vui lòng chọn quiz';
-            document.getElementById('assignQuizError').classList.remove('d-none');
+    const updateAssignQuizCount = () => {
+        const checkedCount = document.querySelectorAll('.quizCheckbox:checked').length;
+        document.getElementById('assignQuizSelectedCount').textContent = 
+            `Đã chọn ${checkedCount}/${availableQuizzesForAssign.length} bài quiz`;
+    };
+
+    const multiSelectAllQuizzes = (selectAll) => {
+        document.querySelectorAll('.quizCheckbox').forEach(checkbox => {
+            checkbox.checked = selectAll;
+        });
+        updateAssignQuizCount();
+    };
+
+    const assignMultipleQuizzes = async () => {
+        const sessionId = document.getElementById('assignQuizSessionId').value;
+        const checkedBoxes = document.querySelectorAll('.quizCheckbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            showAssignQuizError('Vui lòng chọn ít nhất một quiz');
             return;
         }
 
+        const quizIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        
         try {
-            const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quizId: parseInt(quizId) })
-            });
-            const json = await res.json();
-            if (json.status === 200 || json.status === 201) {
-                assignQuizModal.hide();
-                loadData();
-            } else {
-                document.getElementById('assignQuizError').textContent = json.message || 'Lỗi khi gắn quiz';
-                document.getElementById('assignQuizError').classList.remove('d-none');
+            let successCount = 0;
+            let failureCount = 0;
+            const errorMessages = [];
+            
+            // Attach each selected quiz
+            for (const quizId of quizIds) {
+                try {
+                    const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ quizId: quizId })
+                    });
+                    const json = await res.json();
+                    
+                    if (json.status === 200 || json.status === 201) {
+                        successCount++;
+                    } else {
+                        failureCount++;
+                        errorMessages.push(json.message || `Không thể gắn quiz ID ${quizId}`);
+                    }
+                } catch (e) {
+                    failureCount++;
+                    errorMessages.push(e.message);
+                }
+            }
+            
+            // Reload data and show result
+            await loadData();
+            
+            if (successCount > 0) {
+                const msg = `✓ Đã gắn thành công ${successCount} bài quiz`;
+                showAssignQuizSuccess(failureCount > 0 ? msg + ` (${failureCount} thất bại)` : msg);
+                
+                // Close modal after 1.5 seconds if all successful
+                if (failureCount === 0) {
+                    setTimeout(() => {
+                        assignQuizModal.hide();
+                    }, 1500);
+                }
+            }
+            
+            if (errorMessages.length > 0) {
+                showAssignQuizError(errorMessages.join('<br>'));
             }
         } catch (e) {
-            alert('Lỗi kết nối: ' + e.message);
+            showAssignQuizError('Lỗi kết nối: ' + e.message);
         }
+    };
+
+    const showAssignQuizError = (msg) => {
+        const errorDiv = document.getElementById('assignQuizError');
+        errorDiv.innerHTML = msg;
+        errorDiv.classList.remove('d-none');
+        document.getElementById('assignQuizSuccess').classList.add('d-none');
+    };
+
+    const showAssignQuizSuccess = (msg) => {
+        const successDiv = document.getElementById('assignQuizSuccess');
+        successDiv.innerHTML = msg;
+        successDiv.classList.remove('d-none');
+        document.getElementById('assignQuizError').classList.add('d-none');
     };
 
     // ======== MULTI QUIZ ACTIONS ========
