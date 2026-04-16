@@ -9,6 +9,8 @@ import com.example.DoAn.model.ClassSession;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Lesson;
 import com.example.DoAn.model.SessionLesson;
+import com.example.DoAn.model.Quiz;
+import com.example.DoAn.model.SessionQuiz;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.ClassSessionRepository;
@@ -16,6 +18,8 @@ import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.LessonRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.SessionLessonRepository;
+import com.example.DoAn.repository.QuizRepository;
+import com.example.DoAn.repository.SessionQuizRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.IClassService;
@@ -73,6 +77,8 @@ public class ClassServiceImpl implements IClassService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
+    private final QuizRepository quizRepository;
+    private final SessionQuizRepository sessionQuizRepository;
     private final RegistrationRepository registrationRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
@@ -222,22 +228,8 @@ public class ClassServiceImpl implements IClassService {
             if (!sessions.isEmpty()) {
                 classSessionRepository.saveAll(sessions);
 
-                // --- Auto mapping lessons 1:1 ---
-                List<Lesson> courseLessons = lessonRepository.findAll().stream()
-                        .filter(l -> l.getModule().getCourse().getCourseId().equals(clazz.getCourse().getCourseId()))
-                        .toList();
-                
-                // Better: Use repository method for sorted lessons if available
-                // List<Lesson> courseLessons = lessonRepository.findByCourseIdSorted(clazz.getCourse().getCourseId());
-
-                for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
-                    SessionLesson mapping = SessionLesson.builder()
-                            .session(sessions.get(i))
-                            .lesson(courseLessons.get(i))
-                            .orderIndex(1)
-                            .build();
-                    sessionLessonRepository.save(mapping);
-                }
+                // --- Auto mapping lessons to sessions ---
+                autoMapLessonsToSessions(clazz.getClassId(), clazz.getCourse().getCourseId());
             }
         }
 
@@ -489,6 +481,9 @@ public class ClassServiceImpl implements IClassService {
             if (!sessions.isEmpty()) {
                 classSessionRepository.saveAll(sessions);
                 log.info("Created {} sessions for class {} on update", sessions.size(), clazz.getClassName());
+                
+                // --- Auto mapping lessons to sessions ---
+                autoMapLessonsToSessions(clazz.getClassId(), clazz.getCourse().getCourseId());
             }
         }
 
@@ -595,5 +590,65 @@ public class ClassServiceImpl implements IClassService {
     private BigDecimal safeToDecimal(Double value) {
         if (value == null) return null;
         return BigDecimal.valueOf(value);
+    }
+
+    /**
+     * Tự động mapping Lesson sang ClassSession khi tạo lớp mới.
+     * Đảm bảo an toàn: Idempotent (không duplicate), Null safety, Transactional.
+     */
+    @Transactional
+    public void autoMapLessonsToSessions(Integer classId, Integer courseId) {
+        if (classId == null || courseId == null) return;
+
+        // 1. Idempotency check: Bỏ qua nếu đã có mapping (tránh duplicate khi update hoặc chạy lại)
+        if (sessionLessonRepository.existsBySession_Clazz_ClassId(classId)) {
+            log.info("[AutoMap] Mapping already exists for Class ID: {}. Skipping.", classId);
+            return;
+        }
+
+        // 2. Load học liệu và danh sách buổi học
+        List<Lesson> lessons = lessonRepository.findAllByCourseIdSorted(courseId);
+        List<ClassSession> sessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
+
+        if (lessons.isEmpty() || sessions.isEmpty()) {
+            log.warn("[AutoMap] Lessons or Sessions are empty for Course: {}, Class: {}", courseId, classId);
+            return;
+        }
+
+        log.info("[AutoMap] Starting mapping {} lessons to {} sessions for Class ID: {}", lessons.size(), sessions.size(), classId);
+
+        int sessionCount = sessions.size();
+        for (int i = 0; i < lessons.size(); i++) {
+            Lesson lesson = lessons.get(i);
+            
+            // Logic: Phân bổ 1-1 cho đến session cuối cùng. Nếu số bài > số buổi, dồn hết vào buổi cuối.
+            int sessionIndex = Math.min(i, sessionCount - 1);
+            ClassSession session = sessions.get(sessionIndex);
+
+            // Tính orderIndex trong session (nếu dồn nhiều bài vào 1 buổi cuối)
+            int orderInSession = (i >= sessionCount - 1) ? (i - (sessionCount - 1) + 1) : 1;
+
+            // Mapping Lesson
+            SessionLesson sl = SessionLesson.builder()
+                    .session(session)
+                    .lesson(lesson)
+                    .orderIndex(orderInSession)
+                    .build();
+            sessionLessonRepository.save(sl);
+
+            // Mapping Quiz (nếu Lesson có Quiz liên kết)
+            if (lesson.getQuiz_id() != null) {
+                quizRepository.findById(lesson.getQuiz_id()).ifPresent(quiz -> {
+                    SessionQuiz sq = SessionQuiz.builder()
+                            .session(session)
+                            .quiz(quiz)
+                            .orderIndex(orderInSession)
+                            .isOpen(false)
+                            .build();
+                    sessionQuizRepository.save(sq);
+                });
+            }
+        }
+        log.info("[AutoMap] Successfully mapped lessons for class id: {}", classId);
     }
 }
