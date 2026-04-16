@@ -50,7 +50,7 @@
         <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
           <span th:text="${errorMessage}"></span>
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>cs
         </div>
 
         <div class="search-bar-wrapper mb-4">
@@ -172,39 +172,74 @@
       if (!courses || courses.length === 0) {
           container.innerHTML = `
               <div class="col-12">
-                  <div class="state-box shadow-sm">
-                      <i class="bi bi-inbox"></i>
-                      <h5 class="fw-bold mb-2">Không tìm thấy khóa học</h5>
+                  <div class="state-box shadow-sm p-5 text-center bg-white rounded-4">
+                      <i class="bi bi-inbox display-4 text-muted"></i>
+                      <h5 class="fw-bold mt-3 mb-2">Không tìm thấy khóa học</h5>
                       <p class="small text-muted">Thử thay đổi từ khóa hoặc bộ lọc danh mục xem sao nhé.</p>
                   </div>
               </div>`;
           return;
       }
 
-      // inject HTML, tất cả col bắt đầu với opacity:0 (class course-col)
+      // Render giao diện Card Tiến độ mới
       container.innerHTML = courses.map((c, i) => `
           <div class="col-lg-6 col-md-6 course-col" style="transition-delay:${i * 80}ms">
-              <div class="card course-card border-0 h-100">
-                  <div class="course-img-wrapper position-relative">
-                      <img src="${c.imageUrl || '/assets/img/default-course.png'}"
-                           onerror="this.onerror=null;this.src='/assets/img/default-course.png';"
-                           class="w-100" style="height:200px;object-fit:cover;"
-                           alt="${c.title || 'Course Image'}">
-                      <span class="position-absolute top-0 start-0 bg-primary text-white
-                                   px-3 py-1 m-3 rounded-pill small fw-bold shadow-sm">
-                          <i class="bi bi-tag-fill me-1"></i>${c.className || 'Chưa xếp lớp'}
-                      </span>
+              <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 progress-card">
+                  <div class="position-relative">
+                      <img src="${c.imageUrl || c.courseImage || '/assets/img/default-course.png'}"
+                           class="card-img-top w-100" style="height: 180px; object-fit: cover;"
+                           alt="${c.title || c.courseName}"
+                           onerror="this.onerror=null;this.src='/assets/img/default-course.png'">
+
+                      <div class="position-absolute top-0 start-0 m-3">
+                          <span class="badge bg-primary text-white rounded-pill px-3 shadow-sm">
+                              <i class="bi bi-tags-fill me-1"></i>${c.className || 'Chưa xếp lớp'}
+                          </span>
+                      </div>
+
+                      <div class="position-absolute top-0 end-0 m-3">
+                          <span class="badge ${c.progressPercent === 100 ? 'bg-success' : 'bg-warning text-dark'} rounded-pill px-3 shadow-sm">
+                              ${c.progressPercent === 100 ? 'Hoàn thành' : 'Đang học'}
+                          </span>
+                      </div>
                   </div>
-                  <div class="card-body d-flex flex-column p-4">
-                      <h5 class="course-title fw-bold text-truncate mb-2"
-                          title="${c.title || ''}">${c.title || ''}</h5>
-                      <p class="text-muted small flex-grow-1 lh-base mb-3">
-                          ${c.description ? c.description.substring(0, 110) + '…' : 'Chưa có mô tả chi tiết.'}
-                      </p>
-                      <div class="pt-3 border-top mt-auto">
-                          <a href="/student/learn/${c.courseId}"
-                             class="btn btn-enroll rounded-pill w-100 fw-bold py-2">
-                              Vào Học Ngay <i class="bi bi-arrow-right-circle-fill ms-2"></i>
+                  <div class="card-body p-4 d-flex flex-column">
+                      <h5 class="fw-bold mb-1 text-truncate" title="${c.title || c.courseName}">${c.title || c.courseName}</h5>
+                      <p class="small text-muted mb-3"><i class="bi bi-person me-1"></i> Giảng viên: ${c.teacherName || 'Chưa cập nhật'}</p>
+
+                      <div class="mb-4">
+                          <div class="d-flex justify-content-between align-items-center mb-2">
+                              <span class="small fw-bold">Tiến độ tổng thể</span>
+                              <span class="small fw-bold ${c.progressPercent === 100 ? 'text-success' : 'text-primary'}">${c.progressPercent || 0}%</span>
+                          </div>
+                          <div class="progress" style="height: 8px;">
+                              <div class="progress-bar progress-bar-striped progress-bar-animated ${c.progressPercent === 100 ? 'bg-success' : 'bg-primary'}" role="progressbar"
+                                   style="width: ${c.progressPercent || 0}%" aria-valuenow="${c.progressPercent || 0}" aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
+                      </div>
+
+                      <div class="row g-2 mb-3">
+                          <div class="col-6">
+                              <div class="p-3 bg-light rounded-3 text-center">
+                                  <div class="small text-muted mb-1">Bài học</div>
+                                  <div class="fw-bold fs-5">${c.completedLessons || 0}/${c.totalLessons || 0}</div>
+                              </div>
+                          </div>
+                          <div class="col-6">
+                              <div class="p-3 bg-light rounded-3 text-center">
+                                  <div class="small text-muted mb-1">Bài tập</div>
+                                  <div class="fw-bold fs-5">${c.completedQuizzes || 0}/${c.totalQuizzes || 0}</div>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                          <div>
+                              <div class="small text-muted">Điểm trung bình</div>
+                              <div class="fw-bold text-success fs-5">${c.averageScore || 0}/10</div>
+                          </div>
+                          <a href="/student/learn/${c.courseId}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                              Vào lớp <i class="bi bi-arrow-right-short"></i>
                           </a>
                       </div>
                   </div>

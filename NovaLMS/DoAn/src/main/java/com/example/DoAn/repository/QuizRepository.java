@@ -64,4 +64,5 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
            "  OR q.quizCategory = 'COURSE_ASSIGNMENT'" +
            ")")
     List<Quiz> findExpertQuizzesByClassId(@Param("classId") Integer classId);
+
 }

@@ -11,4 +11,13 @@ public class MyCourseDTO {
     private String description;
     private String imageUrl;
     private String className;
+    
+    // Thống kê tiến độ
+    private String teacherName;
+    private Integer progressPercent;
+    private Integer completedLessons;
+    private Integer totalLessons;
+    private Integer completedQuizzes;
+    private Integer totalQuizzes;
+    private Double averageScore;
 }
