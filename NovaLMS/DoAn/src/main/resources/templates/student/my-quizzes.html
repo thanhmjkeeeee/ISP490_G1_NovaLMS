@@ -10,203 +10,73 @@
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
-    <style>
-        /* Glassmorphism Variables */
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.4);
-            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-            --glass-blur: blur(12px);
-            --nova-blue: #1e40af;
-            --nova-accent: #3b82f6;
-        }
 
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-            border-radius: 24px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .glass-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-        }
-
-        /* Stats Section */
-        .stat-tile {
-            position: relative;
-            overflow: hidden;
-            padding: 1.5rem;
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-        .stat-tile:hover { transform: scale(1.02); }
-        .stat-icon-wrapper {
-            background: rgba(255, 255, 255, 0.5);
-            width: 54px; height: 54px;
-            border-radius: 16px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        /* Tabs & Search */
-        .modern-tab-btn {
-            border: none;
-            padding: 10px 24px;
-            border-radius: 50px;
-            background: rgba(255, 255, 255, 0.5);
-            color: #64748b;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .modern-tab-btn.active {
-            background: var(--nova-accent);
-            color: white;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-        }
-
-        .search-glass {
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50px;
-            padding: 12px 20px;
-            backdrop-filter: blur(8px);
-        }
-
-        /* Quiz Cards List */
-        .quiz-card {
-            display: flex;
-            gap: 20px;
-            padding: 24px;
-            margin-bottom: 16px;
-            align-items: center;
-        }
-
-        .category-pill {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 4px 12px;
-            border-radius: 50px;
-            font-weight: 700;
-        }
-
-        .date-badge {
-            font-size: 13px;
-            color: #64748b;
-            background: #f1f5f9;
-            padding: 6px 12px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .score-display {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            padding: 15px;
-            border-radius: 18px;
-            min-width: 90px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        @media (max-width: 768px) {
-            .quiz-card { flex-direction: column; align-items: flex-start; }
-            .quiz-card > *:last-child { width: 100%; text-align: right; }
-        }
-        
-        /* Entrance Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-item { animation: fadeInUp 0.5s ease backwards; }
-    </style>
 
     <div class="container-fluid px-4">
 
-        <!-- Page Title -->
-        <div class="d-flex justify-content-between align-items-center mb-4 mt-2">
-            <div>
-                <h3 class="fw-bold mb-1" style="color: #1e293b;"><i class="bi bi-rocket-takeoff-fill me-2 text-primary"></i>Hành trình của tôi</h3>
-                <p class="text-muted small m-0">Theo dõi tiến độ và thành tích học tập của bạn</p>
-            </div>
-        </div>
+        <!-- 4 Tab Header -->
+        <div class="row g-3 mt-4 mb-4 custom-header-tabs bg-transparent border-0 shadow-none p-0" id="statsRow">
 
-        <!-- Stats Section (Glassmorphic Tiles) -->
-        <div class="row g-3 mb-4" id="statsRow">
             <div class="col-md-3 col-6">
-                <div class="stat-tile animate-item" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); animation-delay: 0.1s;">
+                <div class="stat-tile nav-link active animate-item w-100 text-start" data-filter="TOTAL" onclick="handleTabClick('TOTAL')" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); animation-delay: 0.1s;">
                     <div class="d-flex flex-column gap-3">
-                        <div class="stat-icon-wrapper text-info">
-                            <i class="bi bi-journal-check"></i>
+                        <div class="stat-icon-wrapper text-info" style="color: #0ea5e9 !important;">
+                            <i class="bi bi-collection-fill"></i>
                         </div>
                         <div>
-                            <div class="fw-bold fs-3" id="statEntry">—</div>
-                            <div class="small fw-semibold text-info text-uppercase" style="letter-spacing: 0.5px;">Kiểm tra năng lực</div>
+                            <div class="fw-bold fs-3" id="count-TOTAL" style="color: #0ea5e9;">0</div>
+                            <div class="small fw-semibold text-uppercase" style="color: #0ea5e9; letter-spacing: 0.5px;">Tổng số bài tập</div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3 col-6">
-                <div class="stat-tile animate-item" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); animation-delay: 0.2s;">
+                <div class="stat-tile nav-link animate-item w-100 text-start" data-filter="NOT_STARTED" onclick="handleTabClick('NOT_STARTED')" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); animation-delay: 0.2s;">
                     <div class="d-flex flex-column gap-3">
-                        <div class="stat-icon-wrapper text-warning">
-                            <i class="bi bi-book"></i>
+                        <div class="stat-icon-wrapper text-warning" style="color: #f59e0b !important;">
+                            <i class="bi bi-file-earmark-x"></i>
                         </div>
                         <div>
-                            <div class="fw-bold fs-3" id="statCourse">—</div>
-                            <div class="small fw-semibold text-warning text-uppercase" style="letter-spacing: 0.5px;">Bài tập lớp học</div>
+                            <div class="fw-bold fs-3" id="count-NOT_STARTED" style="color: #f59e0b;">0</div>
+                            <div class="small fw-semibold text-uppercase" style="color: #f59e0b; letter-spacing: 0.5px;">Bài tập chưa làm</div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3 col-6">
-                <div class="stat-tile animate-item" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); animation-delay: 0.3s;">
+                <div class="stat-tile nav-link animate-item w-100 text-start" data-filter="COMPLETED" onclick="handleTabClick('COMPLETED')" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); animation-delay: 0.3s;">
                     <div class="d-flex flex-column gap-3">
-                        <div class="stat-icon-wrapper text-success">
-                            <i class="bi bi-collection"></i>
+                        <div class="stat-icon-wrapper text-success" style="color: #10b981 !important;">
+                            <i class="bi bi-check-circle-fill"></i>
                         </div>
                         <div>
-                            <div class="fw-bold fs-3" id="statPractice">—</div>
-                            <div class="small fw-semibold text-success text-uppercase" style="letter-spacing: 0.5px;">Luyện đề</div>
+                            <div class="fw-bold fs-3" id="count-COMPLETED" style="color: #10b981;">0</div>
+                            <div class="small fw-semibold text-uppercase" style="color: #10b981; letter-spacing: 0.5px;">Bài tập đã làm</div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="col-md-3 col-6">
-                <div class="stat-tile animate-item" style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); animation-delay: 0.4s;">
+                <div class="stat-tile nav-link animate-item w-100 text-start" data-filter="PENDING" onclick="handleTabClick('PENDING')" style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); animation-delay: 0.4s;">
                     <div class="d-flex flex-column gap-3">
-                        <div class="stat-icon-wrapper text-secondary">
-                            <i class="bi bi-lightning-charge"></i>
+                        <div class="stat-icon-wrapper text-secondary" style="color: #64748b !important;">
+                            <i class="bi bi-hourglass-split"></i>
                         </div>
                         <div>
-                            <div class="fw-bold fs-3" id="statAll">—</div>
-                            <div class="small fw-semibold text-secondary text-uppercase" style="letter-spacing: 0.5px;">Tổng hoàn thành</div>
+                            <div class="fw-bold fs-3" id="count-PENDING" style="color: #64748b;">0</div>
+                            <div class="small fw-semibold text-uppercase" style="color: #64748b; letter-spacing: 0.5px;">Bài tập chờ chấm</div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
 
         <!-- Navigation Bar (Tabs + Search) -->
         <div class="glass-card p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex gap-2">
-                <button class="modern-tab-btn active" data-tab="ALL" onclick="switchTab('ALL')">Tất cả</button>
-                <button class="modern-tab-btn" data-tab="ENTRY_TEST" onclick="switchTab('ENTRY_TEST')">Năng lực</button>
-                <button class="modern-tab-btn" data-tab="COURSE_QUIZ" onclick="switchTab('COURSE_QUIZ')">Lớp học</button>
-                <button class="modern-tab-btn" data-tab="PRACTICE" onclick="switchTab('PRACTICE')">Luyện tập</button>
-            </div>
             
             <div class="ms-auto" style="min-width: 300px;">
                 <div class="input-group search-glass">
@@ -241,160 +111,214 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script>
+let allItems = [];
+let filteredItems = [];
+let currentFilter = 'ALL';
 let currentPage = 0;
-let currentCategory = 'ALL';
+const PAGE_SIZE = 5;
 let searchKeyword = '';
 let searchTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    loadStats();
-    loadHistory(currentPage);
+    loadAllHistoryData();
 });
 
-async function loadStats() {
+async function loadAllHistoryData() {
+    const container = document.getElementById('quizListContainer');
+    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
+    
     try {
-        const [entry, course, all] = await Promise.all([
-            fetch('/api/v1/student/quiz/history?size=1&category=ENTRY_TEST').then(r => r.json()),
-            fetch('/api/v1/student/quiz/history?size=1&category=COURSE_QUIZ').then(r => r.json()),
-            fetch('/api/v1/student/quiz/history?size=1&category=ALL').then(r => r.json())
-        ]);
-        document.getElementById('statEntry').textContent = (entry.data?.totalElements || 0) + ' bài';
-        document.getElementById('statCourse').textContent = (course.data?.totalElements || 0) + ' bài';
-        document.getElementById('statAll').textContent = (all.data?.totalElements || 0) + ' bài';
-        document.getElementById('statPractice').textContent = '0 bài';
+        // Lấy tất cả lịch sử làm bài để có thể lọc frontend (giới hạn 1000 records)
+        let url = '/api/v1/student/quiz/history?page=0&size=1000';
+        const res = await fetch(url);
+        const result = await res.json();
+        
+        if (result.status === 200 && result.data && result.data.items) {
+            allItems = result.data.items;
+        } else {
+            allItems = [];
+        }
+        
+        updateCounts();
+        applyFilterAndRender(0);
+        
     } catch(e) {
-        document.getElementById('statEntry').textContent = '0 bài';
-        document.getElementById('statCourse').textContent = '0 bài';
-        document.getElementById('statAll').textContent = '0 bài';
-        document.getElementById('statPractice').textContent = '0 bài';
+        console.error(e);
+        container.innerHTML = '<div class="text-center text-danger py-4 glass-card">Lỗi kết nối khi tải dữ liệu.</div>';
     }
 }
 
-function switchTab(category) {
-    currentCategory = category;
+function updateCounts() {
+    const total = allItems.length;
+    const notStarted = allItems.filter(i => i.status === 'IN_PROGRESS' || !i.status).length;
+    const completed = allItems.filter(i => i.passed !== null).length;
+    const pending = allItems.filter(i => i.passed === null && i.status !== 'IN_PROGRESS' && i.status !== 'LOCKED').length;
+
+    document.getElementById('count-TOTAL').textContent = total;
+    document.getElementById('count-NOT_STARTED').textContent = notStarted;
+    document.getElementById('count-COMPLETED').textContent = completed;
+    document.getElementById('count-PENDING').textContent = pending;
+}
+
+function handleTabClick(filterState) {
+    currentFilter = filterState;
     currentPage = 0;
-    document.querySelectorAll('.modern-tab-btn').forEach(btn => {
-        if (btn.dataset.tab === category) {
+    
+    // Sync UI Header Tabs
+    document.querySelectorAll('.custom-header-tabs .nav-link').forEach(btn => {
+        if (btn.dataset.filter === filterState || (filterState === 'ALL' && btn.dataset.filter === 'TOTAL')) {
             btn.classList.add('active');
         } else {
             btn.classList.remove('active');
         }
     });
-    loadHistory(0);
+
+    // Sync UI Bottom Filter Tabs
+    document.querySelectorAll('.modern-tab-btn').forEach(btn => {
+        if (btn.dataset.filter === filterState || (filterState === 'TOTAL' && btn.dataset.filter === 'ALL')) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    applyFilterAndRender(0);
 }
 
 function debouncedSearch() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
         searchKeyword = document.getElementById('searchInput').value.trim();
-        currentPage = 0;
-        loadHistory(0);
+        applyFilterAndRender(0);
     }, 300);
 }
 
-async function loadHistory(page) {
+function applyFilterAndRender(page) {
+    let list = allItems;
+    
+    if (searchKeyword) {
+        const kw = searchKeyword.toLowerCase();
+        list = list.filter(i => 
+            (i.quizTitle && i.quizTitle.toLowerCase().includes(kw)) || 
+            (i.courseName && i.courseName.toLowerCase().includes(kw))
+        );
+    }
+    
+    // Filter theo Status
+    if (currentFilter === 'NOT_STARTED') {
+        list = list.filter(i => i.status === 'IN_PROGRESS' || !i.status);
+    } else if (currentFilter === 'COMPLETED') {
+        list = list.filter(i => i.passed !== null);
+    } else if (currentFilter === 'PENDING') {
+        list = list.filter(i => i.passed === null && i.status !== 'IN_PROGRESS' && i.status !== 'LOCKED');
+    }
+
+    filteredItems = list;
+    loadHistory(page); // Alias to render logic for pagination
+}
+
+function loadHistory(page) {
     currentPage = page;
     const container = document.getElementById('quizListContainer');
-    container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
     document.getElementById('emptyState').classList.add('d-none');
+    document.getElementById('historyPagination').style.display = 'none';
 
-    try {
-        let url = '/api/v1/student/quiz/history?page=' + page + '&size=5';
-        if (currentCategory !== 'ALL') url += '&category=' + currentCategory;
-        if (searchKeyword) url += '&keyword=' + encodeURIComponent(searchKeyword);
+    const start = page * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    const pageItems = filteredItems.slice(start, end);
 
-        const res = await fetch(url);
-        const result = await res.json();
+    if (pageItems.length === 0) {
+        container.innerHTML = '';
+        document.getElementById('emptyState').classList.remove('d-none');
+        return;
+    }
 
-        if (result.status !== 200 || !result.data || result.data.items.length === 0) {
-            container.innerHTML = '';
-            document.getElementById('emptyState').classList.remove('d-none');
-            document.getElementById('historyPagination').style.display = 'none';
-            return;
-        }
-
-        let html = '';
-        result.data.items.forEach((item, index) => {
-            const timeValue = item.submittedAt || item.startedAt;
-            const date = timeValue ? new Date(timeValue).toLocaleString('vi-VN') : 'N/A';
-            const isPending = item.passed === null && item.status !== 'LOCKED';
-            const isLocked = item.status === 'LOCKED';
-            
-            let statusBadge = '';
-            let statusClass = '';
-            if (isLocked) {
-                statusBadge = '<i class="bi bi-shield-lock me-1"></i>Bị khóa';
-                statusClass = 'bg-danger';
-            } else if (isPending) {
+    let html = '';
+    pageItems.forEach((item, index) => {
+        const timeValue = item.submittedAt || item.startedAt;
+        const date = timeValue ? new Date(timeValue).toLocaleString('vi-VN') : 'N/A';
+        const isPending = item.passed === null && item.status !== 'LOCKED';
+        const isLocked = item.status === 'LOCKED';
+        
+        let statusBadge = '';
+        let statusClass = '';
+        if (isLocked) {
+            statusBadge = '<i class="bi bi-shield-lock me-1"></i>Bị khóa';
+            statusClass = 'bg-danger';
+        } else if (isPending) {
+            if (item.status === 'IN_PROGRESS') {
+                statusBadge = '<i class="bi bi-hourglass me-1"></i>Đang làm / Chưa nộp';
+                statusClass = 'bg-secondary';
+            } else {
                 statusBadge = '<i class="bi bi-hourglass-split me-1"></i>Chờ chấm';
                 statusClass = 'bg-warning text-dark';
-            } else {
-                statusBadge = item.passed ? 'Đạt' : 'Không Đạt';
-                statusClass = item.passed ? 'bg-success' : 'bg-danger';
             }
+        } else {
+            statusBadge = item.passed ? 'Đạt' : 'Không Đạt';
+            statusClass = item.passed ? 'bg-success' : 'bg-danger';
+        }
 
-            let violationHtml = '';
-            if (isLocked && item.violationLog) {
-                violationHtml = `<div class="alert alert-danger p-2 rounded-3 mt-2 mb-0" style="font-size: 0.75rem; border: 1px dashed #f5c2c7;">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Lý do khóa:</strong> ${item.violationLog}
-                </div>`;
-            }
+        let violationHtml = '';
+        if (isLocked && item.violationLog) {
+            violationHtml = `<div class="alert alert-danger p-2 rounded-3 mt-2 mb-0" style="font-size: 0.75rem; border: 1px dashed #f5c2c7;">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Lý do khóa:</strong> ${item.violationLog}
+            </div>`;
+        }
 
-            const categoryLabel = item.quizCategory === 'ENTRY_TEST' ? 'Năng lực' : 'Khóa học';
-            const categoryClass = item.quizCategory === 'ENTRY_TEST' ? 'bg-info bg-opacity-25 text-info' : 'bg-secondary bg-opacity-25 text-secondary';
+        const categoryLabel = item.quizCategory === 'ENTRY_TEST' ? 'Năng lực' : 'Khóa học';
+        const categoryClass = item.quizCategory === 'ENTRY_TEST' ? 'bg-info bg-opacity-25 text-info' : 'bg-secondary bg-opacity-25 text-secondary';
 
-            html += `
-                <div class="glass-card quiz-card animate-item" style="animation-delay: ${(index % 15) * 0.05}s">
-                    <div class="flex-grow-1">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                             <span class="category-pill ${categoryClass}">${categoryLabel}</span>
-                             <span class="badge rounded-pill ${statusClass}">${statusBadge}</span>
-                        </div>
-                        <h5 class="fw-bold text-dark mb-1">${item.quizTitle}</h5>
-                        <div class="text-muted small mb-2">
-                            <i class="bi bi-folder2-open me-1"></i>${item.courseName || 'Luyện tập tự do'}
-                        </div>
-                        <div class="d-flex gap-3 flex-wrap">
-                            <div class="date-badge">
-                                <i class="bi bi-calendar3"></i>
-                                ${date}
-                            </div>
-                        </div>
-                        ${violationHtml}
+        html += `
+            <div class="glass-card quiz-card animate-item" style="animation-delay: ${(index % 15) * 0.05}s">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                         <span class="category-pill ${categoryClass}">${categoryLabel}</span>
+                         <span class="badge rounded-pill ${statusClass}">${statusBadge}</span>
                     </div>
-                    
-                    <div class="score-display">
-                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
-                        <div class="d-flex align-items-baseline gap-1 mt-1">
-                            <span class="fs-4 fw-bold text-primary">${item.score || 0}</span>
-                            <span class="text-muted small">/${item.maxScore || 0}</span>
+                    <h5 class="fw-bold text-dark mb-1 text-truncate">${item.quizTitle}</h5>
+                    <div class="text-muted small mb-2 text-truncate">
+                        <i class="bi bi-folder2-open me-1"></i>${item.courseName || 'Luyện tập tự do'}
+                    </div>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <div class="date-badge">
+                            <i class="bi bi-calendar3"></i>
+                            ${date}
                         </div>
                     </div>
+                    ${violationHtml}
+                </div>
 
-                    <div class="ms-md-auto">
-                        ${isLocked ? `
-                            ${item.isUnlockRequested 
-                                ? '<div class="text-info small fw-bold"><i class="bi bi-send-check me-1"></i>Đã gửi yêu cầu</div>'
-                                : `<button onclick="requestUnlock(${item.resultId})" class="btn btn-sm btn-warning rounded-pill px-4 fw-bold shadow-sm">
-                                     Giải trình bài bị khóa
-                                   </button>`
-                            }
-                        ` : `
-                        <a href="/student/quiz/result/${item.resultId}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                            Xem kết quả <i class="bi bi-chevron-right ms-1" style="font-size: 0.8rem;"></i>
-                        </a>
-                        `}
+                <div class="score-display flex-shrink-0">
+                    <span class="text-muted small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
+                    <div class="d-flex align-items-baseline gap-1 mt-1">
+                        <span class="fs-4 fw-bold text-primary">${item.score || 0}</span>
+                        <span class="text-muted small">/${item.maxScore || 0}</span>
                     </div>
                 </div>
-            `;
-        });
-        container.innerHTML = html;
-        renderPagination(result.data.totalPages, page);
 
-    } catch(e) {
-        console.error(e);
-        container.innerHTML = '<div class="text-center text-danger py-4 glass-card">Lỗi kết nối khi tải dữ liệu.</div>';
-    }
+                <div class="quiz-action-col flex-shrink-0">
+                    ${isLocked ? `
+                        ${item.isUnlockRequested
+                            ? '<div class="action-status-label text-info small fw-bold py-2"><i class="bi bi-send-check me-1"></i>Đã gửi yêu cầu</div>'
+                            : `<button onclick="requestUnlock(${item.resultId})" class="btn btn-sm btn-warning rounded-pill fw-bold shadow-sm py-2">
+                                 <i class="bi bi-shield-exclamation me-1"></i>Giải trình bài bị khóa
+                               </button>`
+                        }
+                    ` : `
+                    <a href="/student/quiz/result/${item.resultId}" class="btn btn-primary rounded-pill shadow-sm py-2 w-100">
+                        Xem kết quả <i class="bi bi-chevron-right ms-1" style="font-size: 0.8rem;"></i>
+                    </a>
+                    `}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    
+    // Pagination rendering via NovaPagination
+    const totalPages = Math.ceil(filteredItems.length / PAGE_SIZE);
+    renderPagination(totalPages, page);
 }
 
 function renderPagination(totalPages, currentPageIdx) {

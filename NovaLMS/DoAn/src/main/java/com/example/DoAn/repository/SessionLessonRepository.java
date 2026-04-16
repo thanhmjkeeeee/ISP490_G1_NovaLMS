@@ -20,4 +20,6 @@ public interface SessionLessonRepository extends JpaRepository<SessionLesson, In
 
     @Query("SELECT COUNT(sl) FROM SessionLesson sl WHERE sl.session.clazz.course.courseId = :courseId AND sl.lesson.type = :type")
     long countByCourseIdAndLessonType(@Param("courseId") Integer courseId, @Param("type") String type);
+
+    boolean existsBySession_Clazz_ClassId(Integer classId);
 }

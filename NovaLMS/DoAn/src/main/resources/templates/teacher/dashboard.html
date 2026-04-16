@@ -26,9 +26,6 @@
       <h2 id="welcomeUser">Chào buổi sáng! ☕</h2>
       <p id="welcomeSub">Đang tải dữ liệu của bạn...</p>
     </div>
-    <div class="wb-action d-none d-md-block">
-      <a href="/teacher/workspace" class="btn-live"><i class="bi bi-camera-video-fill"></i> Vào lớp</a>
-    </div>
   </div>
 
   <!-- STATS -->
@@ -101,9 +98,6 @@ document.addEventListener('DOMContentLoaded', function () {
           <div class="si-title">${s.className}</div>
           <div class="si-sub">${s.startTime} – ${s.endTime}</div>
       </div>
-      <button class="btn-enter ${s.isToday ? 'primary' : 'outline'} ms-auto">
-          ${s.isToday ? 'Vào lớp' : 'Xem'}
-      </button>
     </div>`).join('');
 };
 
