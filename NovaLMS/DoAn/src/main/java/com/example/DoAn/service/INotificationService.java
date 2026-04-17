@@ -75,4 +75,8 @@ public interface INotificationService {
     // ─── Announcement ─────────────────────────────────────────────────────────
 
     void sendAnnouncement(List<Long> userIds, String title, String content);
+
+    // ─── Reschedule ───────────────────────────────────────────────────────────
+
+    void sendRescheduleRequestForManager(Long managerUserId, String teacherName, String className, String newDate);
 }

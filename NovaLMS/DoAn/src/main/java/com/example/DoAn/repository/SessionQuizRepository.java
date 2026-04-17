@@ -11,6 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Integer> {
+    
+    @Query("SELECT sq FROM SessionQuiz sq JOIN FETCH sq.quiz WHERE sq.session.sessionId = :sessionId")
+    List<SessionQuiz> findBySessionSessionIdWithQuiz(@Param("sessionId") Integer sessionId);
+
     List<SessionQuiz> findBySessionSessionId(Integer sessionId);
 
     List<SessionQuiz> findBySessionSessionIdOrderByOrderIndexAsc(Integer sessionId);

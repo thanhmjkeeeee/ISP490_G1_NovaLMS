@@ -16,6 +16,9 @@ public interface SessionLessonRepository extends JpaRepository<SessionLesson, In
 
     void deleteBySession_Clazz_ClassId(Integer classId);
 
+    @Query("SELECT sl FROM SessionLesson sl JOIN FETCH sl.lesson WHERE sl.session.sessionId = :sessionId")
+    List<SessionLesson> findBySessionSessionIdWithLesson(@Param("sessionId") Integer sessionId);
+
     List<SessionLesson> findBySessionSessionId(Integer sessionId);
 
     @Query("SELECT COUNT(sl) FROM SessionLesson sl WHERE sl.session.clazz.course.courseId = :courseId AND sl.lesson.type = :type")

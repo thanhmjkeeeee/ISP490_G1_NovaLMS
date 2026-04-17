@@ -83,11 +83,30 @@
             </a>
             <a th:href="@{/manager/reschedule/list}" th:classappend="${activePage == 'reschedule'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-calendar-range"></i><span>Duyệt đổi lịch</span>
+                <span id="rescheduleBadge" class="badge rounded-pill bg-danger ms-auto" style="display:none; font-size: 0.65rem;">0</span>
             </a>
             <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/admin/registrations}" th:classappend="${activePage == 'registrations'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-clipboard-check"></i><span>Duyệt đăng ký</span>
             </a>
         </div>
+
+        <script sec:authorize="hasRole('ROLE_MANAGER')">
+            (async function() {
+                try {
+                    const res = await fetch('/manager/reschedule/api/requests/pending-count');
+                    const json = await res.json();
+                    if (json.status === 200 && json.data > 0) {
+                        const badge = document.getElementById('rescheduleBadge');
+                        if (badge) {
+                            badge.textContent = json.data;
+                            badge.style.display = 'inline-block';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Sidebar badge error:', e);
+                }
+            })();
+        </script>
 
         <div sec:authorize="hasAnyRole('ROLE_EXPERT', 'ROLE_ADMIN')">
 

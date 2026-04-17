@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ClassSessionRepository extends JpaRepository<ClassSession, Integer> {
@@ -19,7 +20,7 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
 
     int countByClassId(@Param("classId") Integer classId);
 
-    @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz c " +
+    @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz c LEFT JOIN FETCH c.course " +
            "WHERE c.teacher.userId = :teacherId " +
            "AND s.sessionDate >= :start AND s.sessionDate < :end " +
            "ORDER BY s.sessionDate")
@@ -28,6 +29,13 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
             @Param("start") java.time.LocalDateTime start,
             @Param("end") java.time.LocalDateTime end
     );
+
+    @Query("SELECT s FROM ClassSession s " +
+           "JOIN FETCH s.clazz c " +
+           "LEFT JOIN FETCH c.teacher t " +
+           "LEFT JOIN FETCH c.course co " +
+           "WHERE s.sessionId = :sessionId")
+    Optional<ClassSession> findWithDetailsById(@Param("sessionId") Integer sessionId);
 
 
     @Query("SELECT COUNT(cs) FROM ClassSession cs " +
