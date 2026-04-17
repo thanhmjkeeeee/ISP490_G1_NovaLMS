@@ -64,6 +64,11 @@
                     <span id="wsRequestBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">0</span>
                 </button>
             </li>
+            <li class="nav-item flex-shrink-0" role="presentation">
+                <button class="nav-link" id="tab-reschedule-btn" data-bs-toggle="tab" data-bs-target="#tab-reschedule" type="button" role="tab">
+                    <i class="bi bi-calendar-range me-1"></i>Yêu cầu đổi lịch
+                </button>
+            </li>
         </ul>
 
         <!-- TABS CONTENT -->
@@ -263,7 +268,7 @@
                 </div>
             </div>
 
-            <!-- TAB 7: YÊU CẦU MỞ KHÓA (NEW) -->
+            <!-- TAB 7: YÊU CẦU MỞ KHÓA (RESTORED) -->
             <div class="tab-pane fade" id="tab-requests" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -292,10 +297,37 @@
                 </div>
             </div>
 
-        </div>
+            <!-- TAB 8: LỊCH SỬ ĐỔI LỊCH (NEW) -->
+            <div class="tab-pane fade" id="tab-reschedule" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-calendar-range me-2 text-primary"></i>Lịch sử yêu cầu đổi lịch</h5>
+                        <p class="text-muted small mb-0">Theo dõi trạng thái các yêu cầu đổi lịch bạn đã gửi cho Manager.</p>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle">
+                        <thead>
+                            <tr>
+                                <th width="60">#</th>
+                                <th>Lớp & Buổi học</th>
+                                <th>Lịch mới đề xuất</th>
+                                <th>Lý do & Phản hồi</th>
+                                <th class="text-center">Trạng thái</th>
+                                <th class="text-end">Ngày gửi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wsRescheduleTableBody">
+                            <tr><td colspan="6" class="text-center py-5 text-muted">Đang tải dữ liệu...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-        </div>
-    </div>
+        </div> <!-- End of tab-content (line 75) -->
+
+    </div> <!-- End of container-fluid (line 11) -->
 </main>
 
 <!-- MODAL MAPPING (REFACTORED FROM TAB 3) -->
@@ -923,6 +955,15 @@
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
+    function getDateOfISOWeek(w, y) {
+        const simple = new Date(y, 0, 1 + (w - 1) * 7);
+        const dow = simple.getDay();
+        const ISOweekStart = simple;
+        if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+        else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+        return ISOweekStart;
+    }
+
     async function fetchAllClasses() {
         try {
             const res = await fetch('/teacher/api/my-classes?size=100');
@@ -1159,8 +1200,15 @@
         const year = document.getElementById('yearSelect').value;
         const week = document.getElementById('weekSelect').value;
 
+        // Calculate Monday of that week specifically to sync with backend
+        const monday = getDateOfISOWeek(parseInt(week), parseInt(year));
+        // Use local date parts to avoid UTC timezone shifts (toISOString() can shift the date)
+        const dateStr = monday.getFullYear() + '-' + 
+                        String(monday.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(monday.getDate()).padStart(2, '0');
+
         try {
-            const res = await fetch(`/teacher/api/timetable?year=${year}&week=${week}`);
+            const res = await fetch(`/teacher/api/timetable?date=${dateStr}&year=${year}&week=${week}`);
             const json = await res.json();
             if (json.status !== 200) return;
 
@@ -1172,8 +1220,9 @@
             for (let d = 1; d <= 7; d++) {
                 const headDate = document.getElementById(`date-${d}`);
                 if (headDate) {
-                    const current = new Date(baseDate);
-                    current.setDate(baseDate.getDate() + (d - 1));
+                    // Re-calculate the specific date for each cell header manually in local time
+                    const current = new Date(monday);
+                    current.setDate(monday.getDate() + (d - 1));
                     const dd = String(current.getDate()).padStart(2, '0');
                     const mm = String(current.getMonth() + 1).padStart(2, '0');
                     headDate.textContent = `${dd}/${mm}`;
@@ -1233,7 +1282,10 @@
             // Fetch Detail
             const res = await fetch(`/teacher/api/session/${id}/detail`);
             const json = await res.json();
-            if (json.status !== 200) return;
+            if (json.status !== 200) {
+                Swal.fire('Lỗi', json.message || 'Không thể tải chi tiết buổi học', 'error');
+                return;
+            }
             const d = json.data;
 
             document.getElementById('m-className').textContent = d.className || 'Detail';
@@ -3112,6 +3164,7 @@
         else if (id === 'tab-grading-btn') loadGradingQueue();
         else if (id === 'tab-graded-btn') loadGradedResults();
         else if (id === 'tab-requests-btn') loadUnlockRequests();
+        else if (id === 'tab-reschedule-btn') loadTeacherRescheduleRequests();
     }
 
     document.querySelectorAll('#workspaceTabs button').forEach(b => {
@@ -3123,6 +3176,63 @@
         state.selectedClassId = document.getElementById('globalClassFilter').value;
         refreshActiveTab();
     };
+
+    // --- TAB 8: TEACHER RESCHEDULE HISTORY ---
+    async function loadTeacherRescheduleRequests() {
+        const tbody = document.getElementById('wsRescheduleTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+
+        try {
+            const res = await fetch('/teacher/api/my-reschedule-requests');
+            const json = await res.json();
+            if (json.status !== 200 || !json.data || json.data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-x fs-1 mb-3 d-block opacity-50"></i>
+                            <p class="mb-2">Bạn chưa gửi yêu cầu đổi lịch nào.</p>
+                            <button class="btn btn-outline-primary btn-sm rounded-pill px-4" onclick="document.getElementById('tab-schedule-btn').click();">
+                                <i class="bi bi-calendar-week me-1"></i>Đến Lịch dạy để tạo yêu cầu
+                            </button>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            const items = json.data;
+            tbody.innerHTML = items.map((r, i) => {
+                const createdAt = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN') : '—';
+                const oldText = `${r.oldDate} (${r.oldStartTime})`;
+                const newText = `<strong>${r.newDate}</strong> (${r.newStartTime})`;
+                
+                let statusBadge = '';
+                if (r.status === 'PENDING') statusBadge = '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning px-3 rounded-pill">Chờ duyệt</span>';
+                else if (r.status === 'APPROVED') statusBadge = '<span class="badge bg-success bg-opacity-10 text-success border border-success px-3 rounded-pill">Đã duyệt</span>';
+                else statusBadge = '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-3 rounded-pill">Từ chối</span>';
+
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>
+                            <div class="fw-bold">${r.session.clazz.className}</div>
+                            <div class="small text-muted">Buổi ${r.session.sessionNumber}</div>
+                        </td>
+                        <td>
+                            <div class="small text-muted text-decoration-line-through">${oldText}</div>
+                            <div class="text-primary">${newText}</div>
+                        </td>
+                        <td>
+                            <div class="small"><strong>Lý do:</strong> "${r.reason || 'N/A'}"</div>
+                            ${r.managerNote ? `<div class="small mt-1 text-info"><i class="bi bi-reply-fill"></i> <strong>Manager:</strong> "${r.managerNote}"</div>` : ''}
+                        </td>
+                        <td class="text-center">${statusBadge}</td>
+                        <td class="text-end small text-muted">${createdAt}</td>
+                    </tr>`;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải dữ liệu.</td></tr>';
+        }
+    }
 
     // --- GRADING DETAIL LOGIC (IN-WORKSPACE) ---
     let wsGradingData = null;
@@ -3297,6 +3407,67 @@
             btn.innerHTML = oldHtml;
         }
     };
+
+    // --- SUBMIT RESCHEDULE REQUEST ---
+    const resForm = document.getElementById('rescheduleForm');
+    if (resForm) {
+        resForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const sessionId = document.getElementById('res-sessionId').value;
+            const newDate = document.getElementById('res-newDate').value;
+            const newStartTime = document.getElementById('res-newStartTime').value;
+            const reason = document.getElementById('res-reason').value.trim();
+
+            const newDateInput = document.getElementById('res-newDate');
+            const originalDate = newDateInput.dataset.originalDate;
+            const originalTime = newDateInput.dataset.originalTime;
+
+            if (newDate === originalDate && newStartTime === originalTime) {
+                Swal.fire('Chú ý', 'Lịch mới phải khác với lịch hiện tại.', 'warning');
+                return;
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const oldHtml = btn.innerHTML;
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+
+                const res = await fetch(`/teacher/api/session/${sessionId}/reschedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        newDate: newDate,
+                        newStartTime: newStartTime,
+                        reason: reason
+                    })
+                });
+
+                const json = await res.json();
+                if (json.status === 200) {
+                    Swal.fire('Thành công', 'Đã gửi yêu cầu đổi lịch tới Manager thành công.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal')).hide();
+                    
+                    // Refresh data
+                    loadTeacherRescheduleRequests();
+                    loadSchedule();
+                    
+                    // Switch to history tab
+                    const tab = new bootstrap.Tab(document.getElementById('tab-reschedule-btn'));
+                    tab.show();
+                } else {
+                    Swal.fire('Thất bại', json.message || 'Lỗi khi gửi yêu cầu', 'error');
+                }
+            } catch (err) {
+                console.error("Reschedule Error:", err);
+                Swal.fire('Lỗi', 'Lỗi kết nối máy chủ.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }
+        });
+    }
 
     fetchAllClasses();
 </script>

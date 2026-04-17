@@ -271,6 +271,14 @@ public class NotificationServiceImpl implements INotificationService {
         }
     }
 
+    @Override
+    public void sendRescheduleRequestForManager(Long managerUserId, String teacherName, String className, String newDate) {
+        send(managerUserId, "RESCHEDULE_REQUEST",
+            "Yêu cầu đổi lịch mới",
+            "Giảng viên " + nullToEmpty(teacherName) + " yêu cầu đổi lịch lớp \"" + nullToEmpty(className) + "\" chuyển sang ngày " + nullToEmpty(newDate) + ".",
+            "/manager/reschedule/list");
+    }
+
     // ─── Private helpers ──────────────────────────────────────────────────────
 
     private String nullToEmpty(String s) {

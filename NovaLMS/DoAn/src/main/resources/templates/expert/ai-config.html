@@ -50,16 +50,25 @@
                             <section class="mb-5">
                                 <h5 class="fw-bold mb-4 section-title">1. Hướng dẫn chung (Guidelines)</h5>
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Bloom's Taxonomy Focus</label>
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                        Bloom's Taxonomy Focus
+                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Định hướng AI tập trung vào các mức độ thức (Ghi nhớ, Hiểu, Vận dụng, Phân tích...) khi tạo câu hỏi."></i>
+                                    </label>
                                     <textarea class="form-control rounded-3" id="bloomInstruction" rows="4"></textarea>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-secondary small text-uppercase">Lexical Complexity</label>
+                                        <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                            Lexical Complexity
+                                            <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Độ khó của từ vựng (ví dụ: Academic, Simple, Technical...). Giúp điều chỉnh vốn từ AI sẽ sử dụng."></i>
+                                        </label>
                                         <input type="text" class="form-control" id="lexicalComplexity">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-semibold text-secondary small text-uppercase">Kỹ năng mục tiêu</label>
+                                        <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                            Kỹ năng mục tiêu
+                                            <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Các kỹ năng ngôn ngữ chính mà bộ câu hỏi này nhắm tới."></i>
+                                        </label>
                                         <div class="d-flex flex-wrap gap-3 mt-1" id="skillsContainer">
                                             <div class="form-check form-check-inline">
                                                 <input class="form-check-input" type="checkbox" value="LISTENING" id="skillListening">
@@ -82,46 +91,69 @@
                                 </div>
                             </section>
 
-                            <section>
-                                <h5 class="fw-bold mb-4 section-title">2. Phân bổ loại câu hỏi (%)</h5>
+            <section>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold m-0 section-title">2. Phân bổ loại câu hỏi (%)</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="autoDistributeRatios()">
+                        <i class="bi bi-magic me-1"></i> Tự động chia đều
+                    </button>
+                </div>
                                 <div id="ratiosContainer" class="ratio-grid">
                                     <div class="ratio-item" data-type="MULTIPLE_CHOICE_SINGLE">
-                                        <label>Trắc nghiệm (1 đáp án)</label>
+                                        <label>
+                                            Trắc nghiệm (1 đáp án)
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Câu hỏi chọn 1 đáp án đúng duy nhất."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="ratio-item" data-type="MULTIPLE_CHOICE_MULTI">
-                                        <label>Trắc nghiệm (Nhiều đáp án)</label>
+                                        <label>
+                                            Trắc nghiệm (Nhiều đáp án)
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Câu hỏi có thể có nhiều hơn 1 lựa chọn đúng."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="ratio-item" data-type="FILL_IN_BLANK">
-                                        <label>Điền từ vào chỗ trống</label>
+                                        <label>
+                                            Điền từ vào chỗ trống
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Học viên phải tự nhập từ còn thiếu vào chỗ trống."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="ratio-item" data-type="MATCHING">
-                                        <label>Nối cặp (Matching)</label>
+                                        <label>
+                                            Nối cặp (Matching)
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Học viên nối các cặp thông tin tương ứng ở 2 cột."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="ratio-item" data-type="WRITING">
-                                        <label>Câu hỏi Tự luận (Viết)</label>
+                                        <label>
+                                            Câu hỏi Tự luận (Viết)
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Yêu cầu học viên viết một đoạn văn hoặc bài luận."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
                                         </div>
                                     </div>
                                     <div class="ratio-item" data-type="SPEAKING">
-                                        <label>Câu hỏi Nói (Speaking)</label>
+                                        <label>
+                                            Câu hỏi Nói (Speaking)
+                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Yêu cầu học viên ghi âm bài nói dựa trên yêu cầu của AI."></i>
+                                        </label>
                                         <div class="input-group">
                                             <input type="number" class="form-control ratio-input" min="0" max="100">
                                             <span class="input-group-text">%</span>
@@ -155,14 +187,20 @@
                             <section>
                                 <h5 class="fw-bold mb-4 section-title">4. Ràng buộc phản hồi (Constraints)</h5>
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Writing Constraint</label>
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                        Writing Constraint
+                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Quy định cụ thể cho bài viết (ví dụ: giới hạn từ, văn phong, yêu cầu dùng từ khóa...)."></i>
+                                    </label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-pencil-square"></i></span>
                                         <input type="text" class="form-control border-start-0" id="writingConstraint">
                                     </div>
                                 </div>
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold text-secondary small text-uppercase">Speaking Constraint</label>
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                        Speaking Constraint
+                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Quy định cụ thể cho bài nói (ví dụ: thời gian nói, ngữ điệu, các yêu cầu đặc biệt...)."></i>
+                                    </label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-mic"></i></span>
                                         <input type="text" class="form-control border-start-0" id="speakingConstraint">
@@ -369,6 +407,32 @@
         input.addEventListener('input', updateTotalRatio);
     });
 
+    function autoDistributeRatios() {
+        const inputs = document.querySelectorAll('.ratio-input');
+        const count = inputs.length;
+        if (count === 0) return;
+        
+        const base = Math.floor(100 / count);
+        const remainder = 100 % count;
+        
+        inputs.forEach((input, index) => {
+            input.value = (index < remainder) ? base + 1 : base;
+        });
+        
+        updateTotalRatio();
+        
+        // Visual feedback
+        Swal.fire({
+            title: 'Đã chia đều!',
+            text: 'Tỉ lệ đã được tự động cân bằng về 100%.',
+            icon: 'success',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }
+
     async function saveConfig() {
         // Collect Ratios
         let total = 0;
@@ -444,7 +508,15 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', () => loadConfig('beginner'));
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize Tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        loadConfig('beginner');
+    });
 </script>
 
 </body>
