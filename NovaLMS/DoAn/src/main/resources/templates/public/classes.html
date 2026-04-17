@@ -161,7 +161,7 @@
                 // Kiểm tra status 200 từ JSON bạn gửi
                 if(res.status === 200) {
                     renderClasses(res.data.items); // items là mảng chứa 3 lớp học bạn đã gửi
-                    renderPagination(res.data.totalPage);
+                    renderPagination(res.data.totalPages);
                 }
             })
             .catch(error => {

@@ -22,16 +22,18 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class ClassPublicServiceImpl implements ClassPublicService {
 
     private final ClassRepository classRepository;
 
     @Override
-    public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId, String keyword) {
+    public PageResponse<ClassPublicResponseDTO> getOpenClassesWithFilter(int pageNo, int pageSize, Integer categoryId,
+            String keyword) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").ascending());
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateMin = now.minusDays(7);
-        LocalDateTime startDateMax = now.plusDays(7);
+        LocalDateTime startDateMax = now.plusDays(90);
 
         Specification<Clazz> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -44,7 +46,7 @@ public class ClassPublicServiceImpl implements ClassPublicService {
             if (categoryId != null && categoryId > 0) {
                 predicates.add(cb.equal(root.get("course").get("category").get("settingId"), categoryId));
             }
-            
+
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String searchKeyword = "%" + keyword.toLowerCase().trim() + "%";
                 Predicate courseMatch = cb.like(cb.lower(root.get("course").get("courseName")), searchKeyword);
@@ -58,23 +60,28 @@ public class ClassPublicServiceImpl implements ClassPublicService {
         Page<Clazz> classPage = classRepository.findAll(spec, pageable);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        List<ClassPublicResponseDTO> dtoList = classPage.getContent().stream().map(clazz -> ClassPublicResponseDTO.builder()
-                .classId(clazz.getClassId())
-                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
-                .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
-                .categoryName((clazz.getCourse() != null && clazz.getCourse().getCategory() != null) ? clazz.getCourse().getCategory().getName() : "N/A")
-                .className(clazz.getClassName())
-                .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Đang cập nhật")
-                .schedule(clazz.getSchedule())
-                .slotTime(clazz.getSlotTime())
-                .startDate(clazz.getStartDate() != null ? clazz.getStartDate().format(formatter) : "Đang cập nhật")
-                .build()
-        ).collect(Collectors.toList());
+        List<ClassPublicResponseDTO> dtoList = classPage.getContent().stream()
+                .map(clazz -> ClassPublicResponseDTO.builder()
+                        .classId(clazz.getClassId())
+                        .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
+                        .courseTitle(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
+                        .categoryName((clazz.getCourse() != null && clazz.getCourse().getCategory() != null)
+                                ? clazz.getCourse().getCategory().getName()
+                                : "N/A")
+                        .className(clazz.getClassName())
+                        .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Đang cập nhật")
+                        .schedule(clazz.getSchedule())
+                        .slotTime(clazz.getSlotTime())
+                        .startDate(
+                                clazz.getStartDate() != null ? clazz.getStartDate().format(formatter) : "Đang cập nhật")
+                        .build())
+                .collect(Collectors.toList());
 
         return PageResponse.<ClassPublicResponseDTO>builder()
                 .pageNo(pageNo)
                 .pageSize(pageSize)
                 .totalPages(classPage.getTotalPages())
+                .totalElements(classPage.getTotalElements())
                 .items(dtoList)
                 .build();
     }
