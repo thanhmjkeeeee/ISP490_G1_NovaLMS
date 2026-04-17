@@ -155,4 +155,9 @@ public interface EmailService {
      */
     void sendAnnouncementEmail(String toEmail, String userName,
             String announcementTitle, String announcementContent);
+    /**
+     * Email thông báo lịch học của lớp đã được cập nhật/thay đổi.
+     */
+    void sendClassScheduleUpdatedEmail(String toEmail, String userName,
+            String className, String newStartDate, String newSchedule, String newSlotTime);
 }

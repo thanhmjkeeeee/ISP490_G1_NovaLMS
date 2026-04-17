@@ -71,8 +71,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // Lấy role từ database và tạo authorities
         String roleName = "ROLE_STUDENT";
-        if (user.getRole() != null && user.getRole().getName() != null) {
-            roleName = user.getRole().getName();
+        if (user.getRole() != null && user.getRole().getValue() != null) {
+            roleName = user.getRole().getValue();
         }
 
         GrantedAuthority authority = new SimpleGrantedAuthority(roleName);

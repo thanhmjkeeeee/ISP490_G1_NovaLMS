@@ -6,6 +6,7 @@ import com.example.DoAn.service.ManagerDashboardService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,12 +42,12 @@ public class ManagerDashboardServiceImpl implements ManagerDashboardService {
         LocalDateTime weekAgo = LocalDateTime.now().minusDays(7);
         long newRegs = registrationRepository.countByRegistrationTimeAfter(weekAgo);
 
-        List<RecentRegistrationDTO> recentDto = registrationRepository.findTop10ByOrderByRegistrationTimeDesc()
+        List<RecentRegistrationDTO> recentDto = registrationRepository.findRecentRegistrationsWithAssociations(PageRequest.of(0, 5))
                 .stream().map(r -> RecentRegistrationDTO.builder()
                         .registrationId(r.getRegistrationId())
                         .studentName(r.getUser() != null ? r.getUser().getFullName() : "N/A")
                         .studentEmail(r.getUser() != null ? r.getUser().getEmail() : "N/A")
-                        .courseName(r.getCourse() != null ? r.getCourse().getTitle() : "N/A")
+                        .courseName(r.getCourse() != null ? r.getCourse().getCourseName() : "N/A")
                         .enrolledAt(r.getRegistrationTime())
                         .status(r.getStatus())
                         .build())
@@ -61,9 +62,14 @@ public class ManagerDashboardServiceImpl implements ManagerDashboardService {
             trend.put(startOfDay.toLocalDate().toString(), count);
         }
 
-        // Status Distribution
-        java.util.Map<String, Long> statusDist = registrationRepository.findAll().stream()
-                .collect(Collectors.groupingBy(r -> r.getStatus() != null ? r.getStatus() : "Pending", Collectors.counting()));
+        // Status Distribution (Optimized)
+        java.util.Map<String, Long> statusDist = new java.util.HashMap<>();
+        List<Object[]> statusCounts = registrationRepository.countByStatusDistribution();
+        for (Object[] row : statusCounts) {
+            String status = (String) row[0];
+            if (status == null) status = "Pending";
+            statusDist.put(status, (Long) row[1]);
+        }
 
         return ManagerDashboardDTO.builder()
                 .totalStudents(studentsFromReg)

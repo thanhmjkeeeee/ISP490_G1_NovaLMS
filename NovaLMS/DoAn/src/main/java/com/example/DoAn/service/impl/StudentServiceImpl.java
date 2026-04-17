@@ -587,6 +587,8 @@ public class StudentServiceImpl implements StudentService {
         return false;
     }
 
+    @Override
+    @Transactional(readOnly = true)
     public StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId) {
         // 1. Check phân quyền thật
         boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");

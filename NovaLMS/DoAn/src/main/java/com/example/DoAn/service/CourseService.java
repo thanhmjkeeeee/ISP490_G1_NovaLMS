@@ -17,4 +17,7 @@ public interface CourseService {
 
     // Mapper chuyển đổi Entity sang DTO
     CoursePublicResponseDTO mapToPublicDTO(Course course);
+
+    // Mapper tối ưu cho danh sách (không load curriculum/classes)
+    CoursePublicResponseDTO mapToSummaryDTO(Course course);
 }

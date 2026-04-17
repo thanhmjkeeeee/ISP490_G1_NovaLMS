@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class CoursePublicServiceImpl implements CourseService {
 
     @Autowired private CourseRepository courseRepository;
@@ -27,8 +28,8 @@ public class CoursePublicServiceImpl implements CourseService {
     @Override
     public List<CoursePublicResponseDTO> getCoursesByFilter(Integer categoryId) {
         List<Course> courses = Optional.ofNullable(categoryId)
-                .map(id -> courseRepository.findByCategory_SettingIdAndStatus(id, "Active"))
-                .orElseGet(() -> courseRepository.findByStatus("Active"));
+                .map(id -> courseRepository.findByCategory_SettingIdAndStatus(id, "Published"))
+                .orElseGet(() -> courseRepository.findByStatus("Published"));
         return courses.stream().map(this::mapToPublicDTO).toList();
     }
 
@@ -47,7 +48,7 @@ public class CoursePublicServiceImpl implements CourseService {
         };
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Course> coursePage = courseRepository.searchCourses(searchKey, categoryId, "Active", pageable);
+        Page<Course> coursePage = courseRepository.searchCourses(searchKey, categoryId, "Published", pageable);
 
         List<CoursePublicResponseDTO> list = coursePage.getContent().stream()
                 .map(this::mapToPublicDTO)
@@ -59,6 +60,45 @@ public class CoursePublicServiceImpl implements CourseService {
                 .totalPages(coursePage.getTotalPages())
                 .items(list)
                 .build();
+    }
+
+    @Override
+    public CoursePublicResponseDTO mapToSummaryDTO(Course course) {
+        Integer id = course.getCourseId();
+
+        // Map Expert (Giảng viên chính)
+        CoursePublicResponseDTO.ExpertResponseDTO expertDTO = null;
+        if (course.getExpert() != null) {
+            expertDTO = new CoursePublicResponseDTO.ExpertResponseDTO(
+                    course.getExpert().getFullName(),
+                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl() : "/assets/img/default-avatar.png"
+            );
+        }
+
+        // Dữ liệu cơ bản
+        String categoryName = (course.getCategory() != null) ? course.getCategory().getName() : "N/A";
+        long studentCount = registrationRepository.countByCourse_CourseIdAndStatus(id, "Approved");
+
+        String imgUrl = "/assets/img/default-course.png";
+        if (course.getAvatar() != null && !course.getAvatar().isBlank() && !course.getAvatar().contains("placeholder")) {
+            imgUrl = course.getAvatar();
+        }
+
+        return new CoursePublicResponseDTO(
+                id,
+                course.getCourseName(),
+                course.getDescription(),
+                course.getPrice(),
+                course.getSale(),
+                categoryName,
+                studentCount,
+                imgUrl,
+                course.getLevelTag(),
+                course.getStatus(),
+                expertDTO,
+                List.of(), // No curriculum
+                List.of()  // No classes
+        );
     }
 
     @Override
@@ -87,7 +127,7 @@ public class CoursePublicServiceImpl implements CourseService {
         // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày tháng + Lọc thời gian)
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateMin = now.minusDays(7);
-        LocalDateTime startDateMax = now.plusDays(7);
+        LocalDateTime startDateMax = now.plusDays(90); // Relaxed from 7 to 90
 
         var classes = classRepository.findByCourse_CourseIdAndStatusAndStartDateBetween(id, "Open", startDateMin, startDateMax)
                 .stream()

@@ -34,6 +34,16 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Integer saveAccount(AccountRequestDTO request) {
+        // Check for duplicate email
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email '" + request.getEmail() + "' đã tồn tại trên hệ thống!");
+        }
+        
+        // Check for duplicate mobile (if provided)
+        if (request.getMobile() != null && !request.getMobile().isBlank() && userRepository.existsByMobile(request.getMobile())) {
+            throw new RuntimeException("Số điện thoại '" + request.getMobile() + "' đã tồn tại trên hệ thống!");
+        }
+
         Setting role = settingRepository.findById(request.getRoleId()).orElse(null);
         String roleName = role != null ? role.getName() : "N/A";
 
@@ -70,12 +80,19 @@ public class AccountServiceImpl implements AccountService {
         String oldRoleName = user.getRole() != null ? user.getRole().getName() : "N/A";
 
         user.setFullName(request.getFullName());
-        user.setMobile(request.getMobile());
         Setting newRole = settingRepository.findById(request.getRoleId()).orElse(null);
         user.setRole(newRole);
         String newRoleName = newRole != null ? newRole.getName() : "N/A";
 
         if (request.getStatus() != null) user.setStatus(request.getStatus());
+
+        // Update mobile with duplicate check
+        if (request.getMobile() != null && !request.getMobile().isBlank()) {
+            if (!request.getMobile().equals(user.getMobile()) && userRepository.existsByMobile(request.getMobile())) {
+                throw new RuntimeException("Số điện thoại '" + request.getMobile() + "' đã được sử dụng bởi tài khoản khác!");
+            }
+            user.setMobile(request.getMobile());
+        }
 
         // Update password if provided
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
@@ -120,12 +137,14 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public AccountDetailResponse getAccountById(Integer id) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         return mapToResponse(user);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize, String search, Integer roleId, String status) {
         PageRequest pageable = PageRequest.of(pageNo, pageSize, Sort.by("userId").descending());
 
