@@ -34,15 +34,11 @@ public class HomeServiceImpl implements HomeService {
      */
     @Override
     public List<CoursePublicResponseDTO> getFeaturedCourses() {
-        // 1. Lấy tất cả khóa học Active
-        return courseRepository.findByStatus("Active")
+        // Fetch only top 6 courses ordered by student count directly from DB
+        return courseRepository.findTopFeaturedCourses(org.springframework.data.domain.PageRequest.of(0, 6))
                 .stream()
-                // 2. Map sang DTO để có được thuộc tính studentCount (đã tính toán trong mapToPublicDTO)
-                .map(course -> courseService.mapToPublicDTO(course))
-                // 3. Sắp xếp giảm dần theo số lượng học viên (studentCount)
-                .sorted((c1, c2) -> Long.compare(c2.studentCount(), c1.studentCount()))
-                // 4. Lấy tối đa 6 khóa học đầu tiên
-                .limit(6)
+                // Use optimized summary mapper (no heavy join/lazy load)
+                .map(course -> courseService.mapToSummaryDTO(course))
                 .collect(Collectors.toList());
     }
 

@@ -27,6 +27,7 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
 
     List<User> findByRole_SettingIdAndStatus(Integer settingId, String status);
     boolean existsByEmail(String email);
+    boolean existsByMobile(String mobile);
     List<User> findByRole_Value(String roleValue);
 
     @Query("SELECT u FROM User u WHERE u.role.settingId = :roleId")

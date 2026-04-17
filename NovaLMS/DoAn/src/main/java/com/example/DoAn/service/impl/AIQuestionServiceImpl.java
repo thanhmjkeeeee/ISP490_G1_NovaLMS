@@ -356,6 +356,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                         rawList.size(),
                         rawJson.length() > 500 ? rawJson.substring(0, 500) : rawJson);
             }
+            // Ensure we don't return more than requested
+            if (valid.size() > requested) {
+                return valid.subList(0, requested);
+            }
             return valid;
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI JSON. Raw length: {}. Preview: {}",
