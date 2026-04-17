@@ -6,116 +6,6 @@
 <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
-<style>
-    /* Custom styles for Workspace */
-    .workspace-tabs { background: #ffffff; border-radius: 12px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .workspace-tabs .nav-link { color: #64748b; font-weight: 600; padding: 12px 24px; border-radius: 8px; transition: all 0.2s; border: none; }
-    .workspace-tabs .nav-link:hover:not(.active) { background-color: #f8fafc; color: #0d6efd; }
-    .workspace-tabs .nav-link.active { background-color: #0d6efd !important; color: #ffffff !important; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2); }
-
-    #wsQuizWizardTabs .nav-link { 
-        border: 2px solid transparent; 
-        transition: all 0.2s ease;
-        opacity: 0.6;
-    }
-    #wsQuizWizardTabs .nav-link.active { 
-        background-color: rgba(19, 106, 213, 0.1) !important; 
-        color: #136ad5 !important; 
-        border-color: #136ad5 !important; 
-        font-weight: 700;
-        opacity: 1;
-    }
-    #wsQuizWizardTabs .nav-link:not(.active):hover {
-        background-color: #f1f5f9;
-        opacity: 0.9;
-    }
-    #wsQuizWizardTabs .nav-link.locked {
-        cursor: not-allowed;
-        background-color: #f8fafc;
-        color: #94a3b8;
-    }
-
-    .w-card { background: #ffffff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; min-height: 500px; }
-
-    /* Table Styles */
-    .table-custom th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; padding: 16px; border-bottom: 2px solid #e2e8f0; }
-    .table-custom td { vertical-align: middle; padding: 16px; color: #334155; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
-
-    /* Timetable */
-    .timetable th { background: #0d6efd; color: white; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
-    .timetable td { height: 100px; border: 1px solid #e2e8f0; text-align: center; vertical-align: middle; padding: 6px; width: 13.5%; }
-    .slot-col { background: #f8fafc; font-weight: bold; color: #475569; width: 80px !important; }
-    .session-item { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px; cursor: pointer; transition: all 0.2s; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-    .session-item:hover { background: #dbeafe; border-color: #0d6efd; transform: translateY(-2px); }
-
-    /* Mapping Modal / Container */
-    .mapping-container { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-    .content-column { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; max-height: 60vh; overflow-y: auto; }
-    .session-column { background: #ffffff; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; height: fit-content; position: sticky; top: 0; }
-
-    .lesson-row { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
-    .lesson-row.mapped { border-left: 4px solid #0d6efd; background: #f0f7ff; }
-
-    /* Filter Box */
-    .filter-box { max-width: 400px; }
-
-    /* Animations */
-    @keyframes pulse-soft {
-        0% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 0.5; }
-    }
-    .pulse-animation { animation: pulse-soft 2s infinite ease-in-out; }
-    
-    .modal-backdrop.show { opacity: 0.7; backdrop-filter: blur(4px); }
-
-    /* AI Modal Premium Selectors */
-    .ai-selector-group .btn-check + .btn {
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        color: #64748b;
-        transition: all 0.2s ease;
-        padding: 10px 15px;
-        font-weight: 500;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-        min-width: 80px;
-    }
-    .ai-selector-group .btn-check:checked + .btn {
-        border-color: #0d6efd;
-        background: rgba(13, 110, 253, 0.05);
-        color: #0d6efd;
-        box-shadow: 0 0 0 1px #0d6efd;
-        font-weight: 700;
-    }
-    .ai-selector-group .btn-check:checked + .btn i {
-        color: #0d6efd;
-    }
-    .ai-selector-group .btn-check + .btn:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-    }
-
-    /* Type Pills Contrast Fix */
-    #adv-types .btn-check + .btn {
-        border-color: #dee2e6;
-        background: #fff;
-        color: #475569;
-        font-weight: 500;
-    }
-    #adv-types .btn-check:checked + .btn {
-        background: #0d6efd;
-        border-color: #0d6efd;
-        color: #fff;
-        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
-    }
-
-    /* Range Slider Styling */
-    .form-range::-webkit-slider-thumb { background: #0d6efd; }
-    .form-range::-moz-range-thumb { background: #0d6efd; }
-</style>
 
 <main class="dash-main" id="dashMain">
     <div class="container-fluid px-4">
@@ -277,7 +167,7 @@
                     <h5 class="fw-bold mb-0"><i class="bi bi-file-earmark-code me-2 text-primary"></i>Quản lý Assignment</h5>
                     <div class="d-flex gap-2">
                         <button id="btn-create-assignment" class="btn btn-sm btn-primary rounded-pill px-3" style="display:none;" onclick="openCreateAssignmentModal()">
-                            <i class="bi bi-plus-lg me-1"></i>Tạo Assignment
+                            <i class="bi bi-plus-lg me-1"></i>Gắn Assignment
                         </button>
                         <button id="btn-back-to-classes" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="display:none;" onclick="wsSelectClassFromTab('ALL')">
                             <i class="bi bi-arrow-left me-1"></i>Danh sách lớp
@@ -426,7 +316,7 @@
                     </button>
                 </div>
                 <div class="mapping-container">
-                    <div class="content-column">
+                    <div class="content-column h-500">
                         <h6 class="fw-bold mb-3 small text-uppercase text-muted">Kho bài giảng & Quiz</h6>
                         <div class="accordion accordion-flush" id="courseAccordion">
                             <!-- Populated by JS -->
@@ -543,6 +433,52 @@
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════ ATTACH QUIZ TO SESSION MODAL (Multi-Select) ═══════════════════════════════ -->
+<div class="modal fade" id="wsAttachQuizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 bg-light">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">Gắn Quiz vào buổi học</h5>
+                    <small class="text-muted">Chọn các bài quiz bạn muốn gắn. Những quiz đã gắn sẽ bị ẩn.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+                <input type="hidden" id="wsAttachSessionId">
+                
+                <!-- Quick Select Options -->
+                <div class="d-flex gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="wsMultiSelectAllQuizzes(true)">
+                        <i class="bi bi-check-all me-1"></i>Chọn tất cả
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="wsMultiSelectAllQuizzes(false)">
+                        <i class="bi bi-x-lg me-1"></i>Bỏ chọn tất cả
+                    </button>
+                </div>
+
+                <!-- Quiz List with Checkboxes -->
+                <div id="wsAttachQuizCheckboxList" class="mb-3">
+                    <div class="text-center py-4 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        Đang tải quiz...
+                    </div>
+                </div>
+
+                <div id="wsAttachQuizError" class="alert alert-danger small mt-2 d-none" role="alert"></div>
+                <div id="wsAttachQuizSuccess" class="alert alert-info small mt-2 d-none" role="alert"></div>
+            </div>
+            <div class="modal-footer border-top">
+                <span id="wsAttachQuizSelectedCount" class="text-muted small">Chọn 0 bài quiz</span>
+                <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary rounded-pill shadow-sm" onclick="wsAttachMultipleQuizzes()">
+                    <i class="bi bi-plus-lg me-1"></i>Gắn Quiz
+                </button>
             </div>
         </div>
     </div>
@@ -1068,10 +1004,8 @@
     }
 
 
-    // Add event listeners for tab switching
-    document.querySelectorAll('#workspaceTabs [data-bs-toggle="tab"]').forEach(btn => {
-        btn.addEventListener('shown.bs.tab', refreshActiveTab);
-    });
+    // Handled by refreshActiveTab listeners at end of file
+
 
     // --- TAB 1: CLASSES ---
     async function loadClasses(page = 0) {
@@ -1604,7 +1538,8 @@
                 tbody.appendChild(row);
             }
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz</td></tr>';
+            console.error("loadQuizzes error:", err);
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz. Vui lòng thử lại.</td></tr>';
         }
     }
 
@@ -1960,32 +1895,38 @@
                 if (!confirm.isConfirmed) return;
             }
 
-            // Gắn quiz vào session (nếu có)
+            // 1. Gắn quiz vào session (nếu có chọn buổi học)
             if (sessionId && wsCurrentQuizId) {
                 try {
                     await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ quizId: wsCurrentQuizId })
                     });
-                } catch (e) { /* ignore */ }
+                } catch (e) { console.error("Attach error", e); }
             }
 
-            // Publish nếu cần
+            // 2. Publish nếu teacher chọn option Xuất bản
             if (isPub && wsCurrentQuizId) {
                 try {
-                    await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/publish`, { method: 'POST' });
-                    // Mở quiz nếu có session
-                    if (sessionId) {
-                        await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${wsCurrentQuizId}/toggle-open`, { method: 'PATCH' });
+                    // Gọi API publish quiz
+                    const pubRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/publish`, { method: 'POST' });
+                    
+                    // Nếu có buổi học, đồng thời Sync mở quiz (isOpen = true)
+                    if (pubRes.ok && sessionId) {
+                        await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${wsCurrentQuizId}/toggle-open?isOpen=true`, { 
+                            method: 'PATCH' 
+                        });
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) { console.error("Publish error", e); }
             }
 
             wsQuizModal.hide();
             loadQuizzes();
-            wsToast(isPub ? 'Đã xuất bản và gắn vào buổi học!' : 'Đã lưu quiz dạng nháp.');
+            wsToast(isPub ? 'Đã xuất bản và hoàn tất!' : 'Đã lưu quiz dạng nháp thành công.');
         }
     };
+
 
     // --- Bank Loading ---
     window.wsLoadBank = async function() {
@@ -2413,59 +2354,184 @@
         }).join('');
     };
 
-    // --- Attach quiz to session ---
+    // --- Attach quiz to session (Multi-select) ---
     let wsAttachSessionId = null;
     let wsAttachAvailableQuizzes = [];
+    let wsSelectedQuizzesForAttach = new Set();
+    let wsAttachQuizModal = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        wsAttachQuizModal = new bootstrap.Modal(document.getElementById('wsAttachQuizModal'));
+    }, { once: true });
 
     window.wsAttachQuizToSession = async function(sessionId) {
         wsAttachSessionId = sessionId;
+        document.getElementById('wsAttachSessionId').value = sessionId;
+        document.getElementById('wsAttachQuizError').classList.add('d-none');
+        document.getElementById('wsAttachQuizSuccess').classList.add('d-none');
+        wsSelectedQuizzesForAttach.clear();
+        
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}/quizzes`);
             const json = await res.json();
+            
             if (json.status !== 200 || !json.data || json.data.length === 0) {
                 alert('Chưa có quiz nào trong lớp. Hãy tạo quiz mới trước.');
                 return;
             }
+            
             wsAttachAvailableQuizzes = json.data;
-            const list = wsAttachAvailableQuizzes.map((q, idx) =>
-                `  ${idx + 1}. ${q.title} (${q.status}) — ${q.questionCount || 0} câu`
-            ).join('\n');
-            const choice = prompt(`Chọn số quiz để gắn vào buổi học:\n${list}\n\nNhập số (1-${wsAttachAvailableQuizzes.length}) hoặc 0 để hủy:`);
-            if (!choice || choice.trim() === '0') return;
-            const idx = parseInt(choice.trim()) - 1;
-            if (idx < 0 || idx >= wsAttachAvailableQuizzes.length) {
-                alert('Lựa chọn không hợp lệ.');
-                return;
+            wsRenderAttachQuizCheckboxList();
+            
+            if (!wsAttachQuizModal) {
+                wsAttachQuizModal = new bootstrap.Modal(document.getElementById('wsAttachQuizModal'));
             }
-            const quizId = wsAttachAvailableQuizzes[idx].quizId;
-            const attachRes = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quizId })
-            });
-            const attachJson = await attachRes.json();
-            if (attachJson.status === 200 || attachJson.status === 201 || attachJson.status === 400) {
-                loadQuizzes();
-                alert('Đã gắn quiz vào buổi học!');
-            } else {
-                alert(attachJson.message || 'Lỗi khi gắn quiz');
+            wsAttachQuizModal.show();
+        } catch (e) { 
+            alert('Lỗi: ' + e.message); 
+        }
+    };
+
+    const wsRenderAttachQuizCheckboxList = () => {
+        const container = document.getElementById('wsAttachQuizCheckboxList');
+        const html = wsAttachAvailableQuizzes.map(q => `
+            <div class="form-check border rounded-3 p-3 mb-2">
+                <input class="form-check-input wsQuizCheckbox" type="checkbox" value="${q.quizId}" 
+                       id="wsQuizCheck_${q.quizId}" onchange="wsUpdateAttachQuizCount()">
+                <label class="form-check-label w-100 cursor-pointer" for="wsQuizCheck_${q.quizId}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-medium">${escape(q.title || 'Quiz')}</div>
+                            <div class="small text-muted mt-1">
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary">${q.status || 'DRAFT'}</span>
+                                <span class="ms-2"><i class="bi bi-question-circle me-1"></i>${q.questionCount || 0} câu</span>
+                            </div>
+                        </div>
+                        <div class="text-muted small">${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</div>
+                    </div>
+                </label>
+            </div>
+        `).join('');
+        
+        container.innerHTML = html;
+        wsUpdateAttachQuizCount();
+    };
+
+    const wsUpdateAttachQuizCount = () => {
+        const checkedCount = document.querySelectorAll('.wsQuizCheckbox:checked').length;
+        document.getElementById('wsAttachQuizSelectedCount').textContent = 
+            `Đã chọn ${checkedCount}/${wsAttachAvailableQuizzes.length} bài quiz`;
+    };
+
+    const wsMultiSelectAllQuizzes = (selectAll) => {
+        document.querySelectorAll('.wsQuizCheckbox').forEach(checkbox => {
+            checkbox.checked = selectAll;
+        });
+        wsUpdateAttachQuizCount();
+    };
+
+    const wsAttachMultipleQuizzes = async () => {
+        const sessionId = document.getElementById('wsAttachSessionId').value;
+        const checkedBoxes = document.querySelectorAll('.wsQuizCheckbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            wsShowAttachQuizError('Vui lòng chọn ít nhất một quiz');
+            return;
+        }
+
+        const quizIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        
+        try {
+            let successCount = 0;
+            let failureCount = 0;
+            const errorMessages = [];
+            
+            // Attach each selected quiz
+            for (const quizId of quizIds) {
+                try {
+                    const attachRes = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ quizId: quizId })
+                    });
+                    const attachJson = await attachRes.json();
+                    
+                    if (attachJson.status === 200 || attachJson.status === 201 || attachJson.status === 400) {
+                        successCount++;
+                    } else {
+                        failureCount++;
+                        errorMessages.push(attachJson.message || `Không thể gắn quiz ID ${quizId}`);
+                    }
+                } catch (e) {
+                    failureCount++;
+                    errorMessages.push(e.message);
+                }
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
+            
+            // Reload data and show result
+            loadQuizzes();
+            
+            if (successCount > 0) {
+                const msg = `✓ Đã gắn thành công ${successCount} bài quiz`;
+                wsShowAttachQuizSuccess(failureCount > 0 ? msg + ` (${failureCount} thất bại)` : msg);
+                
+                // Close modal after 1.5 seconds if all successful
+                if (failureCount === 0) {
+                    setTimeout(() => {
+                        wsAttachQuizModal.hide();
+                    }, 1500);
+                }
+            }
+            
+            if (errorMessages.length > 0) {
+                wsShowAttachQuizError(errorMessages.join('<br>'));
+            }
+        } catch (e) { 
+            wsShowAttachQuizError('Lỗi kết nối: ' + e.message); 
+        }
+    };
+
+    const wsShowAttachQuizError = (msg) => {
+        const errorDiv = document.getElementById('wsAttachQuizError');
+        errorDiv.innerHTML = msg;
+        errorDiv.classList.remove('d-none');
+        document.getElementById('wsAttachQuizSuccess').classList.add('d-none');
+    };
+
+    const wsShowAttachQuizSuccess = (msg) => {
+        const successDiv = document.getElementById('wsAttachQuizSuccess');
+        successDiv.innerHTML = msg;
+        successDiv.classList.remove('d-none');
+        document.getElementById('wsAttachQuizError').classList.add('d-none');
     };
 
     window.wsToggleQuizOpen = async function(sessionId, quizId, newOpen) {
+        if (!sessionId || !quizId) {
+            console.error("Missing IDs for toggle-open:", {sessionId, quizId});
+            Swal.fire('Lỗi', 'Thông tin buổi học hoặc quiz không hợp lệ', 'error');
+            return;
+        }
+
         if (newOpen) {
             const confirm = await wsConfirmToast('Công khai Quiz?', 'Cho phép học sinh làm bài ngay bây giờ?');
             if (!confirm.isConfirmed) return;
         }
+
         try {
             const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
             const json = await res.json();
             if (json.status === 200) {
                 refreshActiveTab();
                 wsToast(newOpen ? 'Đã mở quiz' : 'Đã đóng quiz');
-            } else Swal.fire('Lỗi', json.message || 'Lỗi khi mở/đóng quiz', 'error');
-        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
+            } else {
+                Swal.fire('Lỗi', json.message || 'Lỗi khi mở/đóng quiz', 'error');
+            }
+        } catch (e) {
+            console.error("wsToggleQuizOpen error:", e);
+            Swal.fire('Lỗi', 'Lỗi kết nối: ' + e.message, 'error');
+        }
     };
+
 
     window.wsRemoveQuizFromSession = async function(sessionId, quizId) {
         const confirmResult = await Swal.fire({
@@ -2528,8 +2594,6 @@
                         <tr>
                             <th width="60">STT</th>
                             <th>Assignment / Quiz</th>
-                            <th class="text-center">Thời gian mở</th>
-                            <th class="text-center">Thời gian đóng</th>
                             <th class="text-center">Trạng thái</th>
                             <th class="text-end">Hành động</th>
                         </tr>
@@ -2551,44 +2615,38 @@
             }
 
             tbody.innerHTML = json.data.map((a, i) => `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>
-                        <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
-                        <small>
-                            ${a.sessionNumber ? `<span class="text-primary">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary small">Chưa gán</span>`}
-                        </small>
-                    </td>
-                    <td class="text-center small">${a.openAt ? new Date(a.openAt).toLocaleString('vi-VN') : '—'}</td>
-                    <td class="text-center small">${a.closeAt ? new Date(a.closeAt).toLocaleString('vi-VN') : '—'}</td>
-                    <td class="text-center">
-                        <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
-                            ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
-                        </span>
-                    </td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
-                                ${a.sessionQuizId ? '' : 'disabled title="Cần gán vào buổi học trước khi hẹn giờ"'}
-                                onclick="openAssignmentScheduleModal(${a.sessionQuizId}, '${a.openAt || ''}', '${a.closeAt || ''}')">
-                            <i class="bi bi-clock-history me-1"></i>Hẹn giờ
+            <tr>
+                <td>${i + 1}</td>
+                <td>
+                    <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
+                    <small>
+                        ${a.sessionNumber ? `<span class="text-primary">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary small">Chưa gán</span>`}
+                    </small>
+                </td>
+                <td class="text-center">
+                    <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
+                        ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
+                    </span>
+                </td>
+                <td class="text-end">
+                    ${a.sessionQuizId ? `
+                        <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1"
+                                onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
+                            <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
                         </button>
-                        
-                        ${a.sessionQuizId ? `
-                            <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1" 
-                                    onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
-                                <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
-                            </button>
-                        ` : `
-                            <button class="btn btn-sm btn-secondary disabled rounded-pill px-3 ms-1" disabled>
-                                <i class="bi bi-lock me-1"></i>Đóng
-                            </button>
-                        `}
-                    </td>
-                </tr>`).join('');
-        } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Assignment</td></tr>';
-        }
+                    ` : `
+                        <button class="btn btn-sm btn-secondary disabled rounded-pill px-3 ms-1" disabled>
+                            <i class="bi bi-lock me-1"></i>Đóng
+                        </button>
+                    `}
+                </td>
+            </tr>`).join('');
+    } catch (err) {
+        console.error("loadAssignments error:", err);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Assignment</td></tr>';
     }
+
+}
 
 
     // --- CREATE ASSIGNMENT MODAL LOGIC ---
@@ -2676,64 +2734,6 @@
         new bootstrap.Modal('#assignmentScheduleModal').show();
     };
 
-    window.saveAssignmentSchedule = async function() {
-        const sqId = document.getElementById('sched-sessionQuizId').value;
-        const openVal = document.getElementById('sched-openAt').value;
-        const closeVal = document.getElementById('sched-closeAt').value;
-
-        // Frontend Validation
-        const now = new Date();
-        if (openVal) {
-            const openDate = new Date(openVal);
-            if (openDate < new Date(now.getTime() - 5 * 60000)) {
-                Swal.fire('Lỗi', 'Thời gian mở không được ở trong quá khứ', 'error');
-                return;
-            }
-        }
-        if (closeVal) {
-            const closeDate = new Date(closeVal);
-            if (closeDate < now) {
-                Swal.fire('Lỗi', 'Thời gian đóng không được ở trong quá khứ', 'error');
-                return;
-            }
-        }
-        if (openVal && closeVal) {
-            if (new Date(closeVal) <= new Date(openVal)) {
-                Swal.fire('Lỗi', 'Thời gian đóng phải sau thời gian mở', 'error');
-                return;
-            }
-        }
-
-        const payload = {
-            openAt: openVal || null,
-            closeAt: closeVal || null
-        };
-
-        try {
-            const res = await fetch(`/api/v1/teacher/class-sessions/session-quizzes/${sqId}/schedule`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const json = await res.json();
-            if (json.status === 200) {
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Lưu lịch hẹn giờ thành công!',
-                    showConfirmButton: false,
-                    timer: 2000
-                });
-                bootstrap.Modal.getInstance(document.getElementById('assignmentScheduleModal')).hide();
-                loadAssignments();
-            } else { 
-                Swal.fire('Thất bại', json.message, 'error');
-            }
-        } catch (err) { 
-            Swal.fire('Lỗi kết nối', err.message, 'error');
-        }
-    };
 
     // --- TAB 5: GRADING QUEUE ---
     async function loadGradingQueue(page = 0) {
@@ -3332,35 +3332,6 @@
     </div>
 </div>
 
-<!-- Assignment Schedule Modal -->
-<div class="modal fade" id="assignmentScheduleModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header">
-                <h5 class="fw-bold mb-0">Hẹn giờ mở/đóng Assignment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <input type="hidden" id="sched-sessionQuizId">
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Thời gian mở</label>
-                    <input type="datetime-local" id="sched-openAt" class="form-control rounded-3">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-bold">Thời gian đóng</label>
-                    <input type="datetime-local" id="sched-closeAt" class="form-control rounded-3">
-                </div>
-                <div class="alert alert-info py-2 small mb-0">
-                    <i class="bi bi-info-circle me-1"></i>Nếu để trống, assignment sẽ tuân theo trạng thái mở/đóng thủ công.
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                <button class="btn btn-primary rounded-pill px-4 fw-bold" onclick="saveAssignmentSchedule()">Lưu kết quả</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 </body>
 </html>
