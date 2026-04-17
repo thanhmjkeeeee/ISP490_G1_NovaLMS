@@ -377,30 +377,22 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .build();
             qa = quizAnswerRepository.save(qa);
 
-            // Fire async AI grading for SPEAKING/WRITING questions
-            // Use TransactionSynchronization to ensure the QuizAnswer is committed to DB
-            // before the async task tries to find it (prevents race condition where
-            // @Async thread starts before HTTP transaction commits).
-            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                final Integer capturedResultId = quizResult.getResultId();
-                final Integer capturedQuestionId = q.getQuestionId();
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        try {
-                            log.info("[SUBMIT] Scheduling AI grading → resultId={}, questionId={}, type={}",
-                                    capturedResultId, capturedQuestionId, qType);
-                            groqGradingService.fireAndForgetForQuizAnswer(capturedResultId, capturedQuestionId);
-                            log.info("[SUBMIT] AI grading scheduled OK → resultId={}, questionId={}",
-                                    capturedResultId, capturedQuestionId);
-                        } catch (Exception e) {
-                            // Non-critical: AI grading failure should not block submission
-                            log.warn("Failed to fire AI grading for question {} in result {}: {}",
-                                    capturedQuestionId, capturedResultId, e.getMessage());
-                        }
+        }
+
+        // Fire async BATCH AI grading for SPEAKING/WRITING questions
+        if (hasPendingReview) {
+            final Integer capturedResultId = quizResult.getResultId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        log.info("[SUBMIT] Scheduling BATCH AI grading → resultId={}", capturedResultId);
+                        groqGradingService.processBatchAIForQuiz(capturedResultId);
+                    } catch (Exception e) {
+                        log.warn("Failed to fire batch AI grading for result {}: {}", capturedResultId, e.getMessage());
                     }
-                });
-            }
+                }
+            });
         }
 
         // Apply IELTS logic

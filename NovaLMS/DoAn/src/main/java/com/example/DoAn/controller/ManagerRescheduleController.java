@@ -41,6 +41,12 @@ public class ManagerRescheduleController {
         return rescheduleService.updateStatus(id, statusUpdate.getStatus(), statusUpdate.getManagerNote());
     }
 
+    @GetMapping("/api/requests/pending-count")
+    @ResponseBody
+    public ResponseData<Long> getPendingCount() {
+        return ResponseData.success("Success", rescheduleService.getPendingCount());
+    }
+
     @Data
     public static class StatusUpdateDTO {
         private String status;

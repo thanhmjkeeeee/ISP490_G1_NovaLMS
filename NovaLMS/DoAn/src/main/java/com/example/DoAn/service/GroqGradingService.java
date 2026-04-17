@@ -16,6 +16,12 @@ public interface GroqGradingService {
      * @param quizResultId the QuizResult ID
      * @param questionId   the Question ID
      */
+    /**
+     * Process all pending AI-graded questions for a quiz result in one async task.
+     * This is faster and avoids race conditions.
+     */
+    void processBatchAIForQuiz(Integer quizResultId);
+
     void fireAndForgetForQuizAnswer(Integer quizResultId, Integer questionId);
 
     /**

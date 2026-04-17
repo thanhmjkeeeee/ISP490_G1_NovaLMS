@@ -20,10 +20,14 @@ import java.util.Optional;
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class CoursePublicServiceImpl implements CourseService {
 
-    @Autowired private CourseRepository courseRepository;
-    @Autowired private ClassRepository classRepository;
-    @Autowired private RegistrationRepository registrationRepository;
-    @Autowired private ModuleRepository moduleRepository;
+    @Autowired
+    private CourseRepository courseRepository;
+    @Autowired
+    private ClassRepository classRepository;
+    @Autowired
+    private RegistrationRepository registrationRepository;
+    @Autowired
+    private ModuleRepository moduleRepository;
 
     @Override
     public List<CoursePublicResponseDTO> getCoursesByFilter(Integer categoryId) {
@@ -39,7 +43,8 @@ public class CoursePublicServiceImpl implements CourseService {
     }
 
     @Override
-    public PageResponse<CoursePublicResponseDTO> searchAndFilterCourses(String keyword, Integer categoryId, String sortBy, int page, int size) {
+    public PageResponse<CoursePublicResponseDTO> searchAndFilterCourses(String keyword, Integer categoryId,
+            String sortBy, int page, int size) {
         String searchKey = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
         Sort sort = switch (Optional.ofNullable(sortBy).orElse("newest")) {
             case "price_asc" -> Sort.by(Sort.Direction.ASC, "price");
@@ -71,8 +76,8 @@ public class CoursePublicServiceImpl implements CourseService {
         if (course.getExpert() != null) {
             expertDTO = new CoursePublicResponseDTO.ExpertResponseDTO(
                     course.getExpert().getFullName(),
-                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl() : "/assets/img/default-avatar.png"
-            );
+                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl()
+                            : "/assets/img/default-avatar.png");
         }
 
         // Dữ liệu cơ bản
@@ -80,7 +85,8 @@ public class CoursePublicServiceImpl implements CourseService {
         long studentCount = registrationRepository.countByCourse_CourseIdAndStatus(id, "Approved");
 
         String imgUrl = "/assets/img/default-course.png";
-        if (course.getAvatar() != null && !course.getAvatar().isBlank() && !course.getAvatar().contains("placeholder")) {
+        if (course.getAvatar() != null && !course.getAvatar().isBlank()
+                && !course.getAvatar().contains("placeholder")) {
             imgUrl = course.getAvatar();
         }
 
@@ -97,7 +103,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 course.getStatus(),
                 expertDTO,
                 List.of(), // No curriculum
-                List.of()  // No classes
+                List.of() // No classes
         );
     }
 
@@ -117,19 +123,21 @@ public class CoursePublicServiceImpl implements CourseService {
                         // Sửa lại đoạn mapping bài học bên trong mỗi module
                         m.getLessons() != null ? m.getLessons().stream()
                                 .map(lesson -> new CoursePublicResponseDTO.LessonResponseDTO(
-                                        lesson.getLessonId(),   // Kiểm tra xem trong Lesson.java có phải lessonId không?
-                                        lesson.getLessonName(), // Kiểm tra xem trong Lesson.java có phải lessonName không?
-                                        lesson.getDuration()    // Kiểm tra xem trong Lesson.java có trường duration không?
-                                )).toList() : List.of()
-                ))
+                                        lesson.getLessonId(), // Kiểm tra xem trong Lesson.java có phải lessonId không?
+                                        lesson.getLessonName(), // Kiểm tra xem trong Lesson.java có phải lessonName
+                                                                // không?
+                                        lesson.getDuration() // Kiểm tra xem trong Lesson.java có trường duration không?
+                                )).toList() : List.of()))
                 .toList();
 
-        // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày tháng + Lọc thời gian)
+        // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày
+        // tháng + Lọc thời gian)
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateMin = now.minusDays(7);
         LocalDateTime startDateMax = now.plusDays(90); // Relaxed from 7 to 90
 
-        var classes = classRepository.findByCourse_CourseIdAndStatusAndStartDateBetween(id, "Open", startDateMin, startDateMax)
+        var classes = classRepository
+                .findByCourse_CourseIdAndStatusAndStartDateBetween(id, "Open", startDateMin, startDateMax)
                 .stream()
                 .map(c -> new CoursePublicResponseDTO.ClassResponseDTO(
                         c.getClassId(),
@@ -139,8 +147,7 @@ public class CoursePublicServiceImpl implements CourseService {
                         c.getSchedule() != null ? c.getSchedule() : "TBD",
                         c.getSlotTime() != null ? c.getSlotTime() : "N/A",
                         c.getStartDate(),
-                        c.getEndDate()
-                ))
+                        c.getEndDate()))
                 .toList();
 
         // 3. Map Expert (Giảng viên chính của khóa học)
@@ -148,8 +155,8 @@ public class CoursePublicServiceImpl implements CourseService {
         if (course.getExpert() != null) {
             expertDTO = new CoursePublicResponseDTO.ExpertResponseDTO(
                     course.getExpert().getFullName(),
-                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl() : "/assets/img/default-avatar.png"
-            );
+                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl()
+                            : "/assets/img/default-avatar.png");
         }
 
         // 4. Chuẩn bị dữ liệu cơ bản
@@ -165,7 +172,6 @@ public class CoursePublicServiceImpl implements CourseService {
             imgUrl = rawImageUrl;
         }
 
-        // 5. Trả về DTO tổng thể (Khớp các trường dữ liệu của Record)
         return new CoursePublicResponseDTO(
                 id,
                 course.getCourseName(),
@@ -179,7 +185,6 @@ public class CoursePublicServiceImpl implements CourseService {
                 course.getStatus(),
                 expertDTO,
                 curriculum,
-                classes
-        );
+                classes);
     }
 }

@@ -25,6 +25,7 @@
         .time-date { font-weight: 700; color: #1e293b; font-size: 0.9rem;}
         .time-hour { font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 4px;}
         .time-new { color: #2563eb; }
+        .extra-small { font-size: 0.7rem; }
     </style>
 </head>
 
@@ -211,7 +212,8 @@
                     </div>
                 </td>
                 <td style="max-width: 200px;">
-                    <div class="small text-muted text-truncate" title="${r.reason || ''}">${r.reason || 'Không có lý do'}</div>
+                    <div class="small text-muted text-truncate mb-1" title="${r.reason || ''}"><i class="bi bi-chat-left-text me-1"></i>${r.reason || 'Không có lý do'}</div>
+                    ${r.managerNote ? `<div class="extra-small text-info text-truncate border-top pt-1" title="${r.managerNote}"><i class="bi bi-reply-fill me-1"></i>${r.managerNote}</div>` : ''}
                 </td>
                 <td class="text-center">
                     <span class="status-badge status-${r.status}">${r.status}</span>

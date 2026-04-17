@@ -145,6 +145,16 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public PageResponse<AccountDetailResponse> getAllAccountsByRoleValue(String roleValue) {
+        Setting role = settingRepository.findRoleByValue(roleValue).orElse(null);
+        Integer roleId = (role != null) ? role.getSettingId() : -1;
+
+        log.info("Fetching accounts for role value: {} (ID: {})", roleValue, roleId);
+        return getAllAccounts(0, 1000, null, roleId, "Active");
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<AccountDetailResponse> getAllAccounts(int pageNo, int pageSize, String search, Integer roleId, String status) {
         PageRequest pageable = PageRequest.of(pageNo, pageSize, Sort.by("userId").descending());
 
