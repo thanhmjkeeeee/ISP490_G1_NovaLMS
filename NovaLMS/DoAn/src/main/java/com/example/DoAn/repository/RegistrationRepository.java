@@ -13,6 +13,14 @@ import java.util.Optional;
 
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
+    
+    @Query("SELECT r FROM Registration r " +
+           "JOIN FETCH r.user u " +
+           "JOIN FETCH r.course c " +
+           "JOIN FETCH r.clazz cl " +
+           "WHERE r.registrationId = :id")
+    Optional<Registration> findWithAssociationsById(@Param("id") Integer id);
+
 
     // Lấy lịch sử đăng ký của user (Mới nhất lên đầu) - Dùng cho màn My Enrollments
     @Query("SELECT r FROM Registration r WHERE r.user.userId = :userId ORDER BY r.registrationTime DESC")

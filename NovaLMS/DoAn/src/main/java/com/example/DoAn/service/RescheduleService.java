@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -113,6 +114,27 @@ public class RescheduleService {
                 .build();
 
         rescheduleRequestRepository.save(request);
+
+        // ── Notify all managers ──────────────────────────────────────────────
+        try {
+            String className = session.getClazz().getClassName();
+            String dateLabel = request.getNewDate().toLocalDate().toString();
+            String teacherName = user.getFullName();
+            
+            // Fix: Sử dụng findByRole_Value vì repo đã có method này
+            List<User> managers = userRepository.findByRole_Value("ROLE_MANAGER");
+            for (User manager : managers) {
+                notificationService.sendRescheduleRequestForManager(
+                    Long.valueOf(manager.getUserId()), 
+                    teacherName, 
+                    className, 
+                    dateLabel
+                );
+            }
+        } catch (Exception e) {
+            log.error("Lỗi gửi thông báo cho Manager: {}", e.getMessage());
+        }
+
         return ResponseData.success("Gửi yêu cầu thành công", request.getId());
     }
 
@@ -189,6 +211,7 @@ public class RescheduleService {
     private void notifyTeacherOnDecision(RescheduleRequest request) {
         if (request == null || request.getCreatedBy() == null) return;
         User teacher = request.getCreatedBy();
+        Long teacherId = Long.valueOf(teacher.getUserId());
         String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
 
         String className = request.getSession() != null && request.getSession().getClazz() != null
@@ -196,21 +219,35 @@ public class RescheduleService {
                         ? request.getSession().getClazz().getClassName() : "" : "";
         String newDate = request.getNewDate() != null ? request.getNewDate().toLocalDate().toString() : "";
         String newTime = request.getNewStartTime() != null ? request.getNewStartTime() : "";
-        String reason = request.getManagerNote() != null ? request.getManagerNote() : "";
+        String managerNote = request.getManagerNote() != null ? request.getManagerNote() : "";
         String status = request.getStatus();
 
-        if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+        // ── Internal Notification ───────────────────────────────────────────
+        try {
             if ("APPROVED".equals(status)) {
-                emailService.sendSessionRescheduledEmail(teacher.getEmail(), teacherName, className,
-                        "", "", newDate, newTime, reason);
+                notificationService.sendSessionRescheduled(teacherId, className, newDate, newTime, "Đã được phê duyệt: " + managerNote);
             } else if ("REJECTED".equals(status)) {
-                emailService.sendSessionCancelledEmail(teacher.getEmail(), teacherName, className, newDate, newTime, reason);
+                notificationService.send(teacherId, "SESSION_RESCHEDULE_REJECTED", 
+                    "Yêu cầu đổi lịch bị từ chối", 
+                    "Yêu cầu đổi lịch lớp " + className + " sang ngày " + newDate + " đã bị từ chối. Lý do: " + managerNote, 
+                    "/teacher/workspace");
             }
+        } catch (Exception e) {
+            log.error("Error sending internal notification to teacher: {}", e.getMessage());
         }
-        if (teacher.getUserId() != null) {
-            if ("APPROVED".equals(status)) {
-                notificationService.sendSessionRescheduled(Long.valueOf(teacher.getUserId()), className, newDate, newTime, reason);
+
+        // ── Email Notification ──────────────────────────────────────────────
+        try {
+            if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
+                if ("APPROVED".equals(status)) {
+                    emailService.sendSessionRescheduledEmail(teacher.getEmail(), teacherName, className,
+                            "", "", newDate, newTime, managerNote);
+                } else if ("REJECTED".equals(status)) {
+                    emailService.sendSessionCancelledEmail(teacher.getEmail(), teacherName, className, newDate, newTime, managerNote);
+                }
             }
+        } catch (Exception e) {
+            log.error("Error sending email notification to teacher: {}", e.getMessage());
         }
     }
 
@@ -241,5 +278,44 @@ public class RescheduleService {
         if (hour >= 11 && hour < 13) return 2;
         if (hour >= 17 && hour < 18) return 4;
         return 5;
+    }
+
+    public long getPendingCount() {
+        return rescheduleRequestRepository.findAll().stream()
+                .filter(r -> "PENDING".equals(r.getStatus()))
+                .count();
+    }
+
+    public List<RescheduleResponseDTO> getTeacherRequests(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return java.util.Collections.emptyList();
+        
+        List<RescheduleRequest> requests = rescheduleRequestRepository.findByCreatedBy_UserIdOrderByCreatedAtDesc(user.getUserId());
+        
+        return requests.stream().map(this::mapToDTO).collect(java.util.stream.Collectors.toList());
+    }
+
+    private RescheduleResponseDTO mapToDTO(RescheduleRequest r) {
+        return RescheduleResponseDTO.builder()
+                .id(r.getId())
+                .oldDate(r.getOldDate() != null ? r.getOldDate().toString() : null)
+                .oldStartTime(r.getOldStartTime())
+                .newDate(r.getNewDate() != null ? r.getNewDate().toString() : null)
+                .newStartTime(r.getNewStartTime())
+                .reason(r.getReason())
+                .managerNote(r.getManagerNote())
+                .status(r.getStatus())
+                .createdAt(r.getCreatedAt())
+                .createdBy(RescheduleResponseDTO.CreatorDTO.builder()
+                        .fullName(r.getCreatedBy() != null ? r.getCreatedBy().getFullName() : "N/A")
+                        .email(r.getCreatedBy() != null ? r.getCreatedBy().getEmail() : "")
+                        .build())
+                .session(RescheduleResponseDTO.SessionDTO.builder()
+                        .sessionNumber(r.getSession() != null ? r.getSession().getSessionNumber() : 0)
+                        .clazz(RescheduleResponseDTO.ClassDTO.builder()
+                                .className(r.getSession() != null && r.getSession().getClazz() != null ? r.getSession().getClazz().getClassName() : "Lớp học rỗng")
+                                .build())
+                        .build())
+                .build();
     }
 }

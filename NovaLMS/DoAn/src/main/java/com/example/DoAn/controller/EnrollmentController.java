@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -75,6 +76,7 @@ public class EnrollmentController {
      * Returns PaymentLinkResponseDTO with checkoutUrl on success.
      */
     @PostMapping("/enroll-with-payment")
+    @Transactional
     public ResponseData<PaymentLinkResponseDTO> enrollWithPayment(
             @Valid @RequestBody EnrollRequestDTO request,
             Principal principal) {
@@ -141,7 +143,7 @@ public class EnrollmentController {
         }
 
         Integer registrationId = enrollResult.getData();
-        Optional<Registration> optReg = registrationRepository.findById(registrationId);
+        Optional<Registration> optReg = registrationRepository.findWithAssociationsById(registrationId);
         if (optReg.isEmpty()) {
             return ResponseData.error(404, "Không tìm thấy đăng ký.");
         }

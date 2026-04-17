@@ -90,7 +90,7 @@ public class AccountController {
     @GetMapping("/experts")
     public ResponseData<List<?>> getExperts() {
         try {
-            PageResponse<?> response = accountService.getAllAccounts(0, 1000, null, 203, null);
+            PageResponse<?> response = accountService.getAllAccountsByRoleValue("ROLE_EXPERT");
             return new ResponseData<>(HttpStatus.OK.value(), "Danh sách chuyên gia", (List<?>) response.getItems());
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
