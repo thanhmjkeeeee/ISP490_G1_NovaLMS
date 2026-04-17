@@ -58,6 +58,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Account ──────────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendAccountCreatedEmail(String toEmail, String fullName, String roleName, String password) {
         String subject = "[Nova LMS] Thong bao tao tai khoan";
@@ -65,6 +66,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, content);
     }
 
+    @Async
     @Override
     public void sendRoleUpdatedEmail(String toEmail, String fullName, String oldRoleName, String newRoleName) {
         String subject = "[Nova LMS] Thong bao thay doi vai tro";
@@ -72,6 +74,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, content);
     }
 
+    @Async
     @Override
     public void sendAccountStatusEmail(String toEmail, String fullName, String newStatus) {
         String subject = "[Nova LMS] Thong bao thay doi trang thai tai khoan";
@@ -81,6 +84,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Assignment ───────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendAssignmentPublishedEmail(String toEmail, String studentName,
             String assignmentTitle, String className, String deadline) {
@@ -98,6 +102,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendAssignmentDeadlineReminderEmail(String toEmail, String studentName,
             String assignmentTitle, String className, String deadline) {
@@ -115,6 +120,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendAssignmentGradedEmail(String toEmail, String studentName,
             String assignmentTitle, String className, String score, String passedStatus) {
@@ -135,6 +141,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Quiz ──────────────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendQuizPublishedEmail(String toEmail, String studentName,
             String quizTitle, String className, String deadline) {
@@ -154,6 +161,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuizDeadlineReminderEmail(String toEmail, String studentName,
             String quizTitle, String className, String deadline) {
@@ -171,6 +179,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuizResultEmail(String toEmail, String studentName,
             String quizTitle, String className, String score, String passedStatus) {
@@ -189,6 +198,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuizPendingManualGradingEmail(String toEmail, String teacherName,
             String quizTitle, String studentName, String className) {
@@ -206,6 +216,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendManualGradingResultEmail(String toEmail, String studentName,
             String quizTitle, String className, String finalScore, String passedStatus) {
@@ -224,6 +235,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuizLockedEmail(String toEmail, String teacherName, String studentName,
             String quizTitle, String reason, int violationCount, String violationDetails) {
@@ -263,6 +275,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Class / Session ──────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendClassEnrollmentEmail(String toEmail, String userName,
             String className, String courseName, String startDate, String schedule) {
@@ -281,6 +294,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendSessionReminderEmail(String toEmail, String userName,
             String className, String sessionTopic, String sessionDate, String sessionTime, String meetLink) {
@@ -302,6 +316,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendSessionRescheduledEmail(String toEmail, String userName,
             String className, String oldDate, String oldTime,
@@ -324,6 +339,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendSessionCancelledEmail(String toEmail, String userName,
             String className, String sessionDate, String sessionTime, String reason) {
@@ -346,6 +362,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Enrollment / Registration ───────────────────────────────────────────
 
+    @Async
     @Override
     public void sendEnrollmentPendingApprovalEmail(String toEmail, String managerName,
             String studentName, String studentEmail, String className, String courseName) {
@@ -364,6 +381,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendEnrollmentApprovedEmail(String toEmail, String studentName,
             String className, String courseName, String startDate) {
@@ -381,6 +399,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendEnrollmentRejectedEmail(String toEmail, String studentName,
             String className, String courseName, String reason) {
@@ -402,6 +421,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Payment ──────────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendPaymentSuccessEmail(String toEmail, String studentName,
             String courseName, String className, String amount,
@@ -449,6 +469,7 @@ public class EmailServiceImpl implements EmailService {
                 + "</html>";
     }
 
+    @Async
     @Override
     public void sendPaymentFailedEmail(String toEmail, String studentName,
             String courseName, String className) {
@@ -467,6 +488,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Expert Review ─────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendQuizPendingReviewEmail(String toEmail, String expertName,
             String quizTitle, String teacherName, String courseName) {
@@ -484,6 +506,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuestionApprovedEmail(String toEmail, String teacherName, String questionContent,
             String reviewNote) {
@@ -503,6 +526,7 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(toEmail, subject, sb.toString());
     }
 
+    @Async
     @Override
     public void sendQuestionRejectedEmail(String toEmail, String teacherName, String questionContent,
             String reviewNote) {
@@ -524,6 +548,7 @@ public class EmailServiceImpl implements EmailService {
 
     // ─── Announcement ─────────────────────────────────────────────────────────
 
+    @Async
     @Override
     public void sendAnnouncementEmail(String toEmail, String userName,
             String announcementTitle, String announcementContent) {

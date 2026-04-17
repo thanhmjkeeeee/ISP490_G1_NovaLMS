@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class CoursePublicServiceImpl implements CourseService {
 
     @Autowired private CourseRepository courseRepository;
@@ -27,8 +28,8 @@ public class CoursePublicServiceImpl implements CourseService {
     @Override
     public List<CoursePublicResponseDTO> getCoursesByFilter(Integer categoryId) {
         List<Course> courses = Optional.ofNullable(categoryId)
-                .map(id -> courseRepository.findByCategory_SettingIdAndStatus(id, "Active"))
-                .orElseGet(() -> courseRepository.findByStatus("Active"));
+                .map(id -> courseRepository.findByCategory_SettingIdAndStatus(id, "Published"))
+                .orElseGet(() -> courseRepository.findByStatus("Published"));
         return courses.stream().map(this::mapToPublicDTO).toList();
     }
 
@@ -47,7 +48,7 @@ public class CoursePublicServiceImpl implements CourseService {
         };
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Course> coursePage = courseRepository.searchCourses(searchKey, categoryId, "Active", pageable);
+        Page<Course> coursePage = courseRepository.searchCourses(searchKey, categoryId, "Published", pageable);
 
         List<CoursePublicResponseDTO> list = coursePage.getContent().stream()
                 .map(this::mapToPublicDTO)
@@ -126,7 +127,7 @@ public class CoursePublicServiceImpl implements CourseService {
         // 2. Map Active Classes (Bổ sung đầy đủ thông tin: Giảng viên, Lịch học, Ngày tháng + Lọc thời gian)
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateMin = now.minusDays(7);
-        LocalDateTime startDateMax = now.plusDays(7);
+        LocalDateTime startDateMax = now.plusDays(90); // Relaxed from 7 to 90
 
         var classes = classRepository.findByCourse_CourseIdAndStatusAndStartDateBetween(id, "Open", startDateMin, startDateMax)
                 .stream()

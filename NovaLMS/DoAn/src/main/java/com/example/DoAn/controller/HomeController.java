@@ -26,6 +26,7 @@ public class HomeController {
 
         model.addAttribute("featuredCourses", homeService.getFeaturedCourses());
         model.addAttribute("teachers", homeService.getFeaturedTeachers());
+        model.addAttribute("upcomingClasses", homeService.getUpcomingClasses());
         return "public/index";
     }
 }

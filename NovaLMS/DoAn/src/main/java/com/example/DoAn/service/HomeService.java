@@ -9,4 +9,5 @@ import java.util.List;
 public interface HomeService {
     List<CoursePublicResponseDTO> getFeaturedCourses(); // Đổi từ List<Course> sang DTO
     List<User> getFeaturedTeachers();
+    List<com.example.DoAn.dto.response.ClassPublicResponseDTO> getUpcomingClasses();
 }
