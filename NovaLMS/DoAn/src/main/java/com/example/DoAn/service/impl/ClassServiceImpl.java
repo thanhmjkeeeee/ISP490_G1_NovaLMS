@@ -9,6 +9,8 @@ import com.example.DoAn.model.ClassSession;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Lesson;
 import com.example.DoAn.model.SessionLesson;
+import com.example.DoAn.model.Quiz;
+import com.example.DoAn.model.SessionQuiz;
 import com.example.DoAn.model.User;
 import com.example.DoAn.repository.ClassRepository;
 import com.example.DoAn.repository.ClassSessionRepository;
@@ -17,6 +19,8 @@ import com.example.DoAn.repository.LessonRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.RescheduleRequestRepository;
 import com.example.DoAn.repository.SessionLessonRepository;
+import com.example.DoAn.repository.QuizRepository;
+import com.example.DoAn.repository.SessionQuizRepository;
 import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.IClassService;
@@ -80,6 +84,8 @@ public class ClassServiceImpl implements IClassService {
     private final UserRepository userRepository;
     private final LessonRepository lessonRepository;
     private final SessionLessonRepository sessionLessonRepository;
+    private final QuizRepository quizRepository;
+    private final SessionQuizRepository sessionQuizRepository;
     private final RegistrationRepository registrationRepository;
     private final RescheduleRequestRepository rescheduleRequestRepository;
     private final EmailService emailService;
@@ -537,7 +543,8 @@ public class ClassServiceImpl implements IClassService {
 
                     // Re-map lessons
                     List<Lesson> courseLessons = lessonRepository.findAll().stream()
-                            .filter(l -> l.getModule().getCourse().getCourseId().equals(clazz.getCourse().getCourseId()))
+                            .filter(l -> l.getModule().getCourse().getCourseId()
+                                    .equals(clazz.getCourse().getCourseId()))
                             .toList();
                     for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
                         sessionLessonRepository.save(SessionLesson.builder()
@@ -548,9 +555,12 @@ public class ClassServiceImpl implements IClassService {
 
                     // --- Notify Enrolled Students via Email ---
                     try {
-                        List<com.example.DoAn.model.Registration> approvedRegs = registrationRepository.findApprovedByClassId(id);
+                        List<com.example.DoAn.model.Registration> approvedRegs = registrationRepository
+                                .findApprovedByClassId(id);
                         if (approvedRegs != null && !approvedRegs.isEmpty()) {
-                            String startDateStr = request.getStartDate() != null ? request.getStartDate().substring(0, 10) : "";
+                            String startDateStr = request.getStartDate() != null
+                                    ? request.getStartDate().substring(0, 10)
+                                    : "";
                             for (com.example.DoAn.model.Registration reg : approvedRegs) {
                                 if (reg.getUser() != null && reg.getUser().getEmail() != null) {
                                     emailService.sendClassScheduleUpdatedEmail(
@@ -559,11 +569,11 @@ public class ClassServiceImpl implements IClassService {
                                             clazz.getClassName(),
                                             startDateStr,
                                             request.getSchedule(),
-                                            request.getSlotTime()
-                                    );
+                                            request.getSlotTime());
                                 }
                             }
-                            log.info("Sent schedule update emails to {} students for Class id={}", approvedRegs.size(), id);
+                            log.info("Sent schedule update emails to {} students for Class id={}", approvedRegs.size(),
+                                    id);
                         }
                     } catch (Exception e) {
                         log.error("Failed to send schedule update emails: {}", e.getMessage());
@@ -586,7 +596,8 @@ public class ClassServiceImpl implements IClassService {
 
                     // Re-map lessons
                     List<Lesson> courseLessons = lessonRepository.findAll().stream()
-                            .filter(l -> l.getModule().getCourse().getCourseId().equals(clazz.getCourse().getCourseId()))
+                            .filter(l -> l.getModule().getCourse().getCourseId()
+                                    .equals(clazz.getCourse().getCourseId()))
                             .toList();
                     for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
                         sessionLessonRepository.save(SessionLesson.builder()

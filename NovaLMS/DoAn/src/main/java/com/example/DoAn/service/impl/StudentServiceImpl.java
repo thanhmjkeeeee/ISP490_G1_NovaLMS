@@ -163,13 +163,57 @@ public class StudentServiceImpl implements StudentService {
                     pageable
             );
 
-            List<MyCourseDTO> dtoList = regPage.getContent().stream().map(reg -> MyCourseDTO.builder()
-                    .courseId(reg.getCourse().getCourseId())
-                    .title(reg.getCourse().getCourseName() != null ? reg.getCourse().getCourseName() : reg.getCourse().getTitle())
-                    .description(reg.getCourse().getDescription())
-                    .imageUrl(reg.getCourse().getImageUrl())
-                    .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Chưa xếp lớp")
-                    .build()).collect(Collectors.toList());
+            List<MyCourseDTO> dtoList = regPage.getContent().stream().map(reg -> {
+                Course course = reg.getCourse();
+                Integer courseId = course.getCourseId();
+                Integer userId = user.getUserId();
+
+                // 1. Calculate Lesson Progress
+                List<Integer> allLessonIds = userLessonRepository.findAllLessonIdsOfCourse(courseId);
+                long completedLessonsNum = userLessonRepository.countCompletedLessonsByUserIdAndCourseId(userId, courseId);
+                int totalLessonsNum = allLessonIds.size();
+                int progressPercent = totalLessonsNum > 0 ? (int) ((completedLessonsNum * 100) / totalLessonsNum) : 0;
+
+                // 2. Calculate Quiz Progress
+                // Get all quiz results for this student and filter by course
+                List<QuizResult> quizResults = quizResultRepository.findByUser_Email(email).stream()
+                        .filter(qr -> qr.getQuiz().getCourse() != null && qr.getQuiz().getCourse().getCourseId().equals(courseId))
+                        .collect(Collectors.toList());
+
+                long passedQuizzes = quizResults.stream()
+                        .filter(qr -> Boolean.TRUE.equals(qr.getPassed()))
+                        .map(qr -> qr.getQuiz().getQuizId())
+                        .distinct()
+                        .count();
+
+                long totalQuizzesInCourse = sessionLessonRepository.countByCourseIdAndLessonType(courseId, "QUIZ")
+                        + sessionQuizRepository.countByCourseId(courseId);
+
+                // 3. Calculate Average Score (Scale of 10)
+                double avgScore = quizResults.stream()
+                        .filter(qr -> qr.getScore() != null)
+                        .mapToDouble(qr -> qr.getScore().doubleValue())
+                        .average().orElse(0.0);
+
+                String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
+                        ? reg.getClazz().getTeacher().getFullName() : "Chưa cập nhật";
+
+                return MyCourseDTO.builder()
+                        .courseId(courseId)
+                        .title(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
+                        .description(course.getDescription())
+                        .imageUrl(course.getImageUrl())
+                        .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Chưa xếp lớp")
+                        .teacherName(teacherName)
+                        .progressPercent(progressPercent)
+                        .completedLessons((int) completedLessonsNum)
+                        .totalLessons(totalLessonsNum)
+                        .completedQuizzes((int) passedQuizzes)
+                        .totalQuizzes((int) totalQuizzesInCourse)
+                        .averageScore(Math.round(avgScore * 10.0) / 10.0)
+                        .build();
+            }).collect(Collectors.toList());
+
 
             PageResponse<MyCourseDTO> pageResponse = PageResponse.<MyCourseDTO>builder()
                     .items(dtoList)
