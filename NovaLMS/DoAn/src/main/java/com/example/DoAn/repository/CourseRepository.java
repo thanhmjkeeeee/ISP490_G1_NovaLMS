@@ -67,6 +67,15 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
     @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByExpertUserId(Integer expertUserId);
 
+    @Query("SELECT c FROM Course c " +
+           "LEFT JOIN FETCH c.category " +
+           "LEFT JOIN FETCH c.expert " +
+           "LEFT JOIN Registration r ON r.course.courseId = c.courseId AND r.status = 'Approved' " +
+           "WHERE c.status = 'Active' " +
+           "GROUP BY c.courseId, c.category.settingId, c.expert.userId " +
+           "ORDER BY COUNT(r.registrationId) DESC")
+    List<Course> findTopFeaturedCourses(Pageable pageable);
+
 }
 
 

@@ -12,8 +12,11 @@ import java.util.List;
 public interface ClassSessionRepository extends JpaRepository<ClassSession, Integer> {
 
     List<ClassSession> findByClazzClassIdOrderBySessionNumberAsc(Integer classId);
+    
+    void deleteByClazz_ClassId(Integer classId);
 
     @Query("SELECT COUNT(s) FROM ClassSession s WHERE s.clazz.classId = :classId")
+
     int countByClassId(@Param("classId") Integer classId);
 
     @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz c " +

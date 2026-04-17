@@ -100,6 +100,7 @@ public class CourseServiceImpl implements ICourseService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<?> getAllCourses(int pageNo, int pageSize) {
         Page<Course> page = courseRepository.findAll(PageRequest.of(pageNo, pageSize));
 
@@ -125,6 +126,7 @@ public class CourseServiceImpl implements ICourseService {
         log.info("Course deleted successfully, id={}", id);
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("courseId").descending());
         Specification<Course> spec = Specification.where(null);

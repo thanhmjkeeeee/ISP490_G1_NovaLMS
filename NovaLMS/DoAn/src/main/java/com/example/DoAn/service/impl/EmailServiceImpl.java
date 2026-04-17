@@ -9,6 +9,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -227,12 +228,14 @@ public class EmailServiceImpl implements EmailService {
     public void sendQuizLockedEmail(String toEmail, String teacherName, String studentName,
             String quizTitle, String reason, int violationCount, String violationDetails) {
         String subject = "[Nova LMS] CẢNH BÁO VI PHẠM: Bài kiểm tra đã bị khóa - " + quizTitle;
-        
-        String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy"));
-        
+
+        String now = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy"));
+
         StringBuilder sb = new StringBuilder();
         sb.append("Kính gửi Quý thầy/cô ").append(nullToEmpty(teacherName)).append(",\n\n");
-        sb.append("Hệ thống Nova LMS xin thông báo về một trường hợp vi phạm quy chế nghiêm trọng trong bài kiểm tra.\n\n");
+        sb.append(
+                "Hệ thống Nova LMS xin thông báo về một trường hợp vi phạm quy chế nghiêm trọng trong bài kiểm tra.\n\n");
         sb.append("THÔNG TIN CHI TIẾT SỰ VIỆC:\n");
         sb.append("--------------------------------------------------\n");
         sb.append("- Học sinh: ").append(nullToEmpty(studentName)).append("\n");
@@ -241,7 +244,7 @@ public class EmailServiceImpl implements EmailService {
         sb.append("- Thời điểm ghi nhận khóa: ").append(now).append("\n");
         sb.append("- Lý do khóa cuối: ").append(nullToEmpty(reason)).append("\n");
         sb.append("--------------------------------------------------\n\n");
-        
+
         if (violationDetails != null && !violationDetails.isBlank()) {
             sb.append("NHẬT KÝ VI PHẠM CHI TIẾT:\n");
             sb.append(violationDetails).append("\n");
@@ -254,7 +257,7 @@ public class EmailServiceImpl implements EmailService {
         sb.append("Đường dẫn quản lý: http://localhost:8080/teacher/quiz/grading\n\n");
         sb.append("Trân trọng,\n");
         sb.append("Ban quản trị hệ thống Nova LMS");
-        
+
         sendEmail(toEmail, subject, sb.toString());
     }
 
@@ -310,7 +313,8 @@ public class EmailServiceImpl implements EmailService {
         sb.append("Chi tiet:\n");
         sb.append("- Lop hoc: ").append(nullToEmpty(className)).append("\n");
         sb.append("- Lich cu: ").append(nullToEmpty(oldDate)).append(" luc ").append(nullToEmpty(oldTime)).append("\n");
-        sb.append("- Lich moi: ").append(nullToEmpty(newDate)).append(" luc ").append(nullToEmpty(newTime)).append("\n");
+        sb.append("- Lich moi: ").append(nullToEmpty(newDate)).append(" luc ").append(nullToEmpty(newTime))
+                .append("\n");
         if (reason != null && !reason.isBlank()) {
             sb.append("- Ly do: ").append(reason).append("\n");
         }
@@ -430,7 +434,8 @@ public class EmailServiceImpl implements EmailService {
                 + "        <p style='margin: 0;'><strong>Khoa hoc:</strong> " + nullToEmpty(courseName) + "</p>"
                 + "        <p style='margin: 8px 0 0;'><strong>Lop hoc:</strong> " + nullToEmpty(className) + "</p>"
                 + "        <p style='margin: 8px 0 0;'><strong>So tien:</strong> "
-                + "           <span style='color: #c0392b; font-weight: bold;'>" + nullToEmpty(amount) + " VND</span></p>"
+                + "           <span style='color: #c0392b; font-weight: bold;'>" + nullToEmpty(amount)
+                + " VND</span></p>"
                 + "      </div>"
                 + "      <p>Vui long dang nhap <strong>NovaLMS</strong> de bat dau hoc.</p>"
                 + "      <p style='margin-top: 30px;'>Tran trong,<br><strong>NovaLMS Team</strong></p>"
@@ -480,7 +485,8 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendQuestionApprovedEmail(String toEmail, String teacherName, String questionContent, String reviewNote) {
+    public void sendQuestionApprovedEmail(String toEmail, String teacherName, String questionContent,
+            String reviewNote) {
         String subject = "[Nova LMS] Cau hoi cua ban da duoc phe duyet";
         StringBuilder sb = new StringBuilder();
         sb.append("Xin chao ").append(nullToEmpty(teacherName)).append(",\n\n");
@@ -498,7 +504,8 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendQuestionRejectedEmail(String toEmail, String teacherName, String questionContent, String reviewNote) {
+    public void sendQuestionRejectedEmail(String toEmail, String teacherName, String questionContent,
+            String reviewNote) {
         String subject = "[Nova LMS] Cau hoi cua ban bi tu choi";
         StringBuilder sb = new StringBuilder();
         sb.append("Xin chao ").append(nullToEmpty(teacherName)).append(",\n\n");
@@ -579,5 +586,24 @@ public class EmailServiceImpl implements EmailService {
         sb.append("Tran trong,\n");
         sb.append("Nova LMS");
         return sb.toString();
+    }
+
+    @Async
+    @Override
+    public void sendClassScheduleUpdatedEmail(String toEmail, String userName,
+            String className, String newStartDate, String newSchedule, String newSlotTime) {
+        String subject = "[Nova LMS] Thong bao thay doi lich hoc - " + className;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Xin chao ").append(nullToEmpty(userName)).append(",\n\n");
+        sb.append("Lop hoc cua ban tren Nova LMS vua co thay doi ve lich hoc.\n\n");
+        sb.append("Chi tiet lich hoc moi:\n");
+        sb.append("- Lop hoc: ").append(nullToEmpty(className)).append("\n");
+        sb.append("- Ngay khai giang moi: ").append(nullToEmpty(newStartDate)).append("\n");
+        sb.append("- Lich hoc moi: ").append(nullToEmpty(newSchedule)).append("\n");
+        sb.append("- Ca hoc moi: ").append(nullToEmpty(newSlotTime)).append("\n\n");
+        sb.append("Vui long dang nhap Nova LMS de kiem tra thoi khoa bieu chi tiet.\n\n");
+        sb.append("Tran trong,\n");
+        sb.append("Nova LMS");
+        sendEmail(toEmail, subject, sb.toString());
     }
 }

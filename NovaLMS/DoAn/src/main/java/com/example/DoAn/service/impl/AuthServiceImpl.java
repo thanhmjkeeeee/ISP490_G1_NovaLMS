@@ -89,6 +89,9 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new InvalidDataException("Email này đã được sử dụng!");
         }
+        if (request.getPhone() != null && !request.getPhone().isBlank() && userRepository.existsByMobile(request.getPhone())) {
+            throw new InvalidDataException("Số điện thoại này đã được sử dụng!");
+        }
 
         // Kiểm tra mã xác minh
         EmailVerification verifyEntity = verificationRepository

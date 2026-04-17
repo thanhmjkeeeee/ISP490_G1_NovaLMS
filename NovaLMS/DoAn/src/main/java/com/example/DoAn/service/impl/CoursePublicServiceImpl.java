@@ -62,6 +62,45 @@ public class CoursePublicServiceImpl implements CourseService {
     }
 
     @Override
+    public CoursePublicResponseDTO mapToSummaryDTO(Course course) {
+        Integer id = course.getCourseId();
+
+        // Map Expert (Giảng viên chính)
+        CoursePublicResponseDTO.ExpertResponseDTO expertDTO = null;
+        if (course.getExpert() != null) {
+            expertDTO = new CoursePublicResponseDTO.ExpertResponseDTO(
+                    course.getExpert().getFullName(),
+                    course.getExpert().getAvatarUrl() != null ? course.getExpert().getAvatarUrl() : "/assets/img/default-avatar.png"
+            );
+        }
+
+        // Dữ liệu cơ bản
+        String categoryName = (course.getCategory() != null) ? course.getCategory().getName() : "N/A";
+        long studentCount = registrationRepository.countByCourse_CourseIdAndStatus(id, "Approved");
+
+        String imgUrl = "/assets/img/default-course.png";
+        if (course.getAvatar() != null && !course.getAvatar().isBlank() && !course.getAvatar().contains("placeholder")) {
+            imgUrl = course.getAvatar();
+        }
+
+        return new CoursePublicResponseDTO(
+                id,
+                course.getCourseName(),
+                course.getDescription(),
+                course.getPrice(),
+                course.getSale(),
+                categoryName,
+                studentCount,
+                imgUrl,
+                course.getLevelTag(),
+                course.getStatus(),
+                expertDTO,
+                List.of(), // No curriculum
+                List.of()  // No classes
+        );
+    }
+
+    @Override
     public CoursePublicResponseDTO mapToPublicDTO(Course course) {
         Integer id = course.getCourseId();
 

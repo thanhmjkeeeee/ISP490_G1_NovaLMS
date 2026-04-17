@@ -316,7 +316,11 @@ public class TeacherViewController {
 
         for (ClassSession s : sessions) {
             int dayIndex = s.getSessionDate().getDayOfWeek().getValue(); // 1=Mon
-            int slotIndex = getSlotIndex(s.getStartTime());
+            
+            // Fix: Use the slotNumber from ClassSession directly
+            Integer slotNum = s.getSlotNumber();
+            int slotIndex = (slotNum != null) ? slotNum : getSlotIndex(s.getStartTime());
+            
             Map<String, Object> summary = new LinkedHashMap<>();
             summary.put("sessionId", s.getSessionId());
             summary.put("sessionNumber", s.getSessionNumber());
@@ -495,13 +499,13 @@ public class TeacherViewController {
     }
 
     private int getSlotIndex(String startTime) {
-        if (startTime == null || startTime.length() < 5) return 0;
-        String time = startTime.substring(0, 5); // Take "HH:mm"
-        if ("08:00".equals(time)) return 1;
-        if ("10:00".equals(time)) return 2;
-        if ("13:00".equals(time)) return 3;
-        if ("15:00".equals(time)) return 4;
-        if ("18:00".equals(time)) return 5;
+        if (startTime == null || startTime.length() < 4) return 0;
+        String time = startTime.trim();
+        if (time.startsWith("7:") || time.startsWith("07:")) return 1;
+        if (time.startsWith("9:") || time.startsWith("09:")) return 2;
+        if (time.startsWith("13:")) return 3;
+        if (time.startsWith("15:")) return 4;
+        if (time.startsWith("18:")) return 5;
         return 0;
     }
 

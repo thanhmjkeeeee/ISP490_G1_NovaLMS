@@ -11,6 +11,9 @@ import java.util.List;
 
 @Repository
 public interface ClassRepository extends JpaRepository<Clazz, Integer>, JpaSpecificationExecutor<Clazz> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"teacher", "course", "sessions"})
+    java.util.Optional<Clazz> findById(Integer classId);
+
     // Tìm các lớp theo Course ID và trạng thái (ví dụ: tìm lớp đang mở 'Open')
     List<Clazz> findByCourse_CourseIdAndStatus(Integer courseId, String status);
 
