@@ -181,10 +181,20 @@
             tbody.innerHTML = courses.map(course => {
                 const status = (course.status || 'draft').toLowerCase();
 
-                let badgeClass = 'bg-warning bg-opacity-10 text-warning'; 
+                let badgeClass = 'bg-warning bg-opacity-10 text-warning';
                 if (status === 'active') {
                     badgeClass = 'bg-success bg-opacity-10 text-success';
+                } else if (status === 'published') {
+                    badgeClass = 'bg-primary bg-opacity-10 text-primary';
+                } else if (status === 'inactive') {
+                    badgeClass = 'bg-secondary bg-opacity-10 text-secondary';
                 }
+
+                const statusLabel =
+                    status === 'active' ? 'Hoạt động'
+                    : status === 'published' ? 'Đã xuất bản'
+                    : status === 'inactive' ? 'Tạm dừng'
+                    : 'Bản nháp';
 
                 return `
             <tr>
@@ -208,11 +218,11 @@
                 <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
                 <td>
                     <span class="badge px-2 py-1 fw-bold text-uppercase ${badgeClass}" style="font-size: 10px;">
-                        ${status === 'active' ? 'Hoạt động' : 'Bản nháp'}
+                        ${statusLabel}
                     </span>
                 </td>
                 <td class="text-end pe-4">
-                    <a href="/admin/courses/details/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
+                    <a href="/admin/courses/detail/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
                         <i class="bi bi-eye text-primary"></i>
                     </a>
                     ${(!course.registrationCount || course.registrationCount === 0)
