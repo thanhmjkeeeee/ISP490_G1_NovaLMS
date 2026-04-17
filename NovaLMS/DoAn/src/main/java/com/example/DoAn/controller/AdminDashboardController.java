@@ -21,6 +21,7 @@ import com.example.DoAn.repository.QuizRepository;
 import com.example.DoAn.repository.RegistrationRepository;
 import com.example.DoAn.repository.UserRepository;
 
+import org.springframework.data.domain.PageRequest;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,11 +56,8 @@ public class AdminDashboardController {
         java.math.BigDecimal totalRevenue = paymentRepository.sumTotalRevenue();
         if (totalRevenue == null) totalRevenue = java.math.BigDecimal.ZERO;
         
-        // Lấy 5 đăng ký gần đây nhất
-        var recentRegistrations = registrationRepository.findTop10ByOrderByRegistrationTimeDesc();
-        if (recentRegistrations.size() > 5) {
-            recentRegistrations = recentRegistrations.subList(0, 5);
-        }
+        // Lấy 5 đăng ký gần đây nhất (Eager Fetch)
+        var recentRegistrations = registrationRepository.findRecentRegistrationsWithAssociations(PageRequest.of(0, 5));
 
         model.addAttribute("studentCount", studentCount);
         model.addAttribute("courseCount", courseCount);

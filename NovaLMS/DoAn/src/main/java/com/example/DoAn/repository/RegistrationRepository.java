@@ -120,11 +120,14 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     Optional<Registration> findByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
 
     // Admin: Lấy tất cả đăng ký
-    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
     List<Registration> findAllRegistrations();
 
     @Query("SELECT COUNT(r) FROM Registration r WHERE r.course.courseId = :courseId OR :courseId IS NULL")
     long countAll(@Param("courseId") Integer courseId);
+
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
+    List<Registration> findRecentRegistrationsWithAssociations(Pageable pageable);
 
     List<Registration> findTop10ByOrderByRegistrationTimeDesc();
 
@@ -138,8 +141,14 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("classId") Integer classId
     );
 
+    @Query("SELECT COUNT(r) FROM Registration r WHERE r.clazz.classId = :classId AND r.status = :status")
+    long countByClazz_ClassIdAndStatus(@Param("classId") Integer classId, @Param("status") String status);
+
     @Query("SELECT r FROM Registration r JOIN FETCH r.user u WHERE r.clazz.classId = :classId AND r.status = 'Approved' ORDER BY u.fullName ASC")
     List<Registration> findApprovedByClassId(@Param("classId") Integer classId);
+
+    @Query("SELECT r.status, COUNT(r) FROM Registration r GROUP BY r.status")
+    List<Object[]> countByStatusDistribution();
 
     /** Thống kê số lượng đăng ký theo danh mục khóa học */
     @Query("SELECT c.category.name, COUNT(r) FROM Registration r JOIN r.course c WHERE c.category IS NOT NULL GROUP BY c.category.name")

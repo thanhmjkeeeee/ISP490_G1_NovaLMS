@@ -42,6 +42,16 @@
     <!-- CREATE/EDIT FORM -->
     <div id="classFormSection" class="card card-custom" style="display: none;">
       <div class="card-header bg-white border-0 p-4">
+        <!-- Student Warning Alert -->
+        <div id="studentWarningAlert" class="alert alert-info border-info rounded-4 mb-3" style="display: none;">
+          <div class="d-flex">
+            <i class="bi bi-info-circle-fill fs-4 me-2"></i>
+            <div>
+              <h6 class="fw-bold mb-1">Chế độ sửa dữ liệu (Data Repair Mode)</h6>
+              <p class="small mb-0">Hệ thống đang cho phép chỉnh sửa mọi thông tin lớp học (ngay cả khi đã có học viên) để phục vụ việc sửa lỗi dữ liệu. <strong>Lưu ý:</strong> Khi thay đổi Ngày khai giảng, Lịch học hoặc Số buổi, hệ thống sẽ tự động cập nhật lại toàn bộ lịch học chi tiết.</p>
+            </div>
+          </div>
+        </div>
         <h5 class="fw-bold m-0" id="formTitle">Tạo lớp học mới</h5>
       </div>
       <div class="card-body p-4">
@@ -96,7 +106,7 @@
 
             <div class="col-md-4">
               <label class="form-label small fw-bold text-secondary text-uppercase">Ca học <span class="text-danger">*</span></label>
-              <select id="slotTime" class="form-select" required>
+              <select id="slotTime" class="form-select" required onchange="onScheduleChange()">
                 <option value="">-- Chọn ca học --</option>
                 <option value="Sáng (7:00 - 9:00)">Sáng (7:00 - 9:00)</option>
                 <option value="Sáng (9:00 - 11:00)">Sáng (9:00 - 11:00)</option>
@@ -238,6 +248,51 @@
       </div>
     </div>
   </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white border-0">
+          <h5 class="modal-title fw-bold"><i class="bi bi-check2-circle me-2"></i>Xác nhận thông tin</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-info border-0 bg-info bg-opacity-10 text-dark small mb-4">
+            <i class="bi bi-info-circle-fill me-2 text-info"></i>
+            Vui lòng kiểm tra kỹ các thông tin dưới đây trước khi lưu. Nếu có thay đổi về lịch học, hệ thống sẽ tự động cập nhật và gửi email cho học viên.
+          </div>
+          <div class="row g-3">
+            <div class="col-12">
+              <p class="text-secondary small fw-bold text-uppercase mb-1">Tên lớp học</p>
+              <p class="fw-bold mb-0" id="mConfirmClassName">---</p>
+            </div>
+            <div class="col-12 border-top pt-3">
+              <p class="text-secondary small fw-bold text-uppercase mb-1">Khóa học & Giảng viên</p>
+              <p class="mb-0"><span class="fw-bold" id="mConfirmCourse">---</span><br><span class="text-secondary" id="mConfirmTeacher">---</span></p>
+            </div>
+            <div class="col-6 border-top pt-3">
+              <p class="text-secondary small fw-bold text-uppercase mb-1">Khai giảng</p>
+              <p class="fw-bold text-success mb-0" id="mConfirmStart">---</p>
+            </div>
+            <div class="col-6 border-top pt-3">
+              <p class="text-secondary small fw-bold text-uppercase mb-1">Kết thúc</p>
+              <p class="fw-bold text-danger mb-0" id="mConfirmEnd">---</p>
+            </div>
+            <div class="col-12 border-top pt-3">
+              <p class="text-secondary small fw-bold text-uppercase mb-1">Lịch học chi tiết</p>
+              <p class="fw-bold mb-0"><span id="mConfirmSchedule">---</span> | <span class="text-primary" id="mConfirmSlot">---</span></p>
+              <p class="small text-secondary mb-0">Tổng cộng: <span id="mConfirmSessions" class="fw-bold text-dark">0</span> buổi</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 p-4 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Quay lại</button>
+          <button type="button" id="finalSubmitBtn" class="btn btn-primary rounded-pill px-4 fw-bold">Xác nhận & Lưu</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
@@ -301,7 +356,7 @@
       const getActiveSlot = () => document.getElementById('slotTime').value;
       document.getElementById('teacherId').addEventListener('change', () => fetchAvailableSlots(getActiveSlot()));
       document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => {
-          cb.addEventListener('change', () => fetchAvailableSlots(getActiveSlot()));
+          cb.addEventListener('change', onScheduleChange);
       });
   }
 
@@ -341,7 +396,8 @@
           .replace(/t2/g, '2').replace(/t3/g, '3').replace(/t4/g, '4')
           .replace(/t5/g, '5').replace(/t6/g, '6').replace(/t7/g, '7');
       const nums = normalized.match(/\b([2-8])\b/g) || [];
-      nums.forEach(n => { const v = n === '8' ? '7' : n; if (!days.includes(v)) days.push(v); });
+      // Vietnam standard: 2=T2, 3=T3, ..., 8=CN
+      nums.forEach(n => { if (!days.includes(n)) days.push(n); });
       return days.sort();
   }
 
@@ -359,8 +415,9 @@
       let sessionsLeft = parseInt(numSessionsEl.value);
       const maxDays = sessionsLeft * 14;
       for (let i = 0; i < maxDays && sessionsLeft > 0; i++) {
-          const dow = current.getDay(); // 0=Sun
-          const targetDow = dow === 0 ? '7' : String(dow);
+          const dow = current.getDay(); // 0=Sunday, 1=Monday...
+          // Map browser's dow to Vietnam's 2-8 range: 1->2, 2->3, ..., 0->8
+          const targetDow = (dow === 0 ? '8' : String(dow + 1));
           if (weekdays.includes(targetDow)) {
               sessionsLeft--;
               if (sessionsLeft === 0) {
@@ -498,9 +555,9 @@
       if (!data) return;
       document.getElementById('classId').value = data.classId;
       document.getElementById('className').value = data.className;
-      document.getElementById('description').value = data.description || '';
-      await fetchAvailableSlots(data.slotTime);
+      if (data.description) document.getElementById('description').value = data.description;
       if (data.numberOfSessions) document.getElementById('numberOfSessions').value = data.numberOfSessions;
+
       if (data.meetLink) document.getElementById('meetLink').value = data.meetLink;
       if (data.startDate) document.getElementById('startDate').value = data.startDate.split('T')[0];
       if (data.endDate) document.getElementById('endDate').value = data.endDate.split('T')[0];
@@ -519,6 +576,16 @@
       if (statusRadio) statusRadio.checked = true;
       // Parse schedule to checkboxes
       parseScheduleToCheckboxes(data.schedule);
+      // Force unlock all fields regardless of students presence to allow repair
+      unlockRestrictedFields();
+      const hasApprovedStudents = data.registrations && data.registrations.some(r => r.status === 'Approved');
+      if (hasApprovedStudents) {
+          document.getElementById('studentWarningAlert').style.display = 'block';
+          console.log('[Dev] Class has approved students. Showing info alert. Fields remain UNLOCKED.');
+      } else {
+          document.getElementById('studentWarningAlert').style.display = 'none';
+      }
+
       document.getElementById('pageTitle').innerText = 'Chỉnh sửa lớp học';
       setTimeout(async () => {
           if (data.courseId) { const s = document.getElementById('courseId'); if (s) s.value = data.courseId; }
@@ -528,6 +595,29 @@
           }
       }, 500);
   }
+
+  function lockRestrictedFields() {
+      // Relaxed: No longer disabling fields to allow data repair/fixing
+      /*
+      const fields = ['className', 'courseId', 'teacherId', 'numberOfSessions', 'slotTime'];
+      fields.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = true;
+      });
+      // Disable schedule checkboxes
+      document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => cb.disabled = true);
+      */
+  }
+
+  function unlockRestrictedFields() {
+      const fields = ['className', 'courseId', 'teacherId', 'numberOfSessions', 'slotTime', 'startDate'];
+      fields.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.disabled = false;
+      });
+      document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => cb.disabled = false);
+  }
+
 
   async function loadClassDetailForView() {
       const data = await loadClassDetail();
@@ -560,6 +650,64 @@
       return days.join(', ');
   }
 
+  function buildScheduleString() {
+      const days = [];
+      document.querySelectorAll('.schedule-check input[type="checkbox"]:checked').forEach(cb => days.push(cb.value));
+      return days.join(', ');
+  }
+
+  async function updateEndDate() {
+      const schedule = buildScheduleString();
+      const slotTime = document.getElementById('slotTime').value;
+      const startDate = document.getElementById('startDate').value;
+      const numberOfSessions = document.getElementById('numberOfSessions').value;
+
+      if (!schedule || !slotTime || !startDate || !numberOfSessions) return;
+
+      try {
+          const res = await fetch(`/api/v1/classes/calculate-end-date?schedule=${encodeURIComponent(schedule)}&slotTime=${encodeURIComponent(slotTime)}&startDate=${startDate}&numberOfSessions=${numberOfSessions}`);
+          const result = await res.json();
+          if (result.status === 200 && result.data) {
+              document.getElementById('endDate').value = result.data.split('T')[0];
+          }
+      } catch (err) { console.error('Error calculating end date', err); }
+  }
+
+  function onScheduleChange() {
+      updateEndDate();
+  }
+
+  function parseScheduleToCheckboxes(schedule) {
+      document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => cb.checked = false);
+      if (!schedule) return;
+      const s = schedule.toLowerCase().replaceAll('\\s+', '');
+      const numMap = { 'mon': '2', 'tue': '3', 'wed': '4', 'thu': '5', 'fri': '6', 'sat': '7', 'sun': '8' };
+      const dayNameMap = { 'thứ2': '2', 'thứ3': '3', 'thứ4': '4', 'thứ5': '5', 'thứ6': '6', 'thứ7': '7', 'chủnhật': '8' };
+
+      // Try numeric match first
+      const matches = s.match(/[2-8]/g);
+      if (matches) {
+          matches.forEach(m => {
+              const cb = document.getElementById('day' + m);
+              if (cb) cb.checked = true;
+          });
+      }
+      // Try name match
+      Object.keys(dayNameMap).forEach(key => {
+          if (s.includes(key)) {
+              const cb = document.getElementById('day' + dayNameMap[key]);
+              if (cb) cb.checked = true;
+          }
+      });
+      // Try alias match
+      Object.keys(numMap).forEach(key => {
+          if (s.includes(key)) {
+              const cb = document.getElementById('day' + numMap[key]);
+              if (cb) cb.checked = true;
+          }
+      });
+  }
+
   function renderStudents(list) {
       const tbody = document.getElementById('studentTableBody');
       if (!tbody) return;
@@ -583,42 +731,60 @@
 
   function goToEdit() { if (classId) window.location.href = `/manager/class/edit/${classId}`; }
 
-  // Form submit
+  // Form submit (Trigger Modal first)
   document.getElementById('classForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const submitBtn = document.getElementById('btnSubmitClass');
-      const btnText = submitBtn.querySelector('.btn-text');
-      const spinner = submitBtn.querySelector('.spinner-border');
-
+      
       const setError = (id, msg) => { const el = document.getElementById(id + 'Error'); if (el) el.textContent = msg || ''; };
       const clearErrors = () => ['className','courseId','teacherId','schedule','numberOfSessions','meetLink','startDate'].forEach(id => setError(id,''));
       clearErrors();
+      
       const className = document.getElementById('className').value.trim();
       const courseId = document.getElementById('courseId').value;
       const scheduleStr = buildScheduleString();
       const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value);
+      const startDate = document.getElementById('startDate').value;
+
       let hasError = false;
       if (!className) { setError('className','Vui lòng nhập tên lớp học.'); hasError = true; }
       if (!courseId) { setError('courseId','Vui lòng chọn khóa học.'); hasError = true; }
       if (!document.getElementById('teacherId').value) { setError('teacherId','Vui lòng chọn giảng viên.'); hasError = true; }
       if (!scheduleStr) { setError('schedule','Vui lòng chọn ít nhất một ngày học.'); hasError = true; }
       if (!numberOfSessions || numberOfSessions <= 0) { setError('numberOfSessions','Vui lòng nhập số buổi học.'); hasError = true; }
-      const startDate = document.getElementById('startDate').value;
       if (!startDate) { setError('startDate','Vui lòng chọn ngày khai giảng.'); hasError = true; }
-      const meetLink = document.getElementById('meetLink').value.trim();
-      if (!meetLink) { setError('meetLink','Vui lòng nhập link meet.'); hasError = true; }
+      if (!document.getElementById('meetLink').value.trim()) { setError('meetLink','Vui lòng nhập link meet.'); hasError = true; }
 
-      // Validate: Số buổi học >= Số Lesson
       if (window.currentCourseLessonCount > 0 && numberOfSessions < window.currentCourseLessonCount) {
           setError('numberOfSessions', `Số buổi học (${numberOfSessions}) không được ít hơn số bài học của khóa (${window.currentCourseLessonCount} bài).`);
-          document.getElementById('numberOfSessions').classList.add('is-invalid');
           hasError = true;
       }
 
       if (hasError) return;
+  
+      // Populate Confirmation Modal
+      document.getElementById('mConfirmClassName').textContent = className;
+      document.getElementById('mConfirmCourse').textContent = document.getElementById('courseId').options[document.getElementById('courseId').selectedIndex]?.text || '---';
+      document.getElementById('mConfirmTeacher').textContent = document.getElementById('teacherId').options[document.getElementById('teacherId').selectedIndex]?.text || 'Chưa phân công';
+      document.getElementById('mConfirmStart').textContent = startDate;
+      document.getElementById('mConfirmEnd').textContent = document.getElementById('endDate').value || '---';
+      document.getElementById('mConfirmSchedule').textContent = scheduleStr;
+      document.getElementById('mConfirmSlot').textContent = document.getElementById('slotTime').value || '---';
+      document.getElementById('mConfirmSessions').textContent = numberOfSessions;
 
-      const status = document.querySelector('input[name="classStatus"]:checked')?.value || 'Draft';
+      const confirmModal = new bootstrap.Modal(document.getElementById('confirmSaveModal'));
+      confirmModal.show();
+  });
+
+  // Final API Call from Modal
+  document.getElementById('finalSubmitBtn').addEventListener('click', async function() {
+      const className = document.getElementById('className').value.trim();
+      const courseId = document.getElementById('courseId').value;
+      const scheduleStr = buildScheduleString();
+      const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value);
+      const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
+      const meetLink = document.getElementById('meetLink').value.trim();
+      const status = document.querySelector('input[name="classStatus"]:checked')?.value || 'Draft';
       const formatDt = (d) => d ? d + 'T00:00:00' : null;
 
       const payload = {
@@ -631,10 +797,10 @@
           description: document.getElementById('description').value.trim()
       };
 
-      // Spam protection
-      submitBtn.disabled = true;
-      btnText.classList.add('d-none');
-      spinner.classList.remove('d-none');
+      const finalBtn = document.getElementById('finalSubmitBtn');
+      const originalText = finalBtn.innerHTML;
+      finalBtn.disabled = true;
+      finalBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang lưu...';
 
       try {
           const url = classId ? `/api/v1/classes/${classId}` : '/api/v1/classes/';
@@ -642,19 +808,28 @@
           const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
           const result = await res.json();
           if (result.status === 201 || result.status === 200 || result.status === 202) {
-              alert('Lưu thành công!');
-              window.location.href = '/manager/class/list';
+              const modalEl = document.getElementById('confirmSaveModal');
+              const modalInst = bootstrap.Modal.getInstance(modalEl);
+              if (modalInst) modalInst.hide();
+              
+              Swal.fire({
+                  icon: 'success',
+                  title: 'Lưu thành công!',
+                  text: 'Dữ liệu lớp học và lịch dạy đã được cập nhật.',
+                  timer: 1500,
+                  showConfirmButton: false
+              }).then(() => {
+                  window.location.href = '/manager/class/list';
+              });
           } else { 
-              setError('className', result.message || 'Lưu thất bại.');
-              submitBtn.disabled = false;
-              btnText.classList.remove('d-none');
-              spinner.classList.add('d-none');
+              showToast(result.message || 'Lưu thất bại.', 'error');
+              finalBtn.disabled = false;
+              finalBtn.innerHTML = originalText;
           }
       } catch (err) { 
-          setError('className','Không thể kết nối máy chủ.');
-          submitBtn.disabled = false;
-          btnText.classList.remove('d-none');
-          spinner.classList.add('d-none');
+          showToast('Không thể kết nối máy chủ.', 'error');
+          finalBtn.disabled = false;
+          finalBtn.innerHTML = originalText;
       }
   });
 </script>

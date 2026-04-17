@@ -36,4 +36,7 @@ public interface RescheduleRequestRepository extends JpaRepository<RescheduleReq
             String newStartTime,
             String status
     );
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteBySession_Clazz_ClassId(Integer classId);
 }

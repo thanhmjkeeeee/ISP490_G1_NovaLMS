@@ -17,7 +17,7 @@ public class GlobalModelAttribute {
     @ModelAttribute
     public void addUserProfile(Model model, Principal principal) {
         if (principal != null) {
-            userRepository.findByEmail(principal.getName()).ifPresent(user -> {
+            userRepository.findByEmailWithRole(principal.getName()).ifPresent(user -> {
                 model.addAttribute("userProfile", user);
             });
         }

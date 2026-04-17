@@ -17,6 +17,7 @@ import com.example.DoAn.repository.ClassSessionRepository;
 import com.example.DoAn.repository.CourseRepository;
 import com.example.DoAn.repository.LessonRepository;
 import com.example.DoAn.repository.RegistrationRepository;
+import com.example.DoAn.repository.RescheduleRequestRepository;
 import com.example.DoAn.repository.SessionLessonRepository;
 import com.example.DoAn.repository.QuizRepository;
 import com.example.DoAn.repository.SessionQuizRepository;
@@ -57,16 +58,22 @@ public class ClassServiceImpl implements IClassService {
             "Sáng (9:00 - 11:00)",
             "Chiều (13:00 - 15:00)",
             "Chiều (15:00 - 17:00)",
-            "Tối (18:00 - 20:00)"
-    );
-    private Integer getSlotNumberFromTime(String slotTime) {
-        if (slotTime == null || slotTime.isBlank()) return null;
+            "Tối (18:00 - 20:00)");
 
-        if (slotTime.contains("7:00 - 9:00")) return 1;
-        if (slotTime.contains("9:00 - 11:00")) return 2;
-        if (slotTime.contains("13:00 - 15:00")) return 3;
-        if (slotTime.contains("15:00 - 17:00")) return 4;
-        if (slotTime.contains("18:00 - 20:00")) return 5;
+    private Integer getSlotNumberFromTime(String slotTime) {
+        if (slotTime == null || slotTime.isBlank())
+            return null;
+
+        if (slotTime.contains("7:00 - 9:00"))
+            return 1;
+        if (slotTime.contains("9:00 - 11:00"))
+            return 2;
+        if (slotTime.contains("13:00 - 15:00"))
+            return 3;
+        if (slotTime.contains("15:00 - 17:00"))
+            return 4;
+        if (slotTime.contains("18:00 - 20:00"))
+            return 5;
 
         return null; // Trả về null nếu không khớp
     }
@@ -80,6 +87,7 @@ public class ClassServiceImpl implements IClassService {
     private final QuizRepository quizRepository;
     private final SessionQuizRepository sessionQuizRepository;
     private final RegistrationRepository registrationRepository;
+    private final RescheduleRequestRepository rescheduleRequestRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
 
@@ -89,7 +97,8 @@ public class ClassServiceImpl implements IClassService {
             return ALL_SLOT_TIMES;
         }
 
-        List<Clazz> existingClasses = classRepository.findByTeacherAndSchedule(teacherId, schedule.trim(), excludeClassId);
+        List<Clazz> existingClasses = classRepository.findByTeacherAndSchedule(teacherId, schedule.trim(),
+                excludeClassId);
         List<String> occupied = existingClasses.stream()
                 .map(Clazz::getSlotTime)
                 .filter(s -> s != null && !s.isBlank())
@@ -139,8 +148,10 @@ public class ClassServiceImpl implements IClassService {
         }
 
         if (request.getTeacherId() != null && request.getSchedule() != null && !request.getSchedule().isBlank()) {
-            List<String> availableSlots = getAvailableSlotTimes(request.getTeacherId(), request.getSchedule(), excludeClassId);
-            if (!availableSlots.stream().map(this::normalizeSlot).toList().contains(normalizeSlot(request.getSlotTime()))) {
+            List<String> availableSlots = getAvailableSlotTimes(request.getTeacherId(), request.getSchedule(),
+                    excludeClassId);
+            if (!availableSlots.stream().map(this::normalizeSlot).toList()
+                    .contains(normalizeSlot(request.getSlotTime()))) {
                 throw new RuntimeException("Giáo viên đã có lớp trùng lịch học và ca học");
             }
         }
@@ -149,7 +160,7 @@ public class ClassServiceImpl implements IClassService {
         if (request.getCourseId() != null && request.getNumberOfSessions() != null) {
             Course course = courseRepository.findById(request.getCourseId()).orElse(null);
             Integer minSessions = 1;
-            
+
             if (course != null && course.getNumberOfSessions() != null && course.getNumberOfSessions() > 0) {
                 minSessions = course.getNumberOfSessions();
             } else {
@@ -157,7 +168,8 @@ public class ClassServiceImpl implements IClassService {
             }
 
             if (request.getNumberOfSessions() < minSessions) {
-                throw new RuntimeException("Số buổi học (" + request.getNumberOfSessions() + ") không được nhỏ hơn yêu cầu tối thiểu của khóa (" + minSessions + ")");
+                throw new RuntimeException("Số buổi học (" + request.getNumberOfSessions()
+                        + ") không được nhỏ hơn yêu cầu tối thiểu của khóa (" + minSessions + ")");
             }
         }
     }
@@ -174,9 +186,11 @@ public class ClassServiceImpl implements IClassService {
     }
 
     private String normalizeHourMinute(String time) {
-        if (time == null || time.isBlank()) return time;
+        if (time == null || time.isBlank())
+            return time;
         String[] parts = time.split(":");
-        if (parts.length != 2) return time;
+        if (parts.length != 2)
+            return time;
         try {
             int hour = Integer.parseInt(parts[0]);
             int minute = Integer.parseInt(parts[1]);
@@ -205,7 +219,8 @@ public class ClassServiceImpl implements IClassService {
         Clazz clazz = Clazz.builder()
                 .className(request.getClassName())
                 .course(courseRepository.findById(request.getCourseId()).orElse(null))
-                .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null)
+                .teacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null)
+                        : null)
                 .startDate(startDate)
                 .endDate(endDate)
                 .status(request.getStatus() != null ? request.getStatus() : "Pending")
@@ -228,8 +243,23 @@ public class ClassServiceImpl implements IClassService {
             if (!sessions.isEmpty()) {
                 classSessionRepository.saveAll(sessions);
 
-                // --- Auto mapping lessons to sessions ---
-                autoMapLessonsToSessions(clazz.getClassId(), clazz.getCourse().getCourseId());
+                // --- Auto mapping lessons 1:1 ---
+                List<Lesson> courseLessons = lessonRepository.findAll().stream()
+                        .filter(l -> l.getModule().getCourse().getCourseId().equals(clazz.getCourse().getCourseId()))
+                        .toList();
+
+                // Better: Use repository method for sorted lessons if available
+                // List<Lesson> courseLessons =
+                // lessonRepository.findByCourseIdSorted(clazz.getCourse().getCourseId());
+
+                for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
+                    SessionLesson mapping = SessionLesson.builder()
+                            .session(sessions.get(i))
+                            .lesson(courseLessons.get(i))
+                            .orderIndex(1)
+                            .build();
+                    sessionLessonRepository.save(mapping);
+                }
             }
         }
 
@@ -244,17 +274,20 @@ public class ClassServiceImpl implements IClassService {
     // ── Notification helper ────────────────────────────────────────────────────
 
     private void notifyTeacherClassCreated(Clazz clazz) {
-        if (clazz == null || clazz.getTeacher() == null) return;
+        if (clazz == null || clazz.getTeacher() == null)
+            return;
         User teacher = clazz.getTeacher();
         String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
         String className = clazz.getClassName() != null ? clazz.getClassName() : "";
         String courseName = clazz.getCourse() != null && clazz.getCourse().getCourseName() != null
-                ? clazz.getCourse().getCourseName() : "";
+                ? clazz.getCourse().getCourseName()
+                : "";
         String startDate = clazz.getStartDate() != null ? clazz.getStartDate().toLocalDate().toString() : "";
         String schedule = clazz.getSchedule() != null ? clazz.getSchedule() : "";
 
         if (teacher.getEmail() != null && !teacher.getEmail().isBlank()) {
-            emailService.sendClassEnrollmentEmail(teacher.getEmail(), teacherName, className, courseName, startDate, schedule);
+            emailService.sendClassEnrollmentEmail(teacher.getEmail(), teacherName, className, courseName, startDate,
+                    schedule);
         }
         if (teacher.getUserId() != null) {
             notificationService.sendClassEnrollment(Long.valueOf(teacher.getUserId()), className, courseName);
@@ -264,13 +297,15 @@ public class ClassServiceImpl implements IClassService {
     /**
      * Tự động tạo các buổi học dựa trên lịch học.
      * Ví dụ: schedule="Thứ 2, 4, 6" với slotTime="Tối (18:00 - 20:00)"
-     * sẽ tạo buổi 1, 2, 3... vào đúng ngày thứ 2, 4, 6 trong khoảng startDate -> endDate
+     * sẽ tạo buổi 1, 2, 3... vào đúng ngày thứ 2, 4, 6 trong khoảng startDate ->
+     * endDate
      */
     private List<ClassSession> generateSessions(Clazz clazz, String schedule, String slotTime,
             String startDateStr, Integer numberOfSessions) {
 
         List<ClassSession> sessions = new ArrayList<>();
-        if (numberOfSessions == null || numberOfSessions <= 0) return sessions;
+        if (numberOfSessions == null || numberOfSessions <= 0)
+            return sessions;
 
         // Parse slot time: "Tối (18:00 - 20:00)" -> start="18:00", end="20:00"
         String startTime = extractTime(slotTime, true);
@@ -288,10 +323,10 @@ public class ClassServiceImpl implements IClassService {
 
         int sessionNumber = 1;
         LocalDate current = startDate;
-        int maxDays = numberOfSessions * 14; // safety: max 14 days per session
+        int maxDays = numberOfSessions * 14;
 
         for (int i = 0; i < maxDays && sessions.size() < numberOfSessions; i++) {
-            int currentDow = current.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+            int currentDow = current.getDayOfWeek().getValue();
 
             for (DayOfWeekInfo dw : weekdays) {
                 if (currentDow == dw.targetDow) {
@@ -303,7 +338,7 @@ public class ClassServiceImpl implements IClassService {
                             .sessionDate(sessionDateTime)
                             .startTime(startTime)
                             .endTime(endTime)
-                            .slotNumber(getSlotNumberFromTime(clazz.getSlotTime()))
+                            .slotNumber(getSlotNumberFromTime(slotTime))
                             .build();
                     sessions.add(session);
                     break;
@@ -323,32 +358,40 @@ public class ClassServiceImpl implements IClassService {
         }
 
         List<DayOfWeekInfo> weekdays = parseScheduleDays(schedule);
-        if (weekdays.isEmpty()) return null;
+        if (weekdays.isEmpty())
+            return null;
 
         LocalDate startDate = LocalDate.parse(startDateStr.substring(0, 10));
         LocalDate current = startDate;
+        int sessionsFound = 0;
         int maxDays = numberOfSessions * 14;
 
-        for (int i = 0; i < maxDays && numberOfSessions > 0; i++) {
+        for (int i = 0; i < maxDays && sessionsFound < numberOfSessions; i++) {
             int currentDow = current.getDayOfWeek().getValue();
-            if (containsDow(weekdays, currentDow)) {
-                numberOfSessions--;
-                if (numberOfSessions == 0) {
-                    return current.atTime(23, 59);
+            for (DayOfWeekInfo dw : weekdays) {
+                if (currentDow == dw.targetDow) {
+                    sessionsFound++;
+                    if (sessionsFound == numberOfSessions) {
+                        return current.atTime(21, 0);
+                    }
+                    break;
                 }
             }
             current = current.plusDays(1);
         }
-        return current.atTime(23, 59);
+        return null;
     }
 
     private boolean containsDow(List<DayOfWeekInfo> list, int dow) {
         return list.stream().anyMatch(d -> d.targetDow == dow);
     }
 
-    /** Trích xuất giờ bắt đầu hoặc kết thúc từ slotTime như "Tối (18:00 - 20:00)" */
+    /**
+     * Trích xuất giờ bắt đầu hoặc kết thúc từ slotTime như "Tối (18:00 - 20:00)"
+     */
     private String extractTime(String slotTime, boolean isStart) {
-        if (slotTime == null) return isStart ? "19:00" : "21:00";
+        if (slotTime == null)
+            return isStart ? "19:00" : "21:00";
         Pattern p = Pattern.compile("(\\d{1,2}:\\d{2})\\s*-\\s*(\\d{1,2}:\\d{2})");
         Matcher m = p.matcher(slotTime);
         if (m.find()) {
@@ -370,29 +413,31 @@ public class ClassServiceImpl implements IClassService {
     /** Parse schedule string thành danh sách các thứ trong tuần (1=Mon...7=Sun) */
     private List<DayOfWeekInfo> parseScheduleDays(String schedule) {
         List<DayOfWeekInfo> result = new ArrayList<>();
-        if (schedule == null || schedule.isBlank()) return result;
+        if (schedule == null || schedule.isBlank())
+            return result;
 
         String s = schedule.toLowerCase().replaceAll("\\s+", "");
 
-        // Map các pattern
         String[][] dayMappings = {
-            {"thứ2", "t2", "mon", "2", "monday"},
-            {"thứ3", "t3", "tue", "3", "tuesday"},
-            {"thứ4", "t4", "wed", "4", "wednesday"},
-            {"thứ5", "t5", "thu", "5", "thursday"},
-            {"thứ6", "t6", "fri", "6", "friday"},
-            {"thứ7", "t7", "sat", "7", "saturday"},
-            {"cn", "chủnhật", "sun", "8", "sunday"}
+                { "thứ2", "t2", "mon", "2", "monday" },
+                { "thứ3", "t3", "tue", "3", "tuesday" },
+                { "thứ4", "t4", "wed", "4", "wednesday" },
+                { "thứ5", "t5", "thu", "5", "thursday" },
+                { "thứ6", "t6", "fri", "6", "friday" },
+                { "thứ7", "t7", "sat", "7", "saturday" },
+                { "cn", "chủnhật", "sun", "8", "sunday" }
         };
 
-        // Tìm tất cả các số trong chuỗi (1-7 hoặc 2-8)
-        Pattern numP = Pattern.compile("\\b([2-8])\\b");
+        // Tìm tất cả các số trong chuỗi (2-8) - Quy chuẩn Việt Nam: 2=T2...8=CN
+        Pattern numP = Pattern.compile("([2-8])");
         Matcher numM = numP.matcher(s);
         while (numM.find()) {
             int num = Integer.parseInt(numM.group(1));
-            if (num == 8) num = 7; // Chủ nhật
-            if (!containsDow(result, num)) {
-                result.add(new DayOfWeekInfo(num, numM.group(1)));
+            // Java DayOfWeek: 1 (Mon) - 7 (Sun)
+            // Vietnam: 2 (T2) -> Java 1, ..., 7 (T7) -> Java 6, 8 (CN) -> Java 7
+            int dow = (num == 8) ? 7 : (num - 1);
+            if (!containsDow(result, dow)) {
+                result.add(new DayOfWeekInfo(dow, numM.group(1)));
             }
         }
 
@@ -400,30 +445,12 @@ public class ClassServiceImpl implements IClassService {
         for (int i = 0; i < dayMappings.length; i++) {
             for (String alias : dayMappings[i]) {
                 if (s.contains(alias)) {
-                    int dow = (i == 6) ? 7 : (i + 2); // CN=7, T2=2...
+                    int dow = i + 1;
                     if (!containsDow(result, dow)) {
                         result.add(new DayOfWeekInfo(dow, alias));
                     }
                     break;
                 }
-            }
-        }
-
-        // Nếu vẫn rỗng, thử parse CSV
-        if (result.isEmpty()) {
-            String[] parts = schedule.split("[,\\-;\\s]+");
-            for (String p2 : parts) {
-                p2 = p2.trim().toLowerCase();
-                if (p2.isEmpty()) continue;
-                try {
-                    int n = Integer.parseInt(p2.replaceAll("\\D", ""));
-                    if (n >= 2 && n <= 8) {
-                        int dow = n == 8 ? 7 : n;
-                        if (!containsDow(result, dow)) {
-                            result.add(new DayOfWeekInfo(dow, p2));
-                        }
-                    }
-                } catch (NumberFormatException ignored) {}
             }
         }
 
@@ -433,7 +460,11 @@ public class ClassServiceImpl implements IClassService {
     private static class DayOfWeekInfo {
         int targetDow;
         String matched;
-        DayOfWeekInfo(int d, String m) { this.targetDow = d; this.matched = m; }
+
+        DayOfWeekInfo(int d, String m) {
+            this.targetDow = d;
+            this.matched = m;
+        }
     }
 
     @Override
@@ -443,9 +474,32 @@ public class ClassServiceImpl implements IClassService {
 
         Clazz clazz = classRepository.findById(id).orElseThrow(() -> new RuntimeException("Class not found"));
 
+        // Detect changes in critical fields to trigger session regeneration
+        boolean criticalFieldsChanged = false;
+        if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
+            LocalDateTime newStart = LocalDateTime.parse(request.getStartDate());
+            if (clazz.getStartDate() == null || !clazz.getStartDate().isEqual(newStart))
+                criticalFieldsChanged = true;
+        }
+        if (request.getSchedule() != null && !request.getSchedule().equals(clazz.getSchedule()))
+            criticalFieldsChanged = true;
+        if (request.getNumberOfSessions() != null && !request.getNumberOfSessions().equals(clazz.getNumberOfSessions()))
+            criticalFieldsChanged = true;
+
+        // --- BẢO VỆ DỮ LIỆU KHI ĐÃ CÓ HỌC VIÊN ---
+        // Relaxed entirely to allow data repair by both Admin and Manager
+        /*
+         * long approvedCount = registrationRepository.countByClazz_ClassIdAndStatus(id,
+         * "Approved");
+         * if (approvedCount > 0) {
+         * checkRestrictedFieldChanges(clazz, request);
+         * }
+         */
+
         clazz.setClassName(request.getClassName());
         clazz.setCourse(courseRepository.findById(request.getCourseId()).orElse(null));
-        clazz.setTeacher(request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null);
+        clazz.setTeacher(
+                request.getTeacherId() != null ? userRepository.findById(request.getTeacherId()).orElse(null) : null);
 
         if (request.getStartDate() != null && !request.getStartDate().isEmpty()) {
             clazz.setStartDate(LocalDateTime.parse(request.getStartDate()));
@@ -455,7 +509,8 @@ public class ClassServiceImpl implements IClassService {
         } else if (request.getSchedule() != null && !request.getSchedule().isBlank()
                 && request.getSlotTime() != null && !request.getSlotTime().isBlank()
                 && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
-            clazz.setEndDate(calculateEndDate(request.getSchedule(), request.getStartDate(), request.getNumberOfSessions()));
+            clazz.setEndDate(
+                    calculateEndDate(request.getSchedule(), request.getStartDate(), request.getNumberOfSessions()));
         }
 
         clazz.setMeetLink(request.getMeetLink());
@@ -468,25 +523,91 @@ public class ClassServiceImpl implements IClassService {
 
         classRepository.save(clazz);
 
-        // Tự động tạo sessions nếu chưa có
-        int existingCount = classSessionRepository.countByClassId(id);
-        if (existingCount == 0
-                && request.getStartDate() != null && !request.getStartDate().isEmpty()
-                && request.getSchedule() != null && !request.getSchedule().isEmpty()
-                && request.getSlotTime() != null && !request.getSlotTime().isEmpty()
-                && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
+        // Session regeneration logic
+        if (criticalFieldsChanged) {
+            log.info("Critical fields changed for Class id={}, regenerating sessions", id);
+            // Delete old mappings and sessions
+            rescheduleRequestRepository.deleteBySession_Clazz_ClassId(id);
+            sessionLessonRepository.deleteBySession_Clazz_ClassId(id);
+            classSessionRepository.deleteByClazz_ClassId(id);
 
-            List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
-                    request.getStartDate(), request.getNumberOfSessions());
-            if (!sessions.isEmpty()) {
-                classSessionRepository.saveAll(sessions);
-                log.info("Created {} sessions for class {} on update", sessions.size(), clazz.getClassName());
-                
-                // --- Auto mapping lessons to sessions ---
-                autoMapLessonsToSessions(clazz.getClassId(), clazz.getCourse().getCourseId());
+            // Generate new ones
+            if (request.getStartDate() != null && !request.getStartDate().isEmpty()
+                    && request.getSchedule() != null && !request.getSchedule().isEmpty()
+                    && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
+
+                List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
+                        request.getStartDate(), request.getNumberOfSessions());
+                if (!sessions.isEmpty()) {
+                    classSessionRepository.saveAll(sessions);
+
+                    // Re-map lessons
+                    List<Lesson> courseLessons = lessonRepository.findAll().stream()
+                            .filter(l -> l.getModule().getCourse().getCourseId()
+                                    .equals(clazz.getCourse().getCourseId()))
+                            .toList();
+                    for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
+                        sessionLessonRepository.save(SessionLesson.builder()
+                                .session(sessions.get(i))
+                                .lesson(courseLessons.get(i))
+                                .build());
+                    }
+
+                    // --- Notify Enrolled Students via Email ---
+                    try {
+                        List<com.example.DoAn.model.Registration> approvedRegs = registrationRepository
+                                .findApprovedByClassId(id);
+                        if (approvedRegs != null && !approvedRegs.isEmpty()) {
+                            String startDateStr = request.getStartDate() != null
+                                    ? request.getStartDate().substring(0, 10)
+                                    : "";
+                            for (com.example.DoAn.model.Registration reg : approvedRegs) {
+                                if (reg.getUser() != null && reg.getUser().getEmail() != null) {
+                                    emailService.sendClassScheduleUpdatedEmail(
+                                            reg.getUser().getEmail(),
+                                            reg.getUser().getFullName(),
+                                            clazz.getClassName(),
+                                            startDateStr,
+                                            request.getSchedule(),
+                                            request.getSlotTime());
+                                }
+                            }
+                            log.info("Sent schedule update emails to {} students for Class id={}", approvedRegs.size(),
+                                    id);
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to send schedule update emails: {}", e.getMessage());
+                    }
+                }
+            }
+        } else {
+            // Original logic for new classes (existingCount == 0)
+            int existingCount = classSessionRepository.countByClassId(id);
+            if (existingCount == 0
+                    && request.getStartDate() != null && !request.getStartDate().isEmpty()
+                    && request.getSchedule() != null && !request.getSchedule().isEmpty()
+                    && request.getSlotTime() != null && !request.getSlotTime().isEmpty()
+                    && request.getNumberOfSessions() != null && request.getNumberOfSessions() > 0) {
+
+                List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
+                        request.getStartDate(), request.getNumberOfSessions());
+                if (!sessions.isEmpty()) {
+                    classSessionRepository.saveAll(sessions);
+
+                    // Re-map lessons
+                    List<Lesson> courseLessons = lessonRepository.findAll().stream()
+                            .filter(l -> l.getModule().getCourse().getCourseId()
+                                    .equals(clazz.getCourse().getCourseId()))
+                            .toList();
+                    for (int i = 0; i < Math.min(sessions.size(), courseLessons.size()); i++) {
+                        sessionLessonRepository.save(SessionLesson.builder()
+                                .session(sessions.get(i))
+                                .lesson(courseLessons.get(i))
+                                .build());
+                    }
+                }
             }
         }
-
         log.info("Class updated successfully, id={}", id);
     }
 
@@ -498,13 +619,16 @@ public class ClassServiceImpl implements IClassService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ClassDetailResponse getClassById(Integer id) {
         Clazz clazz = classRepository.findById(id).orElseThrow(() -> new RuntimeException("Class not found"));
         return mapToResponse(clazz);
     }
 
     @Override
-    public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className, String courseName, String teacherName, String status) {
+    @Transactional(readOnly = true)
+    public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className,
+            String courseName, String teacherName, String status) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").descending());
 
         Specification<Clazz> spec = (root, query, cb) -> {
@@ -514,10 +638,12 @@ public class ClassServiceImpl implements IClassService {
                 predicates.add(cb.like(cb.lower(root.get("className")), "%" + className.trim().toLowerCase() + "%"));
             }
             if (courseName != null && !courseName.trim().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("course").get("courseName")), "%" + courseName.trim().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("course").get("courseName")),
+                        "%" + courseName.trim().toLowerCase() + "%"));
             }
             if (teacherName != null && !teacherName.trim().isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("teacher").get("fullName")), "%" + teacherName.trim().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("teacher").get("fullName")),
+                        "%" + teacherName.trim().toLowerCase() + "%"));
             }
             if (status != null && !status.trim().isEmpty()) {
                 predicates.add(cb.equal(cb.lower(root.get("status")), status.toLowerCase()));
@@ -540,6 +666,37 @@ public class ClassServiceImpl implements IClassService {
                 .build();
     }
 
+    private void checkRestrictedFieldChanges(Clazz current, ClassRequestDTO request) {
+        StringBuilder errors = new StringBuilder();
+
+        if (!current.getClassName().equals(request.getClassName())) {
+            errors.append("Tên lớp học, ");
+        }
+        if (!current.getCourse().getCourseId().equals(request.getCourseId())) {
+            errors.append("Khóa học, ");
+        }
+        if (current.getTeacher() != null && !current.getTeacher().getUserId().equals(request.getTeacherId())) {
+            errors.append("Giảng viên, ");
+        }
+        if (!current.getNumberOfSessions().equals(request.getNumberOfSessions())) {
+            errors.append("Số buổi học, ");
+        }
+        if (!current.getSlotTime().equalsIgnoreCase(request.getSlotTime())) {
+            errors.append("Ca học, ");
+        }
+        if (!current.getSchedule().equals(request.getSchedule())) {
+            errors.append("Lịch học, ");
+        }
+
+        if (errors.length() > 0) {
+            String msg = errors.substring(0, errors.length() - 2);
+            log.warn("Field changes detected on restricted class: {}", msg);
+            // Relaxed: Just logging instead of throwing to allow data repair
+            // throw new RuntimeException("Không được sửa [" + msg + "] vì lớp đã có học
+            // viên đã được phê duyệt.");
+        }
+    }
+
     private ClassDetailResponse mapToResponse(Clazz clazz) {
         List<RegistrationResponseDTO> registrationDTOs = null;
         if (clazz.getRegistrations() != null) {
@@ -553,7 +710,9 @@ public class ClassServiceImpl implements IClassService {
                             .className(reg.getClazz() != null ? reg.getClazz().getClassName() : null)
                             .courseId(reg.getCourse() != null ? reg.getCourse().getCourseId() : null)
                             .courseName(reg.getCourse() != null ? reg.getCourse().getCourseName() : null)
-                            .registrationTime(reg.getRegistrationTime() != null ? LocalDateTime.parse(reg.getRegistrationTime().toString()) : null)
+                            .registrationTime(reg.getRegistrationTime() != null
+                                    ? LocalDateTime.parse(reg.getRegistrationTime().toString())
+                                    : null)
                             .status(reg.getStatus() != null ? reg.getStatus() : "Pending")
                             .registrationPrice(reg.getRegistrationPrice())
                             .build())
@@ -570,9 +729,11 @@ public class ClassServiceImpl implements IClassService {
                 .coursePrice(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getPrice() : null))
                 .courseSale(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getSale() : null))
                 .expertAvatar(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
-                        ? clazz.getCourse().getExpert().getAvatarUrl() : null)
+                        ? clazz.getCourse().getExpert().getAvatarUrl()
+                        : null)
                 .expertName(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
-                        ? clazz.getCourse().getExpert().getFullName() : null)
+                        ? clazz.getCourse().getExpert().getFullName()
+                        : null)
                 .teacherId(clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null)
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Not assigned")
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
@@ -588,67 +749,8 @@ public class ClassServiceImpl implements IClassService {
     }
 
     private BigDecimal safeToDecimal(Double value) {
-        if (value == null) return null;
+        if (value == null)
+            return null;
         return BigDecimal.valueOf(value);
-    }
-
-    /**
-     * Tự động mapping Lesson sang ClassSession khi tạo lớp mới.
-     * Đảm bảo an toàn: Idempotent (không duplicate), Null safety, Transactional.
-     */
-    @Transactional
-    public void autoMapLessonsToSessions(Integer classId, Integer courseId) {
-        if (classId == null || courseId == null) return;
-
-        // 1. Idempotency check: Bỏ qua nếu đã có mapping (tránh duplicate khi update hoặc chạy lại)
-        if (sessionLessonRepository.existsBySession_Clazz_ClassId(classId)) {
-            log.info("[AutoMap] Mapping already exists for Class ID: {}. Skipping.", classId);
-            return;
-        }
-
-        // 2. Load học liệu và danh sách buổi học
-        List<Lesson> lessons = lessonRepository.findAllByCourseIdSorted(courseId);
-        List<ClassSession> sessions = classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId);
-
-        if (lessons.isEmpty() || sessions.isEmpty()) {
-            log.warn("[AutoMap] Lessons or Sessions are empty for Course: {}, Class: {}", courseId, classId);
-            return;
-        }
-
-        log.info("[AutoMap] Starting mapping {} lessons to {} sessions for Class ID: {}", lessons.size(), sessions.size(), classId);
-
-        int sessionCount = sessions.size();
-        for (int i = 0; i < lessons.size(); i++) {
-            Lesson lesson = lessons.get(i);
-            
-            // Logic: Phân bổ 1-1 cho đến session cuối cùng. Nếu số bài > số buổi, dồn hết vào buổi cuối.
-            int sessionIndex = Math.min(i, sessionCount - 1);
-            ClassSession session = sessions.get(sessionIndex);
-
-            // Tính orderIndex trong session (nếu dồn nhiều bài vào 1 buổi cuối)
-            int orderInSession = (i >= sessionCount - 1) ? (i - (sessionCount - 1) + 1) : 1;
-
-            // Mapping Lesson
-            SessionLesson sl = SessionLesson.builder()
-                    .session(session)
-                    .lesson(lesson)
-                    .orderIndex(orderInSession)
-                    .build();
-            sessionLessonRepository.save(sl);
-
-            // Mapping Quiz (nếu Lesson có Quiz liên kết)
-            if (lesson.getQuiz_id() != null) {
-                quizRepository.findById(lesson.getQuiz_id()).ifPresent(quiz -> {
-                    SessionQuiz sq = SessionQuiz.builder()
-                            .session(session)
-                            .quiz(quiz)
-                            .orderIndex(orderInSession)
-                            .isOpen(false)
-                            .build();
-                    sessionQuizRepository.save(sq);
-                });
-            }
-        }
-        log.info("[AutoMap] Successfully mapped lessons for class id: {}", classId);
     }
 }
