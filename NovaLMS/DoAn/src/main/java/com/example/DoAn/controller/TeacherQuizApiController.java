@@ -245,7 +245,7 @@ public class TeacherQuizApiController {
      */
     @PostMapping("/ai/generate-group")
     public ResponseData<?> generateAIGroupQuestions(
-            @Valid @RequestBody AIGenerateGroupRequestDTO request,
+            @Valid @RequestBody  AIGenerateGroupRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");

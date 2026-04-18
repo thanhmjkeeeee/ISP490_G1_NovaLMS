@@ -166,11 +166,9 @@
                                 <thead>
                                     <tr>
                                         <th width="60" class="text-center">STT</th>
-                                        <th>Tên bài Quiz</th>
-                                        <th>Buổi học</th>
-                                        <th>Câu hỏi</th>
-                                        <th>Trạng thái</th>
-                                        <th class="text-end">Hành động</th>
+                                        <th width="140">Buổi học</th>
+                                        <th>Bài Quiz</th>
+                                        <th class="text-end" width="100">Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody id="quizTableBody">
@@ -596,6 +594,29 @@
                         onclick="wsAttachMultipleQuizzes()">
                         <i class="bi bi-plus-lg me-1"></i>Gắn Quiz
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Quiz Preview Modal (xem câu hỏi trước khi gắn) ═══ -->
+    <div class="modal fade" id="wsQuizPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 bg-light">
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="wsQuizPreviewTitle">Xem trước Quiz</h5>
+                        <small class="text-muted" id="wsQuizPreviewSubtitle"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="wsQuizPreviewBody" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="text-center py-5 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2"></div> Đang tải...
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -1618,102 +1639,101 @@
 
             container.style.display = 'block';
             empty.style.display = 'none';
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></td></tr>';
 
             try {
                 const res = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
                 const json = await res.json();
 
                 if (json.status !== 200 || !json.data || json.data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có buổi học nào.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Chưa có buổi học nào.</td></tr>';
                     return;
                 }
 
-                // Flatten: each session + each quiz in session -> one row
-                const allRows = [];
-                json.data.forEach(session => {
-                    const sessionQuizzes = session.quizzes || [];
-                    if (sessionQuizzes.length === 0) {
-                        allRows.push({ session, quiz: null });
-                    } else {
-                        sessionQuizzes.forEach(q => allRows.push({ session, quiz: q }));
-                    }
-                });
-
-                if (allRows.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có Quiz nào cho lớp này.</td></tr>';
-                    return;
-                }
-
+                const sessions = json.data;
                 const pageSize = 10;
-                const totalPages = Math.ceil(allRows.length / pageSize);
-                const rows = allRows.slice(page * pageSize, (page + 1) * pageSize);
+                const totalPages = Math.ceil(sessions.length / pageSize);
+                const pageRows = sessions.slice(page * pageSize, (page + 1) * pageSize);
 
-                tbody.innerHTML = rows.map((r, i) => {
-                    const s = r.session;
-                    const q = r.quiz;
+                tbody.innerHTML = pageRows.map((s, i) => {
                     const sessionLabel = `Buổi ${s.sessionNumber}`;
-                    const sessionInfo = s.topic ? `${sessionLabel} — ${s.topic}` : sessionLabel;
                     const sessionDate = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
+                    const quizzes = s.quizzes || [];
 
-                    if (!q) {
-                        return `<tr>
-                        <td>${(page * pageSize) + i + 1}</td>
-                        <td class="text-muted small">— Chưa có quiz —</td>
-                        <td class="text-center">
+                    // Quiz sub-items
+                    let quizzesHtml = '';
+                    const collapseId = `quizCollapse_${s.sessionId}`;
+                    if (quizzes.length === 0) {
+                        quizzesHtml = '<div class="text-muted small fst-italic py-1">Chưa gắn quiz nào</div>';
+                    } else {
+                        const quizItems = quizzes.map(q => {
+                            const statusBadge = q.status === 'PUBLISHED'
+                                ? '<span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:0.7rem;">Đã xuất bản</span>'
+                                : q.status === 'DRAFT'
+                                    ? '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning" style="font-size:0.7rem;">Nháp</span>'
+                                    : `<span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:0.7rem;">${q.status}</span>`;
+
+                            const isOpen = q.isOpen === true;
+                            const openBadge = isOpen
+                                ? '<span class="badge bg-info bg-opacity-10 text-info border border-info ms-1" style="font-size:0.7rem;">Đang mở</span>'
+                                : '<span class="badge bg-light text-muted border ms-1" style="font-size:0.7rem;">Đã đóng</span>';
+
+                            const openClass = isOpen ? 'btn-warning' : 'btn-success';
+                            const openIcon = isOpen ? 'bi-lock-fill' : 'bi-unlock-fill';
+
+                            return `<div class="d-flex align-items-center justify-content-between py-2 ${quizzes.indexOf(q) > 0 ? 'border-top' : ''}">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
+                                    <div style="min-width:0;">
+                                        <div class="fw-medium text-dark text-truncate" style="font-size:0.88rem;">${wsEscape(q.title || '')}</div>
+                                        <div class="d-flex align-items-center gap-2 mt-1">
+                                            <span class="text-muted small">${q.questionCount || 0} câu</span>
+                                            ${statusBadge}${openBadge}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0 ms-2">
+                                    <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${isOpen ? 'Đóng' : 'Mở'} quiz" style="font-size:0.75rem;">
+                                        <i class="bi ${openIcon}"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="openWsQuizBuilder(${q.quizId})" title="Sửa quiz" style="font-size:0.75rem;">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="wsRemoveQuizFromSession(${s.sessionId}, ${q.quizId})" title="Xóa khỏi buổi" style="font-size:0.75rem;">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>`;
+                        }).join('');
+
+                        quizzesHtml = `
+                            <button class="btn btn-sm btn-light border rounded-pill px-3 py-1" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#${collapseId}"
+                                aria-expanded="false" style="font-size:0.8rem;">
+                                <i class="bi bi-journal-text me-1"></i>${quizzes.length} bài quiz
+                                <i class="bi bi-chevron-down ms-1" style="font-size:0.65rem;"></i>
+                            </button>
+                            <div class="collapse mt-2" id="${collapseId}">
+                                ${quizItems}
+                            </div>`;
+                    }
+
+                    return `<tr>
+                        <td class="text-center align-top" style="width:60px;">${(page * pageSize) + i + 1}</td>
+                        <td class="align-top" style="width:140px;">
                             <span class="badge bg-secondary bg-opacity-10 text-secondary border">${sessionLabel}</span>
                             ${sessionDate ? `<br><small class="text-muted">${sessionDate}</small>` : ''}
+                            ${s.topic ? `<div class="text-muted small mt-1 text-truncate" style="max-width:130px;" title="${wsEscape(s.topic)}">${wsEscape(s.topic)}</div>` : ''}
                         </td>
-                        <td class="text-center text-muted">—</td>
-                        <td class="text-center"><span class="badge bg-secondary bg-opacity-10 text-secondary border">Chưa gắn</span></td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
+                        <td>
+                            ${quizzesHtml}
+                        </td>
+                        <td class="text-end align-top" style="width:100px;">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
                                 onclick="wsAttachQuizToSession(${s.sessionId})">
-                                <i class="bi bi-plus-lg me-1"></i>Gắn Quiz
+                                <i class="bi bi-plus-lg me-1"></i>Gắn
                             </button>
                         </td>
                     </tr>`;
-                    }
-
-                    const statusBadge = q.status === 'PUBLISHED'
-                        ? `<span class="badge bg-success bg-opacity-10 text-success border border-success">Đã xuất bản</span>`
-                        : q.status === 'DRAFT'
-                            ? `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Nháp</span>`
-                            : `<span class="badge bg-secondary bg-opacity-10 text-secondary border">${q.status}</span>`;
-
-                    const isOpen = q.isOpen === true;
-                    const openBadge = isOpen
-                        ? `<span class="badge bg-info bg-opacity-10 text-info border border-info ms-1"><i class="bi bi-unlock-fill me-1"></i>Đang mở</span>`
-                        : `<span class="badge bg-light text-muted border ms-1"><i class="bi bi-lock-fill me-1"></i>Đã đóng</span>`;
-
-                    const openClass = isOpen ? 'btn-warning' : 'btn-success';
-                    const openIcon = isOpen ? 'bi-lock-fill' : 'bi-unlock-fill';
-                    const openLabel = isOpen ? 'Đóng' : 'Mở';
-
-                    return `<tr>
-                    <td>${(page * pageSize) + i + 1}</td>
-                    <td>
-                        <div class="fw-bold text-dark">${wsEscape(q.title || '')}</div>
-                        <small class="text-muted">${sessionInfo}</small>
-                    </td>
-                    <td class="text-center">
-                        <span class="badge bg-secondary bg-opacity-10 text-secondary border">${sessionLabel}</span>
-                        ${sessionDate ? `<br><small class="text-muted">${sessionDate}</small>` : ''}
-                    </td>
-                    <td class="text-center"><span class="fw-medium">${q.questionCount || 0} câu</span></td>
-                    <td class="text-center">${statusBadge}${openBadge}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${openLabel} quiz">
-                            <i class="bi ${openIcon}"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="openWsQuizBuilder(${q.quizId})" title="Sửa quiz">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="wsRemoveQuizFromSession(${s.sessionId}, ${q.quizId})" title="Xóa khỏi buổi">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>`;
                 }).join('');
 
                 const pagHtml = renderWsPagination({
@@ -1725,12 +1745,12 @@
 
                 if (pagHtml) {
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td colspan="6" class="border-0">${pagHtml}</td>`;
+                    row.innerHTML = `<td colspan="4" class="border-0">${pagHtml}</td>`;
                     tbody.appendChild(row);
                 }
             } catch (err) {
                 console.error("loadQuizzes error:", err);
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz. Vui lòng thử lại.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-danger">Lỗi tải danh sách Quiz. Vui lòng thử lại.</td></tr>';
             }
         }
 
@@ -2049,7 +2069,13 @@
         };
 
         window.wsNextStep = async function () {
-            const sessionId = document.getElementById('wsSessionSelect').value;
+            // Đọc sessionId từ 2 nguồn:
+            // - wsSessionSelect: giá trị gốc khi user chọn ở Step 1
+            // - wsQuizModalSessionId: giá trị đã lưu lại sau khi hoàn tất Step 1
+            // Ưu tiên wsQuizModalSessionId vì nó luôn giữ giá trị đúng qua các bước
+            const rawSessionId = document.getElementById('wsSessionSelect').value;
+            const savedSessionId = document.getElementById('wsQuizModalSessionId').value;
+            const sessionId = savedSessionId || rawSessionId;
             const isPub = document.getElementById('wsStatusPublish').checked;
             const sessionDisplay = document.getElementById('wsSelectedSessionDisplay');
 
@@ -2126,12 +2152,15 @@
 
                 // 1. Gắn quiz vào session (nếu có chọn buổi học)
                 if (sessionId && wsCurrentQuizId) {
+                    console.log(`[QuizBuilder] Attaching quiz ${wsCurrentQuizId} to session ${sessionId} (raw=${rawSessionId}, saved=${savedSessionId})`);
                     try {
-                        await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
+                        const attachRes = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ quizId: wsCurrentQuizId })
                         });
+                        const attachJson = await attachRes.json();
+                        console.log(`[QuizBuilder] Attach result:`, attachJson);
                     } catch (e) { console.error("Attach error", e); }
                 }
 
@@ -2152,7 +2181,23 @@
 
                 wsQuizModal.hide();
                 loadQuizzes();
-                wsToast(isPub ? 'Đã xuất bản và hoàn tất!' : 'Đã lưu quiz dạng nháp thành công.');
+                if (isPub) {
+                    wsToast('Đã xuất bản và hoàn tất!');
+                } else if (sessionId) {
+                    // DRAFT + có session → hint auto-publish
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Đã lưu nháp!',
+                        html: '<div class="text-start"><p class="mb-2">Quiz đã được lưu dạng nháp và gắn vào buổi học.</p>' +
+                              '<div class="alert alert-info py-2 px-3 small mb-0">' +
+                              '<i class="bi bi-clock-history me-1"></i> ' +
+                              '<strong>Tự động xuất bản:</strong> Quiz sẽ được hệ thống tự động xuất bản khi buổi học bắt đầu. ' +
+                              'Học sinh sẽ nhận thông báo ngay lúc đó.</div></div>',
+                        confirmButtonText: 'Đã hiểu'
+                    });
+                } else {
+                    wsToast('Đã lưu quiz dạng nháp thành công.');
+                }
             }
         };
 
@@ -2713,27 +2758,164 @@
 
         const wsRenderAttachQuizCheckboxList = () => {
             const container = document.getElementById('wsAttachQuizCheckboxList');
-            const html = wsAttachAvailableQuizzes.map(q => `
-            <div class="form-check border rounded-3 p-3 mb-2">
-                <input class="form-check-input wsQuizCheckbox" type="checkbox" value="${q.quizId}" 
-                       id="wsQuizCheck_${q.quizId}" onchange="wsUpdateAttachQuizCount()">
-                <label class="form-check-label w-100 cursor-pointer" for="wsQuizCheck_${q.quizId}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="fw-medium">${wsEscape(q.title || 'Quiz')}</div>
-                            <div class="small text-muted mt-1">
-                                <span class="badge bg-secondary bg-opacity-25 text-secondary">${q.status || 'DRAFT'}</span>
-                                <span class="ms-2"><i class="bi bi-question-circle me-1"></i>${q.questionCount || 0} câu</span>
+
+            const skillColors = {
+                'READING': '#4f46e5', 'LISTENING': '#0891b2',
+                'WRITING': '#d97706', 'SPEAKING': '#dc2626',
+                'GRAMMAR': '#059669', 'VOCABULARY': '#7c3aed'
+            };
+
+            const html = wsAttachAvailableQuizzes.map(q => {
+                const statusCls = q.status === 'PUBLISHED' ? 'bg-success' : q.status === 'DRAFT' ? 'bg-warning' : 'bg-secondary';
+                const statusLabel = q.status === 'PUBLISHED' ? 'Đã xuất bản' : q.status === 'DRAFT' ? 'Nháp' : q.status;
+
+                // Skill breakdown badges
+                let skillHtml = '';
+                if (q.skills && Object.keys(q.skills).length > 0) {
+                    skillHtml = Object.entries(q.skills).map(([skill, count]) => {
+                        const color = skillColors[skill] || '#6b7280';
+                        return `<span class="badge me-1 mb-1" style="background:${color}15;color:${color};border:1px solid ${color}30;font-weight:500;">
+                            ${skill} <span class="opacity-75">(${count})</span>
+                        </span>`;
+                    }).join('');
+                } else {
+                    skillHtml = '<span class="text-muted small fst-italic">Chưa có câu hỏi</span>';
+                }
+
+                // CEFR level badges
+                let cefrHtml = '';
+                if (q.cefrLevels && q.cefrLevels.length > 0) {
+                    cefrHtml = q.cefrLevels.map(c =>
+                        `<span class="badge bg-dark bg-opacity-10 text-dark border me-1" style="font-size:0.7rem;">${c}</span>`
+                    ).join('');
+                }
+
+                // Meta info row
+                const timeTxt = q.timeLimitMinutes ? `${q.timeLimitMinutes} phút` : 'Không giới hạn';
+                const passTxt = q.passScore ? `Đạt: ${q.passScore}%` : '';
+                const attemptTxt = q.maxAttempts ? `${q.maxAttempts} lần` : '∞ lần';
+                const createdTxt = q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : '';
+
+                return `
+            <div class="form-check border rounded-3 p-0 mb-2 overflow-hidden" style="transition: box-shadow 0.2s;">
+                <div class="d-flex align-items-start p-3">
+                    <input class="form-check-input wsQuizCheckbox mt-1 me-3 flex-shrink-0" type="checkbox" value="${q.quizId}" 
+                           id="wsQuizCheck_${q.quizId}" onchange="wsUpdateAttachQuizCount()" style="width:1.1em;height:1.1em;">
+                    <label class="form-check-label w-100 cursor-pointer" for="wsQuizCheck_${q.quizId}">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="fw-semibold text-dark" style="font-size:0.95rem;">${wsEscape(q.title || 'Quiz')}</div>
+                            <span class="badge ${statusCls} bg-opacity-15 text-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'} border border-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'} flex-shrink-0 ms-2" style="font-size:0.7rem;">
+                                ${statusLabel}
+                            </span>
+                        </div>
+                        ${q.description ? `<div class="text-muted small mb-2" style="line-height:1.4;">${wsEscape(q.description).substring(0, 120)}${q.description.length > 120 ? '...' : ''}</div>` : ''}
+                        
+                        <!-- Question count + Skills -->
+                        <div class="mb-2">
+                            <span class="fw-medium small text-primary me-2">
+                                ${q.questionCount || 0} câu hỏi
+                            </span>
+                            ${skillHtml}
+                        </div>
+
+                        <!-- CEFR levels -->
+                        ${cefrHtml ? `<div class="mb-2">${cefrHtml}</div>` : ''}
+
+                        <!-- Meta row -->
+                        <div class="d-flex flex-wrap align-items-center gap-3 text-muted small" style="font-size:0.78rem;">
+                            <span>${timeTxt}</span>
+                            ${passTxt ? `<span>${passTxt}</span>` : ''}
+                            <span>${attemptTxt}</span>
+                            ${createdTxt ? `<span>${createdTxt}</span>` : ''}
+                            ${q.createdBy ? `<span>${wsEscape(q.createdBy)}</span>` : ''}
+                            <a href="javascript:void(0)" class="text-primary fw-medium" 
+                               onclick="event.preventDefault(); event.stopPropagation(); wsPreviewQuiz(${q.quizId})"
+                               style="font-size:0.78rem; text-decoration:none;">
+                                Xem ${q.questionCount || 0} câu hỏi →
+                            </a>
+                        </div>
+                    </label>
+                </div>
+            </div>`;
+            }).join('');
+
+            container.innerHTML = html || '<div class="text-center py-4 text-muted">Chưa có quiz nào trong lớp.</div>';
+            wsUpdateAttachQuizCount();
+        };
+
+        // ─── Preview quiz questions in a separate modal ───
+        let wsQuizPreviewModal = null;
+        window.wsPreviewQuiz = async function (quizId) {
+            if (!wsQuizPreviewModal) {
+                wsQuizPreviewModal = new bootstrap.Modal(document.getElementById('wsQuizPreviewModal'));
+            }
+            const body = document.getElementById('wsQuizPreviewBody');
+            body.innerHTML = '<div class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Đang tải câu hỏi...</div>';
+            document.getElementById('wsQuizPreviewTitle').textContent = 'Xem trước Quiz';
+            document.getElementById('wsQuizPreviewSubtitle').textContent = '';
+            wsQuizPreviewModal.show();
+
+            try {
+                const res = await fetch(`/api/v1/teacher/quizzes/${quizId}`);
+                const json = await res.json();
+                if (json.status !== 200) throw new Error(json.message);
+
+                const q = json.data;
+                document.getElementById('wsQuizPreviewTitle').textContent = q.title || 'Quiz';
+                document.getElementById('wsQuizPreviewSubtitle').textContent =
+                    `${q.questions?.length || 0} câu hỏi · ${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'} · Đạt: ${q.passScore || 0}%`;
+
+                if (!q.questions || q.questions.length === 0) {
+                    body.innerHTML = '<div class="text-center py-5 text-muted">Quiz chưa có câu hỏi nào.</div>';
+                    return;
+                }
+
+                body.innerHTML = q.questions.map((item, idx) => {
+                    const typeLabel = {
+                        'MULTIPLE_CHOICE': 'Trắc nghiệm',
+                        'TRUE_FALSE': 'Đúng/Sai',
+                        'FILL_IN_BLANK': 'Điền khuyết',
+                        'SHORT_ANSWER': 'Trả lời ngắn',
+                        'ESSAY': 'Tự luận'
+                    }[item.questionType] || item.questionType || '';
+
+                    // Render answers
+                    let answersHtml = '';
+                    if (item.answers && item.answers.length > 0) {
+                        answersHtml = '<div class="mt-2">' + item.answers.map(a => {
+                            const isCorrect = a.isCorrect === true;
+                            return `<div class="d-flex align-items-start mb-1 small ${isCorrect ? 'text-success fw-medium' : 'text-muted'}">
+                                <span class="me-2">${isCorrect ? '✓' : '○'}</span>
+                                <span>${wsEscape(a.answerText || '')}</span>
+                            </div>`;
+                        }).join('') + '</div>';
+                    }
+
+                    // Skill + CEFR
+                    const metaParts = [];
+                    if (item.skill) metaParts.push(item.skill);
+                    if (item.cefrLevel) metaParts.push(item.cefrLevel);
+                    if (typeLabel) metaParts.push(typeLabel);
+                    const metaHtml = metaParts.length > 0
+                        ? metaParts.map(p => `<span class="badge bg-light text-dark border me-1" style="font-size:0.7rem;">${p}</span>`).join('')
+                        : '';
+
+                    return `
+                    <div class="border rounded-3 p-3 mb-2">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div class="fw-medium" style="font-size:0.9rem;">
+                                <span class="text-muted me-1">${idx + 1}.</span>
+                                ${wsEscape(item.content || '')}
                             </div>
                         </div>
-                        <div class="text-muted small">${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'}</div>
-                    </div>
-                </label>
-            </div>
-        `).join('');
+                        ${metaHtml ? `<div class="mb-2">${metaHtml}</div>` : ''}
+                        ${answersHtml}
+                    </div>`;
+                }).join('');
 
-            container.innerHTML = html;
-            wsUpdateAttachQuizCount();
+            } catch (e) {
+                body.innerHTML = `<div class="text-center py-5 text-danger">Lỗi tải quiz: ${e.message}</div>`;
+            }
         };
 
         const wsUpdateAttachQuizCount = () => {
