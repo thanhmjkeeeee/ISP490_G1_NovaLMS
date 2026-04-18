@@ -420,10 +420,13 @@
         function renderModules(modules) {
             var empty = document.getElementById('moduleListEmpty');
             var accordion = document.getElementById('moduleAccordion');
+            _allLessons = {};
+            _openModuleId = null;
 
             if (!modules.length) {
                 empty.style.display = 'block';
                 accordion.style.display = 'none';
+                accordion.innerHTML = '';
                 return;
             }
             empty.style.display = 'none';
@@ -441,7 +444,7 @@
                     '<i class="bi bi-chevron-down text-primary fw-bold" id="chevron-' + m.moduleId + '" style="transition:transform 0.2s; font-size:1.1rem;"></i>' +
                     '<div>' +
                     '<span class="fw-bold d-block" style="color:#223a58; font-size:1rem;">' + escape(m.moduleName || '—') + '</span>' +
-                    '<span class="badge rounded-pill bg-light text-muted border fw-normal" style="font-size:0.75rem;">' + (m.lessonCount || 0) + ' bài học</span>' +
+                    '<span id="lesson-count-' + m.moduleId + '" class="badge rounded-pill bg-light text-muted border fw-normal" style="font-size:0.75rem;">' + (m.lessonCount || 0) + ' bài học</span>' +
                     '</div>' +
                     '</div>' +
 
@@ -513,7 +516,7 @@
                 body.style.display = 'block';
                 chevron.style.transform = 'rotate(180deg)';
                 _openModuleId = moduleId;
-                if (!_allLessons[moduleId]) loadLessons(moduleId);
+                loadLessons(moduleId);
             }
         }
 
@@ -587,13 +590,18 @@
         }
 
         // ── LESSON: Load & render ────────────────────────────────────────────────
+        function updateModuleLessonCountBadge(moduleId, count) {
+            var el = document.getElementById('lesson-count-' + moduleId);
+            if (el) el.textContent = (typeof count === 'number' ? count : 0) + ' bài học';
+        }
+
         async function loadLessons(moduleId) {
             var tbody = document.getElementById('ltable-' + moduleId);
             if (!tbody) return;
             try {
-                var res = await fetch('/api/v1/expert/lessons?moduleId=' + moduleId);
+                var res = await fetch('/api/v1/expert/lessons?moduleId=' + moduleId + '&_=' + Date.now(), { cache: 'no-store' });
                 var result = await res.json();
-                if (result.status === 200 && result.data) {
+                if ((result.status === 200 || result.status === 201) && Array.isArray(result.data)) {
                     _allLessons[moduleId] = result.data;
                     renderLessons(moduleId, result.data);
                 }
@@ -605,6 +613,7 @@
             if (!lessons.length) {
                 tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted">' +
                     '<i class="bi bi-play-circle fs-5 d-block mb-1 opacity-50"></i>Chưa có bài học nào.</td></tr>';
+                updateModuleLessonCountBadge(moduleId, 0);
                 return;
             }
             var typeMap = { 'VIDEO': 'Video', 'DOC': 'Tài liệu' };
@@ -635,6 +644,7 @@
                     '</td>' +
                     '</tr>';
             }).join('');
+            updateModuleLessonCountBadge(moduleId, lessons.length);
         }
 
         function openVideoModal(embedUrl) {
@@ -703,6 +713,7 @@
 
         function openLessonModal(moduleId) {
             _activeModuleId = moduleId;
+            document.getElementById('lessonModal').setAttribute('data-active-module-id', String(moduleId));
             document.getElementById('lessonModalTitle').textContent = 'Thêm bài học mới';
             document.getElementById('lessonId').value = '';
             document.getElementById('lessonName').value = '';
@@ -733,6 +744,7 @@
             lessons.forEach(function (x) { if (x.lessonId === lessonId) l = x; });
             if (!l) return;
             _activeModuleId = moduleId;
+            document.getElementById('lessonModal').setAttribute('data-active-module-id', String(moduleId));
             document.getElementById('lessonModalTitle').textContent = 'Sửa bài học';
             document.getElementById('lessonId').value = l.lessonId;
             document.getElementById('lessonName').value = l.lessonName || '';
@@ -827,9 +839,17 @@
                     body: JSON.stringify(lessonId ? Object.assign({}, body, { lessonId: parseInt(lessonId) }) : body)
                 });
                 var result = await res.json();
-                if (result.status === 200 || result.status === 201) {
+                var ok = res.ok && (result.status === 200 || result.status === 201);
+                if (ok) {
+                    var mid = _activeModuleId;
+                    if (mid == null || mid === '') {
+                        var attr = document.getElementById('lessonModal').getAttribute('data-active-module-id');
+                        mid = attr != null ? parseInt(attr, 10) : NaN;
+                    }
                     lessonModal.hide();
-                    loadLessons(_activeModuleId);
+                    if (!isNaN(mid)) {
+                        await loadLessons(mid);
+                    }
                 } else {
                     errorEl.textContent = result.message || 'Lỗi lưu bài học.'; errorEl.style.display = 'block';
                 }

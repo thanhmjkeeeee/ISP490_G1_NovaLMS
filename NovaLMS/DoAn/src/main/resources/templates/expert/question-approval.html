@@ -30,37 +30,15 @@
             <form id="filterForm" class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">Kỹ năng</label>
-                    <select name="skill" id="filterSkill" class="form-select form-select-sm">
-                        <option value="">Tất cả</option>
-                        <option value="LISTENING">Listening</option>
-                        <option value="READING">Reading</option>
-                        <option value="WRITING">Writing</option>
-                        <option value="SPEAKING">Speaking</option>
-                    </select>
+                    <select name="skill" id="filterSkill" class="form-select form-select-sm"></select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">CEFR</label>
-                    <select name="cefrLevel" id="filterCefr" class="form-select form-select-sm">
-                        <option value="">Tất cả</option>
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1">B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
-                    </select>
+                    <select name="cefrLevel" id="filterCefr" class="form-select form-select-sm"></select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold text-muted">Loại câu hỏi</label>
-                    <select name="questionType" id="filterType" class="form-select form-select-sm">
-                        <option value="">Tất cả</option>
-                        <option value="MULTIPLE_CHOICE_SINGLE">Trắc nghiệm 1 đáp án</option>
-                        <option value="MULTIPLE_CHOICE_MULTI">Trắc nghiệm nhiều đáp án</option>
-                        <option value="FILL_IN_BLANK">Điền khuyết</option>
-                        <option value="MATCHING">Nối cột</option>
-                        <option value="WRITING">Viết</option>
-                        <option value="SPEAKING">Nói</option>
-                    </select>
+                    <select name="questionType" id="filterType" class="form-select form-select-sm"></select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold text-muted">Tìm kiếm</label>
@@ -191,6 +169,7 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script th:inline="javascript">
 // ─── State ───────────────────────────────────────────────────────────
@@ -202,7 +181,15 @@ const PAGE_SIZE = 20;
 let currentPage = 0;
 
 // ─── Bootstrap modals ───────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.NovaQuestionFormSettings) {
+            await NovaQuestionFormSettings.load();
+            NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('filterSkill'), { includeEmpty: true, emptyLabel: 'Tất cả' });
+            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('filterCefr'), { includeEmpty: true, emptyLabel: 'Tất cả' });
+            NovaQuestionFormSettings.fillFilterTypeSelect(document.getElementById('filterType'), { includePassage: false });
+        }
+    } catch (e) { console.error(e); }
     approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
     rejectModal  = new bootstrap.Modal(document.getElementById('rejectModal'));
     previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
