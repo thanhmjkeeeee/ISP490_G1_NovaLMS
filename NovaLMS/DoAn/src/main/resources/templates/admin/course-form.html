@@ -69,6 +69,7 @@
                 <label class="form-label fw-bold small">Trạng thái <span class="text-danger">*</span></label>
                 <select id="status" class="form-select" required>
                   <option value="active">Hoạt động</option>
+                  <option value="Published">Đã xuất bản</option>
                   <option value="draft">Bản nháp</option>
                   <option value="inactive">Tạm dừng</option>
                 </select>
@@ -387,7 +388,13 @@
               preview.style.display = 'block';
               placeholder.style.display = 'none';
             }
-            document.getElementById('status').value = (course.status || 'active').toLowerCase();
+            let statusVal = course.status || 'active';
+            if (typeof statusVal === 'string' && statusVal.toLowerCase() === 'published') {
+              statusVal = 'Published';
+            } else {
+              statusVal = statusVal.toLowerCase();
+            }
+            document.getElementById('status').value = statusVal;
             document.getElementById('description').value = course.description || '';
             if (course.numberOfSessions) {
               document.getElementById('numberOfSessions').value = course.numberOfSessions;
