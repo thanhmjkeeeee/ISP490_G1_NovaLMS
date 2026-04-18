@@ -118,6 +118,59 @@
         }
     }
 
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const s = String(text);
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return s.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    /** Xem trước câu MATCHING: matchLeft / matchRight / correctPairs (1-based hoặc 0-based index cột phải). */
+    function matchingPreviewHtml(q) {
+        if (!q || q.questionType !== 'MATCHING') return '';
+        const left = Array.isArray(q.matchLeft) ? q.matchLeft : [];
+        const right = Array.isArray(q.matchRight) ? q.matchRight : [];
+        if (left.length === 0 && right.length === 0) return '';
+
+        function resolveRightIndex(p) {
+            if (typeof p !== 'number' || isNaN(p) || !right.length) return -1;
+            if (p >= 1 && p <= right.length) return p - 1;
+            if (p >= 0 && p < right.length) return p;
+            return -1;
+        }
+
+        let inner;
+        const pairs = Array.isArray(q.correctPairs) ? q.correctPairs : null;
+        if (pairs && pairs.length === left.length && left.length > 0) {
+            inner = '<ul class="list-unstyled small mb-0 mt-1">';
+            for (let idx = 0; idx < left.length; idx++) {
+                const rj = resolveRightIndex(Number(pairs[idx]));
+                const rtext = (rj >= 0 && right[rj] !== undefined) ? String(right[rj]) : '?';
+                inner += '<li class="mb-1 d-flex align-items-start gap-2"><span class="badge bg-secondary flex-shrink-0">' + (idx + 1) + '</span>' +
+                    '<span><span class="fw-medium text-dark">' + escapeHtml(String(left[idx])) + '</span>' +
+                    ' <i class="bi bi-arrow-right text-muted mx-1"></i> ' +
+                    '<span class="fw-medium text-dark">' + escapeHtml(rtext) + '</span></span></li>';
+            }
+            inner += '</ul>';
+        } else {
+            inner = '<div class="row g-2 mt-1"><div class="col-md-6"><div class="text-muted small mb-1">Cột A</div><ol class="small mb-0 ps-3">' +
+                left.map(l => '<li>' + escapeHtml(String(l)) + '</li>').join('') + '</ol></div>' +
+                '<div class="col-md-6"><div class="text-muted small mb-1">Cột B</div><ol class="small mb-0 ps-3">' +
+                right.map(r => '<li>' + escapeHtml(String(r)) + '</li>').join('') + '</ol></div></div>';
+            if (!pairs || pairs.length !== left.length) {
+                inner += '<p class="small text-warning mb-0 mt-2"><i class="bi bi-exclamation-triangle me-1"></i>Không đủ dữ liệu ghép cặp (correctPairs).</p>';
+            }
+        }
+
+        return '<div class="mt-3 border rounded-3 p-3 bg-body-secondary"><div class="small fw-bold text-secondary text-uppercase mb-1">Ghép đôi</div>' + inner + '</div>';
+    }
+
+    function writingPreviewHtml(q) {
+        if (!q || (q.questionType !== 'WRITING' && q.questionType !== 'SPEAKING')) return '';
+        if (!q.explanation || !String(q.explanation).trim()) return '';
+        return '<p class="mt-2 mb-0 small text-muted"><i class="bi bi-journal-text me-1"></i><span class="fw-semibold text-secondary">Gợi ý / mô tả:</span> ' + escapeHtml(q.explanation) + '</p>';
+    }
+
     async function generateAI() {
         const moduleId = document.getElementById('aiModuleId').value;
         const qty = parseInt(document.getElementById('aiQty').value);
@@ -193,6 +246,8 @@
                                     </div>
                                 `).join('')}
                             </div>` : ''}
+                        ${matchingPreviewHtml(q)}
+                        ${writingPreviewHtml(q)}
                         ${q.correctAnswer ? `<p class="mt-2 mb-0 small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
                     </div>
                 </div>
@@ -236,11 +291,6 @@
         } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    }
 </script>
 
 <style>

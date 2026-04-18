@@ -31,21 +31,11 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Kỹ năng</label>
-                    <select id="groupSkill" class="form-select">
-                        <option value="READING" selected>Reading (Bài đọc)</option>
-                        <option value="LISTENING">Listening (Bài nghe)</option>
-                    </select>
+                    <select id="groupSkill" class="form-select"></select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-bold">CEFR</label>
-                    <select id="groupCefr" class="form-select">
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1" selected>B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
-                    </select>
+                    <select id="groupCefr" class="form-select"></select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Số câu hỏi con (2–20)</label>
@@ -106,6 +96,7 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script th:inline="javascript">
     let groupPreviewData = null;
@@ -235,6 +226,24 @@
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return text.replace(/[&<>"']/g, m => map[m]);
     }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            if (window.NovaQuestionFormSettings) {
+                await NovaQuestionFormSettings.load();
+                const gs = document.getElementById('groupSkill');
+                const gc = document.getElementById('groupCefr');
+                if (gs) {
+                    NovaQuestionFormSettings.fillSkillSelectByMode(gs, 'GROUP');
+                    if (gs.querySelector('option[value="READING"]')) gs.value = 'READING';
+                }
+                if (gc) {
+                    NovaQuestionFormSettings.fillCefrSelect(gc);
+                    if (gc.querySelector('option[value="B1"]')) gc.value = 'B1';
+                }
+            }
+        } catch (e) { console.error(e); }
+    });
 </script>
 
 <style>
