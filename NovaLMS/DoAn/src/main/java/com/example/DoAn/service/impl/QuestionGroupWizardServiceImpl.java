@@ -5,6 +5,7 @@ import com.example.DoAn.dto.response.*;
 import com.example.DoAn.dto.response.ValidatedQuestionDTO.OptionDTO;
 import com.example.DoAn.exception.InvalidDataException;
 import com.example.DoAn.service.*;
+import com.example.DoAn.util.ExcelTemplateGenerator;
 import com.example.DoAn.util.RateLimitWindowStore;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -173,6 +174,7 @@ public class QuestionGroupWizardServiceImpl implements IQuestionGroupWizardServi
 
         try {
             String questionType = dto.getExcelQuestionType();
+            ExcelTemplateGenerator.requireFilenameMatchesQuestionType(questionType, fn);
             ExcelParseResultDTO parseResult =
                     excelQuestionImportService.parseFile(file, questionType);
 

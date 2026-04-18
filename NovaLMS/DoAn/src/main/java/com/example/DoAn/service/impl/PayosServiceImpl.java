@@ -161,7 +161,7 @@ public class PayosServiceImpl implements PayosService {
     @Override
     @Transactional
     public PaymentLinkResponseDTO retryPaymentLink(Integer registrationId, User user) throws RuntimeException {
-        Registration registration = registrationRepository.findById(registrationId)
+        Registration registration = registrationRepository.findWithAssociationsById(registrationId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đăng ký: " + registrationId));
 
         Payment currentPayment = paymentRepository.findFirstByRegistrationIdOrderByCreatedAtDesc(registrationId).orElse(null);
@@ -308,7 +308,7 @@ public class PayosServiceImpl implements PayosService {
             // Tự động duyệt đăng ký khi thanh toán thành công
             Integer registrationId = payment.getRegistrationId();
             if (registrationId != null) {
-                registrationRepository.findById(registrationId).ifPresent(reg -> {
+                registrationRepository.findWithAssociationsById(registrationId).ifPresent(reg -> {
                     reg.setStatus("Approved");
                     registrationRepository.save(reg);
                     log.info("Registration auto-approved: registrationId={}", registrationId);
@@ -399,7 +399,7 @@ public class PayosServiceImpl implements PayosService {
                 // ── Send email + in-app notification to student ──────────────────
                 Integer registrationId = payment.getRegistrationId();
                 if (registrationId != null) {
-                    registrationRepository.findById(registrationId).ifPresent(reg -> {
+                    registrationRepository.findWithAssociationsById(registrationId).ifPresent(reg -> {
                         User student = reg.getUser();
                         if (student != null) {
                             String studentName = student.getFullName() != null ? student.getFullName() : "";
@@ -463,7 +463,7 @@ public class PayosServiceImpl implements PayosService {
                     paymentRepository.save(payment);
                     Integer registrationId = payment.getRegistrationId();
                     if (registrationId != null) {
-                        registrationRepository.findById(registrationId).ifPresent(reg -> {
+                        registrationRepository.findWithAssociationsById(registrationId).ifPresent(reg -> {
                             if (!"Approved".equals(reg.getStatus())) {
                                 reg.setStatus("Approved");
                                 registrationRepository.save(reg);
