@@ -37,6 +37,8 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
     @EntityGraph(attributePaths = {"category", "expert"})
     List<Course> findByCategory_SettingIdAndStatus(Integer categoryId, String status);
 
+    long countByCategory_SettingId(Integer categorySettingId);
+
     @Query("SELECT c FROM Course c WHERE c.courseId = :courseId")
     Optional<Course> getCourseLearningData(@Param("courseId") Integer courseId);
 
