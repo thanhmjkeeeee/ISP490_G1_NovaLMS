@@ -75,6 +75,11 @@ public class TeacherViewController {
         return "teacher/workspace";
     }
 
+    @GetMapping("/reschedule-requests")
+    public String rescheduleRequestsPage() {
+        return "teacher/reschedule-requests";
+    }
+
     @GetMapping("/quiz-bank")
     public String quizBankPage() {
         return "redirect:/teacher/workspace";

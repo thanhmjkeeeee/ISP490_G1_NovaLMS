@@ -50,6 +50,9 @@
             <a th:href="@{/teacher/workspace}" th:classappend="${activePage == 'workspace'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-grid-1x2"></i><span>Không gian làm việc</span>
             </a>
+            <a th:href="@{/teacher/reschedule-requests}" th:classappend="${activePage == 'reschedule'} ? ' active'" class="dash-nav-item">
+                <i class="bi bi-calendar-event"></i><span>Yêu cầu đổi lịch</span>
+            </a>
             <a th:href="@{/teacher/my-questions}" th:classappend="${activePage == 'my-questions'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-list-task"></i><span>Câu hỏi của tôi</span>
             </a>
