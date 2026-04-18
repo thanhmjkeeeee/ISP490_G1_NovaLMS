@@ -60,16 +60,16 @@ public class ExcelExportServiceImpl implements ExcelExportService {
                 Row row = sheet.createRow(rowIdx++);
 
                 // Lấy chi tiết registration để có thông tin học viên & khóa học
-                Registration reg = registrationRepository.findById(payment.getRegistrationId()).orElse(null);
+                Registration enrollment = registrationRepository.findWithAssociationsById(payment.getRegistrationId()).orElse(null);
 
                 row.createCell(0).setCellValue(payment.getId());
                 row.createCell(1).setCellValue(payment.getPayosOrderCode() != null ? payment.getPayosOrderCode().toString() : "");
                 
-                if (reg != null) {
-                    row.createCell(2).setCellValue(reg.getUser().getFullName());
-                    row.createCell(3).setCellValue(reg.getUser().getEmail());
-                    row.createCell(4).setCellValue(reg.getCourse().getCourseName());
-                    row.createCell(5).setCellValue(reg.getClazz().getClassName());
+                if (enrollment != null) {
+                    row.createCell(2).setCellValue(enrollment.getUser().getFullName());
+                    row.createCell(3).setCellValue(enrollment.getUser().getEmail());
+                    row.createCell(4).setCellValue(enrollment.getCourse().getCourseName());
+                    row.createCell(5).setCellValue(enrollment.getClazz().getClassName());
                 } else {
                     row.createCell(2).setCellValue("N/A");
                     row.createCell(3).setCellValue("N/A");

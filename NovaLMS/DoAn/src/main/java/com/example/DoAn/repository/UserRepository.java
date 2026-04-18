@@ -33,6 +33,8 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
     @Query("SELECT u FROM User u WHERE u.role.settingId = :roleId")
     List<User> findByRoleSettingId(@Param("roleId") Integer roleId);
 
+    long countByRole_SettingId(Integer roleSettingId);
+
     @Query("SELECT COUNT(u) FROM User u WHERE u.role.name = :roleName")
     long countByRoleName(@Param("roleName") String roleName);
 
