@@ -75,21 +75,10 @@
                 <!-- Filters in Modal -->
                 <div class="row g-2 mb-3">
                     <div class="col-md-2">
-                        <select id="modalSkill" class="form-select form-select-sm">
-                            <option value="">Kỹ năng</option>
-                            <option value="LISTENING">Listening</option>
-                            <option value="READING">Reading</option>
-                            <option value="WRITING">Writing</option>
-                            <option value="SPEAKING">Speaking</option>
-                        </select>
+                        <select id="modalSkill" class="form-select form-select-sm"></select>
                     </div>
                     <div class="col-md-2">
-                        <select id="modalCefr" class="form-select form-select-sm">
-                            <option value="">CEFR</option>
-                            <option value="A1">A1</option><option value="A2">A2</option>
-                            <option value="B1">B1</option><option value="B2">B2</option>
-                            <option value="C1">C1</option><option value="C2">C2</option>
-                        </select>
+                        <select id="modalCefr" class="form-select form-select-sm"></select>
                     </div>
                     <div class="col-md-3">
                         <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm...">
@@ -128,16 +117,24 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script th:inline="javascript">
 const quizId = /*[[${quizId}]]*/ 0;
 let quizQuestions = [];
 let currentBankPage = 0;
 
-const typeName = (t) => ({
-    MULTIPLE_CHOICE_SINGLE: 'MC (Single)', MULTIPLE_CHOICE_MULTI: 'MC (Multi)',
-    FILL_IN_BLANK: 'Fill Blank', MATCHING: 'Matching', WRITING: 'Writing', SPEAKING: 'Speaking'
-}[t] || t);
+function typeName(t) {
+    if (window.NovaQuestionFormSettings && typeof NovaQuestionFormSettings.typeLabel === 'function') {
+        const l = NovaQuestionFormSettings.typeLabel(t);
+        return l || t || '—';
+    }
+    const map = {
+        MULTIPLE_CHOICE_SINGLE: 'MC (Single)', MULTIPLE_CHOICE_MULTI: 'MC (Multi)',
+        FILL_IN_BLANK: 'Fill Blank', MATCHING: 'Matching', WRITING: 'Writing', SPEAKING: 'Speaking'
+    };
+    return map[t] || t || '—';
+}
 
 // ── Load quiz details and its questions ──
 async function loadQuizQuestions() {
@@ -544,7 +541,16 @@ async function publishQuiz() {
     }
 }
 
-loadQuizQuestions();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.NovaQuestionFormSettings) {
+            await NovaQuestionFormSettings.load();
+            NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('modalSkill'), { includeEmpty: true, emptyLabel: 'Kỹ năng' });
+            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: 'CEFR' });
+        }
+    } catch (e) { console.error(e); }
+    loadQuizQuestions();
+});
 </script>
 </body>
 </html>
