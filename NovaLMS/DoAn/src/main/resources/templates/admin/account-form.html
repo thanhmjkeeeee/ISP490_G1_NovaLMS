@@ -90,12 +90,7 @@
                   <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary text-uppercase">Vai trò truy cập <span class="text-danger">*</span></label>
                     <select id="roleId" class="form-select form-select-sm bg-light shadow-none" required>
-                      <option value="" selected disabled>-- Chọn vai trò --</option>
-                      <option value="1">Quản trị viên (Admin)</option>
-                      <option value="16">Quản lý (Manager)</option>
-                      <option value="3">Chuyên gia (Expert)</option>
-                      <option value="2">Giảng viên (Teacher)</option>
-                      <option value="4">Học viên (Student)</option>
+                      <option value="" selected disabled>-- Đang tải vai trò... --</option>
                     </select>
                     <div id="roleIdError" class="text-danger small mt-1"></div>
                   </div>
@@ -126,6 +121,30 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 
 <script>
+  async function loadActiveRoles() {
+    const select = document.getElementById('roleId');
+    try {
+      const res = await fetch('/api/settings?type=ROLE&activeOnly=true');
+      const result = await res.json();
+      select.innerHTML = '<option value="" selected disabled>-- Chọn vai trò --</option>';
+      if (result.status === 200 && result.data && result.data.length > 0) {
+        result.data.forEach(function (r) {
+          const opt = document.createElement('option');
+          opt.value = r.settingId;
+          opt.textContent = r.name || r.value || ('Role #' + r.settingId);
+          select.appendChild(opt);
+        });
+      } else {
+        select.innerHTML = '<option value="" selected disabled>-- Không có vai trò Active --</option>';
+      }
+    } catch (e) {
+      console.error(e);
+      select.innerHTML = '<option value="" selected disabled>-- Lỗi tải vai trò --</option>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadActiveRoles);
+
   document.getElementById('addAccountForm').addEventListener('submit', function(e) {
       e.preventDefault();
 

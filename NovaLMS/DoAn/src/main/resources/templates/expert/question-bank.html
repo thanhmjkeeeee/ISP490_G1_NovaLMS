@@ -62,35 +62,15 @@
             <div class="row g-2 align-items-end">
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Kỹ năng</label>
-                    <select id="filterSkill" class="form-select form-select-sm" onchange="loadQuestions()">
-                        <option value="">Tất cả</option>
-                        <option value="LISTENING">Listening</option>
-                        <option value="READING">Reading</option>
-                        <option value="WRITING">Writing</option>
-                        <option value="SPEAKING">Speaking</option>
-                    </select>
+                    <select id="filterSkill" class="form-select form-select-sm" onchange="loadQuestions()"></select>
                 </div>
                 <div class="col-6 col-md-1">
                     <label class="form-label small fw-bold">CEFR</label>
-                    <select id="filterCefr" class="form-select form-select-sm" onchange="loadQuestions()">
-                        <option value="">Tất cả</option>
-                        <option value="A1">A1</option><option value="A2">A2</option>
-                        <option value="B1">B1</option><option value="B2">B2</option>
-                        <option value="C1">C1</option><option value="C2">C2</option>
-                    </select>
+                    <select id="filterCefr" class="form-select form-select-sm" onchange="loadQuestions()"></select>
                 </div>
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Loại câu hỏi</label>
-                    <select id="filterType" class="form-select form-select-sm" onchange="loadQuestions()">
-                        <option value="">Tất cả</option>
-                        <option value="MULTIPLE_CHOICE_SINGLE">MC (Single)</option>
-                        <option value="MULTIPLE_CHOICE_MULTI">MC (Multi)</option>
-                        <option value="FILL_IN_BLANK">Fill Blank</option>
-                        <option value="MATCHING">Matching</option>
-                        <option value="WRITING">Writing</option>
-                        <option value="SPEAKING">Speaking</option>
-                        <option value="PASSAGE">Bộ bài đọc/nghe (Passage)</option>
-                    </select>
+                    <select id="filterType" class="form-select form-select-sm" onchange="loadQuestions()"></select>
                 </div>
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-bold">Trạng thái</label>
@@ -200,6 +180,7 @@
                         <label class="form-label fw-bold">Upload file đã fill</label>
                         <input type="file" id="importFile" class="form-control" accept=".xlsx">
                     </div>
+                    <div id="importStep1Error" class="alert alert-danger py-2 small mb-3" style="display:none;" role="alert"></div>
                     <div class="text-end">
                         <button class="btn text-white" style="background-color: #136ad5;" onclick="uploadExcel()">
                             <i class="bi bi-upload me-1"></i> Upload &amp; Kiểm tra
@@ -217,6 +198,7 @@
                     </div>
 
                     <div id="importSummary" class="alert"></div>
+                    <div id="importStep2SaveFeedback" class="alert py-2 small mb-3" style="display:none;" role="status"></div>
 
                     <!-- Valid rows -->
                     <div id="importValidRows" class="mb-3"></div>
@@ -235,9 +217,6 @@
                             <i class="bi bi-check-lg me-1"></i> Lưu bộ câu hỏi
                         </button>
                     </div>
-                            <i class="bi bi-check-lg me-1"></i> Lưu tất cả câu hỏi
-                        </button>
-                    </div>
                 </div>
 
                 <div id="importLoading" class="text-center py-4" style="display:none;">
@@ -251,6 +230,7 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script>
 let currentPage = 0;
@@ -267,6 +247,11 @@ const statusBadge = (s) => {
 };
 
 const typeName = (t) => {
+    if (t === 'PASSAGE') return 'Bộ bài đọc/nghe';
+    if (window.NovaQuestionFormSettings && NovaQuestionFormSettings.loaded) {
+        const lb = NovaQuestionFormSettings.typeLabel(t);
+        if (lb) return lb;
+    }
     const map = {
         MULTIPLE_CHOICE_SINGLE: 'MC (Single)', MULTIPLE_CHOICE_MULTI: 'MC (Multi)',
         FILL_IN_BLANK: 'Fill Blank', MATCHING: 'Matching', WRITING: 'Writing', SPEAKING: 'Speaking',
@@ -457,7 +442,17 @@ async function deleteQuestion(id, type) {
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
-loadQuestions();
+(async function initQuestionBankFilters() {
+    try {
+        if (window.NovaQuestionFormSettings) {
+            await NovaQuestionFormSettings.load();
+            NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('filterSkill'), { includeEmpty: true, emptyLabel: 'Tất cả' });
+            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('filterCefr'), { includeEmpty: true, emptyLabel: 'Tất cả' });
+            NovaQuestionFormSettings.fillFilterTypeSelect(document.getElementById('filterType'));
+        }
+    } catch (e) { console.error(e); }
+    loadQuestions();
+})();
 
 
 // ═══════════════════════════ AI PANEL (Moved to separate pages) ═══════════════════════════
@@ -473,9 +468,60 @@ document.addEventListener('DOMContentLoaded', () => {
 let importParseResult = null;
 let importGroupResult = null;
 
+function importResponseIsError(result) {
+    return result && typeof result.status === 'number' && result.status >= 400;
+}
+
+/** API lưu import trả HTTP 200 + body.status === 201 khi thành công (CREATED). */
+function importSaveSucceeded(result) {
+    return result && result.status === 201;
+}
+
+function clearImportStep2SaveFeedback() {
+    const el = document.getElementById('importStep2SaveFeedback');
+    if (!el) return;
+    el.style.display = 'none';
+    el.textContent = '';
+    el.className = 'alert py-2 small mb-3';
+}
+
+function showImportStep2SaveFeedback(message, isError) {
+    const el = document.getElementById('importStep2SaveFeedback');
+    if (!el) {
+        alert(message);
+        return;
+    }
+    el.className = 'alert py-2 small mb-3 ' + (isError ? 'alert-danger' : 'alert-success');
+    el.textContent = message || '';
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function clearImportStep1Error() {
+    const el = document.getElementById('importStep1Error');
+    if (!el) return;
+    el.style.display = 'none';
+    el.textContent = '';
+}
+
+function showImportStep1Error(message) {
+    const el = document.getElementById('importStep1Error');
+    if (!el) {
+        alert(message);
+        return;
+    }
+    el.textContent = message || 'Đã có lỗi xảy ra.';
+    el.style.display = 'block';
+    document.getElementById('importStep1').style.display = 'block';
+    document.getElementById('importStep2').style.display = 'none';
+    document.getElementById('importGroupPreview').style.display = 'none';
+}
+
 function openImportPanel() {
     importParseResult = null;
     importGroupResult = null;
+    clearImportStep2SaveFeedback();
+    clearImportStep1Error();
     document.getElementById('importStep1').style.display = 'block';
     document.getElementById('importStep2').style.display = 'none';
     document.getElementById('importGroupPreview').style.display = 'none';
@@ -485,6 +531,8 @@ function openImportPanel() {
 }
 
 function resetImport() {
+    clearImportStep2SaveFeedback();
+    clearImportStep1Error();
     document.getElementById('importStep1').style.display = 'block';
     document.getElementById('importStep2').style.display = 'none';
     document.getElementById('importGroupPreview').style.display = 'none';
@@ -507,6 +555,7 @@ async function uploadExcel() {
     if (!type) { alert('Vui lòng chọn loại câu hỏi.'); return; }
     if (!file) { alert('Vui lòng chọn file Excel.'); return; }
 
+    clearImportStep1Error();
     document.getElementById('importLoading').style.display = 'block';
     try {
         if (type === 'QUESTION_GROUP') {
@@ -517,7 +566,14 @@ async function uploadExcel() {
                 body: formData
             });
             const result = await res.json();
-            if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
+            if (!res.ok || importResponseIsError(result)) {
+                showImportStep1Error((result && result.message) || 'Lỗi khi phân tích file.');
+                return;
+            }
+            if (!result.data) {
+                showImportStep1Error('Không nhận được dữ liệu phân tích.');
+                return;
+            }
             importGroupResult = result.data;
             renderImportGroupPreview();
         } else {
@@ -529,19 +585,97 @@ async function uploadExcel() {
                 body: formData
             });
             const result = await res.json();
-            if (!res.ok) { alert(result.message || 'Lỗi khi phân tích file.'); return; }
+            if (!res.ok || importResponseIsError(result)) {
+                showImportStep1Error((result && result.message) || 'Lỗi khi phân tích file.');
+                return;
+            }
+            if (!result.data) {
+                showImportStep1Error('Không nhận được dữ liệu phân tích.');
+                return;
+            }
             importParseResult = result.data;
             renderImportPreview();
         }
-    } catch (e) { alert('Lỗi: ' + e.message); }
-    finally { document.getElementById('importLoading').style.display = 'none'; }
+    } catch (e) {
+        showImportStep1Error('Lỗi: ' + e.message);
+    } finally { document.getElementById('importLoading').style.display = 'none'; }
+}
+
+function importMatchingPreviewBlock(row) {
+    const left = Array.isArray(row.matchLeft) ? row.matchLeft : [];
+    const right = Array.isArray(row.matchRight) ? row.matchRight : [];
+    const pairs = Array.isArray(row.correctPairs) ? row.correctPairs : [];
+    if (left.length === 0 && right.length === 0) return '';
+
+    function resolveRightIndex(p) {
+        const n = Number(p);
+        if (isNaN(n) || !right.length) return -1;
+        if (n >= 1 && n <= right.length) return n - 1;
+        if (n >= 0 && n < right.length) return n;
+        return -1;
+    }
+
+    let inner;
+    if (pairs.length === left.length && left.length > 0) {
+        inner = '<ul class="list-unstyled small mb-0">';
+        for (let idx = 0; idx < left.length; idx++) {
+            const rj = resolveRightIndex(pairs[idx]);
+            const rtext = (rj >= 0 && right[rj] !== undefined) ? String(right[rj]) : '?';
+            inner += '<li class="mb-1"><span class="fw-medium text-dark">' + escapeHtml(String(left[idx])) + '</span>' +
+                ' <i class="bi bi-arrow-right text-muted mx-1"></i> ' +
+                '<span class="fw-medium text-dark">' + escapeHtml(rtext) + '</span></li>';
+        }
+        inner += '</ul>';
+    } else {
+        inner = '<div class="row g-2 small"><div class="col-md-6"><strong class="text-secondary">Cột trái</strong><ol class="mb-0 ps-3 mt-1">' +
+            left.map(function (l) { return '<li>' + escapeHtml(String(l)) + '</li>'; }).join('') + '</ol></div>' +
+            '<div class="col-md-6"><strong class="text-secondary">Cột phải</strong><ol class="mb-0 ps-3 mt-1">' +
+            right.map(function (r) { return '<li>' + escapeHtml(String(r)) + '</li>'; }).join('') + '</ol></div></div>';
+    }
+    return '<div class="mt-2 p-2 border rounded bg-white shadow-sm"><div class="small fw-bold text-secondary text-uppercase mb-1">Ghép đôi</div>' + inner + '</div>';
+}
+
+function renderImportRowDetails(row) {
+    if (!row) return '';
+    const bits = [];
+    if (row.skill) {
+        bits.push('<span class="badge bg-secondary bg-opacity-25 text-dark border-0">' + escapeHtml(row.skill) + '</span>');
+    }
+    if (row.topic) {
+        bits.push('<span class="badge bg-light text-dark border">' + escapeHtml(row.topic) + '</span>');
+    }
+    const meta = bits.length ? '<div class="d-flex flex-wrap gap-1 mb-2">' + bits.join('') + '</div>' : '';
+
+    let specific = '';
+    if (row.questionType === 'MATCHING') {
+        specific = importMatchingPreviewBlock(row);
+    } else if (row.options && row.options.length) {
+        specific = '<div class="small"><strong>Lựa chọn</strong><ul class="mb-0 ps-3 mt-1">';
+        row.options.forEach(function (o) {
+            specific += '<li>' + escapeHtml(o.title || '') +
+                (o.correct ? ' <i class="bi bi-check-circle-fill text-success" title="Đúng"></i>' : '') + '</li>';
+        });
+        specific += '</ul></div>';
+    } else if (row.questionType === 'FILL_IN_BLANK' && row.correctAnswer) {
+        specific = '<div class="small text-success"><strong>Đáp án:</strong> ' + escapeHtml(row.correctAnswer) + '</div>';
+    }
+    const expl = row.explanation
+        ? '<div class="small text-muted mt-2 border-top pt-2"><em>' + escapeHtml(row.explanation) + '</em></div>'
+        : '';
+    return meta + specific + expl;
 }
 
 function renderImportPreview() {
+    const r = importParseResult;
+    if (!r || !Array.isArray(r.valid)) {
+        showImportStep1Error('Không nhận được dữ liệu phân tích hợp lệ.');
+        return;
+    }
+    clearImportStep1Error();
+    clearImportStep2SaveFeedback();
     document.getElementById('importStep1').style.display = 'none';
     document.getElementById('importStep2').style.display = 'block';
     document.getElementById('importGroupPreview').style.display = 'none';
-    const r = importParseResult;
     const validCount = r.valid ? r.valid.length : 0;
     const errorCount = r.errors ? r.errors.length : 0;
 
@@ -557,12 +691,17 @@ function renderImportPreview() {
             r.valid.map((row, i) => `
                 <div class="card mb-2 border-success-subtle bg-success-subtle">
                     <div class="card-body py-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <input type="checkbox" class="form-check-input valid-chk" data-idx="${i}" checked>
-                            <span class="badge bg-secondary me-1">Dòng ${row.rowIndex}</span>
-                            <span class="badge bg-info text-dark">${row.questionType}</span>
-                            <span class="badge bg-primary">${row.cefrLevel}</span>
-                            <span class="small">${escapeHtml(row.content || '')}</span>
+                        <div class="d-flex align-items-start gap-2 flex-wrap">
+                            <input type="checkbox" class="form-check-input valid-chk mt-1" data-idx="${i}" checked>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <span class="badge bg-secondary">Dòng ${row.rowIndex}</span>
+                                    <span class="badge bg-info text-dark">${row.questionType}</span>
+                                    <span class="badge bg-primary">${row.cefrLevel}</span>
+                                </div>
+                                <div class="fw-semibold text-dark small mb-0">${escapeHtml(row.content || '')}</div>
+                                ${renderImportRowDetails(row)}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -611,7 +750,12 @@ function renderErrorEdit(err, errIdx) {
 function renderImportGroupPreview() {
     const container = document.getElementById('importGroupPreview');
     const r = importGroupResult;
-    if (!r) return;
+    if (!r || !Array.isArray(r.valid)) {
+        showImportStep1Error('Không nhận được dữ liệu phân tích hợp lệ.');
+        return;
+    }
+    clearImportStep1Error();
+    clearImportStep2SaveFeedback();
 
     const validCount = r.valid ? r.valid.length : 0;
     const errorCount = r.errors ? r.errors.length : 0;
@@ -642,6 +786,7 @@ function renderImportGroupPreview() {
                         <div class="border rounded p-2 mb-2 bg-light">
                             <div class="small fw-bold">${qi + 1}. ${escapeHtml(q.content || '')}</div>
                             <div class="small text-muted">Type: ${q.questionType} | CEFR: ${q.cefrLevel}</div>
+                            ${q.questionType === 'MATCHING' ? importMatchingPreviewBlock(q) : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -663,6 +808,7 @@ async function confirmGroupImport() {
     if (!importGroupResult || !importGroupResult.valid || importGroupResult.valid.length === 0) {
         alert('Không có bộ câu hỏi nào để import.'); return;
     }
+    clearImportStep2SaveFeedback();
     const body = { group: importGroupResult.valid[0].group };
     try {
         const res = await fetch('/api/v1/expert/questions/excel/import-group', {
@@ -671,11 +817,15 @@ async function confirmGroupImport() {
             body: JSON.stringify(body)
         });
         const result = await res.json();
-        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
-        alert(result.message || 'Import thành công.');
+        if (!importSaveSucceeded(result)) {
+            showImportStep2SaveFeedback((result && result.message) || 'Lỗi khi lưu.', true);
+            return;
+        }
         importModal.hide();
         loadQuestions();
-    } catch (e) { alert('Lỗi: ' + e.message); }
+    } catch (e) {
+        showImportStep2SaveFeedback('Lỗi: ' + e.message, true);
+    }
 }
 
 async function confirmSingleImport() {
@@ -699,6 +849,7 @@ async function confirmSingleImport() {
     const allQuestions = [...validRows, ...fixedErrors];
     if (allQuestions.length === 0) { alert('Không có câu hỏi nào để lưu.'); return; }
 
+    clearImportStep2SaveFeedback();
     try {
         const res = await fetch('/api/v1/expert/questions/excel/import', {
             method: 'POST',
@@ -706,11 +857,15 @@ async function confirmSingleImport() {
             body: JSON.stringify({ questions: allQuestions })
         });
         const result = await res.json();
-        if (!res.ok) { alert(result.message || 'Lỗi khi lưu.'); return; }
-        alert(result.message || 'Đã import thành công.');
+        if (!importSaveSucceeded(result)) {
+            showImportStep2SaveFeedback((result && result.message) || 'Lỗi khi lưu.', true);
+            return;
+        }
         importModal.hide();
         loadQuestions();
-    } catch (e) { alert('Lỗi: ' + e.message); }
+    } catch (e) {
+        showImportStep2SaveFeedback('Lỗi: ' + e.message, true);
+    }
 }
 
 function escapeHtml(s) {

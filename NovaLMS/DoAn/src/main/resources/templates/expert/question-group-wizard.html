@@ -117,23 +117,11 @@
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label class="form-label fw-bold small text-uppercase text-muted">Skill <span class="text-danger">*</span></label>
-            <select id="s1Skill" class="form-select form-select-lg">
-              <option value="READING">Reading / Đọc hiểu</option>
-              <option value="LISTENING">Listening / Nghe hiểu</option>
-              <option value="WRITING">Writing / Viết</option>
-              <option value="SPEAKING">Speaking / Nói</option>
-            </select>
+            <select id="s1Skill" class="form-select form-select-lg"></select>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-bold small text-uppercase text-muted">CEFR Level <span class="text-danger">*</span></label>
-            <select id="s1Cefr" class="form-select form-select-lg">
-              <option value="A1">A1 — Beginner</option>
-              <option value="A2">A2 — Elementary</option>
-              <option value="B1" selected>B1 — Intermediate</option>
-              <option value="B2">B2 — Upper-Intermediate</option>
-              <option value="C1">C1 — Advanced</option>
-              <option value="C2">C2 — Proficient</option>
-            </select>
+            <select id="s1Cefr" class="form-select form-select-lg"></select>
           </div>
         </div>
 
@@ -541,6 +529,7 @@
 </style>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 <script th:src="@{/assets/expert/js/question-wizard.js}"></script>
 </body>
 </html>

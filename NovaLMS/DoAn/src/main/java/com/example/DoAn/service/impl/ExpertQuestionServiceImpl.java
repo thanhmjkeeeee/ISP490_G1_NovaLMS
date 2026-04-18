@@ -296,19 +296,36 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
             if (withTarget == 0) {
                 throw new InvalidDataException("Câu hỏi Matching cần ít nhất 1 vế trái (nội dung có vế phải ghép nối).");
             }
-        } else {
-            if (options.size() < 2) {
-                throw new InvalidDataException("Câu hỏi trắc nghiệm phải có ít nhất 2 đáp án.");
+            return;
+        }
+
+        if ("FILL_IN_BLANK".equals(type)) {
+            long nonBlankTitles = options.stream()
+                    .filter(o -> o.getTitle() != null && !o.getTitle().isBlank())
+                    .count();
+            if (nonBlankTitles < 1) {
+                throw new InvalidDataException("Câu hỏi Fill in the Blank cần ít nhất một đáp án (ô điền đúng cho chỗ trống).");
             }
             long correctCount = options.stream()
                     .filter(o -> Boolean.TRUE.equals(o.getCorrect()))
                     .count();
             if (correctCount == 0) {
-                throw new InvalidDataException("Phải có ít nhất 1 đáp án đúng (correct=true).");
+                throw new InvalidDataException("Câu hỏi Fill in the Blank phải có ít nhất 1 đáp án được đánh dấu đúng.");
             }
-            if ("MULTIPLE_CHOICE_SINGLE".equals(type) && correctCount > 1) {
-                throw new InvalidDataException("Câu hỏi chỉ được có duy nhất 1 đáp án đúng.");
-            }
+            return;
+        }
+
+        if (options.size() < 2) {
+            throw new InvalidDataException("Câu hỏi trắc nghiệm phải có ít nhất 2 đáp án.");
+        }
+        long correctCount = options.stream()
+                .filter(o -> Boolean.TRUE.equals(o.getCorrect()))
+                .count();
+        if (correctCount == 0) {
+            throw new InvalidDataException("Phải có ít nhất 1 đáp án đúng (correct=true).");
+        }
+        if ("MULTIPLE_CHOICE_SINGLE".equals(type) && correctCount > 1) {
+            throw new InvalidDataException("Câu hỏi chỉ được có duy nhất 1 đáp án đúng.");
         }
     }
 

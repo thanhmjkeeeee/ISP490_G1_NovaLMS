@@ -1,874 +1,1041 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:with="isDashboard=true">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:with="isDashboard=true">
+
 <head>
     <th:block th:replace="~{fragments/head :: common-head(pageTitle='Tạo Quiz - Expert')}"></th:block>
     <style>
-        .quiz-stepper { max-width: 800px; margin: 0 auto; }
-        .step-item { flex: 1; text-align: center; position: relative; z-index: 2; }
-        .step-icon { width: 40px; height: 40px; border-radius: 50%; background: #e9ecef; color: #6c757d; line-height: 40px; margin: 0 auto 8px; font-weight: bold; transition: all 0.3s; }
-        .step-label { font-size: 0.85rem; font-weight: 600; color: #6c757d; }
-        .stepper-line { position: absolute; top: 20px; left: 10%; right: 10%; height: 2px; background: #e9ecef; z-index: 1; }
-        
-        .step-item.active .step-icon { background: #136ad5; color: #fff; box-shadow: 0 0 0 4px rgba(19, 106, 213, 0.2); }
-        .step-item.active .step-label { color: #136ad5; }
-        .step-item.completed .step-icon { background: #10b981; color: #fff; }
-        .step-item.completed .step-icon::after { content: '\F26A'; font-family: 'bootstrap-icons'; }
-        .step-item.completed .step-label { color: #10b981; }
+        .quiz-stepper {
+            max-width: 800px;
+            margin: 0 auto;
+        }
 
-        .border-2 { border-width: 2px !important; }
-        .card { border-radius: 20px; }
+        .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            line-height: 40px;
+            margin: 0 auto 8px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .step-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .stepper-line {
+            position: absolute;
+            top: 20px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+
+        .step-item.active .step-icon {
+            background: #136ad5;
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(19, 106, 213, 0.2);
+        }
+
+        .step-item.active .step-label {
+            color: #136ad5;
+        }
+
+        .step-item.completed .step-icon {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .step-item.completed .step-icon::after {
+            content: '\F26A';
+            font-family: 'bootstrap-icons';
+        }
+
+        .step-item.completed .step-label {
+            color: #10b981;
+        }
+
+        .border-2 {
+            border-width: 2px !important;
+        }
+
+        .card {
+            border-radius: 20px;
+        }
 
         /* Skill status cards (Step 3) */
         .skill-status-card {
-            border-radius: 14px; border: 2px solid #dee2e6;
-            padding: 14px; text-align: center; min-width: 130px;
+            border-radius: 14px;
+            border: 2px solid #dee2e6;
+            padding: 14px;
+            text-align: center;
+            min-width: 130px;
         }
-        .skill-status-card.ready { border-color: #10b981; background: #f0fdf4; }
-        .skill-status-card.missing { border-color: #f59e0b; background: #fffbeb; }
-        .preview-icon-ok { font-size: 2.5rem; color: #10b981; }
-        .preview-icon-warn { font-size: 2.5rem; color: #f59e0b; }
+
+        .skill-status-card.ready {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .skill-status-card.missing {
+            border-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .preview-icon-ok {
+            font-size: 2.5rem;
+            color: #10b981;
+        }
+
+        .preview-icon-warn {
+            font-size: 2.5rem;
+            color: #f59e0b;
+        }
     </style>
 </head>
+
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Tạo Quiz', breadcrumb='Expert / Quiz Management')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-management')}"></aside>
-<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+    <header
+        th:replace="~{fragments/header :: dash-header(pageTitle='Tạo Quiz', breadcrumb='Expert / Quiz Management')}">
+    </header>
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='quiz-management')}"></aside>
+    <aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
 
-<main class="dash-main d-flex flex-column" id="dashMain">
+    <main class="dash-main d-flex flex-column" id="dashMain">
 
-    <div class="d-flex justify-content-between align-items-end mb-4">
-        <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Tạo đề kiểm tra</h3>
-            <p class="text-muted small m-0">Quy trình tạo đề thi thông minh 3 bước.</p>
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <h3 class="fw-bold m-0" style="color: #223a58;">Tạo đề kiểm tra</h3>
+                <p class="text-muted small m-0">Quy trình tạo đề thi thông minh 3 bước.</p>
+            </div>
+            <button type="button" onclick="cancelAndExit()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-x-lg me-1"></i> Hủy và thoát
+            </button>
         </div>
-        <button type="button" onclick="cancelAndExit()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-            <i class="bi bi-x-lg me-1"></i> Hủy và thoát
-        </button>
-    </div>
 
-    <!-- Stepper UI -->
-    <div class="quiz-stepper mb-4">
-        <div class="d-flex justify-content-between position-relative">
-            <div class="stepper-line"></div>
-            <div class="step-item active" id="step-i-1">
-                <div class="step-icon">1</div>
-                <div class="step-label">Thiết lập</div>
-            </div>
-            <div class="step-item" id="step-i-2">
-                <div class="step-icon">2</div>
-                <div class="step-label">Nội dung</div>
-            </div>
-            <div class="step-item" id="step-i-3">
-                <div class="step-icon">3</div>
-                <div class="step-label">Hoàn thiện</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- STEP 1: CONFIGURATION -->
-    <div id="section-step-1" class="quiz-step-section">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <form id="quizForm">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
-                            <input type="text" id="title" class="form-control form-control-lg border-2" required placeholder="VD: Entry Test IELTS A1">
-                        </div>
-                        <div class="col-md-3" id="quizCategoryCol">
-                            <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
-                            <select id="quizCategory" class="form-select form-select-lg border-2" required onchange="onCategoryChange()">
-                                <option value="">-- Chọn --</option>
-                                <option value="ENTRY_TEST">Entry Test</option>
-                                <option value="COURSE_QUIZ">Bài kiểm tra</option>
-                                <option value="COURSE_ASSIGNMENT">Bài tập lớn (Assignment)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3" id="courseSection" style="display:none">
-                            <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
-                            <select id="courseId" class="form-select form-select-lg border-2">
-                                <option value="">-- Chọn khóa học --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Mô tả</label>
-                        <textarea id="description" class="form-control border-2" rows="3" placeholder="Mô tả chi tiết quiz..."></textarea>
-                    </div>
-
-                    <h6 class="fw-bold mt-4 mb-3" style="color: #223a58; border-left: 4px solid #136ad5; padding-left: 10px;">Cấu hình nâng cao</h6>
-                    <div id="assignmentTimeMsg" class="alert alert-info" style="display:none; border-radius: 12px; border: 0;">
-                        <i class="bi bi-info-circle-fill me-2"></i> Thời gian làm bài sẽ được cấu hình theo từng kỹ năng ở bước chỉnh sửa.
-                    </div>
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-3" id="timeLimitCol">
-                            <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
-                            <input type="number" id="timeLimitMinutes" class="form-control" placeholder="Không giới hạn" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
-                            <input type="number" id="passScore" class="form-control" placeholder="VD: 70" min="0" max="100" step="0.01" oninput="if(this.value < 0) this.value = 0; if(this.value > 100) this.value = 100;">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
-                            <input type="number" id="maxAttempts" class="form-control" placeholder="Không giới hạn" min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Thứ tự câu hỏi</label>
-                            <select id="questionOrder" class="form-select">
-                                <option value="FIXED">Cố định</option>
-                                <option value="RANDOM">Ngẫu nhiên</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="deadlineSection" class="mb-4" style="display:none">
-                        <label class="form-label fw-bold small text-primary">Hạn nộp (Deadline) <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-primary border-opacity-25"><i class="bi bi-calendar-event text-primary"></i></span>
-                            <input type="datetime-local" id="deadline" class="form-control border-primary border-opacity-25 shadow-sm" style="max-width: 300px;">
-                        </div>
-                        <div class="form-text text-muted small">Học viên phải nộp bài trước thời gian này.</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="form-check form-switch p-0" style="padding-left: 2.5rem !important;">
-                            <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit" style="width: 2.5em; height: 1.25em;">
-                            <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">Cho phép xem đáp án sau khi nộp bài</label>
-                        </div>
-                    </div>
-
-                    <!-- Assignment schedule fields (hidden by default) -->
-                    <div id="perSkillTimeSection" style="display:none;">
-                        <h6 class="fw-bold mt-4 mb-3" style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
-                            Thời gian từng phần (phút) <span class="text-danger">*</span>
-                        </h6>
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="enable_LISTENING" checked onchange="toggleSkillInput('LISTENING')">
-                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_LISTENING">LISTENING</label>
-                                </div>
-                                <input type="text" id="timeLimit_LISTENING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="enable_READING" checked onchange="toggleSkillInput('READING')">
-                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_READING">READING</label>
-                                </div>
-                                <input type="text" id="timeLimit_READING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="enable_SPEAKING" checked onchange="toggleSkillInput('SPEAKING')">
-                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_SPEAKING">SPEAKING</label>
-                                </div>
-                                <input type="text" id="timeLimit_SPEAKING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check form-switch mb-1">
-                                    <input class="form-check-input" type="checkbox" id="enable_WRITING" checked onchange="toggleSkillInput('WRITING')">
-                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_WRITING">WRITING</label>
-                                </div>
-                                <input type="text" id="timeLimit_WRITING" class="form-control" placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="entryTestWarning" class="alert alert-soft-warning border-0 py-3 px-4 mb-4" style="display:none; background-color: #fff9db; color: #856404; border-radius: 12px;">
-                        <div class="d-flex">
-                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-                            <div>
-                                <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
-                                <p class="small m-0">Hệ thống chỉ tự động chấm các dạng câu hỏi Trắc nghiệm và Điền từ. Dạng Writing/Speaking sẽ cần chấm bằng tay hoặc bị tính là sai.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-end gap-3 pt-3 border-top">
-                        <button type="button" class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;" onclick="window.history.back()">Hủy</button>
-                        <button type="button" id="btnNextStep" class="btn btn-lg text-white px-5 fw-bold" style="background-color: #136ad5; border-radius: 12px;" onclick="validateAndGoToStep2()">
-                            Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>
-                        </button>
-                    </div>
-                </form>
+        <!-- Stepper UI -->
+        <div class="quiz-stepper mb-4">
+            <div class="d-flex justify-content-between position-relative">
+                <div class="stepper-line"></div>
+                <div class="step-item active" id="step-i-1">
+                    <div class="step-icon">1</div>
+                    <div class="step-label">Thiết lập</div>
+                </div>
+                <div class="step-item" id="step-i-2">
+                    <div class="step-icon">2</div>
+                    <div class="step-label">Nội dung</div>
+                </div>
+                <div class="step-item" id="step-i-3">
+                    <div class="step-icon">3</div>
+                    <div class="step-label">Hoàn thiện</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- STEP 2: BUILD CONTENT (Will be populated in next turn) -->
-    <div id="section-step-2" class="quiz-step-section" style="display:none;">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-0">
-                <div class="row g-0" style="min-height: 600px;">
-                    <!-- Left: Current Quiz -->
-                    <div class="col-md-5 border-end p-4">
-                        <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-                            <span>Đề thi hiện tại</span>
-                            <span class="badge bg-primary rounded-pill" id="currentCountBadge">0 câu</span>
-                        </h5>
-                        <div id="addedQuestionsList" class="overflow-auto" style="max-height: 500px;">
-                            <div class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                Chưa có câu hỏi nào. <br>Chọn từ Ngân hàng để thêm vào.
+        <!-- STEP 1: CONFIGURATION -->
+        <div id="section-step-1" class="quiz-step-section">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form id="quizForm">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
+                                <input type="text" id="title" class="form-control form-control-lg border-2" required
+                                    placeholder="VD: Entry Test IELTS A1">
+                            </div>
+                            <div class="col-md-3" id="quizCategoryCol">
+                                <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
+                                <select id="quizCategory" class="form-select form-select-lg border-2" required
+                                    onchange="onCategoryChange()">
+                                    <option value="">-- Chọn --</option>
+                                    <option value="ENTRY_TEST">Entry Test</option>
+                                    <option value="COURSE_QUIZ">Bài kiểm tra</option>
+                                    <option value="COURSE_ASSIGNMENT">Bài tập lớn (Assignment)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="courseSection" style="display:none">
+                                <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
+                                <select id="courseId" class="form-select form-select-lg border-2">
+                                    <option value="">-- Chọn khóa học --</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
-                    <!-- Right: Question Bank Browser -->
-                    <div class="col-md-7 p-0 bg-light bg-opacity-10 d-flex flex-column">
-                        <div class="p-4 border-bottom bg-white">
-                            <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-                                <span>Ngân hàng câu hỏi</span>
-                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openExpertAiModal()">
-                                    <i class="bi bi-stars me-1"></i> Tạo bằng AI
-                                </button>
-                            </h5>
-                            <!-- Filters for Bank -->
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <select id="modalSkill" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
-                                        <option value="">-- Tất cả Kỹ năng --</option>
-                                        <option value="LISTENING">Listening</option>
-                                        <option value="READING">Reading</option>
-                                        <option value="WRITING">Writing</option>
-                                        <option value="SPEAKING">Speaking</option>
-                                    </select>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mô tả</label>
+                            <textarea id="description" class="form-control border-2" rows="3"
+                                placeholder="Mô tả chi tiết quiz..."></textarea>
+                        </div>
+
+                        <h6 class="fw-bold mt-4 mb-3"
+                            style="color: #223a58; border-left: 4px solid #136ad5; padding-left: 10px;">Cấu hình nâng
+                            cao</h6>
+                        <div id="assignmentTimeMsg" class="alert alert-info"
+                            style="display:none; border-radius: 12px; border: 0;">
+                            <i class="bi bi-info-circle-fill me-2"></i> Thời gian làm bài sẽ được cấu hình theo từng kỹ
+                            năng ở bước chỉnh sửa.
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3" id="timeLimitCol">
+                                <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
+                                <input type="number" id="timeLimitMinutes" class="form-control"
+                                    placeholder="Không giới hạn" min="1"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
+                                <input type="number" id="passScore" class="form-control" placeholder="VD: 70" min="0"
+                                    max="100" step="0.01"
+                                    oninput="if(this.value < 0) this.value = 0; if(this.value > 100) this.value = 100;">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
+                                <input type="number" id="maxAttempts" class="form-control" placeholder="Không giới hạn"
+                                    min="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small text-muted">Thứ tự câu hỏi</label>
+                                <select id="questionOrder" class="form-select">
+                                    <option value="FIXED">Cố định</option>
+                                    <option value="RANDOM">Ngẫu nhiên</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="deadlineSection" class="mb-4" style="display:none">
+                            <label class="form-label fw-bold small text-primary">Hạn nộp (Deadline) <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-primary border-opacity-25"><i
+                                        class="bi bi-calendar-event text-primary"></i></span>
+                                <input type="datetime-local" id="deadline"
+                                    class="form-control border-primary border-opacity-25 shadow-sm"
+                                    style="max-width: 300px;">
+                            </div>
+                            <div class="form-text text-muted small">Học viên phải nộp bài trước thời gian này.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check form-switch p-0" style="padding-left: 2.5rem !important;">
+                                <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit"
+                                    style="width: 2.5em; height: 1.25em;">
+                                <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">Cho phép xem
+                                    đáp án sau khi nộp bài</label>
+                            </div>
+                        </div>
+
+                        <!-- Assignment schedule fields (hidden by default) -->
+                        <div id="perSkillTimeSection" style="display:none;">
+                            <h6 class="fw-bold mt-4 mb-3"
+                                style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                                Thời gian từng phần (phút) <span class="text-danger">*</span>
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch mb-1">
+                                        <input class="form-check-input" type="checkbox" id="enable_LISTENING" checked
+                                            onchange="toggleSkillInput('LISTENING')">
+                                        <label class="form-label fw-bold small text-muted mb-0"
+                                            for="enable_LISTENING">LISTENING</label>
+                                    </div>
+                                    <input type="text" id="timeLimit_LISTENING" class="form-control"
+                                        placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                                 </div>
                                 <div class="col-md-3">
-                                    <select id="modalCefr" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
-                                        <option value="">-- IELTS Band --</option>
-                                        <option value="4.0">4.0</option>
-                                        <option value="4.5">4.5</option>
-                                        <option value="5.0">5.0</option>
-                                        <option value="5.5">5.5</option>
-                                        <option value="6.0">6.0</option>
-                                        <option value="6.5">6.5</option>
-                                        <option value="7.0">7.0</option>
-                                        <option value="7.5">7.5</option>
-                                        <option value="8.0">8.0</option>
-                                        <option value="8.5">8.5</option>
-                                        <option value="9.0">9.0</option>
+                                    <div class="form-check form-switch mb-1">
+                                        <input class="form-check-input" type="checkbox" id="enable_READING" checked
+                                            onchange="toggleSkillInput('READING')">
+                                        <label class="form-label fw-bold small text-muted mb-0"
+                                            for="enable_READING">READING</label>
+                                    </div>
+                                    <input type="text" id="timeLimit_READING" class="form-control"
+                                        placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch mb-1">
+                                        <input class="form-check-input" type="checkbox" id="enable_SPEAKING" checked
+                                            onchange="toggleSkillInput('SPEAKING')">
+                                        <label class="form-label fw-bold small text-muted mb-0"
+                                            for="enable_SPEAKING">SPEAKING</label>
+                                    </div>
+                                    <input type="text" id="timeLimit_SPEAKING" class="form-control"
+                                        placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch mb-1">
+                                        <input class="form-check-input" type="checkbox" id="enable_WRITING" checked
+                                            onchange="toggleSkillInput('WRITING')">
+                                        <label class="form-label fw-bold small text-muted mb-0"
+                                            for="enable_WRITING">WRITING</label>
+                                    </div>
+                                    <input type="text" id="timeLimit_WRITING" class="form-control"
+                                        placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="entryTestWarning" class="alert alert-soft-warning border-0 py-3 px-4 mb-4"
+                            style="display:none; background-color: #fff9db; color: #856404; border-radius: 12px;">
+                            <div class="d-flex">
+                                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
+                                    <p class="small m-0">Hệ thống chỉ tự động chấm các dạng câu hỏi Trắc nghiệm và Điền
+                                        từ. Dạng Writing/Speaking sẽ cần chấm bằng tay hoặc bị tính là sai.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+                            <button type="button" class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;"
+                                onclick="window.history.back()">Hủy</button>
+                            <button type="button" id="btnNextStep" class="btn btn-lg text-white px-5 fw-bold"
+                                style="background-color: #136ad5; border-radius: 12px;"
+                                onclick="validateAndGoToStep2()">
+                                Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: BUILD CONTENT (Will be populated in next turn) -->
+        <div id="section-step-2" class="quiz-step-section" style="display:none;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="row g-0" style="min-height: 600px;">
+                        <!-- Left: Current Quiz -->
+                        <div class="col-md-5 border-end p-4">
+                            <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                <span>Đề thi hiện tại</span>
+                                <span class="badge bg-primary rounded-pill" id="currentCountBadge">0 câu</span>
+                            </h5>
+                            <div id="addedQuestionsList" class="overflow-auto" style="max-height: 500px;">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Chưa có câu hỏi nào. <br>Chọn từ Ngân hàng để thêm vào.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Right: Question Bank Browser -->
+                        <div class="col-md-7 p-0 bg-light bg-opacity-10 d-flex flex-column">
+                            <div class="p-4 border-bottom bg-white">
+                                <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                                    <span>Ngân hàng câu hỏi</span>
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm"
+                                        onclick="openExpertAiModal()">
+                                        <i class="bi bi-stars me-1"></i> Tạo bằng AI
+                                    </button>
+                                </h5>
+                                <!-- Filters for Bank -->
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <select id="modalSkill" class="form-select form-select-sm"
+                                            onchange="loadBankQuestions(0)"></select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select id="modalCefr" class="form-select form-select-sm"
+                                            onchange="loadBankQuestions(0)">
+                                            <option value="">-- CEFR --</option>
+                                            <option value="A1">A1</option>
+                                            <option value="A2">A2</option>
+                                            <option value="B1">B1</option>
+                                            <option value="B2">B2</option>
+                                            <option value="C1">C1</option>
+                                            <option value="C2">C2</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input type="text" id="modalKeyword" class="form-control form-control-sm"
+                                            placeholder="Tìm kiếm..."
+                                            onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i
+                                                class="bi bi-search"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="bankBrowserSection" class="flex-grow-1 overflow-auto p-0"
+                                style="max-height: 500px;">
+                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th class="ps-4">Nội dung</th>
+                                            <th>Loại</th>
+                                            <th>CEFR</th>
+                                            <th class="text-end pe-4">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bankQuestionsBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5 text-muted">Đang tải câu hỏi...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="p-3 bg-white border-top">
+                                <nav>
+                                    <ul class="pagination pagination-sm justify-content-center mb-0"
+                                        id="bankPagination"></ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
+                        <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i
+                                class="bi bi-arrow-left me-1"></i> Quay lại</button>
+                        <div class="small text-muted">Tự động lưu...</div>
+                        <button class="btn btn-primary px-5 fw-bold" onclick="goToStep(3)">Tiếp theo: Xem trước & Hoàn
+                            thiện <i class="bi bi-arrow-right ms-1"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: FINISH -->
+        <div id="section-step-3" class="quiz-step-section" style="display:none;">
+            <div class="card border-0 shadow-sm text-center py-5 px-4">
+                <div class="py-4">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                    </div>
+                    <h3 class="fw-bold" id="previewTitle">Tên Quiz của bạn</h3>
+                    <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0%</p>
+                    <p class="text-muted small mb-4" id="previewQuestionCount">0 câu hỏi đã thêm</p>
+
+                    <!-- Skill status cards -->
+                    <div class="d-flex justify-content-center gap-3 flex-wrap mb-4" id="skillStatusCards"></div>
+
+                    <!-- Validation message -->
+                    <div id="publishValidationMsg" class="alert d-flex align-items-center gap-2 mx-auto mb-4"
+                        style="max-width:500px; display:none;">
+                        <i class="bi fs-5"></i>
+                        <span class="small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3">
+                        <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại
+                            sửa</button>
+                        <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal"
+                            onclick="finalPublish()">
+                            <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════ AI GENERATOR MODAL ═══════════════════════════════ -->
+        <div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-4 border-0 shadow-lg"
+                    style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
+                    <div class="modal-header border-0 pb-0">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                                <i class="bi bi-stars text-primary fs-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="modal-title fw-bold">AI Question Expert</h4>
+                                <p class="text-muted small mb-0">Thiết kế câu hỏi thông minh với các tùy chọn nâng cao
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-4">
+                            <!-- Left: Base Config -->
+                            <div class="col-md-6 border-end pe-md-4">
+                                <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ
+                                    bản</label>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Chủ đề (Topic) <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control rounded-3" id="adv-topic"
+                                        placeholder="VD: Present Perfect, Workplace Communication...">
+                                </div>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold">Kỹ năng</label>
+                                        <div class="ai-selector-group d-flex gap-2" id="skill-selector">
+                                            <input type="radio" class="btn-check" name="adv-skill-radio"
+                                                id="skill-reading" value="READING" checked
+                                                onchange="updateAdvSkill(this.value)">
+                                            <label
+                                                class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1"
+                                                for="skill-reading">
+                                                <i class="bi bi-book fs-4"></i>
+                                                <span class="small mt-1 d-block">Reading</span>
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="adv-skill-radio"
+                                                id="skill-listening" value="LISTENING"
+                                                onchange="updateAdvSkill(this.value)">
+                                            <label
+                                                class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1"
+                                                for="skill-listening">
+                                                <i class="bi bi-headphones fs-4"></i>
+                                                <span class="small mt-1 d-block">Listening</span>
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="adv-skill-radio"
+                                                id="skill-writing" value="WRITING"
+                                                onchange="updateAdvSkill(this.value)">
+                                            <label
+                                                class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1"
+                                                for="skill-writing">
+                                                <i class="bi bi-pencil-square fs-4"></i>
+                                                <span class="small mt-1 d-block">Writing</span>
+                                            </label>
+
+                                            <input type="radio" class="btn-check" name="adv-skill-radio"
+                                                id="skill-speaking" value="SPEAKING"
+                                                onchange="updateAdvSkill(this.value)">
+                                            <label
+                                                class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1"
+                                                for="skill-speaking">
+                                                <i class="bi bi-mic fs-4"></i>
+                                                <span class="small mt-1 d-block">Speaking</span>
+                                            </label>
+                                        </div>
+                                        <input type="hidden" id="adv-skill" value="READING">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold">Trình độ IELTS Band</label>
+                                        <div class="ai-selector-group d-flex flex-wrap gap-2" id="cefr-selector">
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-40"
+                                                value="4.0" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-40">4.0</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-45"
+                                                value="4.5" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-45">4.5</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-50"
+                                                value="5.0" checked onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-50">5.0</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-55"
+                                                value="5.5" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-55">5.5</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-60"
+                                                value="6.0" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-60">6.0</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-65"
+                                                value="6.5" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-65">6.5</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-70"
+                                                value="7.0" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-70">7.0</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-75"
+                                                value="7.5" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-75">7.5</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-80"
+                                                value="8.0" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-80">8.0</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-85"
+                                                value="8.5" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-85">8.5</label>
+
+                                            <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-90"
+                                                value="9.0" onchange="updateAdvCefr(this.value)">
+                                            <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none"
+                                                for="cefr-90">9.0</label>
+                                        </div>
+                                        <input type="hidden" id="adv-cefr" value="5.0">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Loại câu hỏi (Chọn nhiều)</label>
+                                    <div class="d-flex flex-wrap gap-2" id="adv-types">
+                                        <input type="checkbox" class="btn-check" id="type-mc-s"
+                                            value="MULTIPLE_CHOICE_SINGLE" checked>
+                                        <label
+                                            class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                            for="type-mc-s">Trắc nghiệm đơn</label>
+
+                                        <input type="checkbox" class="btn-check" id="type-mc-m"
+                                            value="MULTIPLE_CHOICE_MULTI">
+                                        <label
+                                            class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                            for="type-mc-m">Trắc nghiệm nhiều</label>
+
+                                        <input type="checkbox" class="btn-check" id="type-fib" value="FILL_IN_BLANK">
+                                        <label
+                                            class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                            for="type-fib">Điền từ</label>
+
+                                        <input type="checkbox" class="btn-check" id="type-match" value="MATCHING"
+                                            onchange="toggleAiAdvancedFields()">
+                                        <label
+                                            class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                            for="type-match">Nối cặp</label>
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small fw-bold">Số lượng câu hỏi</label>
+                                    <input type="range" class="form-range" min="1" max="20" step="1" value="5"
+                                        id="adv-qty" oninput="this.nextElementSibling.value = this.value">
+                                    <output class="badge bg-primary rounded-pill">5</output>
+                                </div>
+                            </div>
+
+                            <!-- Right: Advanced Config -->
+                            <div class="col-md-6 ps-md-4">
+                                <label class="form-label fw-bold small text-uppercase text-primary">Tùy chọn nâng
+                                    cao</label>
+
+                                <!-- Listening Options -->
+                                <div id="field-listening" class="mb-3" style="display:none;">
+                                    <label class="form-label small fw-bold">Loại kịch bản nghe (Listening
+                                        Transcript)</label>
+                                    <select class="form-select rounded-3" id="adv-listen-type">
+                                        <option value="Dialogue">Dialogue (Hội thoại giữa 2-3 người)</option>
+                                        <option value="Monologue">Monologue (Độc thoại, bài thuyết trình)</option>
+                                        <option value="Announcement">Announcement (Thông báo công cộng)</option>
+                                        <option value="Radio/Podcast">Radio/Podcast Segment</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
-                                </div>
-                                <div class="col-md-1">
-                                    <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i class="bi bi-search"></i></button>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div id="bankBrowserSection" class="flex-grow-1 overflow-auto p-0" style="max-height: 500px;">
-                            <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                                <thead class="table-light sticky-top">
-                                <tr>
-                                    <th class="ps-4">Nội dung</th>
-                                    <th>Loại</th>
-                                    <th>CEFR</th>
-                                    <th class="text-end pe-4">Hành động</th>
-                                </tr>
-                                </thead>
-                                <tbody id="bankQuestionsBody">
-                                <tr><td colspan="4" class="text-center py-5 text-muted">Đang tải câu hỏi...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="p-3 bg-white border-top">
-                            <nav><ul class="pagination pagination-sm justify-content-center mb-0" id="bankPagination"></ul></nav>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
-                    <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i class="bi bi-arrow-left me-1"></i> Quay lại</button>
-                    <div class="small text-muted">Tự động lưu...</div>
-                    <button class="btn btn-primary px-5 fw-bold" onclick="goToStep(3)">Tiếp theo: Xem trước & Hoàn thiện <i class="bi bi-arrow-right ms-1"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
+                                <!-- Reading Options -->
+                                <div id="field-reading" class="mb-3" style="display:none;">
+                                    <label class="form-label small fw-bold">Độ dài đoạn văn (Reading Passage)</label>
+                                    <div class="ai-selector-group d-flex gap-2">
+                                        <input type="radio" class="btn-check" name="adv-read-len" id="len-short"
+                                            value="SHORT">
+                                        <label
+                                            class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
+                                            for="len-short">Ngắn<br><small>(100-150w)</small></label>
 
-    <!-- STEP 3: FINISH -->
-    <div id="section-step-3" class="quiz-step-section" style="display:none;">
-        <div class="card border-0 shadow-sm text-center py-5 px-4">
-            <div class="py-4">
-                <div class="mb-4">
-                    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
-                </div>
-                <h3 class="fw-bold" id="previewTitle">Tên Quiz của bạn</h3>
-                <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0%</p>
-                <p class="text-muted small mb-4" id="previewQuestionCount">0 câu hỏi đã thêm</p>
+                                        <input type="radio" class="btn-check" name="adv-read-len" id="len-med"
+                                            value="MEDIUM" checked>
+                                        <label
+                                            class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
+                                            for="len-med">Vừa<br><small>(200-300w)</small></label>
 
-                <!-- Skill status cards -->
-                <div class="d-flex justify-content-center gap-3 flex-wrap mb-4" id="skillStatusCards"></div>
-
-                <!-- Validation message -->
-                <div id="publishValidationMsg" class="alert d-flex align-items-center gap-2 mx-auto mb-4"
-                     style="max-width:500px; display:none;">
-                    <i class="bi fs-5"></i>
-                    <span class="small"></span>
-                </div>
-
-                <div class="d-flex justify-content-center gap-3">
-                    <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại sửa</button>
-                    <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal" onclick="finalPublish()">
-                        <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════ AI GENERATOR MODAL ═══════════════════════════════ -->
-    <div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content rounded-4 border-0 shadow-lg"
-                style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);">
-                <div class="modal-header border-0 pb-0">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
-                            <i class="bi bi-stars text-primary fs-4"></i>
-                        </div>
-                        <div>
-                            <h4 class="modal-title fw-bold">AI Question Expert</h4>
-                            <p class="text-muted small mb-0">Thiết kế câu hỏi thông minh với các tùy chọn nâng cao</p>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="row g-4">
-                        <!-- Left: Base Config -->
-                        <div class="col-md-6 border-end pe-md-4">
-                            <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ bản</label>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Chủ đề (Topic) <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control rounded-3" id="adv-topic"
-                                    placeholder="VD: Present Perfect, Workplace Communication...">
-                            </div>
-                            <div class="row g-3 mb-4">
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">Kỹ năng</label>
-                                    <div class="ai-selector-group d-flex gap-2" id="skill-selector">
-                                        <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-reading"
-                                            value="READING" checked onchange="updateAdvSkill(this.value)">
-                                        <label class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1" for="skill-reading">
-                                            <i class="bi bi-book fs-4"></i>
-                                            <span class="small mt-1 d-block">Reading</span>
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="adv-skill-radio"
-                                            id="skill-listening" value="LISTENING"
-                                            onchange="updateAdvSkill(this.value)">
-                                        <label class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1" for="skill-listening">
-                                            <i class="bi bi-headphones fs-4"></i>
-                                            <span class="small mt-1 d-block">Listening</span>
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-writing"
-                                            value="WRITING" onchange="updateAdvSkill(this.value)">
-                                        <label class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1" for="skill-writing">
-                                            <i class="bi bi-pencil-square fs-4"></i>
-                                            <span class="small mt-1 d-block">Writing</span>
-                                        </label>
-
-                                        <input type="radio" class="btn-check" name="adv-skill-radio" id="skill-speaking"
-                                            value="SPEAKING" onchange="updateAdvSkill(this.value)">
-                                        <label class="btn btn-outline-primary rounded-4 py-3 shadow-none flex-grow-1" for="skill-speaking">
-                                            <i class="bi bi-mic fs-4"></i>
-                                            <span class="small mt-1 d-block">Speaking</span>
-                                        </label>
+                                        <input type="radio" class="btn-check" name="adv-read-len" id="len-long"
+                                            value="LONG">
+                                        <label
+                                            class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
+                                            for="len-long">Dài<br><small>(400-600w)</small></label>
                                     </div>
-                                    <input type="hidden" id="adv-skill" value="READING">
                                 </div>
 
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">Trình độ IELTS Band</label>
-                                    <div class="ai-selector-group d-flex flex-wrap gap-2" id="cefr-selector">
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-40" value="4.0" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-40">4.0</label>
+                                <!-- Matching Options -->
+                                <div id="field-matching" class="mb-3" style="display:none;">
+                                    <label class="form-label small fw-bold">Số lượng cặp nối (Matching Pairs)</label>
+                                    <select class="form-select rounded-3" id="adv-match-pairs">
+                                        <option value="3">3 cặp (Cơ bản)</option>
+                                        <option value="4" selected>4 cặp (Trung bình)</option>
+                                        <option value="5">5 cặp (Phức tạp)</option>
+                                    </select>
+                                </div>
 
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-45" value="4.5" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-45">4.5</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-50" value="5.0" checked onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-50">5.0</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-55" value="5.5" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-55">5.5</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-60" value="6.0" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-60">6.0</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-65" value="6.5" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-65">6.5</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-70" value="7.0" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-70">7.0</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-75" value="7.5" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-75">7.5</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-80" value="8.0" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-80">8.0</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-85" value="8.5" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-85">8.5</label>
-
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-90" value="9.0" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn btn-outline-secondary rounded-3 px-3 py-2 shadow-none" for="cefr-90">9.0</label>
+                                <div class="p-3 rounded-4 border bg-white mt-4 shadow-sm">
+                                    <div class="d-flex align-items-center gap-2 text-warning mb-2">
+                                        <i class="bi bi-info-circle-fill"></i>
+                                        <span class="fw-bold small">Lưu ý</span>
                                     </div>
-                                    <input type="hidden" id="adv-cefr" value="5.0">
+                                    <p class="small text-muted mb-0">Các tùy chọn nâng cao sẽ giúp AI tập trung sinh nội
+                                        dung chính xác hơn với mục đích của bài thi.</p>
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Loại câu hỏi (Chọn nhiều)</label>
-                                <div class="d-flex flex-wrap gap-2" id="adv-types">
-                                    <input type="checkbox" class="btn-check" id="type-mc-s"
-                                        value="MULTIPLE_CHOICE_SINGLE" checked>
-                                    <label
-                                        class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
-                                        for="type-mc-s">Trắc nghiệm đơn</label>
-
-                                    <input type="checkbox" class="btn-check" id="type-mc-m"
-                                        value="MULTIPLE_CHOICE_MULTI">
-                                    <label
-                                        class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
-                                        for="type-mc-m">Trắc nghiệm nhiều</label>
-
-                                    <input type="checkbox" class="btn-check" id="type-fib" value="FILL_IN_BLANK">
-                                    <label
-                                        class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
-                                        for="type-fib">Điền từ</label>
-
-                                    <input type="checkbox" class="btn-check" id="type-match" value="MATCHING"
-                                        onchange="toggleAiAdvancedFields()">
-                                    <label
-                                        class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
-                                        for="type-match">Nối cặp</label>
-                                </div>
-                            </div>
-                            <div class="mb-0">
-                                <label class="form-label small fw-bold">Số lượng câu hỏi</label>
-                                <input type="range" class="form-range" min="1" max="20" step="1" value="5" id="adv-qty"
-                                    oninput="this.nextElementSibling.value = this.value">
-                                <output class="badge bg-primary rounded-pill">5</output>
-                            </div>
-                        </div>
-
-                        <!-- Right: Advanced Config -->
-                        <div class="col-md-6 ps-md-4">
-                            <label class="form-label fw-bold small text-uppercase text-primary">Tùy chọn nâng
-                                cao</label>
-
-                            <!-- Listening Options -->
-                            <div id="field-listening" class="mb-3" style="display:none;">
-                                <label class="form-label small fw-bold">Loại kịch bản nghe (Listening
-                                    Transcript)</label>
-                                <select class="form-select rounded-3" id="adv-listen-type">
-                                    <option value="Dialogue">Dialogue (Hội thoại giữa 2-3 người)</option>
-                                    <option value="Monologue">Monologue (Độc thoại, bài thuyết trình)</option>
-                                    <option value="Announcement">Announcement (Thông báo công cộng)</option>
-                                    <option value="Radio/Podcast">Radio/Podcast Segment</option>
-                                </select>
-                            </div>
-
-                            <!-- Reading Options -->
-                            <div id="field-reading" class="mb-3" style="display:none;">
-                                <label class="form-label small fw-bold">Độ dài đoạn văn (Reading Passage)</label>
-                                <div class="ai-selector-group d-flex gap-2">
-                                    <input type="radio" class="btn-check" name="adv-read-len" id="len-short"
-                                        value="SHORT">
-                                    <label class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
-                                        for="len-short">Ngắn<br><small>(100-150w)</small></label>
-
-                                    <input type="radio" class="btn-check" name="adv-read-len" id="len-med"
-                                        value="MEDIUM" checked>
-                                    <label class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
-                                        for="len-med">Vừa<br><small>(200-300w)</small></label>
-
-                                    <input type="radio" class="btn-check" name="adv-read-len" id="len-long"
-                                        value="LONG">
-                                    <label class="btn btn-outline-secondary rounded-3 flex-grow-1 border p-2 shadow-none"
-                                        for="len-long">Dài<br><small>(400-600w)</small></label>
-                                </div>
-                            </div>
-
-                            <!-- Matching Options -->
-                            <div id="field-matching" class="mb-3" style="display:none;">
-                                <label class="form-label small fw-bold">Số lượng cặp nối (Matching Pairs)</label>
-                                <select class="form-select rounded-3" id="adv-match-pairs">
-                                    <option value="3">3 cặp (Cơ bản)</option>
-                                    <option value="4" selected>4 cặp (Trung bình)</option>
-                                    <option value="5">5 cặp (Phức tạp)</option>
-                                </select>
-                            </div>
-
-                            <div class="p-3 rounded-4 border bg-white mt-4 shadow-sm">
-                                <div class="d-flex align-items-center gap-2 text-warning mb-2">
-                                    <i class="bi bi-info-circle-fill"></i>
-                                    <span class="fw-bold small">Lưu ý</span>
-                                </div>
-                                <p class="small text-muted mb-0">Các tùy chọn nâng cao sẽ giúp AI tập trung sinh nội
-                                    dung chính xác hơn với mục đích của bài thi.</p>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer border-0 p-4">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" id="btn-run-ai"
-                        onclick="runExpertAiGeneration()">
-                        <span id="ai-loading-spinner" class="spinner-border spinner-border-sm me-2"
-                            style="display:none;"></span>
-                        <i class="bi bi-lightning-charge-fill me-1"></i> Bắt đầu sinh câu hỏi
-                    </button>
+                    <div class="modal-footer border-0 p-4">
+                        <button type="button" class="btn btn-light rounded-pill px-4"
+                            data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm"
+                            id="btn-run-ai" onclick="runExpertAiGeneration()">
+                            <span id="ai-loading-spinner" class="spinner-border spinner-border-sm me-2"
+                                style="display:none;"></span>
+                            <i class="bi bi-lightning-charge-fill me-1"></i> Bắt đầu sinh câu hỏi
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ═══════════════════════════════ AI PREVIEW MODAL ═══════════════════════════════ -->
-    <div class="modal fade" id="wsAiResultModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
-        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable" style="max-width:1050px">
-            <div class="modal-content rounded-4 border-0 shadow-lg">
-                <div class="modal-header border-0 bg-light">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="bg-primary bg-opacity-10 p-2 rounded-3 text-primary">
-                            <i class="bi bi-eye-fill fs-4"></i>
+        <!-- ═══════════════════════════════ AI PREVIEW MODAL ═══════════════════════════════ -->
+        <div class="modal fade" id="wsAiResultModal" tabindex="-1" aria-hidden="true" style="z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable" style="max-width:1050px">
+                <div class="modal-content rounded-4 border-0 shadow-lg">
+                    <div class="modal-header border-0 bg-light">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-3 text-primary">
+                                <i class="bi bi-eye-fill fs-4"></i>
+                            </div>
+                            <div>
+                                <h5 class="modal-title fw-bold">Xem trước câu hỏi AI</h5>
+                                <p class="text-muted small mb-0">Kiểm tra nội dung và chọn các câu hỏi bạn muốn thêm vào
+                                    Quiz</p>
+                            </div>
                         </div>
-                        <div>
-                            <h5 class="modal-title fw-bold">Xem trước câu hỏi AI</h5>
-                            <p class="text-muted small mb-0">Kiểm tra nội dung và chọn các câu hỏi bạn muốn thêm vào Quiz</p>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div id="wsAiList" class="list-group">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Đang chuẩn bị nội dung...</p>
+                            </div>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div id="wsAiList" class="list-group">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary"></div>
-                            <p class="mt-2 text-muted">Đang chuẩn bị nội dung...</p>
+                    <div class="modal-footer border-top bg-light py-3">
+                        <div class="me-auto text-muted small ps-2">
+                            <i class="bi bi-info-circle me-1"></i> Đã chọn <span id="wsAiSelectedCount"
+                                class="fw-bold text-primary">0</span>/<span id="wsAiTotalCount"
+                                class="fw-bold text-primary">0</span> câu hỏi
                         </div>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4"
+                            onclick="wsToggleAllAI()">Chọn tất cả</button>
+                        <button type="button" class="btn btn-light rounded-pill px-4"
+                            data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" id="wsBtnImportAi"
+                            class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" onclick="wsImportSelectedAi()">
+                            <span id="wsImportAiSpinner" class="spinner-border spinner-border-sm me-1"
+                                style="display: none;"></span>
+                            <i class="bi bi-plus-lg me-1"></i> Thêm các câu đã chọn
+                        </button>
                     </div>
-                </div>
-                <div class="modal-footer border-top bg-light py-3">
-                    <div class="me-auto text-muted small ps-2">
-                        <i class="bi bi-info-circle me-1"></i> Đã chọn <span id="wsAiSelectedCount" class="fw-bold text-primary">0</span>/<span id="wsAiTotalCount" class="fw-bold text-primary">0</span> câu hỏi
-                    </div>
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="wsToggleAllAI()">Chọn tất cả</button>
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" id="wsBtnImportAi" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm" onclick="wsImportSelectedAi()">
-                        <span id="wsImportAiSpinner" class="spinner-border spinner-border-sm me-1" style="display: none;"></span>
-                        <i class="bi bi-plus-lg me-1"></i> Thêm các câu đã chọn
-                    </button>
                 </div>
             </div>
         </div>
-    </div>
-</main>
+    </main>
 
-<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+    <script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
-<script th:inline="javascript">
-    (function() {
-        const moduleId = /*[[${moduleId}]]*/ null;
-        if (moduleId) {
-            // Ẩn dropdown loại quiz vì đang tạo quiz cho module
-            document.getElementById('quizCategoryCol').style.display = 'none';
-        }
-    })();
-
-    function toggleSkillInput(skill) {
-        const enabled = document.getElementById('enable_' + skill).checked;
-        const input = document.getElementById('timeLimit_' + skill);
-        input.disabled = !enabled;
-        if (!enabled) input.value = '';
-        calculateTotalTime(input);
-    }
-
-    function calculateTotalTime(input) {
-        if (input && input.value) {
-            // Xóa mọi ký tự không phải là số
-            input.value = input.value.replace(/[^0-9]/g, '');
-            // Không cho phép vượt quá 100 phút
-            if (parseInt(input.value) > 100) input.value = '100';
-        }
-
-        // Tính tổng
-        let total = 0;
-        ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(skill => {
-            const checkbox = document.getElementById('enable_' + skill);
-            if (checkbox && checkbox.checked) {
-                let val = parseInt(document.getElementById('timeLimit_' + skill).value) || 0;
-                total += val;
+    <script th:inline="javascript">
+        (function () {
+            const moduleId = /*[[${moduleId}]]*/ null;
+            if (moduleId) {
+                // Ẩn dropdown loại quiz vì đang tạo quiz cho module
+                document.getElementById('quizCategoryCol').style.display = 'none';
             }
-        });
+        })();
 
-        // Cập nhật lên ô tổng
-        const totalInput = document.getElementById('timeLimitMinutes');
-        if (totalInput) {
-            totalInput.value = total > 0 ? total : '';
+        function toggleSkillInput(skill) {
+            const enabled = document.getElementById('enable_' + skill).checked;
+            const input = document.getElementById('timeLimit_' + skill);
+            input.disabled = !enabled;
+            if (!enabled) input.value = '';
+            calculateTotalTime(input);
         }
-    }
-    function buildTimeLimitPerSkill() {
-        const result = {};
-        let hasActive = false;
-        ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(s => {
-            const enabled = document.getElementById('enable_' + s).checked;
-            if (enabled) {
-                const el = document.getElementById('timeLimit_' + s);
-                if (el && el.value) {
-                    result[s] = parseInt(el.value);
-                    hasActive = true;
+
+        function calculateTotalTime(input) {
+            if (input && input.value) {
+                // Xóa mọi ký tự không phải là số
+                input.value = input.value.replace(/[^0-9]/g, '');
+                // Không cho phép vượt quá 100 phút
+                if (parseInt(input.value) > 100) input.value = '100';
+            }
+
+            // Tính tổng
+            let total = 0;
+            ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(skill => {
+                const checkbox = document.getElementById('enable_' + skill);
+                if (checkbox && checkbox.checked) {
+                    let val = parseInt(document.getElementById('timeLimit_' + skill).value) || 0;
+                    total += val;
+                }
+            });
+
+            // Cập nhật lên ô tổng
+            const totalInput = document.getElementById('timeLimitMinutes');
+            if (totalInput) {
+                totalInput.value = total > 0 ? total : '';
+            }
+        }
+        function buildTimeLimitPerSkill() {
+            const result = {};
+            let hasActive = false;
+            ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(s => {
+                const enabled = document.getElementById('enable_' + s).checked;
+                if (enabled) {
+                    const el = document.getElementById('timeLimit_' + s);
+                    if (el && el.value) {
+                        result[s] = parseInt(el.value);
+                        hasActive = true;
+                    }
+                }
+            });
+            return hasActive ? result : null;
+        }
+
+        function onCategoryChange() {
+            const cat = document.getElementById('quizCategory').value;
+            const courseSection = document.getElementById('courseSection');
+            const perSkillSection = document.getElementById('perSkillTimeSection');
+            const timeLimitInput = document.getElementById('timeLimitMinutes');
+            const deadlineSection = document.getElementById('deadlineSection');
+
+            if (courseSection) {
+                courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
+            }
+            if (deadlineSection) {
+                deadlineSection.style.display = (cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
+                if (cat === 'COURSE_ASSIGNMENT') {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    document.getElementById('deadline').min = now.toISOString().slice(0, 16);
                 }
             }
-        });
-        return hasActive ? result : null;
-    }
 
-   function onCategoryChange() {
-        const cat = document.getElementById('quizCategory').value;
-        const courseSection = document.getElementById('courseSection');
-        const perSkillSection = document.getElementById('perSkillTimeSection');
-        const timeLimitInput = document.getElementById('timeLimitMinutes');
-        const deadlineSection = document.getElementById('deadlineSection');
-
-        if (courseSection) {
-            courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
-        }
-        if (deadlineSection) {
-            deadlineSection.style.display = (cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
             if (cat === 'COURSE_ASSIGNMENT') {
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                document.getElementById('deadline').min = now.toISOString().slice(0, 16);
+                perSkillSection.style.display = 'block';
+                timeLimitInput.readOnly = true; // Khóa ô tổng lại
+                timeLimitInput.style.backgroundColor = '#e9ecef';
+                timeLimitInput.placeholder = 'Tự động tính';
+            } else {
+                perSkillSection.style.display = 'none';
+                timeLimitInput.readOnly = false;
+                timeLimitInput.style.backgroundColor = '';
+                if (cat === 'ENTRY_TEST') {
+                    timeLimitInput.value = 20;
+                    document.getElementById('passScore').value = 40;
+                    document.getElementById('maxAttempts').value = 1;
+                } else {
+                    timeLimitInput.value = '';
+                    timeLimitInput.placeholder = 'Không giới hạn';
+                }
             }
-        }
 
-        if (cat === 'COURSE_ASSIGNMENT') {
-            perSkillSection.style.display = 'block';
-            timeLimitInput.readOnly = true; // Khóa ô tổng lại
-            timeLimitInput.style.backgroundColor = '#e9ecef';
-            timeLimitInput.placeholder = 'Tự động tính';
-        } else {
-            perSkillSection.style.display = 'none';
-            timeLimitInput.readOnly = false;
-            timeLimitInput.style.backgroundColor = '';
             if (cat === 'ENTRY_TEST') {
-                timeLimitInput.value = 20;
-                document.getElementById('passScore').value = 40;
-                document.getElementById('maxAttempts').value = 1;
+                document.getElementById('entryTestWarning').style.display = 'block';
             } else {
-                timeLimitInput.value = '';
-                timeLimitInput.placeholder = 'Không giới hạn';
+                document.getElementById('entryTestWarning').style.display = 'none';
+            }
+
+            if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
+                const btnNext = document.getElementById('btnNextStep');
+                if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
+                if (cat !== 'ENTRY_TEST') loadCourses();
             }
         }
 
-        if (cat === 'ENTRY_TEST') {
-            document.getElementById('entryTestWarning').style.display = 'block';
-        } else {
-            document.getElementById('entryTestWarning').style.display = 'none';
+        async function loadCourses() {
+            const select = document.getElementById('courseId');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Đang tải danh sách... --</option>';
+
+            try {
+                console.log("Fetching courses for expert...");
+                const res = await fetch('/api/v1/expert/modules/courses');
+                const result = await res.json();
+
+                console.log("Courses result:", result);
+
+                if (result.status === 200 && result.data && result.data.length > 0) {
+                    select.innerHTML = '<option value="">-- Chọn khóa học --</option>';
+                    result.data.forEach(c => {
+                        const name = c.courseName || c.title || 'Course #' + c.courseId;
+                        select.innerHTML += `<option value="${c.courseId}">${name}</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">-- Không có khóa học nào --</option>';
+                    console.warn("No courses found or status not 200", result);
+                }
+            } catch (e) {
+                console.error("Failed to load courses:", e);
+                select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
+            }
         }
 
-        if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
-            const btnNext = document.getElementById('btnNextStep');
-            if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
-            if (cat !== 'ENTRY_TEST') loadCourses();
-        }
-    }
+        async function submitQuiz(status) {
+            const moduleId = /*[[${moduleId}]]*/ null;
+            let cat = document.getElementById('quizCategory').value;
 
-    async function loadCourses() {
-        const select = document.getElementById('courseId');
-        if (!select) return;
+            if (moduleId) cat = 'MODULE_QUIZ';
+            else if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
 
-        select.innerHTML = '<option value="">-- Đang tải danh sách... --</option>';
+            if (cat === 'ENTRY_TEST') status = 'DRAFT';
 
-        try {
-            console.log("Fetching courses for expert...");
-            const res = await fetch('/api/v1/expert/modules/courses');
-            const result = await res.json();
+            // Validate 4 kỹ năng nếu là ASSIGNMENT
+            let timeLimits = null;
+            if (cat === 'COURSE_ASSIGNMENT') {
+                timeLimits = buildTimeLimitPerSkill();
+                if (!timeLimits) {
+                    alert('Vui lòng nhập đầy đủ thời gian cho các kỹ năng đã chọn!');
+                    return;
+                }
+                const dlValue = document.getElementById('deadline').value;
+                if (!dlValue) {
+                    alert('Vui lòng chọn hạn nộp bài cho Assignment!');
+                    return;
+                }
+                if (new Date(dlValue) < new Date()) {
+                    alert('Hạn nộp bài không được ở trong quá khứ.');
+                    return;
+                }
+            }
 
-            console.log("Courses result:", result);
+            const body = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value || null,
+                quizCategory: cat,
+                courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? parseInt(document.getElementById('courseId').value) || null : null,
+                moduleId: moduleId || null,
+                timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
+                passScore: parseFloat(document.getElementById('passScore').value) || null,
+                maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
+                questionOrder: document.getElementById('questionOrder').value,
+                showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+                deadline: document.getElementById('deadline').value || null,
+                timeLimitPerSkill: timeLimits, // Đã đẩy 4 kỹ năng lên BE từ bước Create
+                status: status
+            };
 
-            if (result.status === 200 && result.data && result.data.length > 0) {
-                select.innerHTML = '<option value="">-- Chọn khóa học --</option>';
-                result.data.forEach(c => {
-                    const name = c.courseName || c.title || 'Course #' + c.courseId;
-                    select.innerHTML += `<option value="${c.courseId}">${name}</option>`;
+            try {
+                const res = await fetch('/api/v1/expert/quizzes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
                 });
-            } else {
-                select.innerHTML = '<option value="">-- Không có khóa học nào --</option>';
-                console.warn("No courses found or status not 200", result);
-            }
-        } catch (e) {
-            console.error("Failed to load courses:", e);
-            select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
-        }
-    }
-
-    async function submitQuiz(status) {
-        const moduleId = /*[[${moduleId}]]*/ null;
-        let cat = document.getElementById('quizCategory').value;
-
-        if (moduleId) cat = 'MODULE_QUIZ';
-        else if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
-
-        if (cat === 'ENTRY_TEST') status = 'DRAFT';
-
-        // Validate 4 kỹ năng nếu là ASSIGNMENT
-        let timeLimits = null;
-        if (cat === 'COURSE_ASSIGNMENT') {
-            timeLimits = buildTimeLimitPerSkill();
-            if (!timeLimits) {
-                alert('Vui lòng nhập đầy đủ thời gian cho các kỹ năng đã chọn!');
-                return;
-            }
-            const dlValue = document.getElementById('deadline').value;
-            if (!dlValue) {
-                alert('Vui lòng chọn hạn nộp bài cho Assignment!');
-                return;
-            }
-            if (new Date(dlValue) < new Date()) {
-                alert('Hạn nộp bài không được ở trong quá khứ.');
-                return;
-            }
+                const result = await res.json();
+                if (res.ok) {
+                    _quizId = result.data.quizId;
+                    goToStep(2);
+                } else {
+                    alert(result.message || 'Có lỗi xảy ra.');
+                }
+            } catch (e) { alert('Lỗi: ' + e.message); }
         }
 
-        const body = {
-            title: document.getElementById('title').value,
-            description: document.getElementById('description').value || null,
-            quizCategory: cat,
-            courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? parseInt(document.getElementById('courseId').value) || null : null,
-            moduleId: moduleId || null,
-            timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
-            passScore: parseFloat(document.getElementById('passScore').value) || null,
-            maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
-            questionOrder: document.getElementById('questionOrder').value,
-            showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-            deadline: document.getElementById('deadline').value || null,
-            timeLimitPerSkill: timeLimits, // Đã đẩy 4 kỹ năng lên BE từ bước Create
-            status: status
-        };
+        // ── NAVIGATION LOGIC ──────────────────────────────────────────────────────
+        let _currentStep = 1;
+        let _quizId = null;
 
-        try {
-            const res = await fetch('/api/v1/expert/quizzes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+        function goToStep(step) {
+            // UI Update Sections
+            document.querySelectorAll('.quiz-step-section').forEach(s => s.style.display = 'none');
+            document.getElementById('section-step-' + step).style.display = 'block';
+
+            // UI Update Stepper
+            document.querySelectorAll('.step-item').forEach((item, idx) => {
+                item.classList.remove('active', 'completed');
+                if (idx + 1 < step) item.classList.add('completed');
+                if (idx + 1 === step) item.classList.add('active');
             });
-            const result = await res.json();
-            if (res.ok) {
-                _quizId = result.data.quizId;
-                goToStep(2);
-            } else {
-                alert(result.message || 'Có lỗi xảy ra.');
-            }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-    }
 
-    // ── NAVIGATION LOGIC ──────────────────────────────────────────────────────
-    let _currentStep = 1;
-    let _quizId = null;
+            _currentStep = step;
 
-    function goToStep(step) {
-        // UI Update Sections
-        document.querySelectorAll('.quiz-step-section').forEach(s => s.style.display = 'none');
-        document.getElementById('section-step-' + step).style.display = 'block';
-
-        // UI Update Stepper
-        document.querySelectorAll('.step-item').forEach((item, idx) => {
-            item.classList.remove('active', 'completed');
-            if (idx + 1 < step) item.classList.add('completed');
-            if (idx + 1 === step) item.classList.add('active');
-        });
-
-        _currentStep = step;
-
-        if (step === 2) initStep2();
-        if (step === 3) initStep3();
-    }
-
-    function validateAndGoToStep2() {
-        const title = document.getElementById('title').value;
-        if (!title) { alert('Vui lòng nhập tên Quiz'); return; }
-
-        // Nếu chưa có quizId thì tạo mới (DRAFT), nếu có rồi thì chỉ chuyển bước
-        if (!_quizId) {
-            submitQuiz('DRAFT');
-        } else {
-            goToStep(2);
+            if (step === 2) initStep2();
+            if (step === 3) initStep3();
         }
-    }
 
-    // ── STEP 2 LOGIC ──────────────────────────────────────────────────────────
-    let _quizQuestions = [];
-    let _currentBankPage = 0;
+        function validateAndGoToStep2() {
+            const title = document.getElementById('title').value;
+            if (!title) { alert('Vui lòng nhập tên Quiz'); return; }
 
-    function initStep2() {
-        loadQuizQuestions();
-        loadBankQuestions(0);
-    }
-
-    async function loadQuizQuestions() {
-        if (!_quizId) return;
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`);
-            const result = await res.json();
-            if (result.status === 200 && result.data) {
-                _quizQuestions = result.data.questions || [];
-                renderAddedQuestions();
-                // Refresh bank to update buttons
-                renderBankQuestions(_lastBankResult);
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    let _expandedGroups = new Set();
-
-    function toggleGroup(groupId) {
-        if (_expandedGroups.has(groupId)) _expandedGroups.delete(groupId);
-        else _expandedGroups.add(groupId);
-        renderAddedQuestions();
-    }
-
-    function renderAddedQuestions() {
-        const container = document.getElementById('addedQuestionsList');
-
-        // Nhóm câu hỏi
-        const groups = new Map();
-        const lones = [];
-        _quizQuestions.forEach(q => {
-            if (q.groupId) {
-                if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
-                groups.get(q.groupId).items.push(q);
+            // Nếu chưa có quizId thì tạo mới (DRAFT), nếu có rồi thì chỉ chuyển bước
+            if (!_quizId) {
+                submitQuiz('DRAFT');
             } else {
-                lones.push(q);
+                goToStep(2);
             }
-        });
+        }
 
-        const totalItems = groups.size + lones.length;
-        document.getElementById('currentCountBadge').textContent = `${totalItems} câu`;
+        // ── STEP 2 LOGIC ──────────────────────────────────────────────────────────
+        let _quizQuestions = [];
+        let _currentBankPage = 0;
 
-        if (totalItems === 0) {
-            container.innerHTML = `<div class="text-center py-5 text-muted">
+        function initStep2() {
+            loadQuizQuestions();
+            loadBankQuestions(0);
+        }
+
+        async function loadQuizQuestions() {
+            if (!_quizId) return;
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    _quizQuestions = result.data.questions || [];
+                    renderAddedQuestions();
+                    // Refresh bank to update buttons
+                    renderBankQuestions(_lastBankResult);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        let _expandedGroups = new Set();
+
+        function toggleGroup(groupId) {
+            if (_expandedGroups.has(groupId)) _expandedGroups.delete(groupId);
+            else _expandedGroups.add(groupId);
+            renderAddedQuestions();
+        }
+
+        function renderAddedQuestions() {
+            const container = document.getElementById('addedQuestionsList');
+
+            // Nhóm câu hỏi
+            const groups = new Map();
+            const lones = [];
+            _quizQuestions.forEach(q => {
+                if (q.groupId) {
+                    if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
+                    groups.get(q.groupId).items.push(q);
+                } else {
+                    lones.push(q);
+                }
+            });
+
+            const totalItems = groups.size + lones.length;
+            document.getElementById('currentCountBadge').textContent = `${totalItems} câu`;
+
+            if (totalItems === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có câu hỏi nào.
             </div>`;
-            return;
-        }
+                return;
+            }
 
-        let html = '';
+            let html = '';
 
-        // Render Groups (Passages)
-        groups.forEach(g => {
-            const isExpanded = _expandedGroups.has(g.id);
-            html += `
+            // Render Groups (Passages)
+            groups.forEach(g => {
+                const isExpanded = _expandedGroups.has(g.id);
+                html += `
             <div class="card mb-3 border shadow-sm" style="border-radius: 12px; border-left: 5px solid #0d6efd !important;">
                 <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-start">
                     <div class="d-flex align-items-center">
@@ -897,11 +1064,11 @@
                 </div>
             </div>
             `;
-        });
+            });
 
-        // Render Lone Questions
-        lones.forEach((q, i) => {
-            html += `
+            // Render Lone Questions
+            lones.forEach((q, i) => {
+                html += `
             <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start">
@@ -916,56 +1083,56 @@
                 </div>
             </div>
             `;
-        });
+            });
 
-        container.innerHTML = html;
-    }
+            container.innerHTML = html;
+        }
 
-    async function removeGroup(groupId) {
-        if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/groups/${groupId}`, { method: 'DELETE' });
-            if (res.ok) loadQuizQuestions();
-        } catch (e) { alert('Lỗi: ' + e.message); }
-    }
+        async function removeGroup(groupId) {
+            if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/groups/${groupId}`, { method: 'DELETE' });
+                if (res.ok) loadQuizQuestions();
+            } catch (e) { alert('Lỗi: ' + e.message); }
+        }
 
-    let _lastBankResult = null;
-    async function loadBankQuestions(page) {
-        _currentBankPage = page;
-        const params = new URLSearchParams();
-        const skill = document.getElementById('modalSkill').value;
-        const cefr = document.getElementById('modalCefr').value;
-        const keyword = document.getElementById('modalKeyword').value;
-        if (skill) params.append('skill', skill);
-        if (cefr) params.append('cefrLevel', cefr);
-        if (keyword) params.append('keyword', keyword);
-        params.append('status', 'PUBLISHED');
-        params.append('page', page);
-        params.append('size', 10);
+        let _lastBankResult = null;
+        async function loadBankQuestions(page) {
+            _currentBankPage = page;
+            const params = new URLSearchParams();
+            const skill = document.getElementById('modalSkill').value;
+            const cefr = document.getElementById('modalCefr').value;
+            const keyword = document.getElementById('modalKeyword').value;
+            if (skill) params.append('skill', skill);
+            if (cefr) params.append('cefrLevel', cefr);
+            if (keyword) params.append('keyword', keyword);
+            params.append('status', 'PUBLISHED');
+            params.append('page', page);
+            params.append('size', 10);
 
-        try {
-            const res = await fetch(`/api/v1/expert/question-bank?${params}`);
-            const result = await res.json();
-            _lastBankResult = result;
-            renderBankQuestions(result);
-        } catch (e) { console.error(e); }
-    }
+            try {
+                const res = await fetch(`/api/v1/expert/question-bank?${params}`);
+                const result = await res.json();
+                _lastBankResult = result;
+                renderBankQuestions(result);
+            } catch (e) { console.error(e); }
+        }
 
-    function renderBankQuestions(result) {
-        if (!result) return;
-        const tbody = document.getElementById('bankQuestionsBody');
-        if (result.status === 200 && result.data && result.data.items.length > 0) {
-            const existingIds = new Set(_quizQuestions.map(q => q.questionId));
-            tbody.innerHTML = result.data.items.map(q => {
-                let isAdded = false;
-                if (q.type === 'SINGLE') {
-                    isAdded = existingIds.has(q.id);
-                } else if (q.type === 'GROUP' && q.questions) {
-                    // Bộ câu hỏi coi như đã thêm nếu có ít nhất 1 câu con nằm trong Quiz
-                    isAdded = q.questions.some(subQ => existingIds.has(subQ.questionId));
-                }
+        function renderBankQuestions(result) {
+            if (!result) return;
+            const tbody = document.getElementById('bankQuestionsBody');
+            if (result.status === 200 && result.data && result.data.items.length > 0) {
+                const existingIds = new Set(_quizQuestions.map(q => q.questionId));
+                tbody.innerHTML = result.data.items.map(q => {
+                    let isAdded = false;
+                    if (q.type === 'SINGLE') {
+                        isAdded = existingIds.has(q.id);
+                    } else if (q.type === 'GROUP' && q.questions) {
+                        // Bộ câu hỏi coi như đã thêm nếu có ít nhất 1 câu con nằm trong Quiz
+                        isAdded = q.questions.some(subQ => existingIds.has(subQ.questionId));
+                    }
 
-                return `
+                    return `
                     <tr>
                         <td class="ps-4">
                             <div class="text-truncate" style="max-width: 250px;" title="${q.content}">${q.content || '—'}</div>
@@ -975,123 +1142,123 @@
                         <td><span class="badge bg-info text-dark">${q.cefrLevel}</span></td>
                         <td class="text-end pe-4">
                             ${isAdded
-                                ? '<span class="badge bg-success rounded-pill px-3 py-2 fw-bold"><i class="bi bi-check-lg me-1"></i>Đã thêm</span>'
-                                : `<button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="addToQuiz(${q.id}, '${q.type}')">
+                            ? '<span class="badge bg-success rounded-pill px-3 py-2 fw-bold"><i class="bi bi-check-lg me-1"></i>Đã thêm</span>'
+                            : `<button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="addToQuiz(${q.id}, '${q.type}')">
                                     <i class="bi bi-plus-lg me-1"></i> Thêm
                                    </button>`
-                            }
+                        }
                         </td>
                     </tr>
                 `;
-            }).join('');
+                }).join('');
 
-            // Pagination
-            const pg = document.getElementById('bankPagination');
-            let pgHtml = '';
-            const total = result.data.totalPages;
-            for (let i = 0; i < total; i++) {
-                pgHtml += `<li class="page-item ${i === _currentBankPage ? 'active' : ''}">
+                // Pagination
+                const pg = document.getElementById('bankPagination');
+                let pgHtml = '';
+                const total = result.data.totalPages;
+                for (let i = 0; i < total; i++) {
+                    pgHtml += `<li class="page-item ${i === _currentBankPage ? 'active' : ''}">
                     <a class="page-link" href="javascript:void(0)" onclick="loadBankQuestions(${i})">${i + 1}</a>
                 </li>`;
-            }
-            pg.innerHTML = pgHtml;
-        } else {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Không tìm thấy câu hỏi nào.</td></tr>';
-        }
-    }
-
-    async function addToQuiz(id, type) {
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    questionId: id,
-                    itemType: type,
-                    points: 1.0
-                })
-            });
-            if (res.ok) {
-                initStep3();
-                loadQuizQuestions();
+                }
+                pg.innerHTML = pgHtml;
             } else {
-                const r = await res.json();
-                alert(r.message || 'Không thể thêm.');
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Không tìm thấy câu hỏi nào.</td></tr>';
             }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-    }
+        }
 
-    async function removeQuestion(questionId) {
-        if (!confirm('Gỡ câu hỏi này khỏi đề thi?')) return;
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions/${questionId}`, { method: 'DELETE' });
-            if (res.ok) {
-                initStep3();
-                loadQuizQuestions();
-            }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-    }
+        async function addToQuiz(id, type) {
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionId: id,
+                        itemType: type,
+                        points: 1.0
+                    })
+                });
+                if (res.ok) {
+                    initStep3();
+                    loadQuizQuestions();
+                } else {
+                    const r = await res.json();
+                    alert(r.message || 'Không thể thêm.');
+                }
+            } catch (e) { alert('Lỗi: ' + e.message); }
+        }
 
-    function typeName(type) {
-        const map = {
-            MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm (1)',
-            MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm (n)',
-            FILL_IN_BLANK: 'Điền từ',
-            MATCHING: 'Nối đáp án',
-            WRITING: 'Viết',
-            SPEAKING: 'Nói'
-        };
-        return map[type] || type;
-    }
+        async function removeQuestion(questionId) {
+            if (!confirm('Gỡ câu hỏi này khỏi đề thi?')) return;
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions/${questionId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    initStep3();
+                    loadQuizQuestions();
+                }
+            } catch (e) { alert('Lỗi: ' + e.message); }
+        }
 
-    async function initStep3() {
-        if (!_quizId) return;
+        function typeName(type) {
+            const map = {
+                MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm (1)',
+                MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm (n)',
+                FILL_IN_BLANK: 'Điền từ',
+                MATCHING: 'Nối đáp án',
+                WRITING: 'Viết',
+                SPEAKING: 'Nói'
+            };
+            return map[type] || type;
+        }
 
-        // Tải tóm tắt kỹ năng từ backend
-        let skillSummaries = {};
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/skills`);
-            const result = await res.json();
-            if (result.status === 200) skillSummaries = result.data;
-        } catch (e) { console.error("Lỗi tải thống kê kỹ năng:", e); }
+        async function initStep3() {
+            if (!_quizId) return;
 
-        const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-        document.getElementById('previewTitle').textContent = document.getElementById('title').value || 'Tên Quiz';
-        document.getElementById('previewSummary').textContent =
-            `Tóm tắt: ${totalQuestions} câu hỏi | ${document.getElementById('timeLimitMinutes').value || '?'} phút | Điểm đạt ${document.getElementById('passScore').value || 0}%`;
-        const countEl = document.getElementById('previewQuestionCount');
-        if (countEl) countEl.textContent = `${totalQuestions} câu hỏi đã thêm`;
+            // Tải tóm tắt kỹ năng từ backend
+            let skillSummaries = {};
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/skills`);
+                const result = await res.json();
+                if (result.status === 200) skillSummaries = result.data;
+            } catch (e) { console.error("Lỗi tải thống kê kỹ năng:", e); }
 
-        renderSkillStatusCards(skillSummaries);
-        validateForPublish(skillSummaries);
-    }
+            const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
+            document.getElementById('previewTitle').textContent = document.getElementById('title').value || 'Tên Quiz';
+            document.getElementById('previewSummary').textContent =
+                `Tóm tắt: ${totalQuestions} câu hỏi | ${document.getElementById('timeLimitMinutes').value || '?'} phút | Điểm đạt ${document.getElementById('passScore').value || 0}%`;
+            const countEl = document.getElementById('previewQuestionCount');
+            if (countEl) countEl.textContent = `${totalQuestions} câu hỏi đã thêm`;
 
-    function renderSkillStatusCards(skillSummaries) {
-        const container = document.getElementById('skillStatusCards');
-        if (!container) return;
-        const cat = document.getElementById('quizCategory').value;
+            renderSkillStatusCards(skillSummaries);
+            validateForPublish(skillSummaries);
+        }
 
-        if (cat === 'ENTRY_TEST') {
-            const total = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-            container.innerHTML = `
+        function renderSkillStatusCards(skillSummaries) {
+            const container = document.getElementById('skillStatusCards');
+            if (!container) return;
+            const cat = document.getElementById('quizCategory').value;
+
+            if (cat === 'ENTRY_TEST') {
+                const total = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
+                container.innerHTML = `
                 <div class="skill-status-card ready mx-auto" style="min-width:200px;">
                     <div class="preview-icon-ok mb-2"><i class="bi bi-check-circle-fill"></i></div>
                     <div class="fw-bold">${total} câu hỏi đã thêm</div>
                     <div class="small text-muted">Entry Test — không bắt buộc 4 kỹ năng</div>
                 </div>`;
-            return;
-        }
+                return;
+            }
 
-        const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-        const icons = { LISTENING:'bi-ear', READING:'bi-book', SPEAKING:'bi-mic', WRITING:'bi-pen' };
-        const skillLabels = { LISTENING:'Listening', READING:'Reading', SPEAKING:'Speaking', WRITING:'Writing' };
+            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+            const icons = { LISTENING: 'bi-ear', READING: 'bi-book', SPEAKING: 'bi-mic', WRITING: 'bi-pen' };
+            const skillLabels = { LISTENING: 'Listening', READING: 'Reading', SPEAKING: 'Speaking', WRITING: 'Writing' };
 
-        container.innerHTML = skills.map(skill => {
-            const summary = skillSummaries[skill] || { questionCount: 0 };
-            const count = summary.questionCount;
-            const isOk = count > 0;
-            const textColor = isOk ? '#166534' : '#92400e';
-            return `
+            container.innerHTML = skills.map(skill => {
+                const summary = skillSummaries[skill] || { questionCount: 0 };
+                const count = summary.questionCount;
+                const isOk = count > 0;
+                const textColor = isOk ? '#166534' : '#92400e';
+                return `
                 <div class="skill-status-card ${isOk ? 'ready' : 'missing'}">
                     <div class="${isOk ? 'preview-icon-ok' : 'preview-icon-warn'} mb-1">
                         <i class="bi ${isOk ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>
@@ -1102,319 +1269,72 @@
                     </div>
                     <div class="small text-muted">${isOk ? 'Đã có câu hỏi' : 'Chưa có câu hỏi'}</div>
                 </div>`;
-        }).join('');
-    }
-
-    async function cancelAndExit() {
-        if (!_quizId) {
-            window.location.href = '/expert/quiz-management';
-            return;
+            }).join('');
         }
-        if (confirm('Bạn có chắc chắn muốn hủy? Toàn bộ nội dung đang tạo sẽ bị xóa.')) {
-            try {
-                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' });
-                if (res.ok) {
-                    window.location.href = '/expert/quiz-management';
-                } else {
-                    window.location.href = '/expert/quiz-management';
-                }
-            } catch (e) {
+
+        async function cancelAndExit() {
+            if (!_quizId) {
                 window.location.href = '/expert/quiz-management';
-            }
-        }
-    }
-
-    function validateForPublish(skillSummaries) {
-        const cat = document.getElementById('quizCategory').value;
-        const msg = document.getElementById('publishValidationMsg');
-        const btn = document.getElementById('btnPublishFinal');
-        if (!msg || !btn) return;
-
-        let canPublish = true;
-        let msgText = '';
-
-        const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-
-        if (totalQuestions === 0) {
-            canPublish = false;
-            msgText = 'Cần thêm ít nhất 1 câu hỏi để xuất bản.';
-        }
-
-        if (canPublish) {
-            msg.style.cssText = 'display:flex; background:#f0fdf4; border:1px solid #10b981; color:#166134; border-radius:12px; max-width:500px; margin:0 auto 1rem;';
-            msg.innerHTML = '<i class="bi bi-check-circle-fill fs-5 me-2"></i><span class="small">Sẵn sàng xuất bản!</span>';
-        } else {
-            msg.style.cssText = 'display:flex; background:#fff1f2; border:1px solid #f43f5e; color:#9f1239; border-radius:12px; max-width:500px; margin:0 auto 1rem;';
-            msg.innerHTML = `<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i><span class="small">${msgText}</span>`;
-        }
-        btn.disabled = !canPublish;
-    }
-
-    async function finalPublish() {
-        if (!confirm('Xác nhận xuất bản Quiz này?')) return;
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'PUBLISHED' })
-            });
-            if (res.ok) {
-                alert('Chúc mừng! Quiz đã được xuất bản thành công.');
-                window.location.href = '/expert/quiz-management';
-            } else {
-                const r = await res.json();
-                alert(r.message || 'Lỗi khi xuất bản.');
-            }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-    }
-
-    // ── AI GENERATION LOGIC ───────────────────────────────────────────────────
-    let aiGenModal, aiResultModal;
-    let wsAiQuestions = [];
-    let wsAiSelected = new Set();
-    let wsAiPassage = null;
-    let wsAllAiSelected = true;
-
-    function openExpertAiModal() {
-        if (!_quizId) { alert('Vui lòng lưu thông tin Bước 1 trước.'); return; }
-        if (!aiGenModal) {
-            aiGenModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
-            aiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
-        }
-        
-        // Default topic from title
-        const title = document.getElementById('title').value;
-        document.getElementById('adv-topic').value = title || '';
-        
-        toggleAiAdvancedFields();
-        aiGenModal.show();
-    }
-
-    function updateAdvSkill(val) {
-        document.getElementById('adv-skill').value = val;
-        toggleAiAdvancedFields();
-    }
-
-    function updateAdvCefr(val) {
-        document.getElementById('adv-cefr').value = val;
-    }
-
-    function toggleAiAdvancedFields() {
-        const skill = document.getElementById('adv-skill').value;
-        const isMatchingChecked = document.getElementById('type-match').checked;
-
-        document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
-        document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
-        document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
-    }
-
-    async function runExpertAiGeneration() {
-        const topic = document.getElementById('adv-topic').value.trim();
-        const qty = parseInt(document.getElementById('adv-qty').value);
-        const skill = document.getElementById('adv-skill').value;
-        const cefr = document.getElementById('adv-cefr').value;
-
-        if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
-
-        const types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
-        if (types.length === 0) { alert('Vui lòng chọn ít nhất 1 loại câu hỏi.'); return; }
-
-        const advancedOptions = {};
-        if (skill === 'LISTENING') advancedOptions.listeningType = document.getElementById('adv-listen-type').value;
-        if (skill === 'READING') {
-            advancedOptions.readingLength = document.querySelector('input[name="adv-read-len"]:checked')?.value;
-        }
-        if (types.includes('MATCHING')) {
-            advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
-        }
-
-        const payload = {
-            topic, quantity: qty, skill, cefrLevel: cefr,
-            questionTypes: types, mode: "ADVANCED", advancedOptions
-        };
-
-        const btn = document.getElementById('btn-run-ai');
-        const spinner = document.getElementById('ai-loading-spinner');
-        btn.disabled = true;
-        spinner.style.display = 'inline-block';
-
-        const isGroupSkill = (skill === 'READING' || skill === 'LISTENING');
-        const endpoint = isGroupSkill ? '/api/v1/expert/quizzes/ai/generate-group' : '/api/v1/expert/quizzes/ai/generate';
-
-        try {
-            const res = await fetch(endpoint, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await res.json();
-
-            if (result.status === 200) {
-                wsAiQuestions = result.data.questions || [];
-                wsAiPassage = result.data.passage || null;
-                wsAiSelected = new Set(wsAiQuestions.map((_, i) => i));
-                wsAllAiSelected = true;
-
-                aiGenModal.hide();
-                renderAiPreview();
-                aiResultModal.show();
-            } else {
-                alert(result.message || 'Lỗi sinh câu hỏi.');
-            }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-        finally {
-            btn.disabled = false;
-            spinner.style.display = 'none';
-        }
-    }
-
-    function renderAiPreview() {
-        const container = document.getElementById('wsAiList');
-        document.getElementById('wsAiTotalCount').textContent = wsAiQuestions.length;
-        document.getElementById('wsAiSelectedCount').textContent = wsAiSelected.size;
-
-        let html = '';
-        if (wsAiPassage) {
-            html += `
-            <div class="card bg-light border-0 mb-4 rounded-4 shadow-sm">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-file-text me-1"></i> Passage / Transcript:</h6>
-                    <div class="small p-3 bg-white border rounded-3" style="max-height:300px; overflow-y:auto; white-space:pre-wrap;">${wsAiPassage}</div>
-                    <div class="mt-2 text-center">
-                         <button id="wsTtsBtn" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="wsSpeak(this.parentElement.previousElementSibling.innerText, this)">
-                             <i class="bi bi-play-fill me-1"></i> Nghe thử (TTS)
-                         </button>
-                    </div>
-                </div>
-            </div>`;
-        }
-
-        html += wsAiQuestions.map((q, i) => {
-            const isSelected = wsAiSelected.has(i);
-            return `
-            <div class="card mb-3 border-0 shadow-sm ${isSelected ? 'border-start border-4 border-primary' : ''}" style="border-radius:12px;">
-                <div class="card-body p-3 d-flex gap-3">
-                    <div class="form-check pt-1">
-                        <input type="checkbox" class="form-check-input" ${isSelected ? 'checked' : ''} onchange="toggleAiSelection(${i})">
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="mb-1">
-                             <span class="badge bg-light text-dark border me-1">${typeName(q.questionType)}</span>
-                             <span class="badge bg-info text-dark border me-1">${q.skill}</span>
-                             <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">${q.cefrLevel}</span>
-                        </div>
-                        <h6 class="fw-bold mb-2">${q.content}</h6>
-                        ${q.options ? `<div class="row g-2">${q.options.map(o => `<div class="col-md-6 small"><i class="bi ${o.correct ? 'bi-check-circle-fill text-success' : 'bi-circle text-muted'} me-1"></i> ${o.title}</div>`).join('')}</div>` : ''}
-                        ${q.correctAnswer ? `<div class="mt-2 extra-small text-success fw-bold">Đáp án: ${q.correctAnswer}</div>` : ''}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-        container.innerHTML = html;
-    }
-
-    function toggleAiSelection(idx) {
-        if (wsAiSelected.has(idx)) wsAiSelected.delete(idx);
-        else wsAiSelected.add(idx);
-        document.getElementById('wsAiSelectedCount').textContent = wsAiSelected.size;
-        renderAiPreview();
-    }
-
-    function wsToggleAllAI() {
-        wsAllAiSelected = !wsAllAiSelected;
-        wsAiSelected = wsAllAiSelected ? new Set(wsAiQuestions.map((_, i) => i)) : new Set();
-        renderAiPreview();
-    }
-
-    async function wsImportSelectedAi() {
-        if (wsAiSelected.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
-        const selected = wsAiQuestions.filter((_, i) => wsAiSelected.has(i));
-        
-        const btn = document.getElementById('wsBtnImportAi');
-        const spinner = document.getElementById('wsImportAiSpinner');
-        btn.disabled = true;
-        spinner.style.display = 'inline-block';
-
-        try {
-            const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/ai/import`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ passage: wsAiPassage, questions: selected })
-            });
-            if (res.ok) {
-                alert(`Đã thêm ${selected.length} câu hỏi.`);
-                aiResultModal.hide();
-                loadQuizQuestions();
-                initStep3();
-            } else {
-                const r = await res.json();
-                alert(r.message || 'Lỗi khi import.');
-            }
-        } catch (e) { alert('Lỗi: ' + e.message); }
-        finally {
-            btn.disabled = false;
-            spinner.style.display = 'none';
-        }
-    }
-
-    let _wsSpeaking = false;
-    function wsSpeak(text, btn) {
-        if (_wsSpeaking) {
-            window.speechSynthesis.cancel();
-            _wsSpeaking = false;
-            if (btn) btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Nghe thử (TTS)';
-            return;
-        }
-
-        if (!text) return;
-        _wsSpeaking = true;
-
-        const lines = text.split('\n').filter(l => l.trim().length > 0);
-        const voices = window.speechSynthesis.getVoices();
-
-        const maleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Google US English Male'))) 
-                       || voices.find(v => v.lang.startsWith('en') && v.name.includes('English'))
-                       || voices[0];
-        
-        const femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Google US English Female'))) 
-                         || voices.find(v => v.lang.startsWith('en') && v.name.includes('English'))
-                         || voices[0];
-
-        let currentLine = 0;
-
-        function speakLine() {
-            if (!_wsSpeaking || currentLine >= lines.length) {
-                _wsSpeaking = false;
-                if (btn) btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Nghe thử (TTS)';
                 return;
             }
-
-            const progress = Math.round((currentLine / lines.length) * 100);
-            if (btn) btn.innerHTML = `<i class="bi bi-stop-fill me-1"></i> Dừng (${progress}%)`;
-
-            let lineText = lines[currentLine];
-            let targetVoice = maleVoice;
-
-            if (lineText.toLowerCase().includes('[female]')) {
-                targetVoice = femaleVoice;
-            } else if (lineText.toLowerCase().includes('[male]')) {
-                targetVoice = maleVoice;
+            if (confirm('Bạn có chắc chắn muốn hủy? Toàn bộ nội dung đang tạo sẽ bị xóa.')) {
+                try {
+                    const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        window.location.href = '/expert/quiz-management';
+                    } else {
+                        window.location.href = '/expert/quiz-management';
+                    }
+                } catch (e) {
+                    window.location.href = '/expert/quiz-management';
+                }
             }
-
-            let speechText = lineText.replace(/\[(Male|Female)\]/gi, '');
-            const utterance = new SpeechSynthesisUtterance(speechText);
-            utterance.voice = targetVoice;
-            utterance.lang = 'en-US';
-            utterance.rate = 0.85;
-
-            utterance.onend = () => {
-                currentLine++;
-                speakLine();
-            };
-
-            window.speechSynthesis.speak(utterance);
         }
 
-        speakLine();
-    }
-</script>
+        function validateForPublish(skillSummaries) {
+            const cat = document.getElementById('quizCategory').value;
+            const msg = document.getElementById('publishValidationMsg');
+            const btn = document.getElementById('btnPublishFinal');
+            if (!msg || !btn) return;
+
+            let canPublish = true;
+            let msgText = '';
+
+            const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
+
+            if (totalQuestions === 0) {
+                canPublish = false;
+                msgText = 'Cần thêm ít nhất 1 câu hỏi để xuất bản.';
+            }
+
+            if (canPublish) {
+                msg.style.cssText = 'display:flex; background:#f0fdf4; border:1px solid #10b981; color:#166134; border-radius:12px; max-width:500px; margin:0 auto 1rem;';
+                msg.innerHTML = '<i class="bi bi-check-circle-fill fs-5 me-2"></i><span class="small">Sẵn sàng xuất bản!</span>';
+            } else {
+                msg.style.cssText = 'display:flex; background:#fff1f2; border:1px solid #f43f5e; color:#9f1239; border-radius:12px; max-width:500px; margin:0 auto 1rem;';
+                msg.innerHTML = `<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i><span class="small">${msgText}</span>`;
+            }
+            btn.disabled = !canPublish;
+        }
+
+        async function finalPublish() {
+            if (!confirm('Xác nhận xuất bản Quiz này?')) return;
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'PUBLISHED' })
+                });
+                if (res.ok) {
+                    alert('Chúc mừng! Quiz đã được xuất bản thành công.');
+                    window.location.href = '/expert/quiz-management';
+                } else {
+                    const r = await res.json();
+                    alert(r.message || 'Lỗi khi xuất bản.');
+                }
+            } catch (e) { alert('Lỗi: ' + e.message); }
+        }
+    </script>
 </body>
+
 </html>

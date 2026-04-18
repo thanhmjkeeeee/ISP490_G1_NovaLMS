@@ -200,11 +200,14 @@ public class ExpertQuestionController {
             if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
                 return ResponseData.error(400, "Chỉ chấp nhận file .xlsx");
             }
+            ExcelTemplateGenerator.requireFilenameMatchesQuestionType(type, filename);
             if (file.getSize() > 5 * 1024 * 1024) {
                 return ResponseData.error(413, "File không được vượt quá 5MB.");
             }
             ExcelParseResultDTO result = excelService.parseFile(file, type);
             return ResponseData.success("Đã phân tích file", result);
+        } catch (IllegalArgumentException e) {
+            return ResponseData.error(400, e.getMessage());
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi khi đọc file: " + e.getMessage());
         }
@@ -233,11 +236,14 @@ public class ExpertQuestionController {
             if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
                 return ResponseData.error(400, "Chỉ chấp nhận file .xlsx");
             }
+            ExcelTemplateGenerator.requireFilenameMatchesQuestionType("QUESTION_GROUP", filename);
             if (file.getSize() > 5 * 1024 * 1024) {
                 return ResponseData.error(413, "File không được vượt quá 5MB.");
             }
             ExcelParseGroupResultDTO result = excelService.parseGroupFile(file);
             return ResponseData.success("Đã phân tích file", result);
+        } catch (IllegalArgumentException e) {
+            return ResponseData.error(400, e.getMessage());
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi khi đọc file: " + e.getMessage());
         }
@@ -255,4 +261,5 @@ public class ExpertQuestionController {
             return ResponseData.error(500, "Lỗi khi lưu: " + e.getMessage());
         }
     }
+
 }

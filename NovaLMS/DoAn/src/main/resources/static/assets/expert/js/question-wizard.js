@@ -27,8 +27,36 @@ let selectedSaveMode = 'DRAFT';
 let selectedVisibility = 'EXPERT_BANK';
 
 // ── Init ────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  loadStepData();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    if (window.NovaQuestionFormSettings) {
+      await NovaQuestionFormSettings.load();
+      const sk = document.getElementById('s1Skill');
+      const cf = document.getElementById('s1Cefr');
+      if (sk) NovaQuestionFormSettings.fillSkillSelectAll(sk);
+      if (cf) NovaQuestionFormSettings.fillCefrSelect(cf);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
+  await loadStepData();
+
+  const sk = document.getElementById('s1Skill');
+  const cf = document.getElementById('s1Cefr');
+  if (sk && step1Data.skill && sk.querySelector(`option[value="${step1Data.skill}"]`)) {
+    sk.value = step1Data.skill;
+  } else if (sk && sk.options.length) {
+    sk.selectedIndex = 0;
+    step1Data.skill = sk.value;
+  }
+  if (cf && step1Data.cefrLevel && cf.querySelector(`option[value="${step1Data.cefrLevel}"]`)) {
+    cf.value = step1Data.cefrLevel;
+  } else if (cf && cf.options.length) {
+    if (cf.querySelector('option[value="B1"]')) cf.value = 'B1';
+    else cf.selectedIndex = 0;
+    step1Data.cefrLevel = cf.value;
+  }
 
   document.getElementById('btnLeaveWizard')?.addEventListener('click', () => {
     if (sessionHasData) {
@@ -220,6 +248,10 @@ function renderAITypeCheckboxes() {
 }
 
 function getTypesForSkill(skill) {
+  if (window.NovaQuestionFormSettings && NovaQuestionFormSettings.questionTypesForSkill) {
+    const rows = NovaQuestionFormSettings.questionTypesForSkill(skill);
+    if (rows.length) return rows.map((r) => r.value);
+  }
   const skillMap = {
     LISTENING: ['MULTIPLE_CHOICE_SINGLE', 'MULTIPLE_CHOICE_MULTI', 'FILL_IN_BLANK', 'MATCHING'],
     READING:   ['MULTIPLE_CHOICE_SINGLE', 'MULTIPLE_CHOICE_MULTI', 'FILL_IN_BLANK', 'MATCHING'],
@@ -230,6 +262,9 @@ function getTypesForSkill(skill) {
 }
 
 function typeLabel(t) {
+  if (window.NovaQuestionFormSettings && NovaQuestionFormSettings.typeLabel) {
+    return NovaQuestionFormSettings.typeLabel(t);
+  }
   const map = {
     MULTIPLE_CHOICE_SINGLE: 'MC (Single)',
     MULTIPLE_CHOICE_MULTI: 'MC (Multi)',

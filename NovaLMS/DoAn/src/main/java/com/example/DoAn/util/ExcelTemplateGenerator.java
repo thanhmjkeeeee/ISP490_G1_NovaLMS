@@ -7,10 +7,60 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.Locale;
 
 @Component
 public class ExcelTemplateGenerator {
+
+    /**
+     * Tên file khi tải template / khi import: {@code template-} + {@code questionType.toLowerCase()} + {@code .xlsx}
+     * (trùng với {@code GET /api/v1/expert/questions/excel/template?type=}).
+     */
+    public static String expectedTemplateFilename(String questionType) {
+        if (questionType == null || questionType.isBlank()) {
+            throw new IllegalArgumentException("Loại câu hỏi không hợp lệ.");
+        }
+        return "template-" + questionType.toLowerCase(Locale.ROOT) + ".xlsx";
+    }
+
+    public static String filenameBasename(String originalFilename) {
+        if (originalFilename == null) {
+            return "";
+        }
+        String f = originalFilename.trim();
+        int i = Math.max(f.lastIndexOf('/'), f.lastIndexOf('\\'));
+        if (i >= 0 && i < f.length() - 1) {
+            f = f.substring(i + 1);
+        }
+        return f;
+    }
+
+    /**
+     * Trình duyệt thường đổi tên khi tải trùng: {@code template-foo.xlsx} → {@code template-foo (2).xlsx}.
+     * Chuẩn hóa về tên gốc (chữ thường) để so khớp loại câu hỏi.
+     */
+    static String normalizeBrowserDuplicateFilename(String basenameLower) {
+        if (basenameLower == null || basenameLower.isEmpty()) {
+            return "";
+        }
+        return basenameLower.replaceAll("\\s*\\(\\d+\\)(?=\\.xlsx$)", "");
+    }
+
+    /**
+     * Import Excel: tên file (basename) phải khớp {@link #expectedTemplateFilename(String)} theo loại đang chọn,
+     * kể cả bản tải trùng có hậu tố {@code (1)}, {@code (2)}, ...
+     */
+    public static void requireFilenameMatchesQuestionType(String questionType, String originalFilename) {
+        String base = filenameBasename(originalFilename).toLowerCase(Locale.ROOT);
+        if (base.isEmpty()) {
+            throw new IllegalArgumentException("Template không hợp lệ");
+        }
+        String expected = expectedTemplateFilename(questionType).toLowerCase(Locale.ROOT);
+        String normalized = normalizeBrowserDuplicateFilename(base);
+        if (!normalized.equals(expected)) {
+            throw new IllegalArgumentException("Template không hợp lệ");
+        }
+    }
 
     public byte[] generate(String questionType) throws IOException {
         Workbook wb = new XSSFWorkbook();
@@ -107,8 +157,8 @@ public class ExcelTemplateGenerator {
                 "MatchLeft (VD: Apple|Banana|Car)",
                 "MatchRight (VD: Quả táo|Quả chuối|Ô tô)",
                 "CorrectPairs (VD: 1,2,3)",
-                "Skill", "CEFR", "Topic"};
-        int[] widths = {8000, 6000, 6000, 4000, 3000, 2000, 3000};
+                "Skill", "CEFR", "Topic", "Explanation"};
+        int[] widths = {8000, 6000, 6000, 4000, 3000, 2000, 3000, 6000};
 
         Row hRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
@@ -120,9 +170,9 @@ public class ExcelTemplateGenerator {
 
         Row nRow = sheet.createRow(1);
         Cell nc = nRow.createCell(0);
-        nc.setCellValue("Chú ý: MatchLeft và MatchRight phân tách bằng dấu |, số phần tử phải bằng nhau. CorrectPairs: thứ tự ghép nối, VD 1,2,3 nghĩa là item trái 1 ghép với item phải 1.");
+        nc.setCellValue("Chú ý: MatchLeft và MatchRight phân tách bằng dấu |, số phần tử phải bằng nhau. CorrectPairs: thứ tự ghép nối (1-based), VD 1,2,3 = trái 1→phải 1, trái 2→phải 2, trái 3→phải 3.");
         nc.setCellStyle(note);
-        sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 3));
+        sheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 7));
 
         Row sample = sheet.createRow(2);
         sample.createCell(0).setCellValue("Match each word with its meaning.");
@@ -132,6 +182,7 @@ public class ExcelTemplateGenerator {
         sample.createCell(4).setCellValue("READING");
         sample.createCell(5).setCellValue("A1");
         sample.createCell(6).setCellValue("Food");
+        sample.createCell(7).setCellValue("Ghép từ tiếng Anh với nghĩa tiếng Việt tương ứng.");
         sheet.createRow(3);
     }
 
@@ -208,7 +259,8 @@ public class ExcelTemplateGenerator {
     }
 
     private void createGroupTemplate(Workbook wb, CellStyle header, CellStyle note) {
-        // Sheet 1: Group Info
+        // Sheet 1: Group Info — import cần: hàng PASSAGE* (cột A), sau đó một hàng dữ liệu có ô A không trống
+        // (không để hàng passage trống như template cũ → lastRowNum=2, resolveGroupPassageDataRow = null).
         Sheet groupSheet = wb.createSheet("Group Info");
         String[] groupHeaders = {"PASSAGE *", "SKILL", "CEFR", "TOPIC", "AUDIO_URL", "IMAGE_URL", "EXPLANATION"};
         int[] groupWidths = {15000, 3000, 2000, 3000, 5000, 5000, 6000};
@@ -221,19 +273,29 @@ public class ExcelTemplateGenerator {
             groupSheet.setColumnWidth(i, groupWidths[i]);
         }
 
-        // Row 1: NOTE — passage metadata must be entered in Row 2 (index 1 = Excel row 2)
+        // Excel row 2: ghi chú (cột A chứa từ khóa lọc meta — chỉ áp dụng cho hàng này, không cho hàng passage)
         Row gh1 = groupSheet.createRow(1);
-        gh1.createCell(0).setCellValue("--- HƯỚNG DẪN: Điền PASSAGE ở Row 2 (dòng này) | Điền câu hỏi con ở Sheet 2 ---");
-        gh1.getCell(0).setCellStyle(note);
-        gh1.createCell(1).setCellValue("--- Câu hỏi con: xem Sheet 2 bắt đầu từ Row 2 ---");
-        gh1.getCell(1).setCellStyle(note);
-        groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 1));
-        gh1.createCell(2).setCellValue("Row 1=Header, Row 2=NOTE, Row 3=PASSAGE data, Row 4+=optional");
-        gh1.getCell(2).setCellStyle(note);
-        groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 2, 6));
+        Cell gh1a = gh1.createCell(0);
+        gh1a.setCellValue(
+                "Hướng dẫn: Sửa ô A3 (dòng dữ liệu đầu tiên) thành passage thật; SKILL/CEFR/TOPIC cột B-D. "
+                        + "Câu hỏi con: sheet Child Questions.");
+        gh1a.setCellStyle(note);
+        groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 6));
 
-        // Row 2: blank (user fills in their passage data)
-        groupSheet.createRow(2);
+        // Excel row 3 (POI index 2): bắt buộc có nội dung cột A — mẫu để import không lỗi; user thay bằng passage của mình
+        Row gh2 = groupSheet.createRow(2);
+        gh2.createCell(0).setCellValue(
+                "Sample passage: Many cities are investing in public transport to reduce traffic and pollution. "
+                        + "Experts argue that reliable buses and trains encourage people to drive less. "
+                        + "Replace this entire cell with your own passage text.");
+        gh2.createCell(1).setCellValue("READING");
+        gh2.createCell(2).setCellValue("B1");
+        gh2.createCell(3).setCellValue("Environment");
+        gh2.createCell(4).setCellValue("");
+        gh2.createCell(5).setCellValue("");
+        gh2.createCell(6).setCellValue("Optional group-level explanation.");
+
+        groupSheet.createRow(3);
 
         // Sheet 2: Child Questions
         Sheet childSheet = wb.createSheet("Child Questions");
@@ -250,8 +312,13 @@ public class ExcelTemplateGenerator {
             childSheet.setColumnWidth(i, childWidths[i]);
         }
 
-        // Row 1: blank (user fills in their first child question, data starts at index 1 = Excel row 2)
-        // Sample data from index 2 onwards
+        // Cột A để trống để import bỏ qua (content blank); ghi chú từ cột B
+        Row ch1 = childSheet.createRow(1);
+        Cell ch1b = ch1.createCell(1);
+        ch1b.setCellValue("Chú ý: Mỗi câu hỏi con một hàng; TYPE = MULTIPLE_CHOICE_SINGLE | FILL_IN_BLANK | MATCHING | ...");
+        ch1b.setCellStyle(note);
+        childSheet.addMergedRegion(new CellRangeAddress(1, 1, 1, 8));
+
         Row ch2 = childSheet.createRow(2);
         ch2.createCell(0).setCellValue("What is the main idea of the passage?");
         ch2.createCell(1).setCellValue("MULTIPLE_CHOICE_SINGLE");

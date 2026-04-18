@@ -89,11 +89,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label small fw-bold text-secondary">VAI TRÒ HỆ THỐNG</label>
                                     <select id="roleId" class="form-select form-select-sm bg-light shadow-none" required>
-                                        <option value="1">Admin</option>
-                                        <option value="16">Manager</option>
-                                        <option value="3">Expert</option>
-                                        <option value="2">Teacher</option>
-                                        <option value="4">Student</option>
+                                        <option value="" disabled selected>-- Đang tải vai trò... --</option>
                                     </select>
                                 </div>
 
@@ -140,26 +136,50 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // 1. Lấy ID từ URL
         const path = window.location.pathname;
         const userId = path.split('/').pop();
 
+        function fillRoleSelect(roles, selectedRoleId) {
+            const select = document.getElementById('roleId');
+            select.innerHTML = '';
+            if (roles && roles.length > 0) {
+                roles.forEach(function (r) {
+                    const opt = document.createElement('option');
+                    opt.value = r.settingId;
+                    opt.textContent = r.name || r.value || ('Role #' + r.settingId);
+                    select.appendChild(opt);
+                });
+            }
+            if (selectedRoleId != null && selectedRoleId !== '') {
+                select.value = String(selectedRoleId);
+            }
+            if (!select.value && selectedRoleId != null) {
+                const opt = document.createElement('option');
+                opt.value = String(selectedRoleId);
+                opt.textContent = 'Vai trò hiện tại (#' + selectedRoleId + ', không Active)';
+                opt.selected = true;
+                select.insertBefore(opt, select.firstChild);
+            }
+        }
+
         if (userId && !isNaN(userId)) {
-            // 2. Load dữ liệu bằng AJAX (Fetch) giống trang Course
-            fetch(`/api/v1/accounts/${userId}`)
-                .then(res => res.json())
-                .then(res => {
-                    if (res.status === 200) {
-                        const u = res.data;
-                        // Đổ vào form
+            Promise.all([
+                fetch('/api/settings?type=ROLE&activeOnly=true').then(function (r) { return r.json(); }),
+                fetch('/api/v1/accounts/' + userId).then(function (r) { return r.json(); })
+            ])
+                .then(function (results) {
+                    const rolesRes = results[0];
+                    const accRes = results[1];
+                    const roles = (rolesRes.status === 200 && rolesRes.data) ? rolesRes.data : [];
+                    if (accRes.status === 200) {
+                        const u = accRes.data;
+                        fillRoleSelect(roles, u.roleId);
                         document.getElementById('userId').value = u.userId;
                         document.getElementById('fullName').value = u.fullName;
                         document.getElementById('email').value = u.email;
                         document.getElementById('mobile').value = u.mobile;
-                        document.getElementById('roleId').value = u.roleId;
                         document.getElementById('status').value = u.status;
 
-                        // Đổ vào thẻ Profile bên trái
                         document.getElementById('sideFullName').innerText = u.fullName;
                         document.getElementById('sideRole').innerText = u.roleName || 'Người dùng';
                         document.getElementById('sideUserId').innerText = '#' + u.userId;
@@ -170,7 +190,7 @@
                         document.getElementById('sideStatus').innerHTML = statusHTML;
                     }
                 })
-                .catch(err => console.error("Error loading account:", err));
+                .catch(function (err) { console.error("Error loading account:", err); });
         }
 
         // 3. Xử lý Update bằng AJAX (PUT)
