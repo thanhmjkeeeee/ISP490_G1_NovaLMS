@@ -645,11 +645,27 @@ public class StudentServiceImpl implements StudentService {
         if (clazz.getSessions() != null) {
             for (ClassSession session : clazz.getSessions()) {
                 String sessionStatus = "UPCOMING";
-                LocalDate sessionDate = session.getSessionDate() != null ? session.getSessionDate().toLocalDate() : null;
+                LocalDateTime sessionDateTime = session.getSessionDate();
+                LocalDate sDate = sessionDateTime != null ? sessionDateTime.toLocalDate() : null;
 
-                if (sessionDate != null) {
-                    if (sessionDate.isBefore(today)) sessionStatus = "COMPLETED";
-                    else if (sessionDate.isEqual(today)) sessionStatus = "LEARNING";
+                if (sDate != null) {
+                    if (sDate.isBefore(today)) {
+                        sessionStatus = "COMPLETED";
+                    } else if (sDate.isEqual(today)) {
+                        sessionStatus = "LEARNING";
+                        // Check if endTime has passed
+                        if (session.getEndTime() != null && !session.getEndTime().isBlank()) {
+                            try {
+                                String[] parts = session.getEndTime().split(":");
+                                int hour = Integer.parseInt(parts[0].trim());
+                                int minute = Integer.parseInt(parts[1].trim());
+                                LocalDateTime sessionEndTime = sDate.atTime(hour, minute);
+                                if (LocalDateTime.now().isAfter(sessionEndTime)) {
+                                    sessionStatus = "COMPLETED";
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
                 }
 
                 boolean isLocked = sessionStatus.equals("UPCOMING");
@@ -767,6 +783,11 @@ public class StudentServiceImpl implements StudentService {
                 String resolvedMeetLink = (session.getMeetLink() != null && !session.getMeetLink().isBlank())
                         ? session.getMeetLink()
                         : clazz.getMeetLink();
+
+                // Nếu đã kết thúc thì không cho vào meet nữa
+                if ("COMPLETED".equals(sessionStatus)) {
+                    resolvedMeetLink = null;
+                }
 
                 sessionDTOs.add(SessionDetailDTO.builder()
                         .sessionId(session.getSessionId())

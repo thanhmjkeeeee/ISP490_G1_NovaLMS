@@ -573,7 +573,10 @@ public class TeacherClassSessionService {
             Clazz clazz = clazzRepository.findById(classId).orElse(null);
             Integer courseId = clazz != null && clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null;
 
-            List<Quiz> quizzes = quizRepository.findByClazz_ClassIdAndQuizCategory(classId, "COURSE_QUIZ");
+            List<Quiz> quizzes = List.of();
+            if (courseId != null) {
+                quizzes = quizRepository.findAllVisibleForTeacher(List.of(courseId), teacherId);
+            }
 
             List<Map<String, Object>> result = quizzes.stream().map(q -> {
                 Map<String, Object> m = new LinkedHashMap<>();

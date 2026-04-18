@@ -172,6 +172,11 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         dto.setAttemptsLeft(maxAttempts != null ? (int) Math.max(0, maxAttempts - attemptsUsed) : -1);
         dto.setCanRetake(maxAttempts == null || attemptsUsed < maxAttempts);
 
+        dto.setAllowExternalSubmission(quiz.getAllowExternalSubmission());
+        dto.setExternalSubmissionInstruction(quiz.getExternalSubmissionInstruction());
+        dto.setExternalSubmissionLink(session.getExternalSubmissionLink());
+        dto.setExternalSubmissionNote(session.getExternalSubmissionNote());
+
         return dto;
     }
 
@@ -223,6 +228,11 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         dto.setIsWriting("WRITING".equals(skill));
         dto.setIsLastSection(skillIdx == SEQUENTIAL_SKILLS.size() - 1);
         dto.setIsLocked(skillIdx > session.getCurrentSkillIndex());
+
+        dto.setAllowExternalSubmission(session.getQuiz().getAllowExternalSubmission());
+        dto.setExternalSubmissionInstruction(session.getQuiz().getExternalSubmissionInstruction());
+        dto.setExternalSubmissionLink(session.getExternalSubmissionLink());
+        dto.setExternalSubmissionNote(session.getExternalSubmissionNote());
 
         if (skillIdx > 0) {
             dto.setPreviousSkill(SEQUENTIAL_SKILLS.get(skillIdx - 1));
@@ -367,6 +377,14 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         return submitSection(sessionId, "SPEAKING", answers, userEmail);
     }
 
+    @Override
+    public void saveExternalSubmission(Long sessionId, String link, String note, String userEmail) {
+        AssignmentSession session = getSessionForUser(sessionId, userEmail);
+        session.setExternalSubmissionLink(link);
+        session.setExternalSubmissionNote(note);
+        sessionRepository.save(session);
+    }
+
     // ─── completeAssignment ─────────────────────────────────────────────
 
     @Override
@@ -406,6 +424,27 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         sessionRepository.save(session);
 
         createQuizResult(session);
+    }
+
+    @Override
+    public void autoSubmitAllExpired() {
+        log.info("[AutoSubmit] Checking for expired assignment sessions...");
+        List<AssignmentSession> expired = sessionRepository.findExpiredSessions(LocalDateTime.now());
+        if (expired.isEmpty()) return;
+
+        log.info("[AutoSubmit] Found {} expired sessions. Processing...", expired.size());
+        for (AssignmentSession session : expired) {
+            try {
+                // We use the student's email to satisfy getSessionForUser/autoSubmit internal checks
+                String studentEmail = session.getUser().getEmail();
+                autoSubmit(session.getId(), studentEmail);
+                log.info("[AutoSubmit] Successfully auto-submitted sessionId={} for user={}",
+                        session.getId(), studentEmail);
+            } catch (Exception e) {
+                log.error("[AutoSubmit] Failed to auto-submit sessionId={}: {}",
+                        session.getId(), e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -520,6 +559,9 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
         dto.setSections(sections);
         dto.setAutoScore(autoScore);
+        dto.setAllowExternalSubmission(quiz.getAllowExternalSubmission());
+        dto.setExternalSubmissionLink(result.getExternalSubmissionLink());
+        dto.setExternalSubmissionNote(result.getExternalSubmissionNote());
 
         if (result.getSectionScores() != null && !result.getSectionScores().isBlank()) {
             try {
@@ -638,6 +680,8 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         result.setUser(session.getUser());
         result.setSubmittedAt(LocalDateTime.now());
         result.setAssignmentSessionId(session.getId());
+        result.setExternalSubmissionLink(session.getExternalSubmissionLink());
+        result.setExternalSubmissionNote(session.getExternalSubmissionNote());
         result.setSectionScores("{}");
 
         // Load all answers
