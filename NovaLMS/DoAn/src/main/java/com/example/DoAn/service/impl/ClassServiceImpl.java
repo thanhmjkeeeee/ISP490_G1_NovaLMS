@@ -609,6 +609,7 @@ public class ClassServiceImpl implements IClassService {
             log.info("Critical fields changed for Class id={}, regenerating sessions", id);
             // Delete old mappings and sessions
             rescheduleRequestRepository.deleteBySession_Clazz_ClassId(id);
+            sessionQuizRepository.deleteBySession_Clazz_ClassId(id);
             sessionLessonRepository.deleteBySession_Clazz_ClassId(id);
             classSessionRepository.deleteByClazz_ClassId(id);
 

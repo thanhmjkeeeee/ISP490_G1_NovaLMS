@@ -530,6 +530,23 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
+            // Parse student selections for option-based questions
+            Set<Integer> selectedIds = new HashSet<>();
+            if (userAns != null && userAns.getAnsweredOptions() != null) {
+                try {
+                    String raw = userAns.getAnsweredOptions();
+                    if ("MULTIPLE_CHOICE_SINGLE".equals(q.getQuestionType())) {
+                        selectedIds.add(objectMapper.readValue(raw, Integer.class));
+                    } else if ("MULTIPLE_CHOICE_MULTI".equals(q.getQuestionType())) {
+                        List<Integer> ids = objectMapper.readValue(raw, new TypeReference<List<Integer>>() {
+                        });
+                        if (ids != null) selectedIds.addAll(ids);
+                    }
+                } catch (Exception e) {
+                    // Ignore parsing errors for non-option types
+                }
+            }
+
             String correctAnswerDisplay = null;
             if (showAnswer) {
                 List<String> corrLogs = new ArrayList<>();
@@ -560,6 +577,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .title(opt.getTitle())
                     .matchTarget(opt.getMatchTarget())
                     .isCorrect(showAnswer ? opt.getCorrectAnswer() : null)
+                    .isSelected(selectedIds.contains(opt.getAnswerOptionId()))
                     .build()).collect(Collectors.toList());
 
             // Fix: Fallback for auto-graded questions that missed points_awarded in DB
@@ -607,6 +625,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .distinct()
                 .toList();
 
+        // Count used attempts for this student
+        long usedAttempts = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(
+                quiz.getQuizId(), qr.getUser().getUserId(), "IN_PROGRESS");
+
         return QuizResultDetailDTO.builder()
                 .resultId(qr.getResultId())
                 .quizId(quiz.getQuizId())
@@ -624,6 +646,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                                 : "No passing score")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)
+                .maxAttempts(quiz.getMaxAttempts())
+                .usedAttempts(usedAttempts)
+                .canRetake(isStudent && (quiz.getMaxAttempts() == null || usedAttempts < quiz.getMaxAttempts()))
                 .build();
     }
 
@@ -1163,6 +1188,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             return;
 
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        boolean anyPending = answers.stream().anyMatch(a -> Boolean.TRUE.equals(a.getPendingAiReview()));
 
         Map<String, Double> skillRawScore = new HashMap<>();
         Map<String, Double> skillMaxScore = new HashMap<>();
@@ -1193,12 +1219,28 @@ public class QuizResultServiceImpl implements QuizResultService {
                         int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
                         double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
                         skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
+                        
+                        // Sync pointsAwarded if not set
+                        if (a.getPointsAwarded() == null) {
+                            a.setPointsAwarded(BigDecimal.valueOf(scaledScore));
+                            quizAnswerRepository.save(a);
+                        }
                     } catch (Exception ignored) {
                     }
                 }
             } else {
                 if (Boolean.TRUE.equals(a.getIsCorrect())) {
                     skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + pts);
+                    // Sync pointsAwarded for auto-graded if null
+                    if (a.getPointsAwarded() == null) {
+                        a.setPointsAwarded(BigDecimal.valueOf(pts));
+                        quizAnswerRepository.save(a);
+                    }
+                } else if (Boolean.FALSE.equals(a.getIsCorrect())) {
+                    if (a.getPointsAwarded() == null) {
+                        a.setPointsAwarded(BigDecimal.ZERO);
+                        quizAnswerRepository.save(a);
+                    }
                 }
             }
         }
@@ -1222,8 +1264,31 @@ public class QuizResultServiceImpl implements QuizResultService {
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
 
         if (totalMax > 0) {
-            result.setCorrectRate(BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP));
+            BigDecimal correctRate = BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP);
+            result.setCorrectRate(correctRate);
             result.setScore((int) Math.round(totalRaw));
+
+            // Set passed if no longer pending
+            if (!anyPending) {
+                Quiz quiz = result.getQuiz();
+                if (quiz.getPassScore() != null) {
+                    result.setPassed(correctRate.compareTo(quiz.getPassScore()) >= 0);
+                } else {
+                    result.setPassed(true);
+                }
+                
+                // Finalize status
+                if (!"LOCKED".equals(result.getStatus())) {
+                    result.setStatus("SUBMITTED");
+                }
+
+                // If passed, mark lesson completed
+                if (Boolean.TRUE.equals(result.getPassed())) {
+                    lessonRepository.findByQuizId(quiz.getQuizId()).ifPresent(l -> {
+                        learningService.markLessonCompleted(l.getLessonId(), result.getUser().getEmail());
+                    });
+                }
+            }
         }
 
         try {

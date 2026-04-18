@@ -164,7 +164,14 @@
                </div>
             </div>
             
-            <div class="mt-4">
+               <div th:if="${#authorization.expression('hasRole(''TEACHER'')')}" class="mt-2">
+                   <span class="badge bg-white text-info border border-info px-3 py-2 rounded-pill small">
+                       <i class="bi bi-person-badge me-1"></i> VIEWING AS TEACHER
+                   </span>
+               </div>
+            </div>
+            
+            <div class="mt-4 d-flex justify-content-center gap-2">
                <a th:if="${sessionId != null}"
                   th:href="'/student/my-classes?openSession=' + ${sessionId} + ( ${classId != null} ? '&classId=' + ${classId} : '' )"
                   class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up">
@@ -174,6 +181,13 @@
                        class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"
                        onclick="window.history.back()">
                   <i class="bi bi-arrow-left me-2"></i>Quay Lại
+               </button>
+               
+               <!-- Redo Button -->
+               <button th:if="${result.canRetake}"
+                       class="btn btn-warning rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"
+                       data-bs-toggle="modal" data-bs-target="#redoModal">
+                  <i class="bi bi-arrow-counterclockwise me-2"></i>Làm Lại Quiz
                </button>
             </div>
           </div>
@@ -223,8 +237,38 @@
                 </div>
               </div>
 
-              <!-- User Answer Display -->
-              <div class="bg-light bg-opacity-50 p-3 rounded-4 border border-light-subtle mb-3">
+              <!-- Multiple Choice Options Review -->
+              <div th:if="${question.questionType == 'MULTIPLE_CHOICE_SINGLE' or question.questionType == 'MULTIPLE_CHOICE_MULTI'}" class="mb-4">
+                  <div class="row g-2">
+                      <div th:each="opt : ${question.options}" class="col-12">
+                          <div class="p-3 rounded-4 border d-flex align-items-center gap-3 transition-all"
+                               th:classappend="${opt.isSelected ? (opt.isCorrect == true ? 'bg-success bg-opacity-10 border-success' : 'bg-danger bg-opacity-10 border-danger shadow-sm') : (opt.isCorrect == true ? 'bg-success bg-opacity-5 border-success border-dashed' : 'bg-white border-light-subtle')}">
+                              
+                              <!-- Icon status -->
+                              <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                   style="width: 24px; height: 24px; min-width: 24px;"
+                                   th:classappend="${opt.isSelected ? (opt.isCorrect == true ? 'bg-success text-white' : 'bg-danger text-white') : (opt.isCorrect == true ? 'bg-success text-white' : 'bg-light text-muted border')}">
+                                  <i th:if="${opt.isSelected and opt.isCorrect == true}" class="bi bi-check-lg small"></i>
+                                  <i th:if="${opt.isSelected and opt.isCorrect == false}" class="bi bi-x-lg small"></i>
+                                  <i th:if="${!opt.isSelected and opt.isCorrect == true}" class="bi bi-check-lg small"></i>
+                                  <i th:if="${!opt.isSelected and (opt.isCorrect == null or opt.isCorrect == false)}" class="bi bi-circle small"></i>
+                              </div>
+
+                              <div class="flex-grow-1 text-dark" th:text="${opt.title}"></div>
+
+                              <!-- Status Badges -->
+                              <div class="d-flex gap-1 flex-shrink-0">
+                                  <span th:if="${opt.isSelected}" class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill" style="font-size: 0.6rem;">LỰA CHỌN CỦA BẠN</span>
+                                  <span th:if="${opt.isCorrect == true}" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.6rem;">ĐÁP ÁN ĐÚNG</span>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- Other Answer Types (Writing/Speaking/Fill-in-blank/etc) -->
+              <div th:if="${question.questionType != 'MULTIPLE_CHOICE_SINGLE' and question.questionType != 'MULTIPLE_CHOICE_MULTI'}" 
+                   class="bg-light bg-opacity-50 p-3 rounded-4 border border-light-subtle mb-3">
                  <p class="fw-bold mb-2 small text-muted text-uppercase letter-spacing-1">
                    <i class="bi bi-person-circle me-1"></i> Câu trả lời của bạn:
                  </p>
@@ -292,6 +336,44 @@
     </div>
     </div>
   </main>
+
+  <!-- Redo Confirmation Modal -->
+  <div class="modal fade" id="redoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-body p-4 text-center">
+          <div class="display-4 text-warning mb-3"><i class="bi bi-exclamation-circle-fill"></i></div>
+          <h3 class="fw-bold text-dark mb-2">Xác nhận làm lại?</h3>
+          <p class="text-muted mb-4">Bạn có chắc chắn muốn thực hiện lại bài kiểm tra này không?</p>
+          
+          <div class="bg-light p-3 rounded-4 mb-4">
+            <div class="row g-0">
+              <div class="col-6 border-end">
+                <small class="text-muted d-block mb-1">Số lần đã làm</small>
+                <span class="fw-bold text-dark fs-5" th:text="${result.usedAttempts}">0</span>
+              </div>
+              <div class="col-6">
+                <small class="text-muted d-block mb-1">Số lần tối đa</small>
+                <span class="fw-bold text-dark fs-5" th:text="${result.maxAttempts != null ? result.maxAttempts : '∞'}">∞</span>
+              </div>
+            </div>
+            <div class="mt-2 pt-2 border-top" th:if="${result.maxAttempts != null}">
+                <small class="text-primary fw-bold">
+                    Còn lại: <span th:text="${result.maxAttempts - result.usedAttempts}"></span> lượt
+                </small>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light rounded-pill flex-grow-1 fw-bold py-2" data-bs-dismiss="modal">Hủy bỏ</button>
+            <a th:href="'/student/quiz/take/' + ${result.quizId}" class="btn btn-warning rounded-pill flex-grow-1 fw-bold py-2 shadow-sm">
+                Bắt đầu làm lại
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>

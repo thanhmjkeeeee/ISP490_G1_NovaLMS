@@ -872,6 +872,7 @@ public class TeacherClassSessionService {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("quizId", q.getQuizId());
                 m.put("title", q.getTitle());
+                m.put("status", q.getStatus());
                 m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
 
                 // Find if this quiz is assigned to any session in this class

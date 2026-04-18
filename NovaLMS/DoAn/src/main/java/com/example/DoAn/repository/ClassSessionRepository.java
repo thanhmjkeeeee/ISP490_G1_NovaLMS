@@ -14,6 +14,8 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
 
     List<ClassSession> findByClazzClassIdOrderBySessionNumberAsc(Integer classId);
     
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
     void deleteByClazz_ClassId(Integer classId);
 
     @Query("SELECT COUNT(s) FROM ClassSession s WHERE s.clazz.classId = :classId")

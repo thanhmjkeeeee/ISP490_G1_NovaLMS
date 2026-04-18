@@ -21,6 +21,9 @@ public class QuizResultDetailDTO {
     private Boolean showAnswer;
     private String passScoreDescription;
     private List<QuestionResultDTO> questions;
+    private Integer maxAttempts;
+    private Long usedAttempts;
+    private Boolean canRetake;
     /** Distinct skills present in this quiz's questions — used for dynamic tab rendering */
     private List<String> skillsPresent;
 }
