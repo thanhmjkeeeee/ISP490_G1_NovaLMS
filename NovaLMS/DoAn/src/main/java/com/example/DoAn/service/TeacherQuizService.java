@@ -1032,8 +1032,9 @@ public class TeacherQuizService {
 
     /**
      * Notify enrolled students when a quiz is published or its open status changes.
+     * Package-private so QuizAutoPublishScheduler can also call this.
      */
-    private void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
+    void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
         if (quiz == null) return;
         String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
         String className = "";
