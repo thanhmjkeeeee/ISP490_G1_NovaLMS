@@ -154,10 +154,12 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             }
 
         } catch (Exception e) {
-            log.error("AI grading failed: {}", e.getMessage());
+            log.error("AI grading failed for resultId={}, questionId={}: {}", 
+                    quizResultId, questionId, e.getMessage());
             answer.setPendingAiReview(false);
-            answer.setAiGradingStatus("COMPLETED");
+            answer.setAiGradingStatus("FAILED"); // NEW: Mark as failed for manual review
             answer.setIsCorrect(false);
+            answer.setAiFeedback("AI grading failed: " + e.getMessage() + ". Manual review required.");
             quizAnswerRepository.save(answer);
         }
     }

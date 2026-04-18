@@ -29,6 +29,7 @@ import java.util.Map;
 public class ExpertQuizController {
 
     private final IExpertQuizService quizService;
+    private final com.example.DoAn.service.AIQuestionService aiService;
 
     private String getEmail(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken t) return t.getPrincipal().getAttribute("email");
@@ -187,5 +188,38 @@ public class ExpertQuizController {
     @PatchMapping("/{quizId}/publish")
     public ResponseData<QuizResponseDTO> publishAssignment(@PathVariable Integer quizId) {
         return ResponseData.success(quizService.publishAssignment(quizId));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  AI GENERATION FOR EXPERTS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Operation(summary = "Generate questions using AI")
+    @PostMapping("/ai/generate")
+    public ResponseData<?> generateAI(
+            @RequestBody com.example.DoAn.dto.request.AIGenerateRequestDTO request,
+            Principal principal) {
+        return ResponseData.success("AI generated questions",
+                aiService.generate(request, getEmail(principal)));
+    }
+
+    @Operation(summary = "Generate group (passage + questions) using AI")
+    @PostMapping("/ai/generate-group")
+    public ResponseData<?> generateGroupAI(
+            @RequestBody com.example.DoAn.dto.request.AIGenerateGroupRequestDTO request,
+            Principal principal) {
+        return ResponseData.success("AI generated group",
+                aiService.generateGroup(request, getEmail(principal)));
+    }
+
+    @Operation(summary = "Import AI generated questions into Quiz")
+    @PostMapping("/{quizId}/ai/import")
+    public ResponseData<QuizResponseDTO> importAIQuestions(
+            @PathVariable Integer quizId,
+            @RequestBody List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions,
+            @RequestParam(required = false) String passage,
+            Principal principal) {
+        return ResponseData.success("Questions imported",
+                quizService.importAIQuestions(quizId, questions, passage, getEmail(principal)));
     }
 }

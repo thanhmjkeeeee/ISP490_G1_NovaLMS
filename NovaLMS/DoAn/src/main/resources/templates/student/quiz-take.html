@@ -424,11 +424,13 @@ textarea.q-input { resize:vertical; min-height:110px; line-height:1.6; }
        quiz.canRetake, quiz.attemptsLeft, quiz.maxAttempts
 ═══════════════════════════════════════════════ -->
 <script th:inline="javascript">
-/* ─── Raw data từ Thymeleaf ─── */
+/* ─── Raw data ─── */
 const RAW_QUIZ    = /*[[${quiz}]]*/ null;
 const RAW_CLASS   = /*[[${classId}]]*/ null;
 const RAW_SESSION = /*[[${sessionId}]]*/ null;
+</script>
 
+<script th:inline="none">
 /* ─── Debug: luôn log để verify data ─── */
 console.log('[QUIZ-TAKE] RAW_QUIZ =', RAW_QUIZ);
 console.log('[QUIZ-TAKE] classId =', RAW_CLASS, '| sessionId =', RAW_SESSION);
@@ -454,6 +456,77 @@ const ES = {
   mediaRecorder: null,
   audioChunks:   [],
   speakTimer:    null,
+};
+
+window.wsSpeak = function (text) {
+    if (!text) return;
+    if (!('speechSynthesis' in window)) {
+        alert('Trình duyệt của bạn không hỗ trợ Text-to-Speech.');
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return;
+
+    const allVoices = window.speechSynthesis.getVoices();
+    const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+    
+    const maleVoices = enVoices.filter(v => 
+        v.name.toLowerCase().includes('male') || 
+        v.name.toLowerCase().includes('david') || 
+        v.name.toLowerCase().includes('mark') ||
+        v.name.toLowerCase().includes('google us english') 
+    );
+    const femaleVoices = enVoices.filter(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('linda') ||
+        v.name.toLowerCase().includes('google uk english female')
+    );
+
+    const speakerVoiceMap = {};
+
+    const playNextLine = (index) => {
+        if (index >= lines.length) return;
+
+        const line = lines[index];
+        const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
+        
+        let speakerName = "Default";
+        let gender = "Female"; 
+        let content = line;
+
+        if (match) {
+            speakerName = match[1].trim();
+            gender = (match[2] || "Female").toLowerCase();
+            content = match[3].trim();
+        }
+
+        const utterance = new SpeechSynthesisUtterance(content);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+
+        if (!speakerVoiceMap[speakerName]) {
+            const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
+            let hash = 0;
+            for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
+            speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
+        }
+        if (speakerVoiceMap[speakerName]) utterance.voice = speakerVoiceMap[speakerName];
+
+        utterance.onend = () => {
+            setTimeout(() => playNextLine(index + 1), 500);
+        };
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    if (allVoices.length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => playNextLine(0);
+    } else {
+        playNextLine(0);
+    }
 };
 
 /* ══════════════════════════════════════════════
@@ -606,14 +679,38 @@ function buildCard(q, num, total) {
     </div>`;
 }
 
+function wsFormatTranscript(text) {
+  if (!text) return '';
+  let cleaned = text.replace(/\s*\[(Male|Female)\]/gi, '');
+  let escaped = esc(cleaned);
+  return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-primary">$1</strong>');
+}
+
 function buildPassage(q) {
   if (!q.groupId) return '';
+  const isL = (q.skill||'').toUpperCase() === 'LISTENING';
+  const icon = isL ? 'bi-headphones' : 'bi-journal-text';
+  const title = isL ? 'Phần Nghe' : 'Đoạn văn / Ngữ cảnh';
+
   return `
     <div class="q-passage">
-      <div class="q-passage-title"><i class="bi bi-journal-text"></i> Đoạn văn / Ngữ cảnh</div>
-      ${q.passage ? `<div>${q.passage}</div>` : ''}
+      <div class="q-passage-title d-flex justify-content-between align-items-center">
+        <span><i class="bi ${icon}"></i> ${title}</span>
+        ${(isL && q.passage) ? `
+          <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" onclick="wsSpeak(this.nextElementSibling.innerText)">
+            <i class="bi bi-play-fill"></i> NGHE (TTS)
+          </button>
+        ` : ''}
+      </div>
+      <div style="display:none">${q.passage || ''}</div>
+      ${isL ? 
+        `<div class="alert alert-light border-0 py-2 mb-2 small text-primary fw-bold">
+           <i class="bi bi-info-circle-fill me-1"></i> Hãy nghe đoạn hội thoại/bài nói sau và trả lời các câu hỏi liên quan.
+         </div>` : 
+        (q.passage ? `<div style="white-space: pre-line;">${wsFormatTranscript(q.passage)}</div>` : '')
+      }
       ${q.groupImageUrl ? `<div class="q-media" style="margin-top:8px;"><img src="${esc(q.groupImageUrl)}" alt=""></div>` : ''}
-      ${q.groupAudioUrl ? `<div class="q-media" style="margin-top:8px;"><audio controls><source src="${esc(q.groupAudioUrl)}" type="audio/mpeg"></audio></div>` : ''}
+      ${q.groupAudioUrl ? `<div class="q-media" style="margin-top:8px;"><audio controls class="w-100 shadow-sm" style="height:40px"><source src="${esc(q.groupAudioUrl)}" type="audio/mpeg"></audio></div>` : ''}
     </div>`;
 }
 

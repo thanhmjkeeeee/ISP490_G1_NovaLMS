@@ -29,4 +29,10 @@ public class AssignmentInfoDTO {
     private Boolean attemptsExceeded;
     private Integer attemptsLeft;
     private Boolean canRetake;
+    
+    // External Submission fields
+    private Boolean allowExternalSubmission;
+    private String externalSubmissionInstruction;
+    private String externalSubmissionLink;
+    private String externalSubmissionNote;
 }

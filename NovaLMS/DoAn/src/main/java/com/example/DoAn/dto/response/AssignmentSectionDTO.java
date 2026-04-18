@@ -29,4 +29,10 @@ public class AssignmentSectionDTO {
     private Boolean isWriting;
     private Boolean isLastSection;
     private Boolean isLocked;
+    
+    // External Submission fields
+    private Boolean allowExternalSubmission;
+    private String externalSubmissionInstruction;
+    private String externalSubmissionLink;
+    private String externalSubmissionNote;
 }

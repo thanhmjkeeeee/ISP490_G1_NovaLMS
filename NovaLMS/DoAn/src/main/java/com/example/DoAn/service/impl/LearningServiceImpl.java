@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -59,13 +60,74 @@ public class LearningServiceImpl implements LearningService {
             courseInfo.setDescription(course.getDescription());
 
             if (reg != null && reg.getClazz() != null) {
-                courseInfo.setClassName(reg.getClazz().getClassName());
-                courseInfo.setSchedule(reg.getClazz().getSchedule());
+                Clazz clazz = reg.getClazz();
+                courseInfo.setClassName(clazz.getClassName());
+                courseInfo.setSchedule(clazz.getSchedule());
 
-                if (reg.getClazz().getTeacher() != null) {
-                    courseInfo.setTeacherName(reg.getClazz().getTeacher().getFullName());
-                    courseInfo.setTeacherAvatar(reg.getClazz().getTeacher().getAvatarUrl());
+                if (clazz.getTeacher() != null) {
+                    courseInfo.setTeacherName(clazz.getTeacher().getFullName());
+                    courseInfo.setTeacherAvatar(clazz.getTeacher().getAvatarUrl());
                 }
+
+                // ── Logic: Find nearest session's meet link ─────────────────────────
+                String bestMeetLink = clazz.getMeetLink(); 
+                String meetLabel = "Link lớp học";
+
+                List<ClassSession> sessions = clazz.getSessions();
+                if (sessions != null && !sessions.isEmpty()) {
+                    java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                    // Filter and sort sessions with valid dates
+                    List<ClassSession> validSessions = sessions.stream()
+                            .filter(s -> s.getSessionDate() != null)
+                            .sorted(Comparator.comparing(ClassSession::getSessionDate))
+                            .collect(Collectors.toList());
+
+                    // 1. Try today's sessions (find the first one that hasn't ended)
+                    List<ClassSession> todaySessions = validSessions.stream()
+                            .filter(s -> s.getSessionDate().toLocalDate().isEqual(now.toLocalDate()))
+                            .collect(Collectors.toList());
+
+                    ClassSession activeSessionToday = null;
+                    boolean allTodayEnded = false;
+
+                    if (!todaySessions.isEmpty()) {
+                        activeSessionToday = todaySessions.stream()
+                                .filter(s -> {
+                                    if (s.getEndTime() == null || s.getEndTime().isBlank()) return true;
+                                    try {
+                                        String[] parts = s.getEndTime().split(":");
+                                        int hour = Integer.parseInt(parts[0].trim());
+                                        int minute = Integer.parseInt(parts[1].trim());
+                                        java.time.LocalDateTime sessionEndTime = s.getSessionDate().toLocalDate().atTime(hour, minute);
+                                        return now.isBefore(sessionEndTime);
+                                    } catch (Exception e) { return true; }
+                                })
+                                .findFirst().orElse(null);
+                        
+                        if (activeSessionToday == null) {
+                            allTodayEnded = true;
+                        }
+                    }
+
+                    if (activeSessionToday != null && activeSessionToday.getMeetLink() != null && !activeSessionToday.getMeetLink().isBlank()) {
+                        bestMeetLink = activeSessionToday.getMeetLink();
+                        meetLabel = "Link học buổi hôm nay (Buổi " + activeSessionToday.getSessionNumber() + ")";
+                    } else if (allTodayEnded) {
+                        bestMeetLink = null;
+                        meetLabel = "Các buổi học hôm nay đã kết thúc";
+                    } else {
+                        // 2. Try next upcoming session (future days)
+                        ClassSession nextSession = validSessions.stream()
+                                .filter(s -> s.getSessionDate().toLocalDate().isAfter(now.toLocalDate()))
+                                .findFirst().orElse(null);
+                        if (nextSession != null && nextSession.getMeetLink() != null && !nextSession.getMeetLink().isBlank()) {
+                            bestMeetLink = nextSession.getMeetLink();
+                            meetLabel = "Link học buổi tiếp theo (" + nextSession.getSessionDate().toLocalDate().toString() + ")";
+                        }
+                    }
+                }
+                courseInfo.setLiveMeetingLink(bestMeetLink);
+                courseInfo.setLiveMeetingLabel(meetLabel);
             }
 
             List<CourseLearningInfoDTO.ModuleDTO> moduleDTOs = new ArrayList<>();

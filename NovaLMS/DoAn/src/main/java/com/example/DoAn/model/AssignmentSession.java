@@ -57,6 +57,12 @@ public class AssignmentSession {
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    @Column(name = "external_submission_link", columnDefinition = "TEXT")
+    private String externalSubmissionLink;
+
+    @Column(name = "external_submission_note", columnDefinition = "TEXT")
+    private String externalSubmissionNote;
+
     @PrePersist
     protected void onCreate() {
         if (startedAt == null) startedAt = LocalDateTime.now();
