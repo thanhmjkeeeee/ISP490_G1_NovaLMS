@@ -165,9 +165,15 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         if ("SPEAKING".equals(skill) || "WRITING".equals(skill)) {
             boolean allGraded = sectionAnswers.stream()
                     .allMatch(a -> a.getPointsAwarded() != null);
-            gradingStatus = allGraded ? "GRADED"
-                    : sectionAnswers.stream().anyMatch(a -> a.getAiScore() != null) ? "AI_READY"
-                    : "AI_PENDING";
+            if (allGraded) {
+                gradingStatus = "GRADED";
+            } else if (sectionAnswers.stream().anyMatch(a -> "FAILED".equals(a.getAiGradingStatus()))) {
+                gradingStatus = "AI_FAILED";
+            } else if (sectionAnswers.stream().anyMatch(a -> a.getAiScore() != null)) {
+                gradingStatus = "AI_READY";
+            } else {
+                gradingStatus = "AI_PENDING";
+            }
         }
 
         AssignmentGradingQueueDTO.SectionStatus s = new AssignmentGradingQueueDTO.SectionStatus();
@@ -192,6 +198,9 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private String deriveOverallStatus(AssignmentGradingQueueDTO dto) {
         boolean spkNeeded = (dto.getSpeaking() != null);
         boolean wrtNeeded = (dto.getWriting() != null);
+
+        if (spkNeeded && "AI_FAILED".equals(dto.getSpeaking().getGradingStatus())) return "AI_FAILED";
+        if (wrtNeeded && "AI_FAILED".equals(dto.getWriting().getGradingStatus())) return "AI_FAILED";
 
         boolean spkGraded = !spkNeeded || "GRADED".equals(dto.getSpeaking().getGradingStatus());
         boolean wrtGraded = !wrtNeeded || "GRADED".equals(dto.getWriting().getGradingStatus());
@@ -304,6 +313,9 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
         dto.setSections(sections);
         dto.setAutoScore(autoScore);
+        dto.setAllowExternalSubmission(quiz.getAllowExternalSubmission());
+        dto.setExternalSubmissionLink(result.getExternalSubmissionLink());
+        dto.setExternalSubmissionNote(result.getExternalSubmissionNote());
 
         if (result.getSectionScores() != null && !result.getSectionScores().isBlank()) {
             try {

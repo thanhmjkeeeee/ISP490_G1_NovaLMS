@@ -37,6 +37,36 @@
                       (${s == 'SPEAKING'} ? '🎤 N' : '✍️ V'))">STEP</div>
     </div>
 
+    <!-- External Submission Box -->
+    <div id="externalSubmissionArea" class="d-none">
+        <div class="card mb-4 border-primary border-opacity-25 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-header bg-primary bg-opacity-10 border-0 py-3">
+                <h6 class="fw-bold mb-0 d-flex align-items-center">
+                    <i class="bi bi-cloud-upload text-primary me-2 fs-5"></i>
+                    Nộp link sản phẩm (Google Drive, Github...)
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <p class="small text-muted mb-3" id="externalInstrText"></p>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Dán link tại đây</label>
+                        <input type="url" id="extLinkInput" class="form-control form-control-lg rounded-3 fs-6" 
+                               placeholder="https://drive.google.com/..." oninput="saveExternal()">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Ghi chú (nếu có)</label>
+                        <textarea id="extNoteInput" class="form-control rounded-3" rows="2" 
+                                  placeholder="Ví dụ: Link folder bài thiết kế..." oninput="saveExternal()"></textarea>
+                    </div>
+                </div>
+                <div class="mt-2 text-success small d-none" id="extSaveStatus">
+                    <i class="bi bi-check-circle-fill me-1"></i> Đã tự động lưu link nộp bài
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Question list -->
     <div id="questionsContainer">
         <div class="text-center py-5">
@@ -79,6 +109,9 @@
 <script th:inline="javascript">
 const sessionId = /*[[${sessionId}]]*/ 0;
 const skill = /*[[${skill}]]*/ 'LISTENING';
+</script>
+
+<script th:inline="none">
 let currentAnswers = {};
 let autoSaveTimer = null;
 let quizTimerInterval = null;
@@ -86,6 +119,77 @@ let quizSeconds = 0;
 let isWriting = skill === 'WRITING';
 let isSpeaking = skill === 'SPEAKING';
 const SEQUENTIAL_SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+
+window.wsSpeak = function (text) {
+    if (!text) return;
+    if (!('speechSynthesis' in window)) {
+        alert('Trình duyệt của bạn không hỗ trợ Text-to-Speech.');
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return;
+
+    const allVoices = window.speechSynthesis.getVoices();
+    const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+    
+    const maleVoices = enVoices.filter(v => 
+        v.name.toLowerCase().includes('male') || 
+        v.name.toLowerCase().includes('david') || 
+        v.name.toLowerCase().includes('mark') ||
+        v.name.toLowerCase().includes('google us english') 
+    );
+    const femaleVoices = enVoices.filter(v => 
+        v.name.toLowerCase().includes('female') || 
+        v.name.toLowerCase().includes('zira') || 
+        v.name.toLowerCase().includes('linda') ||
+        v.name.toLowerCase().includes('google uk english female')
+    );
+
+    const speakerVoiceMap = {};
+
+    const playNextLine = (index) => {
+        if (index >= lines.length) return;
+
+        const line = lines[index];
+        const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
+        
+        let speakerName = "Default";
+        let gender = "Female"; 
+        let content = line;
+
+        if (match) {
+            speakerName = match[1].trim();
+            gender = (match[2] || "Female").toLowerCase();
+            content = match[3].trim();
+        }
+
+        const utterance = new SpeechSynthesisUtterance(content);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+
+        if (!speakerVoiceMap[speakerName]) {
+            const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
+            let hash = 0;
+            for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
+            speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
+        }
+        if (speakerVoiceMap[speakerName]) utterance.voice = speakerVoiceMap[speakerName];
+
+        utterance.onend = () => {
+            setTimeout(() => playNextLine(index + 1), 500);
+        };
+
+        window.speechSynthesis.speak(utterance);
+    };
+
+    if (allVoices.length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => playNextLine(0);
+    } else {
+        playNextLine(0);
+    }
+};
 
 // Bootstrap toast
 let saveToast;
@@ -108,6 +212,18 @@ async function loadSection() {
 
         renderProgressSteps(section);
         renderQuestions(section.questions || []);
+
+        if (section.allowExternalSubmission) {
+            document.getElementById('externalSubmissionArea').classList.remove('d-none');
+            document.getElementById('externalInstrText').textContent = 
+                section.externalSubmissionInstruction || 'Vui lòng nộp kèm link bài tập/dự án của bạn.';
+            if (section.externalSubmissionLink) {
+                document.getElementById('extLinkInput').value = section.externalSubmissionLink;
+            }
+            if (section.externalSubmissionNote) {
+                document.getElementById('extNoteInput').value = section.externalSubmissionNote;
+            }
+        }
 
         if (section.previousSkill) {
             document.getElementById('prevBtn').href =
@@ -213,6 +329,41 @@ function buildQuestionHTML(q, index) {
             </div>`;
     }
 
+    const esc = (s) => (s||'').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const wsFormatTranscript = (text) => {
+        if (!text) return '';
+        let cleaned = text.replace(/\s*\[(Male|Female)\]/gi, '');
+        let escaped = esc(cleaned);
+        return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-primary">$1</strong>');
+    };
+
+    const isL = (q.skill||'').toUpperCase() === 'LISTENING';
+    const passageHTML = q.passage ? `
+        <div class="q-passage mb-3 p-3 bg-light rounded-4 border-start border-4 border-primary shadow-sm">
+            <div class="fw-bold text-primary mb-2 small uppercase d-flex justify-content-between align-items-center">
+                <span><i class="bi ${isL ? 'bi-headphones' : 'bi-journal-text'} me-1"></i> 
+                ${isL ? 'Phần Nghe' : 'Đoạn văn / Ngữ cảnh'}</span>
+                ${(isL && q.passage) ? `
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" onclick="wsSpeak(this.nextElementSibling.innerText)">
+                    <i class="bi bi-play-fill"></i> NGHE (TTS)
+                  </button>
+                ` : ''}
+            </div>
+            <div style="display:none">${q.passage || ''}</div>
+            ${isL ? `
+                <div class="alert alert-info border-0 py-2 mb-2 small">
+                    <i class="bi bi-info-circle-fill me-1"></i> Hãy nghe đoạn hội thoại/bài nói sau và trả lời các câu hỏi liên quan.
+                </div>
+            ` : `<div style="white-space: pre-line;">${wsFormatTranscript(q.passage)}</div>`}
+            ${q.groupAudioUrl ? `
+                <div class="mt-2">
+                    <audio controls class="w-100 shadow-sm" style="height:40px">
+                        <source src="${q.groupAudioUrl}" type="audio/mpeg">
+                    </audio>
+                </div>
+            ` : ''}
+        </div>` : '';
+
     const audioHTML = q.audioUrl
         ? `<div class="mb-3"><audio controls class="w-100" style="height:44px">
              <source src="${q.audioUrl}" type="audio/mpeg">
@@ -229,6 +380,7 @@ function buildQuestionHTML(q, index) {
                     <span class="text-muted fw-normal">/ ${q.points || 1} điểm</span>
                 </h5>
             </div>
+            ${passageHTML}
             ${imageHTML}
             <p class="fs-5 mb-3" style="line-height:1.6">${q.content}</p>
             ${audioHTML}
@@ -270,6 +422,25 @@ async function saveDraft() {
     } catch (e) {
         console.warn('Auto-save failed:', e);
     }
+}
+
+let extSaveTimer = null;
+async function saveExternal() {
+    clearTimeout(extSaveTimer);
+    extSaveTimer = setTimeout(async () => {
+        const link = document.getElementById('extLinkInput').value;
+        const note = document.getElementById('extNoteInput').value;
+        try {
+            await fetch(`/api/v1/student/assignment/session/${sessionId}/external-submission`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ link, note })
+            });
+            const status = document.getElementById('extSaveStatus');
+            status.classList.remove('d-none');
+            setTimeout(() => status.classList.add('d-none'), 3000);
+        } catch (e) { console.error('Save external failed', e); }
+    }, 1000);
 }
 
 async function submitSection() {

@@ -51,4 +51,6 @@ public class QuizRequestDTO {
     private LocalDateTime openAt;    // null = mở ngay khi isOpen=true
     private LocalDateTime closeAt;   // null = không đóng tự động
     private LocalDateTime deadline; // bắt buộc cho assignment
+    private Boolean allowExternalSubmission;
+    private String externalSubmissionInstruction;
 }

@@ -100,6 +100,12 @@ public class Quiz {
     @Column(name = "is_sequential")
     private Boolean isSequential = false;
 
+    @Column(name = "allow_external_submission")
+    private Boolean allowExternalSubmission = false;
+
+    @Column(name = "external_submission_instruction", columnDefinition = "TEXT")
+    private String externalSubmissionInstruction;
+
     // JSON array, e.g. ["LISTENING","READING","SPEAKING","WRITING"]
     @Column(name = "skill_order", columnDefinition = "JSON")
     private String skillOrder;

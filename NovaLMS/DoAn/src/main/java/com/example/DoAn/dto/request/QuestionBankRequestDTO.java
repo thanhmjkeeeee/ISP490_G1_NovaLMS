@@ -38,6 +38,7 @@ public class QuestionBankRequestDTO {
     private Integer questionIdForQuiz;
     private Integer orderIndex;
     private java.math.BigDecimal points;
+    private String skillForQuiz;
 
     @Data
     @NoArgsConstructor

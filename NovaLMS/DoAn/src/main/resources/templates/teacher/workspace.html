@@ -193,7 +193,7 @@
                         <div class="d-flex gap-2">
                             <button id="btn-create-assignment" class="btn btn-sm btn-primary rounded-pill px-3"
                                 style="display:none;" onclick="openCreateAssignmentModal()">
-                                <i class="bi bi-plus-lg me-1"></i>Gắn Assignment
+                                <i class="bi bi-plus-lg me-1"></i>Gắn bài có sẵn
                             </button>
                             <button id="btn-back-to-classes" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
                                 style="display:none;" onclick="wsSelectClassFromTab('ALL')">
@@ -1062,7 +1062,7 @@
         </div>
     </div>
 
-    <script>
+    <script th:inline="none">
         const state = {
             allClasses: [],
             selectedClassId: 'ALL',
@@ -1693,7 +1693,10 @@
                             return `<div class="d-flex align-items-center justify-content-between py-2 ${quizzes.indexOf(q) > 0 ? 'border-top' : ''}">
                                 <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:0;">
                                     <div style="min-width:0;">
-                                        <div class="fw-medium text-dark text-truncate" style="font-size:0.88rem;">${wsEscape(q.title || '')}</div>
+                                        <div class="fw-medium text-dark text-truncate" style="font-size:0.88rem;">
+                                            ${wsEscape(q.title || '')}
+                                            ${q.createdByName && q.createdByName.toLowerCase().includes('expert') ? '<span class="badge bg-info text-white ms-1" style="font-size:0.6rem;">Expert</span>' : ''}
+                                        </div>
                                         <div class="d-flex align-items-center gap-2 mt-1">
                                             <span class="text-muted small">${q.questionCount || 0} câu</span>
                                             ${statusBadge}${openBadge}
@@ -1825,7 +1828,459 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             wsQuizModal = new bootstrap.Modal(document.getElementById('wsQuizModal'));
+            asgnModal = new bootstrap.Modal(document.getElementById('wsAssignmentBuilderModal'));
+            asgnBankModal = new bootstrap.Modal(document.getElementById('asgnBankModal'));
+
+            document.getElementById('asgn-allow-external').addEventListener('change', (e) => {
+                document.getElementById('asgn-external-instr-area').classList.toggle('d-none', !e.target.checked);
+            });
         });
+
+        // --- ASSIGNMENT BUILDER V2 LOGIC ---
+        let asgnModal = null;
+        let asgnBankModal = null;
+        let asgnCurrentStep = 1;
+        let asgnCurrentQuizId = null;
+        let asgnCurrentSkill = 'LISTENING';
+        let asgnSelectedQuestions = {
+            'LISTENING': [],
+            'READING': [],
+            'SPEAKING': [],
+            'WRITING': []
+        };
+        let asgnBankQuestions = [];
+
+        window.openAssignmentBuilder = function() {
+            if (state.selectedClassId === 'ALL') {
+                Swal.fire('Chú ý', 'Vui lòng chọn lớp học trước.', 'warning');
+                return;
+            }
+            asgnReset();
+            
+            // Set min deadline to current time
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const minStr = now.toISOString().slice(0, 16);
+            document.getElementById('asgn-deadline').min = minStr;
+            
+            asgnSwitchStep(1);
+            asgnModal.show();
+        };
+
+        window.asgnReset = function() {
+            asgnCurrentStep = 1;
+            asgnCurrentQuizId = null;
+            asgnCurrentSkill = 'LISTENING';
+            asgnSelectedQuestions = { 'LISTENING': [], 'READING': [], 'SPEAKING': [], 'WRITING': [] };
+            
+            document.getElementById('asgn-title').value = '';
+            document.getElementById('asgn-deadline').value = '';
+            document.getElementById('asgn-desc').value = '';
+            document.getElementById('asgn-pass-score').value = '50';
+            document.getElementById('asgn-max-attempts').value = '1';
+
+            ['listening', 'reading', 'speaking', 'writing'].forEach(s => {
+                document.getElementById(`skill-${s}`).checked = true;
+            });
+            document.getElementById('asgn-allow-external').checked = false;
+            document.getElementById('asgn-external-instr-area').classList.add('d-none');
+            document.getElementById('asgn-external-instr').value = '';
+
+            document.getElementById('time-listening').value = 30;
+            document.getElementById('time-reading').value = 45;
+            document.getElementById('time-speaking').value = 15;
+            document.getElementById('time-writing').value = 30;
+            
+            asgnSwitchStep(1);
+        };
+
+        window.openAsgnBuilder = async function(quizId = null) {
+            asgnReset();
+            if (quizId) {
+                asgnCurrentQuizId = quizId;
+                Swal.fire({ title: 'Đang tải Assignment...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const res = await fetch(`/api/v1/teacher/quizzes/${quizId}`);
+                    const json = await res.json();
+                    Swal.close();
+                    if (json.status !== 200) throw new Error(json.message);
+                    
+                    const q = json.data;
+                    document.getElementById('asgn-title').value = q.title || '';
+                    document.getElementById('asgn-deadline').value = q.deadline ? q.deadline.substring(0, 16) : '';
+                    document.getElementById('asgn-desc').value = q.description || '';
+                    document.getElementById('asgn-pass-score').value = q.passScore || 50;
+                    document.getElementById('asgn-max-attempts').value = q.maxAttempts || 1;
+                    document.getElementById('asgn-allow-external').checked = !!q.allowExternalSubmission;
+                    document.getElementById('asgn-external-instr').value = q.externalSubmissionInstruction || '';
+                    if (q.allowExternalSubmission) document.getElementById('asgn-external-instr-area').classList.remove('d-none');
+                    
+                    // Skill config
+                    if (q.timeLimitPerSkill) {
+                        const times = JSON.parse(q.timeLimitPerSkill);
+                        const skills = JSON.parse(q.skillOrder || '[]');
+                        
+                        ['listening', 'reading', 'speaking', 'writing'].forEach(s => {
+                            const upperS = s.toUpperCase();
+                            document.getElementById(`skill-${s}`).checked = skills.includes(upperS);
+                            if (times[upperS]) {
+                                document.getElementById(`time-${s}`).value = times[upperS];
+                            }
+                        });
+                    }
+
+                    // Questions
+                    const qs = q.questions || q.quizQuestions || [];
+                    qs.forEach(sq => {
+                        const skill = sq.skill || 'READING';
+                        if (asgnSelectedQuestions[skill]) {
+                            asgnSelectedQuestions[skill].push({
+                                questionId: sq.questionId,
+                                content: sq.content,
+                                questionType: sq.questionType,
+                                skill: sq.skill,
+                                cefrLevel: sq.cefrLevel,
+                                passage: sq.passage,
+                                audioUrl: sq.audioUrl,
+                                groupAudioUrl: sq.groupAudioUrl
+                            });
+                        }
+                    });
+                } catch (e) {
+                    Swal.fire('Lỗi', 'Không thể tải thông tin assignment: ' + e.message, 'error');
+                }
+            }
+            asgnModal.show();
+        };
+
+        window.asgnSwitchStep = function(step) {
+            asgnCurrentStep = step;
+            document.querySelectorAll('.asgn-step').forEach(s => s.classList.add('d-none'));
+            document.getElementById(`asgn-step-${step}`).classList.remove('d-none');
+
+            document.querySelectorAll('.step-item').forEach(item => {
+                const s = parseInt(item.dataset.step);
+                const circle = item.querySelector('.step-circle');
+                if (s < step) {
+                    circle.className = 'step-circle bg-success text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1 shadow-sm';
+                    circle.innerHTML = '<i class="bi bi-check-lg"></i>';
+                    item.classList.remove('active');
+                } else if (s === step) {
+                    circle.className = 'step-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1 shadow-sm';
+                    circle.innerHTML = s;
+                    item.classList.add('active');
+                } else {
+                    circle.className = 'step-circle bg-white text-primary border border-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1';
+                    circle.innerHTML = s;
+                    item.classList.remove('active');
+                }
+            });
+
+            document.getElementById('asgn-prev-btn').style.display = step === 1 ? 'none' : 'inline-block';
+            document.getElementById('asgn-next-btn').style.display = step === 3 ? 'none' : 'inline-block';
+            document.getElementById('asgn-save-btn').style.display = step === 3 ? 'inline-block' : 'none';
+
+            if (step === 3) asgnPrepareStep3();
+        };
+
+        window.asgnNextStep = function() {
+            if (asgnCurrentStep === 1) {
+                if (!document.getElementById('asgn-title').value.trim()) {
+                    Swal.fire('Thiếu thông tin', 'Vui lòng nhập tên bài tập', 'warning');
+                    return;
+                }
+                const deadlineVal = document.getElementById('asgn-deadline').value;
+                if (deadlineVal) {
+                    const deadlineDate = new Date(deadlineVal);
+                    if (deadlineDate < new Date()) {
+                        Swal.fire('Hạn nộp không hợp lệ', 'Hạn nộp bài (Deadline) không được ở trong quá khứ.', 'warning');
+                        return;
+                    }
+                }
+
+                // Validate Pass Score
+                const passScore = parseInt(document.getElementById('asgn-pass-score').value);
+                if (isNaN(passScore) || passScore < 0 || passScore > 100) {
+                    Swal.fire('Dữ liệu không hợp lệ', 'Điểm đạt (%) phải từ 0 đến 100', 'warning');
+                    return;
+                }
+
+                // Validate Max Attempts
+                const maxAttempts = parseInt(document.getElementById('asgn-max-attempts').value);
+                if (isNaN(maxAttempts) || maxAttempts < 1) {
+                    Swal.fire('Dữ liệu không hợp lệ', 'Số lần làm tối đa phải ít nhất là 1', 'warning');
+                    return;
+                }
+            }
+            if (asgnCurrentStep === 2) {
+                const enabledCount = document.querySelectorAll('.asgn-skill-toggle:checked').length;
+                if (enabledCount === 0) {
+                    Swal.fire('Thiếu cấu hình', 'Vui lòng chọn ít nhất một kỹ năng', 'warning');
+                    return;
+                }
+
+                // Validate Time Limits for enabled skills
+                const toggles = document.querySelectorAll('.asgn-skill-toggle:checked');
+                for (let t of toggles) {
+                    const skill = t.dataset.skill.toLowerCase();
+                    const timeInput = document.getElementById(`time-${skill}`);
+                    const timeVal = parseInt(timeInput.value);
+                    if (isNaN(timeVal) || timeVal < 1) {
+                        Swal.fire('Dữ liệu không hợp lệ', `Thời gian cho kỹ năng ${t.dataset.skill} phải ít nhất là 1 phút`, 'warning');
+                        return;
+                    }
+                }
+            }
+            asgnSwitchStep(asgnCurrentStep + 1);
+        };
+
+        window.asgnPrevStep = function() {
+            asgnSwitchStep(asgnCurrentStep - 1);
+        };
+
+        function asgnPrepareStep3() {
+            const tabsContainer = document.getElementById('asgn-skill-tabs');
+            const enabledSkills = Array.from(document.querySelectorAll('.asgn-skill-toggle:checked'))
+                .map(cb => cb.dataset.skill);
+            
+            let html = '';
+            enabledSkills.forEach(skill => {
+                const count = asgnSelectedQuestions[skill].length;
+                html += `
+                    <button type="button" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center border-0 rounded-0 ${asgnCurrentSkill === skill ? 'bg-primary bg-opacity-10 text-primary fw-bold' : ''}" 
+                        onclick="asgnSelectSkillTab('${skill}')">
+                        <span><i class="bi ${asgnGetSkillIcon(skill)} me-2"></i>${skill}</span>
+                        <span class="badge rounded-pill ${asgnCurrentSkill === skill ? 'bg-primary' : 'bg-light text-muted border'}">${count}</span>
+                    </button>
+                `;
+            });
+            tabsContainer.innerHTML = html;
+
+            if (!enabledSkills.includes(asgnCurrentSkill)) {
+                asgnCurrentSkill = enabledSkills[0];
+                asgnPrepareStep3();
+                return;
+            }
+
+            asgnRenderSelectedQuestions();
+        }
+
+        window.asgnSelectSkillTab = function(skill) {
+            asgnCurrentSkill = skill;
+            asgnPrepareStep3();
+        };
+
+        function asgnGetSkillIcon(skill) {
+            if (skill === 'LISTENING') return 'bi-headphones';
+            if (skill === 'READING') return 'bi-book';
+            if (skill === 'SPEAKING') return 'bi-mic';
+            if (skill === 'WRITING') return 'bi-pencil-square';
+            return 'bi-question-circle';
+        }
+
+        function asgnRenderSelectedQuestions() {
+            const container = document.getElementById('asgn-selected-questions');
+            const label = document.getElementById('asgn-current-skill-label');
+            label.textContent = `Câu hỏi phần ${asgnCurrentSkill}`;
+
+            const questions = asgnSelectedQuestions[asgnCurrentSkill];
+            if (questions.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted opacity-25" style="font-size: 3rem;"></i>
+                        <p class="text-muted small mt-2">Phần ${asgnCurrentSkill} chưa có câu hỏi nào</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = questions.map((q, idx) => {
+                let mediaHtml = '';
+                const finalAudio = q.groupAudioUrl || q.audioUrl;
+                if (finalAudio) {
+                    mediaHtml += `<div class="mt-2"><audio src="${finalAudio}" controls class="w-100" style="height:32px;"></audio></div>`;
+                }
+                if (q.passage) {
+                    mediaHtml += `<div class="mt-2 small text-muted border-start ps-2 py-1 bg-light rounded" style="font-size:0.75rem; max-height:80px; overflow:hidden;">
+                        <i class="bi bi-file-text me-1"></i>${wsEscape(q.passage.substring(0, 200))}${q.passage.length > 200 ? '...' : ''}
+                    </div>`;
+                }
+
+                return `
+                <div class="card border border-light-subtle shadow-sm rounded-4 mb-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary rounded-pill px-2" style="font-size:0.7rem;">Câu ${idx + 1}</span>
+                                <span class="badge bg-light text-muted border rounded-pill extra-small">${q.questionType}</span>
+                            </div>
+                            <button class="btn btn-link text-danger p-0" onclick="asgnRemoveQuestion('${asgnCurrentSkill}', ${q.questionId})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <p class="mb-0 small fw-bold">${wsEscape(q.content)}</p>
+                        ${mediaHtml}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.asgnRemoveQuestion = function(skill, id) {
+            asgnSelectedQuestions[skill] = asgnSelectedQuestions[skill].filter(q => q.questionId !== id);
+            asgnPrepareStep3();
+        };
+
+        window.asgnOpenBank = async function() {
+            document.getElementById('asgn-bank-skill-title').textContent = asgnCurrentSkill;
+            const listContainer = document.getElementById('asgn-bank-list');
+            listContainer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
+            asgnBankModal.show();
+
+            try {
+                const res = await fetch(`/api/v1/teacher/quizzes/bank-questions?skill=${asgnCurrentSkill}`);
+                const json = await res.json();
+                asgnBankQuestions = json.data || [];
+                asgnFilterBank();
+            } catch (e) {
+                listContainer.innerHTML = '<div class="alert alert-danger small">Lỗi tải ngân hàng câu hỏi</div>';
+            }
+        };
+
+        window.asgnFilterBank = function() {
+            const query = document.getElementById('asgn-bank-search').value.toLowerCase();
+            const filtered = asgnBankQuestions.filter(q => 
+                (q.content && q.content.toLowerCase().includes(query)) ||
+                (q.questionType && q.questionType.toLowerCase().includes(query))
+            );
+
+            const listContainer = document.getElementById('asgn-bank-list');
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="text-center py-4 text-muted small">Không tìm thấy câu hỏi phù hợp.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = filtered.map(q => {
+                const isSelected = asgnSelectedQuestions[asgnCurrentSkill].some(sq => sq.questionId === q.questionId);
+                
+                let mediaHtml = '';
+                const finalAudio = q.groupAudioUrl || q.audioUrl;
+                if (finalAudio) {
+                    mediaHtml += `<div class="mt-2"><audio src="${finalAudio}" controls class="w-100" style="height:32px;"></audio></div>`;
+                }
+                if (q.passage) {
+                    mediaHtml += `<div class="mt-2 small text-muted border-start ps-2 py-1 bg-light rounded" style="font-size:0.75rem; max-height:60px; overflow:hidden;">
+                        <i class="bi bi-file-text me-1"></i>${wsEscape(q.passage.substring(0, 150))}${q.passage.length > 150 ? '...' : ''}
+                    </div>`;
+                }
+
+                return `
+                    <div class="p-3 border rounded-4 mb-2 d-flex align-items-start gap-3 transition-all ${isSelected ? 'bg-primary bg-opacity-10 border-primary border-opacity-25' : 'bg-white'}">
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex gap-2 mb-1">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 extra-small">${q.questionType}</span>
+                                <span class="badge bg-light text-muted border extra-small">${q.cefrLevel || 'Any'}</span>
+                            </div>
+                            <div class="small fw-bold text-dark" style="line-height:1.4;">${wsEscape(q.content)}</div>
+                            ${mediaHtml}
+                        </div>
+                        <button class="btn btn-sm ${isSelected ? 'btn-success' : 'btn-outline-primary'} rounded-pill px-3 shadow-sm flex-shrink-0" 
+                            onclick="asgnToggleQuestion(${JSON.stringify(q).replace(/"/g, '&quot;')})">
+                            ${isSelected ? '<i class="bi bi-check-lg"></i>' : '<i class="bi bi-plus-lg"></i>'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        window.asgnToggleQuestion = function(q) {
+            const skill = asgnCurrentSkill;
+            const idx = asgnSelectedQuestions[skill].findIndex(sq => sq.questionId === q.questionId);
+            if (idx >= 0) {
+                asgnSelectedQuestions[skill].splice(idx, 1);
+            } else {
+                asgnSelectedQuestions[skill].push(q);
+            }
+            asgnFilterBank();
+            asgnPrepareStep3();
+        };
+
+        window.asgnSave = async function() {
+            const enabledSkills = Array.from(document.querySelectorAll('.asgn-skill-toggle:checked')).map(cb => cb.dataset.skill);
+            for (const s of enabledSkills) {
+                if (asgnSelectedQuestions[s].length === 0) {
+                    Swal.fire('Thiếu dữ liệu', `Vui lòng chọn ít nhất 1 câu hỏi cho phần ${s}`, 'warning');
+                    return;
+                }
+            }
+
+            const title = document.getElementById('asgn-title').value.trim();
+            const deadline = document.getElementById('asgn-deadline').value;
+            const timeLimitPerSkill = {};
+            enabledSkills.forEach(s => {
+                timeLimitPerSkill[s] = parseInt(document.getElementById(`time-${s.toLowerCase()}`).value) || 30;
+            });
+
+            const totalTime = Object.values(timeLimitPerSkill).reduce((a, b) => a + b, 0);
+
+            const payload = {
+                title: title,
+                description: document.getElementById('asgn-desc').value,
+                quizCategory: 'COURSE_ASSIGNMENT',
+                classId: state.selectedClassId,
+                timeLimitMinutes: totalTime,
+                passScore: Number(document.getElementById('asgn-pass-score').value || 50),
+                maxAttempts: parseInt(document.getElementById('asgn-max-attempts').value) || 1,
+                isSequential: true,
+                skillOrder: enabledSkills,
+                timeLimitPerSkill: timeLimitPerSkill,
+                deadline: deadline ? deadline : null,
+                allowExternalSubmission: document.getElementById('asgn-allow-external').checked,
+                externalSubmissionInstruction: document.getElementById('asgn-external-instr').value,
+                status: 'PUBLISHED'
+            };
+
+            Swal.fire({
+                title: 'Đang lưu Assignment...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const method = asgnCurrentQuizId ? 'PUT' : 'POST';
+                const url = asgnCurrentQuizId ? `/api/v1/teacher/quizzes/${asgnCurrentQuizId}` : '/api/v1/teacher/quizzes';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.status !== 200) throw new Error(json.message);
+
+                const quizId = asgnCurrentQuizId || json.data.quizId;
+
+                for (const skill of enabledSkills) {
+                    const qIds = asgnSelectedQuestions[skill].map(q => q.questionId);
+                    for (let i = 0; i < qIds.length; i++) {
+                        await fetch(`/api/v1/teacher/quizzes/${quizId}/questions`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                questionIdForQuiz: qIds[i],
+                                orderIndex: i + 1,
+                                points: 1,
+                                skillForQuiz: skill
+                            })
+                        });
+                    }
+                }
+
+                Swal.fire('Thành công', asgnCurrentQuizId ? 'Đã cập nhật Assignment.' : 'Đã tạo và gắn Assignment vào lớp học!', 'success');
+                asgnModal.hide();
+                loadAssignments();
+            } catch (e) {
+                Swal.fire('Lỗi', e.message, 'error');
+            }
+        };
         window.openCreateQuizModal = async function () {
             if (state.selectedClassId === 'ALL') {
                 Swal.fire('Chú ý', 'Vui lòng chọn lớp học trước.', 'warning');
@@ -2440,6 +2895,27 @@
             aiGenModal.show();
         };
 
+        window.openAsgnAiModal = function() {
+            if (!aiGenModal) {
+                aiGenModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+                aiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
+            }
+            
+            // Lock skill to current assignment skill
+            const skill = asgnCurrentSkill;
+            document.getElementById('adv-skill').value = skill;
+            // Select radio button
+            const radio = document.querySelector(`input[name="adv-skill-radio"][value="${skill}"]`);
+            if (radio) radio.checked = true;
+            
+            // Topic from assignment title
+            const topic = document.getElementById('asgn-title').value || '';
+            document.getElementById('adv-topic').value = topic;
+
+            toggleAiAdvancedFields();
+            aiGenModal.show();
+        };
+
         window.updateAdvSkill = function (val) {
             document.getElementById('adv-skill').value = val;
             toggleAiAdvancedFields();
@@ -2540,6 +3016,93 @@
             openAdvancedAiModal();
         };
 
+        window.wsSpeak = function (text) {
+            if (!text) return;
+            if (!('speechSynthesis' in window)) {
+                Swal.fire('Lỗi', 'Trình duyệt của bạn không hỗ trợ Text-to-Speech.', 'error');
+                return;
+            }
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            // Split into lines and filter empty
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) return;
+
+            const allVoices = window.speechSynthesis.getVoices();
+            // Filter English voices
+            const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+            
+            // Heuristic for Male/Female voices
+            const maleVoices = enVoices.filter(v => 
+                v.name.toLowerCase().includes('male') || 
+                v.name.toLowerCase().includes('david') || 
+                v.name.toLowerCase().includes('mark') ||
+                v.name.toLowerCase().includes('google us english') 
+            );
+            const femaleVoices = enVoices.filter(v => 
+                v.name.toLowerCase().includes('female') || 
+                v.name.toLowerCase().includes('zira') || 
+                v.name.toLowerCase().includes('linda') ||
+                v.name.toLowerCase().includes('google uk english female')
+            );
+
+            const speakerVoiceMap = {};
+
+            const playNextLine = (index) => {
+                if (index >= lines.length) return;
+
+                const line = lines[index];
+                // Format: "Name [Gender]: Content"
+                const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
+                
+                let speakerName = "Default";
+                let gender = "Female"; 
+                let content = line;
+
+                if (match) {
+                    speakerName = match[1].trim();
+                    gender = (match[2] || "Female").toLowerCase();
+                    content = match[3].trim();
+                }
+
+                const utterance = new SpeechSynthesisUtterance(content);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9;
+
+                if (!speakerVoiceMap[speakerName]) {
+                    const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
+                    let hash = 0;
+                    for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
+                    speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
+                }
+                if (speakerVoiceMap[speakerName]) utterance.voice = speakerVoiceMap[speakerName];
+
+                utterance.onend = () => {
+                    setTimeout(() => playNextLine(index + 1), 500);
+                };
+
+                window.speechSynthesis.speak(utterance);
+            };
+
+            if (allVoices.length === 0) {
+                // Wait for voices to load
+                window.speechSynthesis.onvoiceschanged = () => playNextLine(0);
+            } else {
+                playNextLine(0);
+            }
+        };
+
+        const wsFormatTranscript = (text) => {
+            if (!text) return '';
+            // Strip [Male] / [Female] tags for display
+            let cleaned = text.replace(/\s*\[(Male|Female)\]/gi, '');
+            let escaped = wsEscape(cleaned);
+            // Bold speaker names
+            return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-dark">$1</strong>');
+        };
+
         const wsRenderAIQuestions = () => {
             const container = document.getElementById('wsAiList');
             document.getElementById('wsAiTotal').textContent = wsAiQuestions.length;
@@ -2567,18 +3130,47 @@
 
             // Render passage if exists
             if (wsAiPassage) {
+                const firstQ = wsAiQuestions[0];
+                const isListening = firstQ && firstQ.skill === 'LISTENING';
+                const title = isListening ? 'Nội dung Audio / Transcript' : 'Nội dung Passage / Transcript';
+                const icon = isListening ? 'bi-volume-up-fill' : 'bi-file-text';
+
                 html += `
                 <div class="card border-0 bg-primary bg-opacity-10 mb-4 shadow-sm" style="border-radius: 16px;">
                     <div class="card-body p-4">
-                        <div class="d-flex align-items-center gap-2 mb-3">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                <i class="bi bi-file-text"></i>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi ${icon}"></i>
+                                </div>
+                                <span class="fw-bold text-primary">${title}:</span>
                             </div>
-                            <span class="fw-bold text-primary">Nội dung Passage / Transcript:</span>
+                            ${isListening ? `
+                                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText)">
+                                    <i class="bi bi-play-fill me-1"></i> Nghe thử (TTS)
+                                </button>
+                            ` : ''}
                         </div>
-                        <div class="bg-white rounded-4 p-4 border border-primary border-opacity-25" style="max-height: 400px; overflow-y: auto; line-height: 1.6; font-size: 0.95rem; color: #334155;">
-                            ${wsEscape(wsAiPassage)}
-                        </div>
+                        ${isListening ? `
+                            <div class="alert alert-info border-0 rounded-4 mb-3 small d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle-fill"></i>
+                                <span>Học sinh sẽ nhận được yêu cầu: "Hãy nghe đoạn hội thoại sau và chọn đáp án". Bản transcript sẽ bị ẩn trong quá trình làm bài.</span>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-outline-primary btn-sm border-dashed" type="button" data-bs-toggle="collapse" data-bs-target="#wsAiPassageCollapse">
+                                    Xem Transcript (Bản gỡ băng)
+                                </button>
+                            </div>
+                            <div class="collapse mt-3" id="wsAiPassageCollapse">
+                                <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
+                                    ${wsFormatTranscript(wsAiPassage)}
+                                </div>
+                            </div>
+                        ` : `
+                            <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
+                                ${wsFormatTranscript(wsAiPassage)}
+                            </div>
+                        `}
                     </div>
                 </div>`;
             }
@@ -2668,8 +3260,12 @@
         };
 
         window.wsImportSelected = async function () {
-            if (!wsCurrentQuizId) return;
-            if (wsAiSelected.size === 0) { alert('Vui lòng chọn ít nhất 1 câu hỏi.'); return; }
+            // mode: 'QUIZ' or 'ASSIGNMENT'
+            const mode = wsCurrentQuizId ? 'QUIZ' : 'ASSIGNMENT';
+            
+            if (mode === 'QUIZ' && !wsCurrentQuizId) return;
+            if (wsAiSelected.size === 0) { Swal.fire('Chú ý', 'Vui lòng chọn ít nhất 1 câu hỏi.', 'warning'); return; }
+            
             const selected = wsAiQuestions.filter((_, i) => wsAiSelected.has(i));
             const btn = document.getElementById('wsBtnImportAi');
             const spinner = document.getElementById('wsImportAiSpinner');
@@ -2677,27 +3273,46 @@
             if (spinner) spinner.style.display = 'inline-block';
 
             try {
+                const payload = { 
+                    quizId: mode === 'QUIZ' ? wsCurrentQuizId : null, 
+                    passage: wsAiPassage, 
+                    questions: selected 
+                };
+                
                 const res = await fetch('/api/v1/teacher/quizzes/ai/import', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ quizId: wsCurrentQuizId, passage: wsAiPassage, questions: selected })
+                    body: JSON.stringify(payload)
                 });
                 const result = await res.json();
                 if (!res.ok) { Swal.fire('Lỗi', result.message || 'Lỗi khi lưu câu hỏi.', 'error'); return; }
                 
-                // Reload questions
-                const qRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}`);
-                const qJson = await qRes.json();
-                if (qJson.status === 200 && qJson.data) {
-                    const quizData = qJson.data;
-                    const qs = quizData.questions || quizData.quizQuestions || [];
-                    wsSelectedQuestions = qs.map(sq => ({
-                        questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
-                        skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
-                    }));
+                if (mode === 'QUIZ') {
+                    // Reload questions for standard Quiz
+                    const qRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}`);
+                    const qJson = await qRes.json();
+                    if (qJson.status === 200 && qJson.data) {
+                        const quizData = qJson.data;
+                        const qs = quizData.questions || quizData.quizQuestions || [];
+                        wsSelectedQuestions = qs.map(sq => ({
+                            questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
+                            skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
+                        }));
+                    }
+                    wsRenderSelected();
+                    Swal.fire('Thành công', `Đã thêm ${selected.length} câu hỏi vào quiz.`, 'success');
+                } else {
+                    // ASSIGNMENT mode: Add to local asgnSelectedQuestions
+                    const imported = result.data.importedQuestions || [];
+                    imported.forEach(q => {
+                        if (!asgnSelectedQuestions[asgnCurrentSkill].some(sq => sq.questionId === q.questionId)) {
+                            asgnSelectedQuestions[asgnCurrentSkill].push(q);
+                        }
+                    });
+                    asgnPrepareStep3();
+                    Swal.fire('Thành công', `Đã thêm ${imported.length} câu hỏi vào phần ${asgnCurrentSkill}.`, 'success');
                 }
-                wsRenderSelected();
+                
                 aiResultModal.hide();
-                Swal.fire('Thành công', `Đã thêm ${selected.length} câu hỏi vào quiz.`, 'success');
                 // Cleanup
                 wsAiQuestions = [];
                 wsAiSelected.clear();
@@ -3024,15 +3639,15 @@
             document.getElementById('wsAttachQuizError').classList.add('d-none');
         };
 
-        window.wsToggleQuizOpen = async function (sessionId, quizId, newOpen) {
+        window.wsToggleQuizOpen = async function (sessionId, quizId, newOpen, label = 'Quiz') {
             if (!sessionId || !quizId) {
                 console.error("Missing IDs for toggle-open:", { sessionId, quizId });
-                Swal.fire('Lỗi', 'Thông tin buổi học hoặc quiz không hợp lệ', 'error');
+                Swal.fire('Lỗi', `Thông tin buổi học hoặc ${label.toLowerCase()} không hợp lệ`, 'error');
                 return;
             }
 
             if (newOpen) {
-                const confirm = await wsConfirmToast('Công khai Quiz?', 'Cho phép học sinh làm bài ngay bây giờ?');
+                const confirm = await wsConfirmToast(`Công khai ${label}?`, `Cho phép học sinh làm bài ngay bây giờ?`);
                 if (!confirm.isConfirmed) return;
             }
 
@@ -3041,9 +3656,9 @@
                 const json = await res.json();
                 if (json.status === 200) {
                     refreshActiveTab();
-                    wsToast(newOpen ? 'Đã mở quiz' : 'Đã đóng quiz');
+                    wsToast(newOpen ? `Đã mở ${label.toLowerCase()}` : `Đã đóng ${label.toLowerCase()}`);
                 } else {
-                    Swal.fire('Lỗi', json.message || 'Lỗi khi mở/đóng quiz', 'error');
+                    Swal.fire('Lỗi', json.message || `Lỗi khi mở/đóng ${label.toLowerCase()}`, 'error');
                 }
             } catch (e) {
                 console.error("wsToggleQuizOpen error:", e);
@@ -3051,10 +3666,10 @@
             }
         };
 
-        window.wsPublishQuiz = async function (sessionId, quizId) {
+        window.wsPublishQuiz = async function (sessionId, quizId, label = 'Quiz') {
             const confirm = await Swal.fire({
-                title: 'Xuất bản Quiz?',
-                text: 'Học sinh sẽ có thể thấy quiz này (nếu buổi học đã bắt đầu). Bạn không thể đưa về trạng thái Nháp sau khi xuất bản.',
+                title: `Xuất bản ${label}?`,
+                text: `Học sinh sẽ có thể thấy ${label.toLowerCase()} này (nếu buổi học đã bắt đầu). Bạn không thể đưa về trạng thái Nháp sau khi xuất bản.`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Xuất bản ngay',
@@ -3078,10 +3693,11 @@
                         }
                     }
                     
-                    wsToast('Đã xuất bản quiz thành công!');
+                    wsToast(`Đã xuất bản ${label.toLowerCase()} thành công!`);
                     loadQuizzes();
+                    if (label === 'Assignment') loadAssignments();
                 } else {
-                    Swal.fire('Lỗi', json.message || 'Lỗi khi xuất bản quiz', 'error');
+                    Swal.fire('Lỗi', json.message || `Lỗi khi xuất bản ${label.toLowerCase()}`, 'error');
                 }
             } catch (e) {
                 console.error("wsPublishQuiz error:", e);
@@ -3133,11 +3749,13 @@
             const container = document.getElementById('assignment-content-area');
             const backBtn = document.getElementById('btn-back-to-classes');
             const createBtn = document.getElementById('btn-create-assignment');
+            const createNewBtn = document.getElementById('btn-create-new-assignment-v2');
             if (!container) return;
 
             if (classId === 'ALL') {
                 backBtn.style.display = 'none';
                 createBtn.style.display = 'none';
+                if (createNewBtn) createNewBtn.style.display = 'none';
                 renderClassSelectionTable(container, 'Cấu hình Assignment <i class="bi bi-chevron-right ms-1"></i>');
                 return;
             }
@@ -3175,7 +3793,10 @@
             <tr>
                 <td>${i + 1}</td>
                 <td>
-                    <div class="fw-bold text-dark">${wsEscape(a.title)}</div>
+                    <div class="fw-bold text-dark">
+                        ${wsEscape(a.title)}
+                        ${a.createdByName && a.createdByName.toLowerCase().includes('expert') ? '<span class="badge bg-info text-white ms-1" style="font-size:0.6rem;">Expert</span>' : ''}
+                    </div>
                     <small>
                         ${a.sessionNumber ? `<span class="text-primary">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary small">Chưa gán</span>`}
                     </small>
@@ -3189,13 +3810,16 @@
                 <td class="text-end">
                     ${a.sessionQuizId ? `
                         ${a.status === 'DRAFT' ? `
-                            <button class="btn btn-sm btn-info text-white rounded-pill px-3 ms-1" onclick="wsPublishQuiz(${a.sessionId}, ${a.quizId})">
+                            <button class="btn btn-sm btn-info text-white rounded-pill px-3 ms-1" onclick="wsPublishQuiz(${a.sessionId}, ${a.quizId}, 'Assignment')">
                                 <i class="bi bi-send-fill me-1"></i>Xuất bản
                             </button>
                         ` : ''}
                         <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1"
-                                onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
+                                onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen}, 'Assignment')">
                             <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ms-1" onclick="openAsgnBuilder(${a.quizId})">
+                            <i class="bi bi-pencil me-1"></i>Sửa
                         </button>
                     ` : `
                         <button class="btn btn-sm btn-secondary disabled rounded-pill px-3 ms-1" disabled>
@@ -3389,7 +4013,15 @@
                                 <tr>
                                     <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-', 'text-')} border small px-3 py-2">${item.type}</span></td>
                                     <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
-                                    <td><span class="fw-bold text-dark">${item.quizTitle}</span></td>
+                                    <td><span class="fw-bold text-dark">${item.quizTitle}</span>
+                                        ${item.overallStatus === 'AI_FAILED' ? `
+                                            <div class="mt-1">
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger" style="font-size: 0.65rem;">
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>AI Lỗi - Cần chấm tay
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                    </td>
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
                                     <td class="text-end">
                                         <a href="/teacher/quiz/grading/${item.resultId}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
@@ -3948,6 +4580,218 @@
                     <button class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
                     <button id="btn-save-ca" class="btn btn-primary rounded-pill px-4 fw-bold"
                         onclick="saveNewAssignments()">Lưu Assignment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ASSIGNMENT BUILDER (4 SKILLS SEQUENTIAL) -->
+    <div class="modal fade" id="wsAssignmentBuilderModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-bottom-0 p-4 pb-2">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-magic text-primary me-2"></i>Thiết kế Assignment 4 Kỹ Năng</h5>
+                        <p class="text-muted small mb-0">Tạo bài tập tuần tự với Listening, Reading, Speaking, Writing</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 pt-0">
+                    <!-- Progress Steps -->
+                    <div class="d-flex justify-content-between mb-4 position-relative px-5">
+                        <div class="position-absolute top-50 start-0 end-0 translate-middle-y bg-light" style="height: 2px; z-index: 0; margin: 0 50px;"></div>
+                        <div class="step-item text-center active" data-step="1" style="z-index: 1; width: 120px;">
+                            <div class="step-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1 shadow-sm" style="width: 36px; height: 36px;">1</div>
+                            <div class="extra-small fw-bold">Thông tin chung</div>
+                        </div>
+                        <div class="step-item text-center" data-step="2" style="z-index: 1; width: 120px;">
+                            <div class="step-circle bg-white text-primary border border-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1" style="width: 36px; height: 36px;">2</div>
+                            <div class="extra-small">Cấu hình kỹ năng</div>
+                        </div>
+                        <div class="step-item text-center" data-step="3" style="z-index: 1; width: 120px;">
+                            <div class="step-circle bg-white text-primary border border-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-1" style="width: 36px; height: 36px;">3</div>
+                            <div class="extra-small">Chọn câu hỏi</div>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Info -->
+                    <div id="asgn-step-1" class="asgn-step">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold">Tên bài tập</label>
+                                <input type="text" id="asgn-title" class="form-control rounded-3" placeholder="Ví dụ: Final Assignment - Spring 2024">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Hạn nộp (Deadline)</label>
+                                <input type="datetime-local" id="asgn-deadline" class="form-control rounded-3">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">Mô tả / Hướng dẫn</label>
+                                <textarea id="asgn-desc" class="form-control rounded-3" rows="3" placeholder="Hướng dẫn sinh viên làm bài..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Điểm đạt (%)</label>
+                                <input type="number" id="asgn-pass-score" class="form-control rounded-3" value="50">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Số lần làm tối đa</label>
+                                <input type="number" id="asgn-max-attempts" class="form-control rounded-3" value="1">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check form-switch p-3 bg-light rounded-4 border border-light-subtle shadow-sm">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="asgn-allow-external">
+                                    <label class="form-check-label fw-bold text-dark small" for="asgn-allow-external">
+                                        <i class="bi bi-link-45deg text-primary me-1"></i>Cho phép nộp link sản phẩm (Google Drive, Github, v.v.)
+                                    </label>
+                                    <p class="text-muted extra-small mb-0 mt-1 ms-4">Học sinh có thể đính kèm link bài tập bên ngoài khi nộp bài.</p>
+                                </div>
+                            </div>
+                            <div class="col-12 d-none" id="asgn-external-instr-area">
+                                <label class="form-label small fw-bold">Hướng dẫn nộp link</label>
+                                <input type="text" id="asgn-external-instr" class="form-control rounded-3" placeholder="Ví dụ: Nộp link folder Google Drive chứa bài thiết kế">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Configuration -->
+                    <div id="asgn-step-2" class="asgn-step d-none">
+                        <div class="alert alert-info border-0 bg-info bg-opacity-10 text-info small mb-4">
+                            <i class="bi bi-info-circle-fill me-2"></i>Chọn các kỹ năng sẽ có trong bài thi và thiết lập thời gian làm bài cho mỗi phần.
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border border-light-subtle shadow-sm rounded-4 h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-headphones fs-4 text-primary"></i>
+                                                <h6 class="mb-0 fw-bold">Listening</h6>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input asgn-skill-toggle" type="checkbox" id="skill-listening" data-skill="LISTENING" checked>
+                                            </div>
+                                        </div>
+                                        <label class="small text-muted mb-1">Thời gian (phút)</label>
+                                        <input type="number" id="time-listening" class="form-control form-control-sm rounded-3" value="30">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border border-light-subtle shadow-sm rounded-4 h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-book fs-4 text-success"></i>
+                                                <h6 class="mb-0 fw-bold">Reading</h6>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input asgn-skill-toggle" type="checkbox" id="skill-reading" data-skill="READING" checked>
+                                            </div>
+                                        </div>
+                                        <label class="small text-muted mb-1">Thời gian (phút)</label>
+                                        <input type="number" id="time-reading" class="form-control form-control-sm rounded-3" value="45">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border border-light-subtle shadow-sm rounded-4 h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-mic fs-4 text-danger"></i>
+                                                <h6 class="mb-0 fw-bold">Speaking</h6>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input asgn-skill-toggle" type="checkbox" id="skill-speaking" data-skill="SPEAKING" checked>
+                                            </div>
+                                        </div>
+                                        <label class="small text-muted mb-1">Thời gian (phút)</label>
+                                        <input type="number" id="time-speaking" class="form-control form-control-sm rounded-3" value="15">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border border-light-subtle shadow-sm rounded-4 h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center justify-content-between mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-pencil-square fs-4 text-warning"></i>
+                                                <h6 class="mb-0 fw-bold">Writing</h6>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input asgn-skill-toggle" type="checkbox" id="skill-writing" data-skill="WRITING" checked>
+                                            </div>
+                                        </div>
+                                        <label class="small text-muted mb-1">Thời gian (phút)</label>
+                                        <input type="number" id="time-writing" class="form-control form-control-sm rounded-3" value="30">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Question Mapping -->
+                    <div id="asgn-step-3" class="asgn-step d-none">
+                        <div class="row g-3">
+                            <div class="col-md-4 border-end">
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase mb-2">Chọn phần để thêm câu hỏi</label>
+                                <div class="list-group list-group-flush rounded-4 border overflow-hidden" id="asgn-skill-tabs">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="asgn-question-area" class="d-flex flex-column h-100" style="min-height: 400px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 text-primary" id="asgn-current-skill-label">Chọn câu hỏi</h6>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openAsgnAiModal()">
+                                                <i class="bi bi-stars me-1"></i> AI Generate
+                                            </button>
+                                            <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="asgnOpenBank()">
+                                                <i class="bi bi-plus-lg me-1"></i> Ngân hàng câu hỏi
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="asgn-selected-questions" class="flex-grow-1 overflow-auto pe-2" style="max-height: 400px;">
+                                        <!-- Selected questions for active skill -->
+                                        <div class="text-center py-5">
+                                            <i class="bi bi-inbox text-muted opacity-25" style="font-size: 3rem;"></i>
+                                            <p class="text-muted small mt-2">Phần này chưa có câu hỏi nào</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button class="btn btn-light rounded-pill px-4" id="asgn-prev-btn" onclick="asgnPrevStep()" style="display:none;">Quay lại</button>
+                    <button class="btn btn-primary rounded-pill px-4 fw-bold" id="asgn-next-btn" onclick="asgnNextStep()">Tiếp theo</button>
+                    <button class="btn btn-success rounded-pill px-4 fw-bold" id="asgn-save-btn" onclick="asgnSave()" style="display:none;">Hoàn tất & Lưu Assignment</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUB-MODAL: QUESTION BANK PICKER FOR ASSIGNMENT -->
+    <div class="modal fade" id="asgnBankModal" tabindex="-1" style="z-index: 1070;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h6 class="fw-bold mb-0">Ngân hàng câu hỏi: <span id="asgn-bank-skill-title" class="text-primary"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 pt-0">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="asgn-bank-search" class="form-control border-start-0 rounded-end-pill" placeholder="Tìm kiếm câu hỏi..." onkeyup="asgnFilterBank()">
+                    </div>
+                    <div id="asgn-bank-list" class="overflow-auto pe-2" style="max-height: 400px;">
+                        <!-- Questions from bank injected here -->
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Xong</button>
                 </div>
             </div>
         </div>
