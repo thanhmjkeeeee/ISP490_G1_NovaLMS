@@ -62,6 +62,12 @@ public class QuizResult {
     @Column(name = "assignment_session_id")
     private Long assignmentSessionId;
 
+    @Column(name = "external_submission_link", columnDefinition = "TEXT")
+    private String externalSubmissionLink;
+
+    @Column(name = "external_submission_note", columnDefinition = "TEXT")
+    private String externalSubmissionNote;
+
     // JSON: {"LISTENING": 8.0, "READING": 7.5, "SPEAKING": null, "WRITING": null}
     @Column(name = "section_scores", columnDefinition = "JSON")
     private String sectionScores;

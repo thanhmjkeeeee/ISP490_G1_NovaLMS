@@ -19,7 +19,8 @@ public class AIQuestionPromptBuilder {
     private static final Set<String> VALID_SKILLS = Set.of(
             "LISTENING", "READING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_CEFR = Set.of(
-            "A1", "A2", "B1", "B2", "C1", "C2");
+            "A1", "A2", "B1", "B2", "C1", "C2",
+            "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0");
 
     public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, String skill,
             Map<String, Object> advancedOptions) {
@@ -175,7 +176,11 @@ public class AIQuestionPromptBuilder {
         // Xác định nhãn nội dung dựa trên skill
         String contentLabel = "LISTENING".equalsIgnoreCase(skillVal) ? "Transcript bài nghe" : "Đoạn văn đọc (Passage)";
         String taskInstruction = "LISTENING".equalsIgnoreCase(skillVal)
-                ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. Nội dung cần có đối thoại hoặc thông báo rõ ràng."
+                ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. " +
+                  "YÊU CẦU BẮT BUỘC: Đây PHẢI là một đoạn hội thoại (dialogue) giữa ít nhất một nhân vật NAM [Male] và một nhân vật NỮ [Female]. " +
+                  "KHÔNG được viết như một đoạn văn xuôi hay độc thoại. " +
+                  "Hãy sử dụng ĐA DẠNG các tên nhân vật tiếng Anh (không dùng John/Samantha). " +
+                  "Mỗi lời thoại PHẢI bắt đầu bằng dòng mới, ví dụ: 'Robert [Male]: Hello Sarah!\\nSarah [Female]: Hi Robert, how are you?'."
                         + scenarioConstraint
                 : "Đoạn văn này dùng cho bài đọc hiểu.";
 
@@ -186,28 +191,16 @@ public class AIQuestionPromptBuilder {
         sb.append("The content must be in English and appropriate for CEFR level ").append(cefr).append(".\n\n");
         sb.append("Return ONLY a valid JSON object with this exact structure:\n");
         sb.append("{\n");
-        sb.append("  \"passage\": \"<").append(contentLabel).append(" text, ").append(passageConstraint)
-                .append(">\",\n");
-        sb.append("  \"audioUrl\": null,\n");
-        sb.append("  \"imageUrl\": null,\n");
-        sb.append("  \"skill\": \"").append(skillVal).append("\",\n");
-        sb.append("  \"cefrLevel\": \"").append(cefr).append("\",\n");
-        sb.append("  \"topic\": \"").append(topicVal).append("\",\n");
-        sb.append("  \"explanation\": \"<brief explanation of the passage>\",\n");
+        sb.append("  \"passage\": \"<").append(contentLabel).append(" text, ").append(passageConstraint).append(">\",\n");
+        sb.append("  \"audioUrl\": null, \"imageUrl\": null,\n");
+        sb.append("  \"skill\": \"").append(skillVal).append("\", \"cefrLevel\": \"").append(cefr).append("\", \"topic\": \"").append(topicVal).append("\",\n");
+        sb.append("  \"explanation\": \"...\",\n");
         sb.append("  \"questions\": [\n");
         sb.append("    {\n");
-        sb.append("      \"content\": \"<question text in English>\",\n");
-        sb.append(
-                "      \"questionType\": \"<MULTIPLE_CHOICE_SINGLE or MULTIPLE_CHOICE_MULTI or FILL_IN_BLANK or MATCHING>\",\n");
-        sb.append(
-                "      \"options\": [{ \"title\": \"<option text in English>\", \"correct\": <true or false> }, ...],\n");
-        sb.append("      \"correctAnswer\": <null or answer text for FILL_IN_BLANK>,\n");
-        sb.append("      \"matchLeft\": <null or [\"word1\",\"word2\"]>,\n");
-        sb.append("      \"matchRight\": <null or [\"meaning1\",\"meaning2\"]>,\n");
-        sb.append("      \"correctPairs\": <null or [1,2] where numbers are 1-based indices into matchRight>,\n");
-        sb.append("      \"cefrLevel\": \"").append(cefr).append("\",\n");
-        sb.append("      \"topic\": \"").append(topicVal).append("\",\n");
-        sb.append("      \"explanation\": \"<explanation for this specific question>\"\n");
+        sb.append("      \"content\": \"...\", \"questionType\": \"MULTIPLE_CHOICE_SINGLE\",\n");
+        sb.append("      \"options\": [{ \"title\": \"...\", \"correct\": true }, ...],\n");
+        sb.append("      \"correctAnswer\": null, \"matchLeft\": null, \"matchRight\": null, \"correctPairs\": null,\n");
+        sb.append("      \"cefrLevel\": \"").append(cefr).append("\", \"topic\": \"").append(topicVal).append("\", \"explanation\": \"...\"\n");
         sb.append("    }\n");
         sb.append("  ]\n");
         sb.append("}\n\n");
@@ -472,8 +465,14 @@ public class AIQuestionPromptBuilder {
         String writingConstraint = String.valueOf(cfg.getOrDefault("writing_constraint", "80-150 words"));
         String speakingConstraint = String.valueOf(cfg.getOrDefault("speaking_constraint", "4-8 sentences"));
 
+        String taskTypeInstruction = isGroup
+                ? ("LISTENING".equalsIgnoreCase(targetSkill)
+                        ? "Generate a LISTENING task. The 'passage' field must contain the FULL transcript. MANDATORY: This MUST be a dialogue between at least one MALE [Male] and one FEMALE [Female] speaker. DO NOT write as a continuous text block or monologue. Every line MUST start on a new line with speaker labels and gender in brackets, e.g., 'David [Male]: ...' or 'Sarah [Female]: ...'. Use diverse English names."
+                        : "Generate a READING task. The 'passage' field must contain the reading text.")
+                : "Generate independent advanced English questions.";
+
         String structureHeader = isGroup
-                ? "CRITICAL: The final response MUST be a JSON object containing a 'passage' and a 'questions' array. The 'questions' array must contain EXACTLY %d question objects.".formatted(quantity)
+                ? "CRITICAL: The final response MUST be a single JSON object containing a 'passage' string and a 'questions' array. The 'questions' array MUST contain EXACTLY %d question objects based ON the passage.".formatted(quantity)
                 : "CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.".formatted(quantity);
 
         String jsonStructure = isGroup ? """
@@ -564,7 +563,7 @@ public class AIQuestionPromptBuilder {
                 """
                 .formatted(
                         cefrLevel,
-                        isGroup ? "Generate a cohesive English question group (passage + questions)." : "Generate independent advanced English questions.",
+                        taskTypeInstruction,
                         topic,
                         structureHeader,
                         bloomInstruction,

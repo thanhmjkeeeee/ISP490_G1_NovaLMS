@@ -23,6 +23,11 @@ public class AssignmentGradingDetailDTO {
     private BigDecimal totalScore;       // final total (null if not yet graded)
     private Map<String, BigDecimal> sectionScores;
     private List<SkillSectionDetail> sections;
+    
+    // External Submission fields
+    private Boolean allowExternalSubmission;
+    private String externalSubmissionLink;
+    private String externalSubmissionNote;
 
     @Data
     @NoArgsConstructor

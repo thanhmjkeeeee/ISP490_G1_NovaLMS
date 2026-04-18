@@ -20,4 +20,7 @@ public interface AssignmentSessionRepository extends JpaRepository<AssignmentSes
 
     @Query("SELECT COUNT(s) FROM AssignmentSession s WHERE s.quiz.quizId = :quizId AND s.user.userId = :userId")
     long countByQuizAndUser(@Param("quizId") Integer quizId, @Param("userId") Long userId);
+
+    @Query("SELECT s FROM AssignmentSession s WHERE s.status = 'IN_PROGRESS' AND s.expiresAt < :now")
+    List<AssignmentSession> findExpiredSessions(@Param("now") java.time.LocalDateTime now);
 }
