@@ -40,6 +40,7 @@ public class TeacherClassSessionService {
     private final UserLessonRepository userLessonRepository;
     private final INotificationService notificationService;
     private final EmailService emailService;
+    private final TeacherScheduleConflictService teacherScheduleConflictService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -223,6 +224,12 @@ public class TeacherClassSessionService {
                     .quiz(quiz)
                     .build();
 
+            Optional<String> conflictCreate = teacherScheduleConflictService.checkSingleSessionConflict(
+                    teacherId, sessionDate, startTime, null, null);
+            if (conflictCreate.isPresent()) {
+                return ResponseData.error(400, conflictCreate.get());
+            }
+
             ClassSession saved = classSessionRepository.save(session);
 
             // ── Notify enrolled students of new session ───────────────────────
@@ -271,6 +278,14 @@ public class TeacherClassSessionService {
             if (quizId != null) {
                 Quiz quiz = quizRepository.findById(quizId).orElse(null);
                 session.setQuiz(quiz);
+            }
+
+            LocalDateTime effectiveDate = sessionDate != null ? sessionDate : session.getSessionDate();
+            String effectiveStart = startTime != null ? startTime : session.getStartTime();
+            Optional<String> conflictUpdate = teacherScheduleConflictService.checkSingleSessionConflict(
+                    teacherId, effectiveDate, effectiveStart, null, session.getSessionId());
+            if (conflictUpdate.isPresent()) {
+                return ResponseData.error(400, conflictUpdate.get());
             }
 
             classSessionRepository.save(session);
