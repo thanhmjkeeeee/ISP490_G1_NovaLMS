@@ -191,8 +191,8 @@ public class StudentServiceImpl implements StudentService {
 
                 // 3. Calculate Average Score (Scale of 10)
                 double avgScore = quizResults.stream()
-                        .filter(qr -> qr.getScore() != null)
-                        .mapToDouble(qr -> qr.getScore().doubleValue())
+                        .filter(qr -> qr.getCorrectRate() != null)
+                        .mapToDouble(qr -> qr.getCorrectRate().doubleValue() / 10.0)
                         .average().orElse(0.0);
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
@@ -848,8 +848,8 @@ public class StudentServiceImpl implements StudentService {
                         + sessionQuizRepository.countByCourseId(course.getCourseId());
 
                 double avgScore = quizResults.stream()
-                        .filter(qr -> qr.getScore() != null)
-                        .mapToDouble(qr -> qr.getScore().doubleValue())
+                        .filter(qr -> qr.getCorrectRate() != null)
+                        .mapToDouble(qr -> qr.getCorrectRate().doubleValue() / 10.0)
                         .average().orElse(0.0);
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null) 
