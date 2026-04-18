@@ -23,12 +23,14 @@ public class SettingApiController {
         this.settingService = settingService;
     }
 
-    // GET /api/settings?type=COURSE_CATEGORY
+    // GET /api/settings?type=COURSE_CATEGORY&activeOnly=true
     @GetMapping
-    public ResponseEntity<ResponseData<List<SettingDTO>>> getSettings(@RequestParam(required = false, defaultValue = "COURSE_CATEGORY") String type) {
+    public ResponseEntity<ResponseData<List<SettingDTO>>> getSettings(
+            @RequestParam(required = false, defaultValue = "COURSE_CATEGORY") String type,
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
         try {
-            System.out.println(">>> [LOG] Fetching settings for type: " + type);
-            List<Setting> entities = settingService.getSettingsByType(type);
+            System.out.println(">>> [LOG] Fetching settings for type: " + type + ", activeOnly=" + activeOnly);
+            List<Setting> entities = settingService.getSettingsByType(type, activeOnly);
             
             // Chuyển đổi sang DTO để loại bỏ hoàn toàn lỗi JSON Serialization
             List<SettingDTO> dtos = entities.stream().map(s -> SettingDTO.builder()

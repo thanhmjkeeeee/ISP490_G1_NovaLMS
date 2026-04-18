@@ -54,23 +54,11 @@
                 <div class="row g-4 mb-5">
                     <div class="col-md-4">
                         <label class="form-label fw-bold small text-uppercase">1. Chọn kỹ năng <span class="text-danger">*</span></label>
-                        <select id="skill" class="form-select form-select-lg border-2 shadow-none" required>
-                            <option value="READING" selected>Reading / Đọc hiểu</option>
-                            <option value="LISTENING">Listening / Nghe hiểu</option>
-                            <option value="WRITING">Writing / Viết</option>
-                            <option value="SPEAKING">Speaking / Nói</option>
-                        </select>
+                        <select id="skill" class="form-select form-select-lg border-2 shadow-none" required></select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold small text-uppercase">2. Trình độ CEFR <span class="text-danger">*</span></label>
-                        <select id="cefrLevel" class="form-select form-select-lg border-2 shadow-none" required>
-                            <option value="A1">A1 - Beginner</option>
-                            <option value="A2">A2 - Elementary</option>
-                            <option value="B1" selected>B1 - Intermediate</option>
-                            <option value="B2">B2 - Upper Intermediate</option>
-                            <option value="C1">C1 - Advanced</option>
-                            <option value="C2">C2 - Proficiency</option>
-                        </select>
+                        <select id="cefrLevel" class="form-select form-select-lg border-2 shadow-none" required></select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold small text-uppercase">3. Chủ đề (Topic)</label>
@@ -116,13 +104,7 @@
                         <div class="col-md-8">
                             <div class="mb-4">
                                 <label class="form-label fw-bold">Loại câu hỏi</label>
-                                <select id="singleType" class="form-select border-2" onchange="updateSingleType()">
-                                    <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Trắc nghiệm 1 đáp án)</option>
-                                    <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Trắc nghiệm nhiều đáp án)</option>
-                                    <option value="FILL_IN_BLANK">Fill in the Blank (Điền từ)</option>
-                                    <option value="MATCHING">Matching (Ghép cặp)</option>
-                                    <option value="WRITING">Writing (Tự luận)</option>
-                                </select>
+                                <select id="singleType" class="form-select border-2" onchange="updateSingleType()"></select>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label fw-bold">Nội dung câu hỏi <span class="text-danger">*</span></label>
@@ -219,6 +201,7 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script>
     let currentMode = 'SINGLE'; // 'SINGLE' or 'GROUP'
@@ -228,24 +211,13 @@
     function updateSkillDropdownByMode(mode) {
         const skillSelect = document.getElementById('skill');
         const currentSkill = skillSelect.value;
-        
-        let newHTML = `
-            <option value="READING">Reading / Đọc hiểu</option>
-            <option value="LISTENING">Listening / Nghe hiểu</option>
-        `;
-        
-        if (mode === 'SINGLE') {
-            newHTML += `
-                <option value="WRITING">Writing / Viết</option>
-                <option value="SPEAKING">Speaking / Nói</option>
-            `;
-        }
-        
-        skillSelect.innerHTML = newHTML;
-        
-        // Restore previous selection if it still exists, otherwise default to the first
-        if (skillSelect.querySelector(`option[value="${currentSkill}"]`)) {
-            skillSelect.value = currentSkill;
+        if (window.NovaQuestionFormSettings) {
+            NovaQuestionFormSettings.fillSkillSelectByMode(skillSelect, mode);
+            if (skillSelect.querySelector(`option[value="${currentSkill}"]`)) {
+                skillSelect.value = currentSkill;
+            } else if (skillSelect.options.length) {
+                skillSelect.selectedIndex = 0;
+            }
         }
     }
 
@@ -280,34 +252,20 @@
 
     function getAvailableSingleTypeOptionsHTML() {
         const skill = document.getElementById('skill').value;
-        if (skill === 'WRITING') {
-            return `<option value="WRITING">Writing (Tự luận)</option>`;
-        } else if (skill === 'SPEAKING') {
-            return `<option value="SPEAKING">Speaking (Nói)</option>`;
-        } else {
-            return `
-                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice (Trắc nghiệm 1 đáp án)</option>
-                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice (Trắc nghiệm nhiều đáp án)</option>
-                <option value="FILL_IN_BLANK">Fill in the Blank (Điền từ)</option>
-                <option value="MATCHING">Matching (Ghép cặp)</option>
-            `;
+        const cur = document.getElementById('singleType')?.value || '';
+        if (window.NovaQuestionFormSettings) {
+            return NovaQuestionFormSettings.getQuestionTypeOptionsHtml(skill, cur);
         }
+        return '<option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>';
     }
 
-    function getAvailableSubTypeOptionsHTML() {
+    function getAvailableSubTypeOptionsHTML(selectedVal) {
         const skill = document.getElementById('skill').value;
-        if (skill === 'WRITING') {
-            return `<option value="WRITING">Writing / Tự luận</option>`;
-        } else if (skill === 'SPEAKING') {
-            return `<option value="SPEAKING">Speaking / Nói</option>`;
-        } else {
-            return `
-                <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>
-                <option value="MULTIPLE_CHOICE_MULTI">Multiple Choice Multi</option>
-                <option value="FILL_IN_BLANK">Fill in the Blank</option>
-                <option value="MATCHING">Matching</option>
-            `;
+        const cur = selectedVal != null ? selectedVal : '';
+        if (window.NovaQuestionFormSettings) {
+            return NovaQuestionFormSettings.getQuestionTypeOptionsHtml(skill, cur);
         }
+        return '<option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice Single</option>';
     }
 
     function updateQuestionTypeDropdowns() {
@@ -321,7 +279,7 @@
 
         document.querySelectorAll('.sub-type').forEach(sel => {
             const currentVal = sel.value;
-            sel.innerHTML = getAvailableSubTypeOptionsHTML();
+            sel.innerHTML = getAvailableSubTypeOptionsHTML(currentVal);
             if (sel.querySelector(`option[value="${currentVal}"]`)) {
                 sel.value = currentVal;
             } else {
@@ -360,7 +318,11 @@
         
         const container = document.getElementById('singleOptionsContainer');
         container.innerHTML = '';
-        addSingleOption(); addSingleOption();
+        if (type === 'FILL_IN_BLANK') {
+            addSingleOption();
+        } else {
+            addSingleOption(); addSingleOption();
+        }
     }
 
     function addSingleOption() {
@@ -369,11 +331,12 @@
         const type = document.getElementById('singleType').value;
         const isMatching = type === 'MATCHING';
         
+        const isFib = type === 'FILL_IN_BLANK';
         const div = document.createElement('div');
         div.className = "input-group input-group-sm mb-2";
         div.innerHTML = `
             ${!isMatching ? `<div class="input-group-text"><input type="checkbox" class="form-check-input mt-0 chk-correct"></div>` : ''}
-            <input type="text" class="form-control opt-title" placeholder="${isMatching ? 'Vế trái' : 'Nội dung đáp án'}">
+            <input type="text" class="form-control opt-title" placeholder="${isMatching ? 'Vế trái' : isFib ? 'Đáp án đúng cho chỗ trống (theo thứ tự ___)' : 'Nội dung đáp án'}">
             ${isMatching ? `<input type="text" class="form-control opt-match" placeholder="Vế phải">` : ''}
             <button class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="bi bi-x-lg"></i></button>
         `;
@@ -394,7 +357,7 @@
                     <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
                 </div>
                 <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubQuestionUI(${id})">
-                    ${getAvailableSubTypeOptionsHTML()}
+                    ${getAvailableSubTypeOptionsHTML('')}
                 </select>
                 <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nhập nội dung câu hỏi..." value="">
                 <div class="sub-options-section">
@@ -420,7 +383,11 @@
         section.style.display = (type === 'WRITING' || type === 'SPEAKING') ? 'none' : 'block';
         const container = item.querySelector('.sub-options-container');
         container.innerHTML = '';
-        addSubOption(qId); addSubOption(qId);
+        if (type === 'FILL_IN_BLANK') {
+            addSubOption(qId);
+        } else {
+            addSubOption(qId); addSubOption(qId);
+        }
     }
 
     function addSubOption(qId) {
@@ -429,11 +396,12 @@
         const isMatching = type === 'MATCHING';
         const container = item.querySelector('.sub-options-container');
         
+        const isFib = type === 'FILL_IN_BLANK';
         const div = document.createElement('div');
         div.className = "d-flex align-items-center mb-1 sub-opt-row border-bottom pb-1";
         div.innerHTML = `
             ${!isMatching ? `<input type="checkbox" class="form-check-input me-2 mt-0 sub-chk-correct">` : ''}
-            <input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none sub-opt-title" placeholder="${isMatching ? 'Vế trái' : 'Nhập đáp án...'}">
+            <input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none sub-opt-title" placeholder="${isMatching ? 'Vế trái' : isFib ? 'Đáp án đúng cho chỗ trống' : 'Nhập đáp án...'}">
             ${isMatching ? `<input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none border-start ps-2 sub-opt-match" placeholder="Vế phải">` : ''}
             <button class="btn btn-sm text-muted p-0 ms-2" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
         `;
@@ -502,6 +470,29 @@
             }
         } catch(e) { alert('Lỗi kết nối server'); }
     }
+
+    document.getElementById('skill').addEventListener('change', () => {
+        const step2 = document.getElementById('step2');
+        if (step2 && step2.classList.contains('active')) {
+            updateQuestionTypeDropdowns();
+        }
+    });
+
+    (async function bootstrapQuestionCreate() {
+        try {
+            if (window.NovaQuestionFormSettings) {
+                await NovaQuestionFormSettings.load();
+                NovaQuestionFormSettings.fillSkillSelectByMode(document.getElementById('skill'), currentMode);
+                NovaQuestionFormSettings.fillCefrSelect(document.getElementById('cefrLevel'));
+                const st = document.getElementById('singleType');
+                const sk = document.getElementById('skill').value;
+                st.innerHTML = NovaQuestionFormSettings.getQuestionTypeOptionsHtml(sk, 'MULTIPLE_CHOICE_SINGLE');
+                updateSingleType();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    })();
 </script>
 </body>
 </html>

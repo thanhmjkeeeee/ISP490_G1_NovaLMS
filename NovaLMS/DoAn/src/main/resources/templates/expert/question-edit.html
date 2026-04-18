@@ -55,20 +55,11 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-uppercase">Kỹ năng</label>
-                    <select id="skill" class="form-select border-0 bg-light shadow-none" disabled>
-                        <option value="READING">Reading</option>
-                        <option value="LISTENING">Listening</option>
-                        <option value="WRITING">Writing</option>
-                        <option value="SPEAKING">Speaking</option>
-                    </select>
+                    <select id="skill" class="form-select border-0 bg-light shadow-none" disabled></select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-uppercase">Cấp độ CEFR</label>
-                    <select id="cefrLevel" class="form-select border-0 bg-light shadow-none">
-                        <option value="A1">A1</option><option value="A2">A2</option>
-                        <option value="B1">B1</option><option value="B2">B2</option>
-                        <option value="C1">C1</option><option value="C2">C2</option>
-                    </select>
+                    <select id="cefrLevel" class="form-select border-0 bg-light shadow-none"></select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-uppercase">Chủ đề</label>
@@ -107,12 +98,7 @@
                 <div id="optionsWrapper">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold m-0 text-uppercase small">Đáp án & Lựa chọn</h6>
-                        <select id="questionType" class="form-select form-select-sm w-auto border-0 bg-light fw-bold text-primary" onchange="renderOptions()">
-                            <option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>
-                            <option value="FILL_IN_BLANK">Fill in Blank</option>
-                            <option value="MATCHING">Matching</option>
-                            <option value="WRITING">Writing (Tự luận)</option>
-                        </select>
+                        <select id="questionType" class="form-select form-select-sm w-auto border-0 bg-light fw-bold text-primary" onchange="renderOptions()"></select>
                     </div>
                     <div id="optionsContainer"></div>
                     <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2" onclick="addOption()"><i class="bi bi-plus-circle me-1"></i>Thêm lựa chọn</button>
@@ -125,6 +111,7 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script th:inline="javascript">
 const itemId = /*[[${itemId}]]*/ 0;
@@ -149,18 +136,10 @@ async function loadData() {
 }
 
 function getFilteredQuestionTypeOptions(skill, currentType) {
-    if (skill === 'WRITING') {
-        return `<option value="WRITING" ${currentType === 'WRITING' ? 'selected' : ''}>Writing (Tự luận)</option>`;
-    } else if (skill === 'SPEAKING') {
-        return `<option value="SPEAKING" ${currentType === 'SPEAKING' ? 'selected' : ''}>Speaking (Nói)</option>`;
-    } else {
-        return `
-            <option value="MULTIPLE_CHOICE_SINGLE" ${currentType === 'MULTIPLE_CHOICE_SINGLE' ? 'selected' : ''}>Multiple Choice Single</option>
-            <option value="MULTIPLE_CHOICE_MULTI" ${currentType === 'MULTIPLE_CHOICE_MULTI' ? 'selected' : ''}>Multiple Choice Multi</option>
-            <option value="FILL_IN_BLANK" ${currentType === 'FILL_IN_BLANK' ? 'selected' : ''}>Fill in the Blank</option>
-            <option value="MATCHING" ${currentType === 'MATCHING' ? 'selected' : ''}>Matching</option>
-        `;
+    if (window.NovaQuestionFormSettings) {
+        return NovaQuestionFormSettings.getQuestionTypeOptionsHtml(skill || 'READING', currentType || '');
     }
+    return '<option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>';
 }
 
 function renderSingle(q) {
@@ -203,18 +182,13 @@ function switchToSplitView(groupData) {
                 <div class="col-6">
                     <label class="form-label small fw-bold text-muted">KỸ NĂNG</label>
                     <select id="skill" class="form-select border-0 bg-light" disabled>
-                        <option value="READING" ${groupData.skill === 'READING' ? 'selected' : ''}>Reading</option>
-                        <option value="LISTENING" ${groupData.skill === 'LISTENING' ? 'selected' : ''}>Listening</option>
-                        <option value="WRITING" ${groupData.skill === 'WRITING' ? 'selected' : ''}>Writing</option>
-                        <option value="SPEAKING" ${groupData.skill === 'SPEAKING' ? 'selected' : ''}>Speaking</option>
+                        ${window.NovaQuestionFormSettings ? NovaQuestionFormSettings.getSkillOptionsHtml(groupData.skill || 'READING') : ''}
                     </select>
                 </div>
                 <div class="col-6">
                     <label class="form-label small fw-bold text-muted">CEFR</label>
                     <select id="cefrLevel" class="form-select border-0 bg-light">
-                        <option value="A1" ${groupData.cefrLevel === 'A1' ? 'selected' : ''}>A1</option><option value="A2" ${groupData.cefrLevel === 'A2' ? 'selected' : ''}>A2</option>
-                        <option value="B1" ${groupData.cefrLevel === 'B1' ? 'selected' : ''}>B1</option><option value="B2" ${groupData.cefrLevel === 'B2' ? 'selected' : ''}>B2</option>
-                        <option value="C1" ${groupData.cefrLevel === 'C1' ? 'selected' : ''}>C1</option><option value="C2" ${groupData.cefrLevel === 'C2' ? 'selected' : ''}>C2</option>
+                        ${window.NovaQuestionFormSettings ? NovaQuestionFormSettings.getCefrOptionsHtml(groupData.cefrLevel || 'B1') : ''}
                     </select>
                 </div>
             </div>
@@ -525,7 +499,16 @@ async function uploadFile(input, type, targetId) {
     } catch(e) { console.error(e); }
 }
 
-loadData();
+(async function initQuestionEdit() {
+    try {
+        if (window.NovaQuestionFormSettings) {
+            await NovaQuestionFormSettings.load();
+            NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('skill'));
+            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('cefrLevel'));
+        }
+    } catch (e) { console.error(e); }
+    await loadData();
+})();
 </script>
 </body>
 </html>

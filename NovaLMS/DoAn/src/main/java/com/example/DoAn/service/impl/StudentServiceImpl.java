@@ -496,7 +496,7 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public ResponseData<Integer> updateRegistrationStatus(Integer registrationId, String status, String note) {
         try {
-            Registration registration = registrationRepository.findById(registrationId)
+            Registration registration = registrationRepository.findWithAssociationsById(registrationId)
                     .orElse(null);
             if (registration == null) {
                 return ResponseData.error(404, "Không tìm thấy đăng ký!");

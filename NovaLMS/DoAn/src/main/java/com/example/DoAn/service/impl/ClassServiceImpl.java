@@ -25,6 +25,7 @@ import com.example.DoAn.repository.UserRepository;
 import com.example.DoAn.service.EmailService;
 import com.example.DoAn.service.IClassService;
 import com.example.DoAn.service.INotificationService;
+import com.example.DoAn.service.TeacherScheduleConflictService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -90,6 +91,7 @@ public class ClassServiceImpl implements IClassService {
     private final RescheduleRequestRepository rescheduleRequestRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final TeacherScheduleConflictService teacherScheduleConflictService;
 
     @Override
     public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId) {
@@ -237,6 +239,34 @@ public class ClassServiceImpl implements IClassService {
             }
         }
 
+        // Trùng theo khoảng ngày + thứ trong tuần + ca (đồng bộ với getAvailableTeachers)
+        if (request.getTeacherId() != null && request.getSchedule() != null && !request.getSchedule().isBlank()
+                && request.getSlotTime() != null && !request.getSlotTime().isBlank()
+                && request.getStartDate() != null && !request.getStartDate().isBlank()) {
+            LocalDateTime startR = parseDateTime(request.getStartDate(), "Ngày khai giảng không hợp lệ");
+            LocalDateTime endR;
+            if (request.getEndDate() != null && !request.getEndDate().isBlank()) {
+                endR = parseDateTime(request.getEndDate(), "Ngày kết thúc không hợp lệ");
+            } else {
+                endR = startR.plusMonths(6);
+            }
+            List<Clazz> activeClasses = classRepository.findAll().stream()
+                    .filter(c -> c.getTeacher() != null)
+                    .filter(c -> !"Closed".equalsIgnoreCase(c.getStatus())
+                            && !"Cancelled".equalsIgnoreCase(c.getStatus()))
+                    .filter(c -> excludeClassId == null || !c.getClassId().equals(excludeClassId))
+                    .toList();
+            for (Clazz other : activeClasses) {
+                if (!other.getTeacher().getUserId().equals(request.getTeacherId())) {
+                    continue;
+                }
+                if (isConflict(startR, endR, request.getSchedule(), request.getSlotTime(), other)) {
+                    throw new RuntimeException(
+                            "Giáo viên đã có lớp trùng khoảng thời gian / lịch trong tuần / ca học.");
+                }
+            }
+        }
+
         // Validate number of sessions vs course/lesson count
         if (request.getCourseId() != null && request.getNumberOfSessions() != null) {
             Course course = courseRepository.findById(request.getCourseId()).orElse(null);
@@ -255,14 +285,24 @@ public class ClassServiceImpl implements IClassService {
         }
     }
 
+    /**
+     * Chấp nhận {@code yyyy-MM-dd'T'HH:mm[:ss]} (ISO) hoặc chỉ ngày {@code yyyy-MM-dd}
+     * như từ {@code <input type="date">} khi gọi API available-teachers / calculate-end-date.
+     */
     private LocalDateTime parseDateTime(String value, String errorMessage) {
         if (value == null || value.isBlank()) {
             throw new RuntimeException(errorMessage);
         }
+        String v = value.trim();
         try {
-            return LocalDateTime.parse(value);
+            return LocalDateTime.parse(v);
         } catch (DateTimeParseException ex) {
-            throw new RuntimeException(errorMessage);
+            try {
+                String datePart = v.length() >= 10 ? v.substring(0, 10) : v;
+                return LocalDate.parse(datePart).atStartOfDay();
+            } catch (DateTimeParseException | StringIndexOutOfBoundsException ex2) {
+                throw new RuntimeException(errorMessage);
+            }
         }
     }
 
@@ -322,6 +362,10 @@ public class ClassServiceImpl implements IClassService {
             List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
                     request.getStartDate(), request.getNumberOfSessions());
             if (!sessions.isEmpty()) {
+                if (request.getTeacherId() != null) {
+                    teacherScheduleConflictService.assertProposedSessionsHaveNoTeacherConflict(
+                            request.getTeacherId(), sessions, null);
+                }
                 classSessionRepository.saveAll(sessions);
 
                 // --- Auto mapping lessons 1:1 ---
@@ -621,6 +665,11 @@ public class ClassServiceImpl implements IClassService {
                 List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
                         request.getStartDate(), request.getNumberOfSessions());
                 if (!sessions.isEmpty()) {
+                    Integer tid = request.getTeacherId() != null ? request.getTeacherId()
+                            : (clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null);
+                    if (tid != null) {
+                        teacherScheduleConflictService.assertProposedSessionsHaveNoTeacherConflict(tid, sessions, id);
+                    }
                     classSessionRepository.saveAll(sessions);
 
                     // Re-map lessons
@@ -674,6 +723,11 @@ public class ClassServiceImpl implements IClassService {
                 List<ClassSession> sessions = generateSessions(clazz, request.getSchedule(), request.getSlotTime(),
                         request.getStartDate(), request.getNumberOfSessions());
                 if (!sessions.isEmpty()) {
+                    Integer tid = request.getTeacherId() != null ? request.getTeacherId()
+                            : (clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null);
+                    if (tid != null) {
+                        teacherScheduleConflictService.assertProposedSessionsHaveNoTeacherConflict(tid, sessions, id);
+                    }
                     classSessionRepository.saveAll(sessions);
 
                     // Re-map lessons

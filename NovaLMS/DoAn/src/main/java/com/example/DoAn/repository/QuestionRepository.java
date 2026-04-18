@@ -28,6 +28,12 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
 
     long countByUser_UserIdAndSourceAndStatus(Integer userId, String source, String status);
 
+    long countByQuestionTypeIgnoreCase(String questionType);
+
+    long countBySkillIgnoreCase(String skill);
+
+    long countByCefrLevelIgnoreCase(String cefrLevel);
+
     @Query("SELECT q FROM Question q WHERE " +
            "(:skill IS NULL OR q.skill = :skill) AND " +
            "(:cefrLevel IS NULL OR q.cefrLevel = :cefrLevel) AND " +
