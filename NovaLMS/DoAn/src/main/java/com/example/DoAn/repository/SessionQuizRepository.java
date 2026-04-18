@@ -34,6 +34,10 @@ public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Intege
 
     List<SessionQuiz> findBySession_Clazz_ClassId(Integer classId);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteBySession_Clazz_ClassId(Integer classId);
+
     @Query("SELECT COUNT(sq) FROM SessionQuiz sq WHERE sq.session.clazz.course.courseId = :courseId")
     long countByCourseId(@Param("courseId") Integer courseId);
 

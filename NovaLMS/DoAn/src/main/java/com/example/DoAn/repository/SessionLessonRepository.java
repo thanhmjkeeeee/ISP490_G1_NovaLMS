@@ -14,6 +14,8 @@ public interface SessionLessonRepository extends JpaRepository<SessionLesson, In
     @Query("SELECT sl FROM SessionLesson sl JOIN FETCH sl.lesson WHERE sl.session.clazz.classId = :classId ORDER BY sl.orderIndex ASC")
     List<SessionLesson> findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(@Param("classId") Integer classId);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
     void deleteBySession_Clazz_ClassId(Integer classId);
 
     @Query("SELECT sl FROM SessionLesson sl JOIN FETCH sl.lesson WHERE sl.session.sessionId = :sessionId")

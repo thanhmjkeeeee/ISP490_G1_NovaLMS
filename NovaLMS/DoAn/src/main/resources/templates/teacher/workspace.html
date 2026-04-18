@@ -727,6 +727,15 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mt-2 p-3 border rounded-3 bg-white">
+                             <div class="form-check form-switch">
+                                 <input class="form-check-input" type="checkbox" id="wsQuizShowAnswer" checked>
+                                 <label class="form-check-label fw-medium" for="wsQuizShowAnswer">
+                                     Hiện đáp án đúng khi học sinh nộp bài
+                                 </label>
+                             </div>
+                             <div class="form-text small">Nếu tắt, học sinh chỉ thấy điểm và bài làm của mình, không thấy đáp án đúng.</div>
+                        </div>
                     </div>
 
                     <!-- ======= STEP 2: Questions Builder ======= -->
@@ -1692,6 +1701,11 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-1 flex-shrink-0 ms-2">
+                                    ${q.status === 'DRAFT' ? `
+                                        <button class="btn btn-sm btn-info text-white rounded-pill px-2" onclick="wsPublishQuiz(${s.sessionId}, ${q.quizId})" title="Xuất bản quiz" style="font-size:0.75rem;">
+                                            <i class="bi bi-send-fill"></i>
+                                        </button>
+                                    ` : ''}
                                     <button class="btn btn-sm ${openClass} rounded-pill px-2" onclick="wsToggleQuizOpen(${s.sessionId}, ${q.quizId}, ${!isOpen})" title="${isOpen ? 'Đóng' : 'Mở'} quiz" style="font-size:0.75rem;">
                                         <i class="bi ${openIcon}"></i>
                                     </button>
@@ -1927,6 +1941,8 @@
 
                 if (q.status === 'PUBLISHED') document.getElementById('wsStatusPublish').checked = true;
                 else document.getElementById('wsStatusDraft').checked = true;
+                
+                document.getElementById('wsQuizShowAnswer').checked = (q.showAnswerAfterSubmit !== false);
 
                 // Load sessions for this class
                 const sRes = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
@@ -1991,6 +2007,7 @@
             document.getElementById('wsQuizPassScore').value = '70';
             document.getElementById('wsQuizMaxAttempts').value = '3';
             document.getElementById('wsStatusDraft').checked = true;
+            document.getElementById('wsQuizShowAnswer').checked = true;
             document.getElementById('wsStatusPublish').checked = false;
 
             document.getElementById('wsSelectedList').innerHTML = '<div class="text-center py-3 text-muted small">Chưa có câu hỏi nào.</div>';
@@ -2118,7 +2135,8 @@
                     classId: parseInt(state.selectedClassId),
                     timeLimitMinutes: timeLimit ? parseInt(timeLimit) : null,
                     passScore: passScore ? parseFloat(passScore) : null,
-                    maxAttempts: maxAttempts ? parseInt(maxAttempts) : null
+                    maxAttempts: maxAttempts ? parseInt(maxAttempts) : null,
+                    showAnswerAfterSubmit: document.getElementById('wsQuizShowAnswer').checked
                 };
 
                 try {
@@ -3033,6 +3051,44 @@
             }
         };
 
+        window.wsPublishQuiz = async function (sessionId, quizId) {
+            const confirm = await Swal.fire({
+                title: 'Xuất bản Quiz?',
+                text: 'Học sinh sẽ có thể thấy quiz này (nếu buổi học đã bắt đầu). Bạn không thể đưa về trạng thái Nháp sau khi xuất bản.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Xuất bản ngay',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#0dcaf0'
+            });
+
+            if (!confirm.isConfirmed) return;
+
+            try {
+                // 1. Publish quiz
+                const res = await fetch(`/api/v1/teacher/quizzes/${quizId}/publish`, { method: 'POST' });
+                const json = await res.json();
+                if (json.status === 200) {
+                    // 2. Nếu có sessionId, tự động mở quiz luôn
+                    if (sessionId) {
+                        try {
+                            await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`, { method: 'PATCH' });
+                        } catch (e) {
+                            console.error("Auto-open error:", e);
+                        }
+                    }
+                    
+                    wsToast('Đã xuất bản quiz thành công!');
+                    loadQuizzes();
+                } else {
+                    Swal.fire('Lỗi', json.message || 'Lỗi khi xuất bản quiz', 'error');
+                }
+            } catch (e) {
+                console.error("wsPublishQuiz error:", e);
+                Swal.fire('Lỗi', 'Lỗi kết nối: ' + e.message, 'error');
+            }
+        };
+
 
         window.wsRemoveQuizFromSession = async function (sessionId, quizId) {
             const confirmResult = await Swal.fire({
@@ -3125,12 +3181,18 @@
                     </small>
                 </td>
                 <td class="text-center">
-                    <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border">
+                    ${a.status === 'DRAFT' ? '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning me-1" style="font-size:0.7rem;">Nháp</span>' : ''}
+                    <span class="badge ${a.isOpen ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${a.isOpen ? 'text-success' : 'text-secondary'} border" style="font-size:0.7rem;">
                         ${a.isOpen ? 'Đang mở' : 'Đã đóng'}
                     </span>
                 </td>
                 <td class="text-end">
                     ${a.sessionQuizId ? `
+                        ${a.status === 'DRAFT' ? `
+                            <button class="btn btn-sm btn-info text-white rounded-pill px-3 ms-1" onclick="wsPublishQuiz(${a.sessionId}, ${a.quizId})">
+                                <i class="bi bi-send-fill me-1"></i>Xuất bản
+                            </button>
+                        ` : ''}
                         <button class="btn btn-sm ${a.isOpen ? 'btn-warning' : 'btn-success'} rounded-pill px-3 ms-1"
                                 onclick="wsToggleQuizOpen(${a.sessionId}, ${a.quizId}, ${!a.isOpen})">
                             <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
