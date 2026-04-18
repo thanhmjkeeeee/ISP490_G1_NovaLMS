@@ -42,15 +42,33 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
 
     @Query("SELECT COUNT(cs) FROM ClassSession cs " +
            "WHERE cs.clazz.teacher.userId = :teacherId " +
+           "AND (cs.clazz.status IS NULL OR (upper(cs.clazz.status) <> 'CLOSED' AND upper(cs.clazz.status) <> 'CANCELLED')) " +
            "AND cs.sessionDate >= :startOfDay " +
            "AND cs.sessionDate < :endOfDay " +
            "AND cs.startTime = :startTime " +
-           "AND cs.sessionId != :sessionId")
+           "AND cs.sessionId <> :sessionId")
     long countConflictsInDateRange(
             @Param("teacherId") Integer teacherId,
             @Param("startOfDay") java.time.LocalDateTime startOfDay,
             @Param("endOfDay") java.time.LocalDateTime endOfDay,
             @Param("startTime") String startTime,
             @Param("sessionId") Integer sessionId
+    );
+
+    /**
+     * Buổi học của GV trong khoảng thời gian (dùng quét trùng lịch). Loại lớp đóng/hủy.
+     */
+    @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz c WHERE c.teacher.userId = :teacherId "
+            + "AND (c.status IS NULL OR (upper(c.status) <> 'CLOSED' AND upper(c.status) <> 'CANCELLED')) "
+            + "AND (:excludeClassId IS NULL OR c.classId <> :excludeClassId) "
+            + "AND (:excludeSessionId IS NULL OR s.sessionId <> :excludeSessionId) "
+            + "AND s.sessionDate >= :from AND s.sessionDate < :to "
+            + "ORDER BY s.sessionDate ASC")
+    List<ClassSession> findTeacherSessionsForConflictScan(
+            @Param("teacherId") Integer teacherId,
+            @Param("from") java.time.LocalDateTime from,
+            @Param("to") java.time.LocalDateTime to,
+            @Param("excludeClassId") Integer excludeClassId,
+            @Param("excludeSessionId") Integer excludeSessionId
     );
 }

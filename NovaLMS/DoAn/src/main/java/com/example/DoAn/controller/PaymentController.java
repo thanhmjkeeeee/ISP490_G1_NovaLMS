@@ -45,7 +45,7 @@ public class PaymentController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
-        Optional<Registration> optReg = registrationRepository.findById(registrationId);
+        Optional<Registration> optReg = registrationRepository.findWithAssociationsById(registrationId);
         if (optReg.isEmpty()) return ResponseData.error(404, "Không tìm thấy đăng ký.");
 
         Registration reg = optReg.get();
