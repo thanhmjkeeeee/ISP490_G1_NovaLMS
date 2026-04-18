@@ -106,6 +106,29 @@ public class ManagerClassController {
         }
     }
 
+    @Operation(summary = "Get available teachers by schedule and slot")
+    @GetMapping("/available-teachers")
+    public ResponseData<List<AccountDetailResponse>> getAvailableTeachers(
+            @RequestParam String startDate,
+            @RequestParam(required = false) String endDate,
+            @RequestParam String schedule,
+            @RequestParam String slotTime,
+            @RequestParam(required = false) Integer excludeClassId) {
+        try {
+            List<com.example.DoAn.model.User> teachers = classService.getAvailableTeachers(startDate, endDate, schedule, slotTime, excludeClassId);
+            List<AccountDetailResponse> response = teachers.stream()
+                    .map(u -> AccountDetailResponse.builder()
+                            .userId(u.getUserId())
+                            .fullName(u.getFullName())
+                            .email(u.getEmail())
+                            .build())
+                    .toList();
+            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
+
     @Operation(summary = "Get students of a class with filters")
     @GetMapping("/{id}/students")
     public ResponseData<PageResponse<RegistrationResponseDTO>> getClassStudents(

@@ -290,8 +290,19 @@ public class AIQuestionPromptBuilder {
     private Map<String, Object> getBucketConfig(String cefr) {
         String bucket = getBucket(cefr);
         Map<String, Object> config = aiPromptConfigService.getBucketConfigAsMap(bucket);
-        if (config == null)
+        if (config == null) {
+            log.warn("[AI_CONFIG] No config found for bucket: {}. Using fallbacks.", bucket);
             return getFallbackBucketConfig(bucket);
+        }
+        
+        // Log missing keys to help debug
+        List<String> required = List.of("bloom_instruction", "grammar_focus", "skills", "writing_constraint", "speaking_constraint");
+        for (String key : required) {
+            if (!config.containsKey(key) || config.get(key) == null) {
+                log.warn("[AI_CONFIG] Bucket '{}' is missing required key: {}. PromptBuilder will use defaults.", bucket, key);
+            }
+        }
+        
         return config;
     }
 
@@ -342,19 +353,19 @@ public class AIQuestionPromptBuilder {
         String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
-        String bloomInstruction = cfg.get("bloom_instruction").toString();
-        List<String> grammarFocus = (List<String>) cfg.get("grammar_focus");
+        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate CEFR-level verbs (Analyze/Evaluate)."));
+        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General CEFR grammar"));
 
         String skillsInstruction;
         if (targetSkill != null && !targetSkill.equalsIgnoreCase("MIXED") && isValidSkill(targetSkill)) {
             skillsInstruction = "ONLY " + targetSkill.toUpperCase();
         } else {
-            List<String> bucketSkills = (List<String>) cfg.get("skills");
+            List<String> bucketSkills = (List<String>) cfg.getOrDefault("skills", List.of("READING", "LISTENING", "WRITING", "SPEAKING"));
             skillsInstruction = "mix " + String.join(", ", bucketSkills);
         }
 
-        String writingConstraint = cfg.get("writing_constraint").toString();
-        String speakingConstraint = cfg.get("speaking_constraint").toString();
+        String writingConstraint = String.valueOf(cfg.getOrDefault("writing_constraint", "80-150 words"));
+        String speakingConstraint = String.valueOf(cfg.getOrDefault("speaking_constraint", "4-8 sentences"));
 
         return """
                 You are a professional English teacher specializing in advanced question design for CEFR level %s.
@@ -430,29 +441,88 @@ public class AIQuestionPromptBuilder {
     public String buildAdvancedQuickPrompt(String topic, int quantity,
             List<String> questionTypes,
             String cefrLevel, String targetSkill, Map<String, Object> advancedOptions) {
+        return buildAdvancedPromptInternal(false, topic, quantity, questionTypes, cefrLevel, targetSkill, advancedOptions);
+    }
+
+    @SuppressWarnings("unchecked")
+    public String buildAdvancedGroupPrompt(String topic, int quantity,
+            List<String> questionTypes,
+            String cefrLevel, String targetSkill, Map<String, Object> advancedOptions) {
+        return buildAdvancedPromptInternal(true, topic, quantity, questionTypes, cefrLevel, targetSkill, advancedOptions);
+    }
+
+    private String buildAdvancedPromptInternal(boolean isGroup, String topic, int quantity,
+            List<String> questionTypes,
+            String cefrLevel, String targetSkill, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
-        String bloomInstruction = cfg.get("bloom_instruction").toString();
-        List<String> grammarFocus = (List<String>) cfg.get("grammar_focus");
+        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate CEFR-level verbs (Analyze/Evaluate)."));
+        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General CEFR grammar"));
 
         String skillsInstruction;
         if (targetSkill != null && !targetSkill.equalsIgnoreCase("MIXED") && isValidSkill(targetSkill)) {
             skillsInstruction = "ONLY " + targetSkill.toUpperCase();
         } else {
-            List<String> bucketSkills = (List<String>) cfg.get("skills");
+            List<String> bucketSkills = (List<String>) cfg.getOrDefault("skills", List.of("READING", "LISTENING", "WRITING", "SPEAKING"));
             skillsInstruction = "mix " + String.join(", ", bucketSkills);
         }
 
-        String writingConstraint = cfg.get("writing_constraint").toString();
-        String speakingConstraint = cfg.get("speaking_constraint").toString();
+        String writingConstraint = String.valueOf(cfg.getOrDefault("writing_constraint", "80-150 words"));
+        String speakingConstraint = String.valueOf(cfg.getOrDefault("speaking_constraint", "4-8 sentences"));
+
+        String structureHeader = isGroup
+                ? "CRITICAL: The final response MUST be a JSON object containing a 'passage' and a 'questions' array. The 'questions' array must contain EXACTLY %d question objects.".formatted(quantity)
+                : "CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.".formatted(quantity);
+
+        String jsonStructure = isGroup ? """
+                {
+                  "passage": "<Reading passage or Listening transcript based on skill>",
+                  "skill": "%s",
+                  "cefrLevel": "%s",
+                  "topic": "%s",
+                  "explanation": "...",
+                  "questions": [
+                    {
+                      "content": "...",
+                      "questionType": "...",
+                      "options": [
+                        { "title": "...", "correct": true },
+                        { "title": "...", "correct": false }
+                      ],
+                      "correctAnswer": "text for fill_in_blank",
+                      "matchLeft": ["item 1", "item 2"],
+                      "matchRight": ["match 1", "match 2"],
+                      "correctPairs": [1, 2],
+                      "explanation": "..."
+                    }
+                  ]
+                }
+                """.formatted(targetSkill, cefrLevel, topic) : """
+                [
+                  {
+                    "content": "...",
+                    "questionType": "...",
+                    "skill": "...",
+                    "cefrLevel": "%s",
+                    "topic": "%s",
+                    "explanation": "...",
+                    "options": [...],
+                    "correctAnswer": "...",
+                    "matchLeft": [...],
+                    "matchRight": [...],
+                    "correctPairs": [...]
+                  }
+                ]
+                """.formatted(cefrLevel, topic);
 
         return """
                 You are a professional English teacher specializing in advanced question design for CEFR level %s.
-                Generate exactly %d advanced English questions about the topic "%s".
+                %s
+                Topic: "%s"
 
-                CRITICAL: The final response MUST be a JSON array containing EXACTLY %d question objects. No more, no less.
+                %s
 
                 IMPORTANT: ALL question content, answer options, and explanations MUST be in ENGLISH only. No Vietnamese.
 
@@ -487,26 +557,16 @@ public class AIQuestionPromptBuilder {
 
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
                 Do NOT generate questions that only test recall or simple comprehension. Focus on analysis, evaluation, or creation.
-
-                Return ONLY a JSON array, no other text:
-                [
-                  {
-                    "content": "...",
-                    "questionType": "...",
-                    "skill": "...",
-                    "cefrLevel": "%s",
-                    "topic": "%s",
-                    "explanation": "...",
-                    "options": [...],
-                    "correctAnswer": "...",
-                    "matchLeft": [...],
-                    "matchRight": [...],
-                    "correctPairs": [...]
-                  }
-                ]
+                
+                %s
+                
+                Return ONLY the JSON, no other text.
                 """
                 .formatted(
-                        cefrLevel, quantity, topic, quantity,
+                        cefrLevel,
+                        isGroup ? "Generate a cohesive English question group (passage + questions)." : "Generate independent advanced English questions.",
+                        topic,
+                        structureHeader,
                         bloomInstruction,
                         "        - " + String.join("\n        - ", grammarFocus),
                         skillsInstruction,
@@ -514,6 +574,6 @@ public class AIQuestionPromptBuilder {
                         constraints,
                         writingConstraint,
                         speakingConstraint,
-                        cefrLevel, topic);
+                        jsonStructure);
     }
 }
