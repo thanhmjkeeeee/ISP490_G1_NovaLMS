@@ -579,8 +579,38 @@ public class TeacherClassSessionService {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("quizId", q.getQuizId());
                 m.put("title", q.getTitle());
+                m.put("description", q.getDescription());
                 m.put("status", q.getStatus());
-                m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+                m.put("timeLimitMinutes", q.getTimeLimitMinutes());
+                m.put("passScore", q.getPassScore());
+                m.put("maxAttempts", q.getMaxAttempts());
+                m.put("createdAt", q.getCreatedAt());
+                m.put("createdBy", q.getUser() != null ? q.getUser().getFullName() : null);
+
+                // Question count
+                int qCount = q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0;
+                m.put("questionCount", qCount);
+
+                // Skill breakdown: { "READING": 3, "LISTENING": 2, ... }
+                if (q.getQuizQuestions() != null && !q.getQuizQuestions().isEmpty()) {
+                    Map<String, Long> skillBreakdown = q.getQuizQuestions().stream()
+                            .filter(qq -> qq.getQuestion() != null && qq.getQuestion().getSkill() != null)
+                            .collect(java.util.stream.Collectors.groupingBy(
+                                    qq -> qq.getQuestion().getSkill(),
+                                    java.util.stream.Collectors.counting()));
+                    m.put("skills", skillBreakdown);
+
+                    // Unique CEFR levels
+                    List<String> cefrLevels = q.getQuizQuestions().stream()
+                            .filter(qq -> qq.getQuestion() != null && qq.getQuestion().getCefrLevel() != null)
+                            .map(qq -> qq.getQuestion().getCefrLevel())
+                            .distinct().sorted().toList();
+                    m.put("cefrLevels", cefrLevels);
+                } else {
+                    m.put("skills", Map.of());
+                    m.put("cefrLevels", List.of());
+                }
+
                 return m;
             }).toList();
 
@@ -842,6 +872,7 @@ public class TeacherClassSessionService {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("quizId", q.getQuizId());
                 m.put("title", q.getTitle());
+                m.put("status", q.getStatus());
                 m.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
 
                 // Find if this quiz is assigned to any session in this class

@@ -110,6 +110,87 @@ public class ClassServiceImpl implements IClassService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> getAvailableTeachers(String startDateStr, String endDateStr, String schedule, String slotTime, Integer excludeClassId) {
+        List<User> teachers = userRepository.findByRole_Value("ROLE_TEACHER");
+        teachers = teachers.stream()
+                .filter(u -> "Active".equalsIgnoreCase(u.getStatus()))
+                .toList();
+
+        if (startDateStr == null || schedule == null || slotTime == null || startDateStr.isBlank()) {
+            return teachers;
+        }
+
+        try {
+            LocalDateTime startDate = parseDateTime(startDateStr, "Invalid start date");
+            LocalDateTime endDate;
+            if (endDateStr != null && !endDateStr.isBlank()) {
+                endDate = parseDateTime(endDateStr, "Invalid end date");
+            } else {
+                // Approximate end date if not provided (assume 6 months range for overlap check)
+                endDate = startDate.plusMonths(6);
+            }
+
+            List<Clazz> activeClasses = classRepository.findAll().stream()
+                    .filter(c -> c.getTeacher() != null)
+                    .filter(c -> !"Closed".equalsIgnoreCase(c.getStatus()) && !"Cancelled".equalsIgnoreCase(c.getStatus()))
+                    .filter(c -> excludeClassId == null || !c.getClassId().equals(excludeClassId))
+                    .toList();
+
+            List<User> availableTeachers = new ArrayList<>();
+            for (User teacher : teachers) {
+                boolean conflictFound = false;
+                for (Clazz activeClass : activeClasses) {
+                    if (activeClass.getTeacher().getUserId().equals(teacher.getUserId())) {
+                        if (isConflict(startDate, endDate, schedule, slotTime, activeClass)) {
+                            conflictFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (!conflictFound) {
+                    availableTeachers.add(teacher);
+                }
+            }
+            return availableTeachers;
+
+        } catch (Exception e) {
+            log.error("Error calculating available teachers: {}", e.getMessage());
+            return teachers;
+        }
+    }
+
+    private boolean isConflict(LocalDateTime start1, LocalDateTime end1, String schedule1, String slot1, Clazz c2) {
+        LocalDateTime start2 = c2.getStartDate();
+        LocalDateTime end2 = c2.getEndDate();
+        if (start2 == null || end2 == null) return false;
+
+        // 1. Date range overlap check
+        if (start1.isAfter(end2) || start2.isAfter(end1)) {
+            return false;
+        }
+
+        // 2. Slot overlap check
+        if (!normalizeSlot(slot1).equals(normalizeSlot(c2.getSlotTime()))) {
+            return false;
+        }
+
+        // 3. Weekly schedule overlap (common days)
+        List<DayOfWeekInfo> days1 = parseScheduleDays(schedule1);
+        List<DayOfWeekInfo> days2 = parseScheduleDays(c2.getSchedule());
+
+        for (DayOfWeekInfo d1 : days1) {
+            for (DayOfWeekInfo d2 : days2) {
+                if (d1.targetDow == d2.targetDow) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private String normalizeSlot(String slot) {
         return slot == null ? "" : slot.trim().toLowerCase();
     }
@@ -528,6 +609,7 @@ public class ClassServiceImpl implements IClassService {
             log.info("Critical fields changed for Class id={}, regenerating sessions", id);
             // Delete old mappings and sessions
             rescheduleRequestRepository.deleteBySession_Clazz_ClassId(id);
+            sessionQuizRepository.deleteBySession_Clazz_ClassId(id);
             sessionLessonRepository.deleteBySession_Clazz_ClassId(id);
             classSessionRepository.deleteByClazz_ClassId(id);
 

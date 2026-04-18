@@ -259,8 +259,9 @@ textarea.q-input { resize:vertical; min-height:110px; line-height:1.6; }
   aspect-ratio:1; border-radius:7px; border:1.5px solid var(--border);
   background:var(--bg); font-size:.7rem; font-weight:700; color:var(--text-3);
   display:flex; align-items:center; justify-content:center;
-  cursor:default; pointer-events:none; transition:all .15s;
+  cursor:pointer; transition:all .15s;
 }
+.q-dot:hover { border-color:var(--accent); background:var(--accent-bg); color:var(--accent); }
 .q-dot.answered { background:var(--accent); border-color:var(--accent); color:#fff; }
 .q-dot.current  { background:var(--accent-bg); border-color:var(--accent); color:var(--accent); font-weight:800; box-shadow:0 0 0 2px rgba(26,110,248,.18); }
 
@@ -806,8 +807,17 @@ function renderQGrid(skillIdx) {
     let cls = 'q-dot';
     if (answered) cls += ' answered';
     else if (i === 0) cls += ' current';
-    return `<div class="${cls}" id="qDot_${q.questionId}">${i+1}</div>`;
+    return `<div class="${cls}" id="qDot_${q.questionId}" onclick="scrollToQuestion(${q.questionId})">${i+1}</div>`;
   }).join('');
+}
+
+function scrollToQuestion(qid) {
+  const card = document.getElementById(`qCard_${qid}`);
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('active');
+    setTimeout(() => card.classList.remove('active'), 2000);
+  }
 }
 
 function updateSidebar(skillIdx) {

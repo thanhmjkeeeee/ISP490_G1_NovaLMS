@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:with="isDashboard=true">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Yêu cầu đổi lịch')}"></head>
+<body class="dashboard-body">
+
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Yêu cầu đổi lịch', breadcrumb='Giáo viên / Yêu cầu đổi lịch')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='reschedule')}"></aside>
+<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+
+<main class="dash-main d-flex flex-column" id="dashMain">
+
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h3 class="fw-bold m-0" style="color:#223a58;">Lịch sử yêu cầu đổi lịch</h3>
+            <p class="text-muted small m-0">Theo dõi trạng thái các yêu cầu đổi lịch bạn đã gửi cho Manager.</p>
+        </div>
+        <a th:href="@{/teacher/workspace}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-calendar-week me-1"></i> Đến Lịch dạy
+        </a>
+    </div>
+
+    <!-- Status summary badges -->
+    <div class="row g-3 mb-4" id="summaryRow">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 text-center py-3">
+                <div class="card-body p-0">
+                    <div class="text-muted small">Tất cả</div>
+                    <div class="fw-bold fs-4 text-dark" id="count-all">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 text-center py-3 bg-warning bg-opacity-10">
+                <div class="card-body p-0">
+                    <div class="text-muted small">Chờ phê duyệt</div>
+                    <div class="fw-bold fs-4 text-warning" id="count-pending">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 text-center py-3 bg-success bg-opacity-10">
+                <div class="card-body p-0">
+                    <div class="text-muted small">Đã chấp nhận</div>
+                    <div class="fw-bold fs-4 text-success" id="count-approved">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 text-center py-3 bg-danger bg-opacity-10">
+                <div class="card-body p-0">
+                    <div class="text-muted small">Bị từ chối</div>
+                    <div class="fw-bold fs-4 text-danger" id="count-rejected">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requests list -->
+    <div class="card border-0 shadow-sm rounded-4 flex-grow-1">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-custom align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th width="60" class="ps-4">#</th>
+                            <th>Lớp & Buổi học</th>
+                            <th>Lịch cũ</th>
+                            <th>Lịch mới đề xuất</th>
+                            <th>Lý do & Phản hồi</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end pe-4">Ngày gửi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rescheduleTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="text-muted mt-2 mb-0">Đang tải dữ liệu...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:inline="javascript">
+document.addEventListener('DOMContentLoaded', () => {
+    loadTeacherRequests();
+});
+
+async function loadTeacherRequests() {
+    const tbody = document.getElementById('rescheduleTableBody');
+    try {
+        const res = await fetch('/teacher/api/my-reschedule-requests');
+        const json = await res.json();
+        
+        if (json.status === 200 && json.data) {
+            renderRequests(json.data);
+            updateSummary(json.data);
+        } else {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Lỗi: ${json.message}</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Failed to load reschedule requests:", err);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Lỗi kết nối máy chủ.</td></tr>`;
+    }
+}
+
+function renderRequests(items) {
+    const tbody = document.getElementById('rescheduleTableBody');
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">Chưa có yêu cầu nào.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = items.map((item, idx) => `
+        <tr>
+            <td class="ps-4">${idx + 1}</td>
+            <td>
+                <div class="fw-bold text-primary">${item.className}</div>
+                <div class="small">Session ${item.sessionNumber}</div>
+            </td>
+            <td>
+                <div class="small text-muted">${item.oldDate}</div>
+                <div class="small text-muted">${item.oldStartTime}</div>
+            </td>
+            <td>
+                <div class="fw-bold text-success">${item.newDate}</div>
+                <div class="small text-success">Slot: ${item.newStartTime}</div>
+            </td>
+            <td>
+                <div class="small text-dark mb-1">${item.reason || '—'}</div>
+                ${item.managerFeedback ? `<div class="small text-danger italic"><i class="bi bi-chat-dots me-1"></i>${item.managerFeedback}</div>` : ''}
+            </td>
+            <td class="text-center">
+                ${renderStatusBadge(item.status)}
+            </td>
+            <td class="text-end pe-4 small text-muted">${item.createdAt}</td>
+        </tr>
+    `).join('');
+}
+
+function renderStatusBadge(status) {
+    switch (status) {
+        case 'PENDING': return '<span class="badge bg-warning text-dark rounded-pill px-3">Chờ duyệt</span>';
+        case 'APPROVED': return '<span class="badge bg-success rounded-pill px-3">Đã duyệt</span>';
+        case 'REJECTED': return '<span class="badge bg-danger rounded-pill px-3">Từ chối</span>';
+        default: return `<span class="badge bg-secondary rounded-pill px-3">${status}</span>`;
+    }
+}
+
+function updateSummary(items) {
+    document.getElementById('count-all').textContent = items.length;
+    document.getElementById('count-pending').textContent = items.filter(i => i.status === 'PENDING').length;
+    document.getElementById('count-approved').textContent = items.filter(i => i.status === 'APPROVED').length;
+    document.getElementById('count-rejected').textContent = items.filter(i => i.status === 'REJECTED').length;
+}
+</script>
+
+<style>
+.table-custom tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.italic { font-style: italic; }
+</style>
+
+</body>
+</html>

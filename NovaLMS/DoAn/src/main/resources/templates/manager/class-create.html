@@ -354,9 +354,18 @@
 
   function bindScheduleTeacherEvents() {
       const getActiveSlot = () => document.getElementById('slotTime').value;
-      document.getElementById('teacherId').addEventListener('change', () => fetchAvailableSlots(getActiveSlot()));
+      // Triggers for teacher list reload
+      const reloadTriggerIds = ['startDate', 'numberOfSessions', 'slotTime'];
+      reloadTriggerIds.forEach(id => {
+          const el = document.getElementById(id); 
+          if (el) el.addEventListener('change', loadTeachers);
+      });
+
       document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => {
-          cb.addEventListener('change', onScheduleChange);
+          cb.addEventListener('change', () => {
+              onScheduleChange();
+              loadTeachers();
+          });
       });
   }
 
@@ -511,18 +520,56 @@
   }
 
   async function loadTeachers() {
+      const select = document.getElementById('teacherId');
+      if (!select) return;
+      const originalValue = select.value;
+      
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const schedule = buildScheduleString();
+      const slotTime = document.getElementById('slotTime').value;
+
+      // If not enough data to filter, load all teachers (legacy behavior or initial load)
+      if (!startDate || !schedule || !slotTime) {
+          try {
+              const res = await fetch('/api/v1/accounts/list?pageNo=0&pageSize=100');
+              const result = await res.json();
+              if (result.data && result.data.items) {
+                  const teachers = result.data.items.filter(u => u.roleName && u.roleName.toLowerCase().includes('teacher'));
+                  select.innerHTML = '<option value="">-- Chọn giảng viên --</option>';
+                  teachers.forEach(t => {
+                      const opt = document.createElement('option');
+                      opt.value = t.userId; opt.textContent = t.fullName; 
+                      if (String(t.userId) === String(originalValue)) opt.selected = true;
+                      select.appendChild(opt);
+                  });
+              }
+          } catch (err) { console.error('Error loading all teachers', err); }
+          return;
+      }
+
+      // Load available teachers based on schedule
       try {
-          const res = await fetch('/api/v1/accounts/list?pageNo=0&pageSize=100');
+          const excludeParam = classId ? `&excludeClassId=${classId}` : '';
+          const url = `/api/v1/classes/available-teachers?startDate=${startDate}&endDate=${endDate}&schedule=${encodeURIComponent(schedule)}&slotTime=${encodeURIComponent(slotTime)}${excludeParam}`;
+          
+          const res = await fetch(url);
           const result = await res.json();
-          if (result.data && result.data.items) {
-              const teachers = result.data.items.filter(u => u.roleName && u.roleName.toLowerCase().includes('teacher'));
-              const select = document.getElementById('teacherId');
-              teachers.forEach(t => {
+          if (result.status === 200 && result.data) {
+              select.innerHTML = '<option value="">-- Chọn giảng viên --</option>';
+              result.data.forEach(t => {
                   const opt = document.createElement('option');
-                  opt.value = t.userId; opt.textContent = t.fullName; select.appendChild(opt);
+                  opt.value = t.userId; opt.textContent = t.fullName;
+                  if (String(t.userId) === String(originalValue)) opt.selected = true;
+                  select.appendChild(opt);
               });
+              if (select.options.length === 1) {
+                  const opt = document.createElement('option');
+                  opt.disabled = true; opt.textContent = '(Không có giảng viên nào trống lịch)';
+                  select.appendChild(opt);
+              }
           }
-      } catch (err) { console.error('Error loading teachers', err); }
+      } catch (err) { console.error('Error loading available teachers', err); }
   }
 
   async function loadClassDetail() {
