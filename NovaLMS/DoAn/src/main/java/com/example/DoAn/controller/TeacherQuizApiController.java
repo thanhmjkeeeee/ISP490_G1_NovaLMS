@@ -1,6 +1,7 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.AIGenerateRequestDTO;
+import com.example.DoAn.dto.request.AIGenerateGroupRequestDTO;
 import com.example.DoAn.dto.request.AIImportRequestDTO;
 import com.example.DoAn.dto.request.QuestionBankRequestDTO;
 import com.example.DoAn.dto.request.QuizRequestDTO;
@@ -236,6 +237,19 @@ public class TeacherQuizApiController {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Unauthorized");
         return ResponseData.success("Sinh câu hỏi thành công", aiQuestionService.generate(request, email));
+    }
+
+    /**
+     * Sinh bộ câu hỏi (group) bằng AI (teacher).
+     * POST /api/v1/teacher/quizzes/ai/generate-group
+     */
+    @PostMapping("/ai/generate-group")
+    public ResponseData<?> generateAIGroupQuestions(
+            @Valid @RequestBody  AIGenerateGroupRequestDTO request,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Unauthorized");
+        return ResponseData.success("Sinh bộ câu hỏi thành công", aiQuestionService.generateGroup(request, email));
     }
 
     /**

@@ -8,9 +8,12 @@ import com.example.DoAn.service.GroqClient;
 import com.example.DoAn.service.GroqGradingService;
 import com.example.DoAn.service.INotificationService;
 import com.example.DoAn.util.IELTSScoreMapper;
+import com.example.DoAn.service.QuizResultService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -34,6 +37,10 @@ public class GroqGradingServiceImpl implements GroqGradingService {
     private final QuizResultRepository quizResultRepository;
     private final INotificationService notificationService;
     private final EmailService emailService;
+
+    @Autowired
+    @Lazy
+    private QuizResultService quizResultService;
 
     @Override
     @Async
@@ -61,7 +68,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                 }
                 
                 // Recalculate ONCE after batch
-                recalculateQuizResult(quizResultId);
+                quizResultService.recalculateQuizResult(quizResultId);
             });
             log.info("[AI-BATCH] Completed batch grading and recalculated for resultId={}", quizResultId);
         } catch (Exception e) {
@@ -143,7 +150,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             quizAnswerRepository.save(answer);
 
             if (shouldRecalculate) {
-                recalculateQuizResult(quizResultId);
+                quizResultService.recalculateQuizResult(quizResultId);
             }
 
         } catch (Exception e) {
@@ -155,78 +162,4 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         }
     }
 
-    private void recalculateQuizResult(Integer resultId) {
-        QuizResult result = quizResultRepository.findById(resultId).orElse(null);
-        if (result == null) return;
-
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
-
-        Map<String, Double> skillRawScore = new HashMap<>();
-        Map<String, Double> skillMaxScore = new HashMap<>();
-
-        for (QuizAnswer a : answers) {
-            Question q = a.getQuestion();
-            String skill = (q.getSkill() != null ? q.getSkill() : "DEFAULT").toUpperCase();
-            String qType = q.getQuestionType();
-
-            double pts = quizQuestionRepository
-                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), q.getQuestionId())
-                    .map(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
-                    .orElse(1.0);
-
-            skillMaxScore.put(skill, skillMaxScore.getOrDefault(skill, 0.0) + pts);
-
-            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                if (a.getAiScore() != null) {
-                    try {
-                        String scoreStr = a.getAiScore();
-                        double scoreVal = Double.parseDouble(scoreStr.split("/")[0].trim());
-                        int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
-                        double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
-                        skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
-
-                        if (a.getTeacherOverrideScore() == null) {
-                            a.setPointsAwarded(BigDecimal.valueOf(scaledScore));
-                            quizAnswerRepository.save(a);
-                        }
-                    } catch (Exception ignored) {}
-                }
-            } else {
-                if (Boolean.TRUE.equals(a.getIsCorrect())) {
-                    skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + pts);
-                }
-            }
-        }
-
-        Map<String, Double> skillBands = new HashMap<>();
-        for (String skill : skillMaxScore.keySet()) {
-            double raw = skillRawScore.getOrDefault(skill, 0.0);
-            double max = skillMaxScore.get(skill);
-            
-            if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
-                skillBands.put(skill, max > 0 ? (raw / max) * 9.0 : 0.0);
-            } else {
-                skillBands.put(skill, IELTSScoreMapper.mapRawToBand(raw, max, skill));
-            }
-        }
-
-        double overallBandScore = IELTSScoreMapper.calculateOverallBand(skillBands);
-        result.setOverallBand(BigDecimal.valueOf(overallBandScore));
-
-        double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
-        double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
-        
-        if (totalMax > 0) {
-            result.setCorrectRate(BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP));
-            result.setScore((int) Math.round(totalRaw));
-        }
-
-        try {
-            result.setSectionScores(objectMapper.writeValueAsString(skillBands));
-        } catch (Exception e) {
-            log.error("Failed to serialize section scores", e);
-        }
-
-        quizResultRepository.save(result);
-    }
 }

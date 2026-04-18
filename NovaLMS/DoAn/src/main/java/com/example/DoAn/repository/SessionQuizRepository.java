@@ -34,6 +34,22 @@ public interface SessionQuizRepository extends JpaRepository<SessionQuiz, Intege
 
     List<SessionQuiz> findBySession_Clazz_ClassId(Integer classId);
 
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteBySession_Clazz_ClassId(Integer classId);
+
     @Query("SELECT COUNT(sq) FROM SessionQuiz sq WHERE sq.session.clazz.course.courseId = :courseId")
     long countByCourseId(@Param("courseId") Integer courseId);
+
+    /**
+     * Lấy tất cả SessionQuiz có quiz đang DRAFT và session có ngày học.
+     * Dùng cho scheduler tự động publish quiz khi buổi học bắt đầu.
+     */
+    @Query("SELECT sq FROM SessionQuiz sq " +
+           "JOIN FETCH sq.quiz q " +
+           "JOIN FETCH sq.session s " +
+           "JOIN FETCH s.clazz c " +
+           "WHERE q.status = 'DRAFT' " +
+           "AND s.sessionDate IS NOT NULL")
+    List<SessionQuiz> findDraftQuizzesWithSessions();
 }

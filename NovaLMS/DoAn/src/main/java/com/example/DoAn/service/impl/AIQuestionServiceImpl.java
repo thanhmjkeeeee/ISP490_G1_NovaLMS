@@ -128,7 +128,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
         String prompt;
         if (isAdvanced) {
-            prompt = promptBuilder.buildAdvancedQuickPrompt(topic, qty, request.getQuestionTypes(), cefr, skill, request.getAdvancedOptions());
+            prompt = promptBuilder.buildAdvancedGroupPrompt(topic, qty, request.getQuestionTypes(), cefr, skill, request.getAdvancedOptions());
         } else {
             prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes(), request.getAdvancedOptions());
         }
@@ -144,7 +144,8 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 .topic(topic);
 
         try {
-            Map<String, Object> parsed = objectMapper.readValue(rawJson.trim(), new TypeReference<>() {});
+            String cleaned = cleanAiJson(rawJson);
+            Map<String, Object> parsed = objectMapper.readValue(cleaned, new TypeReference<>() {});
             if (parsed.get("passage") != null) builder.passage((String) parsed.get("passage"));
             if (parsed.get("audioUrl") != null) builder.audioUrl((String) parsed.get("audioUrl"));
             if (parsed.get("imageUrl") != null) builder.imageUrl((String) parsed.get("imageUrl"));
@@ -325,19 +326,25 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             Map<?, ?> message = (Map<?, ?>) choice.get("message");
             return (String) message.get("content");
         } catch (ClassCastException | NullPointerException e) {
-            log.error("Failed to parse Groq response: {}", response.substring(0, Math.min(300, response.length())));
-            throw new AIException("Không parse được response từ Groq.", e);
+            String preview = (response != null && response.length() > 500) ? response.substring(0, 500) : response;
+            log.error("Failed to parse Groq response: {}. Error: {}", preview, e.getMessage());
+            throw new AIException("Không parse được response từ Groq. Định dạng không mong đợi.", e);
         } catch (JsonProcessingException e) {
             throw new AIException("Không parse được response từ Groq.", e);
         }
     }
 
-    private List<QuestionDTO> parseQuestions(String rawJson, int requested) {
-        String cleaned = rawJson != null ? rawJson.trim() : "";
+    private String cleanAiJson(String rawJson) {
+        if (rawJson == null) return "";
+        String cleaned = rawJson.trim();
         if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
-        if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
+        else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
         if (cleaned.endsWith("```")) cleaned = cleaned.substring(0, cleaned.length() - 3);
-        cleaned = cleaned.trim();
+        return cleaned.trim();
+    }
+
+    private List<QuestionDTO> parseQuestions(String rawJson, int requested) {
+        String cleaned = cleanAiJson(rawJson);
 
         try {
             List<Map<String, Object>> rawList = objectMapper.readValue(cleaned, new TypeReference<>() {});
@@ -404,6 +411,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
     private QuestionDTO toQuestionDTO(Map<String, Object> raw) {
         try {
+            String ca = (String) raw.get("correctAnswer");
             return QuestionDTO.builder()
                     .content((String) raw.get("content"))
                     .questionType((String) raw.get("questionType"))
@@ -413,8 +421,8 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     .explanation((String) raw.get("explanation"))
                     .audioUrl((String) raw.get("audioUrl"))
                     .imageUrl((String) raw.get("imageUrl"))
-                    .correctAnswer((String) raw.get("correctAnswer"))
-                    .options(parseOptions(raw.get("options")))
+                    .correctAnswer(ca)
+                    .options(parseOptions(raw.get("options"), ca))
                     .matchLeft(parseStringList(raw.get("matchLeft")))
                     .matchRight(parseStringList(raw.get("matchRight")))
                     .correctPairs(parseIntegerList(raw.get("correctPairs")))
@@ -426,7 +434,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<AIGenerateResponseDTO.OptionDTO> parseOptions(Object optionsObj) {
+    private List<AIGenerateResponseDTO.OptionDTO> parseOptions(Object optionsObj, String correctAnswer) {
         if (optionsObj == null) return null;
         try {
             List<?> raw = (List<?>) optionsObj;
@@ -436,6 +444,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     opts.add(AIGenerateResponseDTO.OptionDTO.builder()
                             .title((String) m.get("title"))
                             .correct((Boolean) m.get("correct"))
+                            .build());
+                } else if (item instanceof String s) {
+                    // Handle simple string list from AI
+                    boolean isCorrect = (correctAnswer != null && s.trim().equalsIgnoreCase(correctAnswer.trim()));
+                    opts.add(AIGenerateResponseDTO.OptionDTO.builder()
+                            .title(s)
+                            .correct(isCorrect)
                             .build());
                 }
             }

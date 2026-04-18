@@ -37,6 +37,7 @@ public class TeacherQuizService {
     private final RegistrationRepository registrationRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final QuestionGroupRepository questionGroupRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -832,6 +833,22 @@ public class TeacherQuizService {
             List<Integer> importedIds = new ArrayList<>();
             int addedCount = 0;
 
+            // Handle Question Group (Passage) - create once for the whole batch
+            QuestionGroup sharedGroup = null;
+            if (request.getPassage() != null && !request.getPassage().isBlank()) {
+                // Peek first question to get metadata (they should all be similar)
+                AIImportRequestDTO.AIQuestionDTO first = request.getQuestions().get(0);
+                sharedGroup = QuestionGroup.builder()
+                        .groupContent(request.getPassage())
+                        .skill(first.getSkill())
+                        .cefrLevel(first.getCefrLevel())
+                        .topic(first.getTopic())
+                        .status("DRAFT")
+                        .user(teacher)
+                        .build();
+                questionGroupRepository.save(sharedGroup);
+            }
+
             for (AIImportRequestDTO.AIQuestionDTO q : request.getQuestions()) {
                 // Validate
                 if (q.getContent() == null || q.getContent().isBlank()) continue;
@@ -853,6 +870,7 @@ public class TeacherQuizService {
                         .explanation(q.getExplanation())
                         .audioUrl(q.getAudioUrl())
                         .imageUrl(q.getImageUrl())
+                        .questionGroup(sharedGroup) // Link to shared passage if any
                         .status("DRAFT")
                         .source("TEACHER_PRIVATE")
                         .user(teacher)
@@ -915,6 +933,22 @@ public class TeacherQuizService {
                     }
                 }
 
+                // Handle Question Group (Passage)
+                if (request.getPassage() != null && !request.getPassage().isBlank()) {
+                    // All questions in this import batch will share this passage
+                    QuestionGroup group = QuestionGroup.builder()
+                            .groupContent(request.getPassage())
+                            .skill(q.getSkill())
+                            .cefrLevel(q.getCefrLevel())
+                            .topic(q.getTopic())
+                            .status("DRAFT")
+                            .user(teacher)
+                            .build();
+                    questionGroupRepository.save(group);
+                    question.setQuestionGroup(group);
+                    questionRepository.save(question); // Re-save with group
+                }
+
                 // Add to quiz (if question was saved successfully)
                 if (!quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), question.getQuestionId())) {
                     int currentCount = quizQuestionRepository.countByQuizQuizId(quiz.getQuizId());
@@ -950,6 +984,7 @@ public class TeacherQuizService {
     @lombok.Builder
     public static class AIImportRequestDTO {
         private Integer quizId;
+        private String passage; // Shared passage for the group
         private List<AIQuestionDTO> questions;
 
         @lombok.Data
@@ -997,8 +1032,9 @@ public class TeacherQuizService {
 
     /**
      * Notify enrolled students when a quiz is published or its open status changes.
+     * Package-private so QuizAutoPublishScheduler can also call this.
      */
-    private void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
+    void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
         if (quiz == null) return;
         String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
         String className = "";

@@ -12,5 +12,6 @@ public interface IClassService {
     ClassDetailResponse getClassById(Integer id);
     PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className, String courseName, String teacherName, String status);
     List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId);
+    List<com.example.DoAn.model.User> getAvailableTeachers(String startDate, String endDate, String schedule, String slotTime, Integer excludeClassId);
     void deleteClass(Integer id);
 }
