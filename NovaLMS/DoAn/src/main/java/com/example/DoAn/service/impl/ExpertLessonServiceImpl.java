@@ -131,14 +131,27 @@ public class ExpertLessonServiceImpl implements IExpertLessonService {
     }
 
     private void validateExpertOwnsModule(String email, Integer moduleId) {
-        User expert = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chuyên gia."));
+        User user = userRepository.findByEmailWithRole(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
+        
+        if (isAdmin(user)) return;
+
         Module module = moduleRepository.findById(moduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương."));
         Course course = module.getCourse();
         if (course == null || course.getExpert() == null
-                || !course.getExpert().getUserId().equals(expert.getUserId())) {
+                || !course.getExpert().getUserId().equals(user.getUserId())) {
             throw new ResourceNotFoundException("Bạn không có quyền quản lý chương này.");
         }
+    }
+
+    private boolean isAdmin(User user) {
+        if (user.getRole() == null)
+            return false;
+        String val = user.getRole().getValue();
+        String name = user.getRole().getName();
+        return "ROLE_ADMIN".equalsIgnoreCase(val) || "ADMIN".equalsIgnoreCase(val) ||
+                "ROLE_ADMIN".equalsIgnoreCase(name) || "ADMIN".equalsIgnoreCase(name) ||
+                "Quản trị viên".equalsIgnoreCase(name);
     }
 }

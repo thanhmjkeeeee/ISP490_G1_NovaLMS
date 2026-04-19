@@ -16,7 +16,7 @@
 
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;" th:text="${mode == 'ASSIGNMENT' ? 'Quản lý Bài tập lớn' : 'Quản lý Bộ đề (Quiz)'}">Quản lý Quiz & Bài tập lớn</h3>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý Assignment</h3>
             <p class="text-muted small m-0" th:text="${mode == 'ASSIGNMENT' ? 'Tạo và quản lý bài tập về nhà (Assignment).' : 'Tạo và quản lý các bộ đề kiểm tra (Quiz).'}">Tạo và quản lý tất cả loại đề kiểm tra.</p>
         </div>
         <a th:href="@{/expert/quiz-management/create}" class="btn btn-sm fw-bold shadow-sm d-flex align-items-center rounded-pill px-3 text-white" style="background-color: #136ad5;">
