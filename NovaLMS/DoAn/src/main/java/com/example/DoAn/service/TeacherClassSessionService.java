@@ -396,7 +396,7 @@ public class TeacherClassSessionService {
      * Toggle mở/đóng 1 quiz trong session.
      */
     @Transactional
-    public ResponseData<Map<String, Object>> toggleQuizOpenInSession(String email, Integer sessionId, Integer quizId) {
+    public ResponseData<Map<String, Object>> toggleQuizOpenInSession(String email, Integer sessionId, Integer quizId, Integer timeLimitMinutes) {
         try {
             ClassSession session = getSessionWithAuth(email, sessionId);
             if (session == null)
@@ -421,6 +421,15 @@ public class TeacherClassSessionService {
             Boolean updated = willOpen;
             sq.setIsOpen(updated);
             sessionQuizRepository.save(sq);
+
+            if (updated && timeLimitMinutes != null) {
+                if (timeLimitMinutes <= 0) {
+                    return ResponseData.error(400, "Thời gian làm bài phải lớn hơn 0");
+                }
+                Quiz quiz = sq.getQuiz();
+                quiz.setTimeLimitMinutes(timeLimitMinutes);
+                quizRepository.save(quiz);
+            }
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("quizId", sq.getQuiz().getQuizId());
@@ -865,6 +874,7 @@ public class TeacherClassSessionService {
                     m.put("isOpen", assignedSq.getIsOpen() != null ? assignedSq.getIsOpen() : false);
                     m.put("openAt", assignedSq.getOpenAt());
                     m.put("closeAt", assignedSq.getCloseAt());
+                    m.put("deadline", assignedSq.getDeadline());
                 } else {
                     m.put("sessionQuizId", null);
                     m.put("sessionId", null);
@@ -872,6 +882,7 @@ public class TeacherClassSessionService {
                     m.put("isOpen", false);
                     m.put("openAt", null);
                     m.put("closeAt", null);
+                    m.put("deadline", null);
                 }
                 return m;
             }).toList();
@@ -917,6 +928,7 @@ public class TeacherClassSessionService {
                     m.put("isOpen", assignedSq.getIsOpen() != null ? assignedSq.getIsOpen() : false);
                     m.put("openAt", assignedSq.getOpenAt());
                     m.put("closeAt", assignedSq.getCloseAt());
+                    m.put("deadline", assignedSq.getDeadline());
                 } else {
                     m.put("sessionQuizId", null);
                     m.put("sessionId", null);
@@ -925,6 +937,7 @@ public class TeacherClassSessionService {
                     m.put("isOpen", q.getIsOpen() != null ? q.getIsOpen() : false);
                     m.put("openAt", null);
                     m.put("closeAt", null);
+                    m.put("deadline", null);
                 }
                 return m;
             }).toList();
@@ -961,11 +974,14 @@ public class TeacherClassSessionService {
                     && !request.getCloseAt().isAfter(request.getOpenAt())) {
                 return ResponseData.error(400, "Thời gian đóng phải sau thời gian mở");
             }
+            if (request.getDeadline() != null && request.getOpenAt() != null
+                    && !request.getDeadline().isAfter(request.getOpenAt())) {
+                return ResponseData.error(400, "Deadline phải sau thời gian mở");
+            }
 
             sq.setOpenAt(request.getOpenAt());
             sq.setCloseAt(request.getCloseAt());
-            // If openAt is in the past and closeAt is in the future, maybe auto-open?
-            // For now, let teacher manually toggle isOpen as well.
+            sq.setDeadline(request.getDeadline());
 
             sessionQuizRepository.save(sq);
             return ResponseData.success("Cập nhật thời gian thành công");

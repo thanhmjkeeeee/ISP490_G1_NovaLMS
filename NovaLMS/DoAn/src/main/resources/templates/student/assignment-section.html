@@ -109,6 +109,7 @@
 <script th:inline="javascript">
 const sessionId = /*[[${sessionId}]]*/ 0;
 const skill = /*[[${skill}]]*/ 'LISTENING';
+const isPreview = /*[[${isPreview}]]*/ false;
 </script>
 
 <script th:inline="none">
@@ -200,7 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSection() {
     try {
-        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}`);
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        const resp = await fetch(`${apiBase}/session/${sessionId}/section/${skill}`);
         const result = await resp.json();
         if (result.status !== 200) {
             document.getElementById('questionsContainer').innerHTML =
@@ -226,8 +228,9 @@ async function loadSection() {
         }
 
         if (section.previousSkill) {
+            const viewBase = isPreview ? '/teacher/assignment/preview' : '/student/assignment';
             document.getElementById('prevBtn').href =
-                `/student/assignment/session/${sessionId}/section/${section.previousSkill}`;
+                `${viewBase}/session/${sessionId}/section/${section.previousSkill}`;
         } else {
             document.getElementById('prevBtn').style.visibility = 'hidden';
         }
@@ -238,7 +241,7 @@ async function loadSection() {
         }
 
         // Start quiz-level timer
-        if (section.timerSeconds && section.timerSeconds > 0) {
+        if (section.timerSeconds && section.timerSeconds > 0 && !isPreview) {
             startQuizTimer(section.timerSeconds);
         }
 
@@ -413,7 +416,8 @@ function onMultiChange(questionId) {
 
 async function saveDraft() {
     try {
-        await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}`, {
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        await fetch(`${apiBase}/session/${sessionId}/section/${skill}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers: currentAnswers })
@@ -431,7 +435,8 @@ async function saveExternal() {
         const link = document.getElementById('extLinkInput').value;
         const note = document.getElementById('extNoteInput').value;
         try {
-            await fetch(`/api/v1/student/assignment/session/${sessionId}/external-submission`, {
+            const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+            await fetch(`${apiBase}/session/${sessionId}/external-submission`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ link, note })
@@ -451,7 +456,8 @@ async function submitSection() {
     btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang nộp…`;
 
     try {
-        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/${skill}/submit`, {
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        const resp = await fetch(`${apiBase}/session/${sessionId}/section/${skill}/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers: currentAnswers })
@@ -466,9 +472,15 @@ async function submitSection() {
         }
         const data = result.data;
         if (data.completed && data.resultId) {
-            window.location.href = `/student/assignment/complete/${data.resultId}`;
+            if (isPreview) {
+                Swal.fire('Hoàn thành', 'Bạn đã xem trước xong bài tập này.', 'success')
+                    .then(() => window.location.href = '/teacher/workspace');
+            } else {
+                window.location.href = `/student/assignment/complete/${data.resultId}`;
+            }
         } else if (data.nextSkill) {
-            window.location.href = `/student/assignment/session/${sessionId}/section/${data.nextSkill}`;
+            const viewBase = isPreview ? '/teacher/assignment/preview' : '/student/assignment';
+            window.location.href = `${viewBase}/session/${sessionId}/section/${data.nextSkill}`;
         }
     } catch (e) {
         alert('Lỗi kết nối: ' + e.message);

@@ -70,11 +70,12 @@ public class QuizResultServiceImpl implements QuizResultService {
         Integer classId = null;
         Integer sessionId = null;
 
+        com.example.DoAn.model.SessionQuiz openSq = null;
         List<com.example.DoAn.model.SessionQuiz> sqList = sessionQuizRepository.findAllByQuizId(quizId);
         if (!sqList.isEmpty()) {
             // Quiz có trong session_quiz
             // Tìm session mà user ĐANG ĐĂNG KÝ và quiz ĐANG MỞ
-            com.example.DoAn.model.SessionQuiz openSq = sqList.stream()
+            openSq = sqList.stream()
                     .filter(sq -> Boolean.TRUE.equals(sq.getIsOpen()))
                     .filter(sq -> {
                         // Chỉ cho phép nếu quiz mở trong session thuộc class mà user đã đăng ký
@@ -107,17 +108,24 @@ public class QuizResultServiceImpl implements QuizResultService {
 
         // Kiểm tra thời điểm mở/đóng tự động theo lịch (openAt / closeAt)
         LocalDateTime now = LocalDateTime.now();
-        if (quiz.getOpenAt() != null && now.isBefore(quiz.getOpenAt())) {
-            throw new RuntimeException("Quiz chưa đến thời điểm mở bài. Vui lòng quay lại sau.");
+        LocalDateTime effectiveOpenAt = (openSq != null && openSq.getOpenAt() != null) ? openSq.getOpenAt() : quiz.getOpenAt();
+        LocalDateTime effectiveCloseAt = (openSq != null && openSq.getCloseAt() != null) ? openSq.getCloseAt() : quiz.getCloseAt();
+
+        if (effectiveOpenAt != null && now.isBefore(effectiveOpenAt)) {
+            throw new RuntimeException("Quiz chưa đến thời điểm mở bài. Vui lòng quay lại sau (Mở lúc: " 
+                    + effectiveOpenAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ").");
         }
-        if (quiz.getCloseAt() != null && now.isAfter(quiz.getCloseAt())) {
-            throw new RuntimeException("Quiz đã đóng. Vui lòng liên hệ giáo viên.");
+        if (effectiveCloseAt != null && now.isAfter(effectiveCloseAt)) {
+            throw new RuntimeException("Quiz đã đóng (Đóng lúc: " 
+                    + effectiveCloseAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "). Vui lòng liên hệ giáo viên.");
         }
 
         // Kiểm tra deadline cho ASSIGNMENT
         if ("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory())) {
-            if (quiz.getDeadline() != null && now.isAfter(quiz.getDeadline())) {
-                throw new RuntimeException("Đã hết hạn nộp bài. Deadline: " + quiz.getDeadline());
+            LocalDateTime effectiveDeadline = ( openSq != null && openSq.getDeadline() != null) ? openSq.getDeadline()
+                    : quiz.getDeadline();
+            if (effectiveDeadline != null && now.isAfter(effectiveDeadline)) {
+                throw new RuntimeException("Đã hết hạn nộp bài. Deadline: " + effectiveDeadline);
             }
             // Kiểm tra enrollment
             boolean enrolled = false;
@@ -540,7 +548,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     } else if ("MULTIPLE_CHOICE_MULTI".equals(q.getQuestionType())) {
                         List<Integer> ids = objectMapper.readValue(raw, new TypeReference<List<Integer>>() {
                         });
-                        if (ids != null) selectedIds.addAll(ids);
+                        if (ids != null)
+                            selectedIds.addAll(ids);
                     }
                 } catch (Exception e) {
                     // Ignore parsing errors for non-option types
@@ -903,6 +912,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         qr.setScore(newScore);
         qr.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
         qr.setPassed(passed);
+        qr.setStatus("GRADED"); // Mark as graded by teacher
         quizResultRepository.save(qr);
 
         // ── Send email + in-app notification to student ──────────────────────
@@ -1025,6 +1035,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                 // Ignore
             }
         }
+
+        qr.setStatus("GRADED");
+        quizResultRepository.save(qr);
 
         // Recalculate everything using the centralized IELTS logic
         recalculateQuizResult(resultId);
@@ -1219,7 +1232,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                         int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
                         double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
                         skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
-                        
+
                         // Sync pointsAwarded if not set
                         if (a.getPointsAwarded() == null) {
                             a.setPointsAwarded(BigDecimal.valueOf(scaledScore));
@@ -1276,9 +1289,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                 } else {
                     result.setPassed(true);
                 }
-                
+
                 // Finalize status
-                if (!"LOCKED".equals(result.getStatus())) {
+                if (!"LOCKED".equals(result.getStatus()) && !"GRADED".equals(result.getStatus())) {
                     result.setStatus("SUBMITTED");
                 }
 
@@ -1298,5 +1311,47 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
 
         quizResultRepository.save(result);
+    }
+
+    @Override
+    public List<Map<String, Object>> getQuizCompletionList(String teacherEmail, Integer classId, Integer quizId) {
+        User teacher = userRepository.findByEmail(teacherEmail).orElseThrow(() -> new RuntimeException("Teacher not found"));
+        Clazz clazz = clazzRepository.findById(classId).orElseThrow(() -> new RuntimeException("Class not found"));
+
+        if (clazz.getTeacher() == null || !clazz.getTeacher().getUserId().equals(teacher.getUserId())) {
+            throw new RuntimeException("Bạn không có quyền xem dữ liệu của lớp này");
+        }
+
+        List<Registration> registrations = registrationRepository.findApprovedByClassId(classId);
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        for (Registration reg : registrations) {
+            User student = reg.getUser();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("studentId", student.getUserId());
+            m.put("fullName", student.getFullName());
+            m.put("email", student.getEmail());
+
+            // Get latest result for this quiz
+            Optional<QuizResult> optResult = quizResultRepository.findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, student.getUserId());
+
+            if (optResult.isPresent()) {
+                QuizResult r = optResult.get();
+                m.put("resultId", r.getResultId());
+                m.put("status", r.getStatus());
+                m.put("score", r.getScore());
+                m.put("overallBand", r.getOverallBand());
+                m.put("submittedAt", r.getSubmittedAt());
+                m.put("startedAt", r.getStartedAt());
+                m.put("violationCount", r.getViolationCount());
+                m.put("isLocked", "LOCKED".equals(r.getStatus()));
+            } else {
+                m.put("status", "NOT_STARTED");
+                m.put("score", null);
+                m.put("submittedAt", null);
+            }
+            list.add(m);
+        }
+        return list;
     }
 }

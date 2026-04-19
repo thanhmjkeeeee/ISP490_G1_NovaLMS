@@ -180,13 +180,13 @@
             // return (num % 1 === 0) ? num.toFixed(0) : num.toString();
         }
 
-        const fmtNum = (n) => (n % 1 === 0) ? n.toFixed(0) : n.toString();
+        const fmtNum = (n) => { const v = (n === 0 || !n) ? 0 : n; return (v % 1 === 0) ? v.toFixed(0) : v.toString(); };
 
         // ── Render single question card ─────────────────────────────────────────────
         function renderQuestion(q, qi) {
             const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
             const isCorrect = q.isCorrect;
-            const scoreVal = q.pointsAwarded ?? 0;
+            const scoreVal = (q.pointsAwarded == null || Object.is(q.pointsAwarded, -0)) ? 0 : q.pointsAwarded;
 
             // Audio player for SPEAKING
             let audioBlock = '';
@@ -232,22 +232,6 @@
                         data-is-teacher="true">
                     </div>
                 </details>` : ''}
-
-                ${(aiStatus === 'COMPLETED' || aiStatus === 'PENDING') && !isGraded ? `
-                <div class="mt-2 pt-2 border-top">
-                    <label class="small fw-bold text-danger">Override điểm (ghi đè AI):</label>
-                    <div class="d-flex gap-2 align-items-center mt-1">
-                        <input type="number" class="form-control form-control-sm d-inline-block override-input"
-                               style="max-width:100px" min="0" max="${q.points}" step="0.5"
-                               placeholder="${q.aiScore ? q.aiScore.split('/')[0] : scoreVal}"
-                               data-answer-id="${q.answerId || ''}">
-                        <button type="button" class="btn btn-sm btn-outline-danger override-btn"
-                                data-answer-id="${q.answerId || ''}"
-                                onclick="submitOverride(this)">
-                            <i class="bi bi-check2"></i> Lưu Override
-                        </button>
-                    </div>
-                </div>` : ''}
             </div>`;
             }
 
@@ -303,7 +287,7 @@
             <div class="grading-box" data-qid="${q.questionId}">
                 <input type="number" class="form-control d-none score-input" min="0" max="${q.points}" value="${scoreVal}">
                 <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">
-                    ${isCorrect ? '✅' : '❌'} — ${fmtNum(scoreVal)} / ${fmtNum(q.points)} điểm
+                    ${isCorrect ? '✅' : '❌'} ${fmtNum(scoreVal)} / ${fmtNum(q.points)} điểm
                 </span>
             </div>`;
             }
@@ -329,43 +313,7 @@
         </div>`;
         }
 
-        // ── Submit Override ──────────────────────────────────────────────────────────
-        async function submitOverride(btn) {
-            const answerId = btn.getAttribute('data-answer-id');
-            const input = btn.closest('.override-input, div').querySelector('.override-input');
-            const score = input ? input.value.trim() : '';
-            if (!score || !answerId) {
-                alert('Vui lòng nhập điểm override.');
-                return;
-            }
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-            try {
-                const res = await fetch('/api/v1/teacher/quiz-results/override-score', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ answerId, score })
-                });
-                const data = await res.json();
-                if (data.status === 200) {
-                    btn.innerHTML = '<i class="bi bi-check2"></i> Đã lưu!';
-                    btn.classList.replace('btn-outline-danger', 'btn-success');
-                    setTimeout(() => {
-                        btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
-                        btn.classList.replace('btn-success', 'btn-outline-danger');
-                        btn.disabled = false;
-                    }, 2000);
-                } else {
-                    alert(data.message || 'Lỗi khi lưu override');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
-                }
-            } catch (e) {
-                alert('Lỗi kết nối!');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check2"></i> Lưu Override';
-            }
-        }
+
 
         // ── Rubric render ─────────────────────────────────────────────────────────────
         function bandColor(score) {

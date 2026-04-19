@@ -39,4 +39,7 @@ public interface IStudentAssignmentService {
 
     /** Get detailed result for student */
     AssignmentGradingDetailDTO getAssignmentResultDetail(Integer resultId, String studentEmail);
+
+    /** Get preview info for teacher (bypasses enrollment/status checks) */
+    AssignmentInfoDTO getAssignmentPreviewInfo(Integer quizId, String teacherEmail);
 }

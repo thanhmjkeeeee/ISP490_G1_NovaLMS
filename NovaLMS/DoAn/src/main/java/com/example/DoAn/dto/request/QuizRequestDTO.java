@@ -26,10 +26,10 @@ public class QuizRequestDTO {
     private Integer moduleId;        // cho MODULE_QUIZ
     private Integer lessonId;        // cho LESSON_QUIZ
     @Min(value = 1, message = "Thời gian làm bài tối thiểu là 1 phút")
-    @Max(value = 60, message = "Thời gian làm bài tối đa là 60 phút")
+    @Max(value = 300, message = "Thời gian làm bài tối đa là 300 phút")
     private Integer timeLimitMinutes;
 
-    @Min(value = 50, message = "Điểm đạt tối thiểu là 50%")
+    @Min(value = 0, message = "Điểm đạt tối thiểu là 0%")
     @Max(value = 100, message = "Điểm đạt tối đa là 100%")
     private BigDecimal passScore;
 

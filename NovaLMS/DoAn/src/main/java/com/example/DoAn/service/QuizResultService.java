@@ -36,4 +36,6 @@ public interface QuizResultService {
 
     /** Recalculates total score, correct rate, skill bands, and overall IELTS band */
     void recalculateQuizResult(Integer resultId);
+
+    List<Map<String, Object>> getQuizCompletionList(String teacherEmail, Integer classId, Integer quizId);
 }

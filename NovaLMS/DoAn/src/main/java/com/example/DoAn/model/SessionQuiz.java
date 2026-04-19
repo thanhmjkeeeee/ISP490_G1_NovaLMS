@@ -35,4 +35,7 @@ public class SessionQuiz {
 
     @Column(name = "close_at")
     private java.time.LocalDateTime closeAt;
+
+    @Column(name = "deadline")
+    private java.time.LocalDateTime deadline;
 }

@@ -131,10 +131,22 @@ public class TeacherClassSessionApiController {
     public ResponseData<?> toggleQuizOpenInSession(
             @PathVariable Integer sessionId,
             @PathVariable Integer quizId,
+            @RequestParam(required = false) Integer timeLimitMinutes,
             Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
-        return sessionService.toggleQuizOpenInSession(email, sessionId, quizId);
+        return sessionService.toggleQuizOpenInSession(email, sessionId, quizId, timeLimitMinutes);
+    }
+
+    @PatchMapping("/{sessionId}/quizzes/{quizId}/toggle-open-with-time")
+    public ResponseData<?> toggleQuizOpenInSessionWithTime(
+            @PathVariable Integer sessionId,
+            @PathVariable Integer quizId,
+            @RequestParam Integer timeLimitMinutes,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
+        return sessionService.toggleQuizOpenInSession(email, sessionId, quizId, timeLimitMinutes);
     }
 
     /**
@@ -293,4 +305,3 @@ public class TeacherClassSessionApiController {
         return sessionService.resetStudentAttempt(email, quizId, studentId);
     }
 }
-

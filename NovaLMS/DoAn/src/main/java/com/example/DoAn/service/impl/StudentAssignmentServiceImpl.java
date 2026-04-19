@@ -37,6 +37,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     private final GroqGradingService groqGradingService;
     private final TransactionTemplate transactionTemplate;
     private final ObjectMapper objectMapper;
+    private final SessionQuizRepository sessionQuizRepository;
 
     private static final List<String> SEQUENTIAL_SKILLS = Arrays.asList(
         "LISTENING", "READING", "SPEAKING", "WRITING"
@@ -60,7 +61,47 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
         // Validate published + open
         if (!"PUBLISHED".equals(quiz.getStatus()) || quiz.getIsOpen() == null || !quiz.getIsOpen()) {
-            throw new InvalidDataException("Bài tập hiện không khả dụng");
+            throw new InvalidDataException("Assignment hiện đang đóng. Vui lòng liên hệ giáo viên.");
+        }
+
+        // Time-based validation (openAt, closeAt, deadline)
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Check if linked to a session (for session-specific timing)
+        SessionQuiz sessionQuiz = null;
+        List<SessionQuiz> sqList = sessionQuizRepository.findAllByQuizId(quiz.getQuizId());
+        if (!sqList.isEmpty()) {
+            // Find session matching student's enrollment
+            sessionQuiz = sqList.stream()
+                    .filter(sq -> {
+                        if (sq.getSession() == null || sq.getSession().getClazz() == null) return false;
+                        return registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                                user.getUserId(), sq.getSession().getClazz().getClassId());
+                    })
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        // 2. Determine effective times
+        LocalDateTime effectiveOpenAt = (sessionQuiz != null && sessionQuiz.getOpenAt() != null)
+                ? sessionQuiz.getOpenAt() : quiz.getOpenAt();
+        LocalDateTime effectiveCloseAt = (sessionQuiz != null && sessionQuiz.getCloseAt() != null)
+                ? sessionQuiz.getCloseAt() : quiz.getCloseAt();
+        LocalDateTime effectiveDeadline = (sessionQuiz != null && sessionQuiz.getDeadline() != null)
+                ? sessionQuiz.getDeadline() : quiz.getDeadline();
+
+        // 3. Apply checks
+        if (effectiveOpenAt != null && now.isBefore(effectiveOpenAt)) {
+            throw new InvalidDataException("Bài tập này chưa đến thời gian mở (Thời gian mở: "
+                    + effectiveOpenAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
+        }
+        if (effectiveCloseAt != null && now.isAfter(effectiveCloseAt)) {
+            throw new InvalidDataException("Bài tập này đã kết thúc thời gian làm bài (Kết thúc lúc: "
+                    + effectiveCloseAt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
+        }
+        if (effectiveDeadline != null && now.isAfter(effectiveDeadline)) {
+            throw new InvalidDataException("Đã hết hạn nộp bài (Deadline: "
+                    + effectiveDeadline.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
         }
 
         // Validate enrollment
@@ -113,6 +154,46 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         }
 
         return buildInfoDTO(quiz, session, attemptsUsed, maxAttempts, existing.isEmpty() || !"COMPLETED".equals(session.getStatus()));
+    }
+
+    @Override
+    @Transactional
+    public AssignmentInfoDTO getAssignmentPreviewInfo(Integer quizId, String teacherEmail) {
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+
+        User user = userRepository.findByEmail(teacherEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Bypass enrollment and status checks for preview
+        
+        // Find or create session (reuse or reset)
+        Optional<AssignmentSession> existing = sessionRepository
+                .findByQuizQuizIdAndUserUserId(quizId, user.getUserId().longValue());
+
+        AssignmentSession session;
+        if (existing.isPresent()) {
+            session = existing.get();
+            // Reset for a fresh preview
+            session.setStatus("IN_PROGRESS");
+            session.setCurrentSkillIndex(0);
+            session.setSectionAnswers("{}");
+            session.setSectionStatuses("{}");
+            session.setStartedAt(LocalDateTime.now());
+            if (quiz.getTimeLimitMinutes() != null) {
+                session.setExpiresAt(LocalDateTime.now().plusMinutes(quiz.getTimeLimitMinutes()));
+            } else {
+                session.setExpiresAt(null);
+            }
+            session = sessionRepository.save(session);
+        } else {
+            session = createNewSession(quiz, user);
+            session = sessionRepository.save(session);
+        }
+
+        AssignmentInfoDTO dto = buildInfoDTO(quiz, session, 0, null, true);
+        dto.setIsPreview(true);
+        return dto;
     }
 
     private AssignmentSession createNewSession(Quiz quiz, User user) {
