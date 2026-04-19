@@ -21,12 +21,12 @@
 
             <!-- Filters -->
             <div class="row g-3 mb-3">
-                <div class="col-md-3">
+                <div class="col-md-7">
                     <label class="form-label small fw-semibold">Tìm kiếm</label>
                     <input type="text" id="filterSearch" class="form-control"
                            placeholder="Tên hoặc email học viên...">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-5">
                     <label class="form-label small fw-semibold">Trạng thái</label>
                     <select id="filterStatus" class="form-select">
                         <option value="">Tất cả</option>
@@ -35,11 +35,6 @@
                         <option value="PENDING_BOTH">Chờ chấm cả hai</option>
                         <option value="ALL_GRADED">Đã chấm xong</option>
                     </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" onclick="loadQueue(0)">
-                        <i class="bi bi-filter"></i> Lọc
-                    </button>
                 </div>
             </div>
 
@@ -210,6 +205,13 @@ function renderPagination(page) {
     list.innerHTML += `<li class="page-item ${nextDisabled}">
         <a class="page-link" href="#" onclick="loadQueue(${page.number + 1});return false">›</a></li>`;
 }
+
+let assignmentGradingFilterDebounce;
+document.getElementById('filterSearch').addEventListener('input', function () {
+    clearTimeout(assignmentGradingFilterDebounce);
+    assignmentGradingFilterDebounce = setTimeout(function () { loadQueue(0); }, 400);
+});
+document.getElementById('filterStatus').addEventListener('change', function () { loadQueue(0); });
 
 loadQueue(0);
 </script>

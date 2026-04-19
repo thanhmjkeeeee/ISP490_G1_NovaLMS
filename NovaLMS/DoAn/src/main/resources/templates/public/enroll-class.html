@@ -18,7 +18,7 @@
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
                         <li class="breadcrumb-item"><a th:href="@{/courses}">Khóa học</a></li>
-                        <li class="breadcrumb-item"><a th:href="@{'/courses/' + ${classInfo.courseId}}" th:text="${classInfo.courseName}">Khóa học</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{'/course/details/' + ${classInfo.courseId}}" th:text="${classInfo.courseName}">Khóa học</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Đăng ký</li>
                     </ol>
                 </nav>
@@ -129,9 +129,9 @@
                                         <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold">
                                             <i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán
                                         </button>
-                                        <a th:href="@{'/courses/' + ${classInfo.courseId}}"
+                                        <a th:href="@{'/course/details/' + ${classInfo.courseId}}"
                                            class="btn btn-outline-secondary rounded-pill">
-                                            <i class="bi bi-arrow-left me-2"></i>Quay lại khóa học
+                                            <i class="bi bi-arrow-left me-2"></i>Quay lại chi tiết khóa học
                                         </a>
                                     </div>
                                 </form>

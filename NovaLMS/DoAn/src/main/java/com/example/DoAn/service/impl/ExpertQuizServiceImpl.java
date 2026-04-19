@@ -703,7 +703,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         String skill = dto.getSkill();
         List<String> validSkills = Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING");
         if (!validSkills.contains(skill)) {
-            throw new InvalidDataException("Invalid skill: " + skill);
+            throw new InvalidDataException("Kỹ năng không hợp lệ: " + skill);
         }
         List<QuizQuestion> existing = quizQuestionRepository.findByQuizQuizIdAndSkill(quizId, skill);
         Set<Integer> existingIds = new java.util.HashSet<>();

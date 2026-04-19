@@ -30,6 +30,20 @@ public interface RescheduleRequestRepository extends JpaRepository<RescheduleReq
 
     List<RescheduleRequest> findByCreatedBy_UserIdOrderByCreatedAtDesc(Integer userId);
 
+    /**
+     * Giờ bắt đầu (HH:mm) đã được đặt bởi yêu cầu đổi lịch PENDING của GV trong ngày,
+     * loại trừ buổi đang chỉnh (excludeSessionId) để không khóa slot đích của chính yêu cầu đó.
+     */
+    @Query("SELECT r.newStartTime FROM RescheduleRequest r WHERE r.createdBy.userId = :userId AND r.status = 'PENDING' "
+            + "AND r.newDate >= :dayStart AND r.newDate < :dayEnd "
+            + "AND (:excludeSessionId IS NULL OR r.session.sessionId <> :excludeSessionId) "
+            + "AND r.newStartTime IS NOT NULL AND TRIM(r.newStartTime) <> ''")
+    List<String> findPendingNewStartTimesForTeacherOnDay(
+            @Param("userId") Integer userId,
+            @Param("dayStart") java.time.LocalDateTime dayStart,
+            @Param("dayEnd") java.time.LocalDateTime dayEnd,
+            @Param("excludeSessionId") Integer excludeSessionId);
+
     boolean existsByCreatedBy_UserIdAndNewDateAndNewStartTimeAndStatus(
             Integer userId,
             java.time.LocalDateTime newDate,

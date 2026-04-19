@@ -74,17 +74,14 @@
             <div class="modal-body">
                 <!-- Filters in Modal -->
                 <div class="row g-2 mb-3">
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <select id="modalSkill" class="form-select form-select-sm"></select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <select id="modalCefr" class="form-select form-select-sm"></select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm...">
-                    </div>
-                    <div class="col-md-1">
-                        <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions()"><i class="bi bi-search"></i></button>
                     </div>
                 </div>
 
@@ -100,7 +97,7 @@
                     </tr>
                     </thead>
                     <tbody id="bankQuestionsBody">
-                    <tr><td colspan="6" class="text-center text-muted py-3">Nhấn tìm kiếm...</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-3">Đang tải hoặc chưa có câu hỏi...</td></tr>
                     </tbody>
                 </table>
                 <nav><ul class="pagination pagination-sm justify-content-center" id="modalPagination"></ul></nav>
@@ -549,6 +546,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: 'CEFR' });
         }
     } catch (e) { console.error(e); }
+    document.getElementById('modalSkill').addEventListener('change', function () { loadBankQuestions(0); });
+    document.getElementById('modalCefr').addEventListener('change', function () { loadBankQuestions(0); });
+    let bankQuestionsKeywordDebounce;
+    document.getElementById('modalKeyword').addEventListener('input', function () {
+        clearTimeout(bankQuestionsKeywordDebounce);
+        bankQuestionsKeywordDebounce = setTimeout(function () { loadBankQuestions(0); }, 400);
+    });
     loadQuizQuestions();
 });
 </script>

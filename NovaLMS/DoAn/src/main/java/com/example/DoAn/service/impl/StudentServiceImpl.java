@@ -71,13 +71,21 @@ public class StudentServiceImpl implements StudentService {
             Clazz clazz = classRepository.findById(request.getClassId()).orElse(null);
             if (clazz == null) return ResponseData.error(404, "Không tìm thấy lớp học.");
 
+            Course course = clazz.getCourse();
+            if (course == null) return ResponseData.error(400, "Lớp học chưa được gán khóa học.");
+
+            if (registrationRepository.existsActiveRegistrationForSameCourseOtherClass(
+                    user.getUserId(), course.getCourseId(), request.getClassId())) {
+                return ResponseData.error(400,
+                        "Bạn đã đăng ký khóa học này ở một lớp khác rồi!");
+            }
+
             boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
                     user.getUserId(), request.getClassId(), "Cancelled");
 
             if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
 
             // Tính giá: price - sale
-            Course course = clazz.getCourse();
             Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
             Double saleAmount = course.getSale() != null ? course.getSale() : 0.0;
             Double finalPrice = originalPrice - saleAmount;
@@ -568,7 +576,7 @@ public class StudentServiceImpl implements StudentService {
     public ResponseData<Boolean> checkFirstTime(String email) {
         try {
             User user = userRepository.findByEmail(email).orElse(null);
-            if (user == null) return ResponseData.error(401, "Unauthorized");
+            if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
             List<Registration> registrations = registrationRepository.findByUserEmail(email);
 
             // get list null
@@ -701,6 +709,14 @@ public class StudentServiceImpl implements StudentService {
                     int qMaxAttempts = (qObj != null && qObj.getMaxAttempts() != null) ? qObj.getMaxAttempts() : 0;
                     long qAttemptsUsed = (qObj != null) ? quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(qObj.getQuizId(), userId, "IN_PROGRESS") : 0;
 
+                    boolean rowLocked = isLocked;
+                    if (!"QUIZ".equalsIgnoreCase(lesson.getType())) {
+                        // Tài liệu / video: không khóa theo ngày buổi — học viên đã vào lớp được xem từ lịch
+                        rowLocked = false;
+                    } else if (qObj != null && Boolean.TRUE.equals(qObj.getIsOpen())) {
+                        rowLocked = false;
+                    }
+
                     LessonResponseDTO lDTO = LessonResponseDTO.builder()
                             .lessonId(lesson.getLessonId())
                             .type(lesson.getType() != null ? lesson.getType() : "DOC")
@@ -710,7 +726,7 @@ public class StudentServiceImpl implements StudentService {
                             .videoUrl(lesson.getVideoUrl())
                             .quizId(lesson.getQuiz_id())
                             .isCompleted(isComp)
-                            .isLocked(isLocked)
+                            .isLocked(rowLocked)
                             .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                             .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                             .isSequential(qObj != null && Boolean.TRUE.equals(qObj.getIsSequential()))
@@ -733,13 +749,15 @@ public class StudentServiceImpl implements StudentService {
                     int qMaxAttempts = q.getMaxAttempts() != null ? q.getMaxAttempts() : 0;
                     long qAttemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(q.getQuizId(), userId, "IN_PROGRESS");
 
+                    boolean legacyQuizLocked = isLocked && !Boolean.TRUE.equals(q.getIsOpen());
+
                     quizzes.add(LessonResponseDTO.builder()
                             .quizId(q.getQuizId())
                             .lessonTitle("[Lớp] " + q.getTitle())
                             .lessonName(q.getTitle())
                             .type("QUIZ")
                             .isCompleted(latestResult != null && Boolean.TRUE.equals(latestResult.getPassed()))
-                            .isLocked(isLocked)
+                            .isLocked(legacyQuizLocked)
                             .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                             .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                             .isSequential(Boolean.TRUE.equals(q.getIsSequential()))
@@ -768,7 +786,7 @@ public class StudentServiceImpl implements StudentService {
                                 .lessonName(q.getTitle())
                                 .type("QUIZ")
                                 .isCompleted(latestResult != null && Boolean.TRUE.equals(latestResult.getPassed()))
-                                .isLocked(isLocked)
+                                .isLocked(false)
                                 .latestResultId(latestResult != null ? latestResult.getResultId() : null)
                                 .gradingStatus(latestResult != null ? latestResult.getStatus() : null)
                                 .isSequential(Boolean.TRUE.equals(q.getIsSequential()))

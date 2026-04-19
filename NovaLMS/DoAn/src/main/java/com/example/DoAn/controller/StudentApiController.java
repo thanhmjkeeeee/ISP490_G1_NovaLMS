@@ -40,7 +40,7 @@ public class StudentApiController {
     @PostMapping("/enroll")
     public ResponseData<?> processEnroll(@Valid @RequestBody EnrollRequestDTO request, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         ResponseData<Integer> result = studentService.enrollCourse(email, request);
 
         if (result.getStatus() == 200 || result.getStatus() == 201) {
@@ -51,8 +51,9 @@ public class StudentApiController {
 
         if (result.getStatus() == 400) {
             return new ResponseData<>(result.getStatus(),
-                    "Bạn đã có đăng ký chờ xử lý cho lớp này. "
-                    + "Vui lòng thanh toán hoặc liên hệ quản trị viên để được hỗ trợ.",
+                    result.getMessage() != null ? result.getMessage()
+                            : ("Bạn đã có đăng ký chờ xử lý cho lớp này. "
+                                    + "Vui lòng thanh toán hoặc liên hệ quản trị viên để được hỗ trợ."),
                     null);
         }
 
@@ -62,7 +63,7 @@ public class StudentApiController {
     @GetMapping("/my-enrollments/data")
     public ResponseData<List<RegistrationResponseDTO>> getMyEnrollmentsData(Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return studentService.getMyEnrollments(email);
     }
 
@@ -76,35 +77,35 @@ public class StudentApiController {
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return studentService.getMyCourses(email, keyword, categoryId, page, size, sort);
     }
 
     @GetMapping("/dashboard/data")
     public ResponseData<DashboardResponseDTO> getDashboardData(Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return studentService.getDashboardData(email);
     }
 
     @GetMapping("/check-first-time")
     public ResponseData<Boolean> checkFirstTimeBuyer(Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.success("Guest", false);
+        if (email == null) return ResponseData.success("Khách", false);
         return studentService.checkFirstTime(email);
     }
 
     @GetMapping("/dashboard/chart-data")
     public ResponseData<ChartDataDTO> getChartData(Principal principal, @RequestParam(defaultValue = "7") int days) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return learningService.getDashboardChartData(email, days);
     }
 
     @GetMapping("/progress/data")
     public ResponseData<LearningProgressResponseDTO> getProgressData(Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return studentService.getLearningProgress(email);
     }
 }

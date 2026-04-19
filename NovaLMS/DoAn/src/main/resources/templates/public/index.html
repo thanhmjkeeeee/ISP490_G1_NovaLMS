@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Trang chủ')}">
 </head>
@@ -72,7 +73,11 @@
                   <span th:text="${course.studentCount + ' học viên'}">0 học viên</span>
                 </div>
               </div>
-              <a th:href="@{'/course/details/' + ${course.courseId}}" class="btn-course">Đăng Ký Ngay</a>
+              <a th:href="@{'/course/details/' + ${course.courseId}}" class="btn-course"
+                 sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">Đăng Ký Ngay</a>
+              <span class="btn-course disabled-placeholder d-inline-block text-center text-muted border rounded-pill py-2 px-3 small"
+                    sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')"
+                    style="cursor: not-allowed; opacity: 0.75;">Chỉ học viên đăng ký</span>
             </div>
           </div>
         </div>
@@ -120,7 +125,11 @@
                 <span th:text="${clazz.schedule}">Thứ 2-4-6</span>
               </div>
             </div>
-            <a th:href="@{'/enroll/' + ${clazz.classId}}" class="btn btn-outline-primary w-100 rounded-pill py-2">Giữ chỗ ngay</a>
+            <a th:href="@{'/enroll/' + ${clazz.classId}}" class="btn btn-outline-primary w-100 rounded-pill py-2"
+               sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">Giữ chỗ ngay</a>
+            <span class="btn btn-outline-secondary w-100 rounded-pill py-2 disabled"
+                  sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')"
+                  style="pointer-events: none; opacity: 0.75;">Chỉ học viên đăng ký</span>
           </div>
         </div>
       </div>

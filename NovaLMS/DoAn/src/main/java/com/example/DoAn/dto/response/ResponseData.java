@@ -49,7 +49,7 @@ public class ResponseData<T> implements Serializable {
     }
 
     public static <T> ResponseData<T> success(T data) {
-        return new ResponseData<>(200, "OK", data);
+        return new ResponseData<>(200, "Thành công", data);
     }
 
     public static <T> ResponseData<T> error(int status, String message) {

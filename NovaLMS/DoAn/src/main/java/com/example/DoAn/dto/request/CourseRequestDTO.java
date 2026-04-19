@@ -10,13 +10,13 @@ import java.io.Serializable;
 public class CourseRequestDTO implements Serializable {
     private String courseCode; // optional — used as course.title
 
-    @NotBlank(message = "Course name must not be blank")
+    @NotBlank(message = "Tên khóa học không được để trống")
     private String courseName;
 
     private String description;
 
-    @NotNull(message = "Price must not be null")
-    @Min(value = 0, message = "Price must be greater than or equal to 0")
+    @NotNull(message = "Học phí là bắt buộc")
+    @Min(value = 0, message = "Học phí phải lớn hơn hoặc bằng 0")
     private Double price;
 
     private Double sale;

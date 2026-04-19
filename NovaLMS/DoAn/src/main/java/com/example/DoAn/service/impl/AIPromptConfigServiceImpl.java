@@ -35,7 +35,7 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
     private void loadFromYaml() {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(DEFAULT_CONFIG_PATH)) {
             if (is == null) {
-                log.warn("Default AI config file not found: {}", DEFAULT_CONFIG_PATH);
+                log.warn("Không tìm thấy file cấu hình AI mặc định: {}", DEFAULT_CONFIG_PATH);
                 return;
             }
             Map<String, Object> yamlData = new Yaml().load(is);
@@ -49,7 +49,7 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to initialize AI Prompt Config from YAML: {}", e.getMessage());
+            log.error("Không khởi tạo được cấu hình AI từ YAML: {}", e.getMessage());
         }
     }
 
@@ -97,7 +97,7 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
             map.put("writing_constraint", entity.getWritingConstraint());
             map.put("speaking_constraint", entity.getSpeakingConstraint());
         } catch (Exception e) {
-            log.error("Error parsing AI config from DB for bucket {}: {}", bucket, e.getMessage());
+            log.error("Lỗi đọc cấu hình AI từ CSDL (bucket {}): {}", bucket, e.getMessage());
         }
         return map;
     }
@@ -125,7 +125,7 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to reset AI Prompt Config to default: {}", e.getMessage());
+            log.error("Không khôi phục được cấu hình AI mặc định: {}", e.getMessage());
         }
     }
 }

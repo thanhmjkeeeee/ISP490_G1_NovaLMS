@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class AIImportRequestDTO {
 
-    @NotEmpty(message = "At least one question is required")
+    @NotEmpty(message = "Cần ít nhất một câu hỏi")
     @Valid
     private List<AIQuestionDTO> questions;
 

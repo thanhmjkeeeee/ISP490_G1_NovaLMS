@@ -37,7 +37,7 @@ public class StudentClassApiController {
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         return studentClassService.getMyClasses(email, keyword, status, page, size);
     }
@@ -45,10 +45,10 @@ public class StudentClassApiController {
     @GetMapping("/{classId}/detail")
     public ResponseData<StudentClassDetailResponse> getClassDetail(@PathVariable Integer classId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return ResponseData.error(404, "User not found");
+        if (user == null) return ResponseData.error(404, "Không tìm thấy người dùng");
 
         try {
             return ResponseData.success("Chi tiết lớp học", studentService.getStudentClassDetail(classId, user.getUserId()));

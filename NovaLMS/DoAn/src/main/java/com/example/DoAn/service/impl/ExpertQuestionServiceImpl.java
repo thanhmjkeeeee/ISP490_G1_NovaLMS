@@ -270,6 +270,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .skill(question.getSkill())
                 .cefrLevel(question.getCefrLevel())
                 .status(question.getStatus())
+                .audioUrl(question.getAudioUrl())
+                .imageUrl(question.getImageUrl())
                 .optionCount(opts.size())
                 .correctOptionCount(correctCount)
                 .options(leftOpts != null ? leftOpts : optDTOs)
@@ -570,6 +572,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                         q.setCefrLevel(group.getCefrLevel());
                         q.setTopic(group.getTopic());
                         if (qReq.getExplanation() != null) q.setExplanation(qReq.getExplanation());
+                        if (qReq.getAudioUrl() != null) q.setAudioUrl(qReq.getAudioUrl());
+                        if (qReq.getImageUrl() != null) q.setImageUrl(qReq.getImageUrl());
                         questionRepository.save(q);
                         // Update answer options
                         if (qReq.getOptions() != null && !qReq.getOptions().isEmpty()) {
@@ -655,6 +659,8 @@ public class ExpertQuestionServiceImpl implements IExpertQuestionService {
                 .cefrLevel(group.getCefrLevel())
                 .topic(group.getTopic())
                 .explanation(qReq.getExplanation())
+                .audioUrl(qReq.getAudioUrl())
+                .imageUrl(qReq.getImageUrl())
                 .status("PUBLISHED")
                 .build();
         

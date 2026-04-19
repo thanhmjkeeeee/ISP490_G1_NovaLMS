@@ -77,7 +77,7 @@ public class PaymentController {
 
             if (signature == null || !payosService.verifyWebhookSignature(rawBody, signature)) {
                 log.warn("PayOS webhook signature FAILED");
-                return ResponseEntity.status(401).body("{\"success\":false,\"message\":\"Invalid signature\"}");
+                return ResponseEntity.status(401).body("{\"success\":false,\"message\":\"Chữ ký không hợp lệ\"}");
             }
 
             JsonNode json = objectMapper.readTree(rawBody);

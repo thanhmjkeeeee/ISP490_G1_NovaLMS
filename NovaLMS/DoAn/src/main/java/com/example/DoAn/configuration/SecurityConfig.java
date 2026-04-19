@@ -51,8 +51,8 @@ public class SecurityConfig {
             "/instructors", "/instructors.html", "/instructor-profile", "/instructor-profile.html",
             "/about", "/about.html", "/pricing", "/pricing.html",
             "/blog", "/blog.html", "/contact", "/contact.html",
-            "/404", "/404.html", "/error", "/classes",
-            "/enroll", "/enroll-class",
+            "/404", "/404.html", "/403", "/403.html", "/error", "/classes",
+            "/enroll", "/enroll/**", "/enroll-class",
             // PayOS payment return URLs
             "/payment/success", "/payment/cancel"
     };
@@ -68,11 +68,12 @@ public class SecurityConfig {
                             if (request.getRequestURI().startsWith("/api/")) {
                                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                                 response.setContentType("application/json");
-                                response.getWriter().write("{\"status\":401,\"message\":\"Unauthorized\"}");
+                                response.getWriter().write("{\"status\":401,\"message\":\"Vui lòng đăng nhập.\"}");
                             } else {
                                 response.sendRedirect("/login.html?redirect=" + request.getRequestURI());
                             }
                         })
+                        .accessDeniedPage("/403.html")
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -81,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/login"), AntPathRequestMatcher.antMatcher("/login.html"),
                                 AntPathRequestMatcher.antMatcher("/register"), AntPathRequestMatcher.antMatcher("/register.html"),
                                 AntPathRequestMatcher.antMatcher("/reset-password"), AntPathRequestMatcher.antMatcher("/reset-password.html"),
-                                AntPathRequestMatcher.antMatcher("/error")).permitAll()
+                                AntPathRequestMatcher.antMatcher("/403.html"), AntPathRequestMatcher.antMatcher("/error")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/current-user")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/classes/**")).permitAll()

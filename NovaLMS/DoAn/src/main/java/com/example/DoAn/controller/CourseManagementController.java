@@ -34,7 +34,7 @@ public class CourseManagementController {
             @RequestParam(required = false) String status) {
         try {
             PageResponse<?> courses = courseService.getAllCoursesWithFilter(pageNo, pageSize, search, status);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", courses);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", courses);
         } catch (Exception e) {
             return ResponseData.error(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -68,7 +68,7 @@ public class CourseManagementController {
     public ResponseData<CourseDetailResponse> getCourse(@PathVariable Integer id) {
         try {
             CourseDetailResponse response = courseService.getById(id);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return ResponseData.error(HttpStatus.NOT_FOUND.value(), "Course not found");
         }
@@ -90,7 +90,7 @@ public class CourseManagementController {
     public ResponseData<Long> getLessonCount(@PathVariable Integer id) {
         try {
             long count = courseService.getLessonCount(id);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", count);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", count);
         } catch (Exception e) {
             return ResponseData.error(HttpStatus.NOT_FOUND.value(), "Course not found");
         }

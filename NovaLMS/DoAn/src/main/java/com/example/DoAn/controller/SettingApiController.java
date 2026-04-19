@@ -29,7 +29,7 @@ public class SettingApiController {
             @RequestParam(required = false, defaultValue = "COURSE_CATEGORY") String type,
             @RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
         try {
-            System.out.println(">>> [LOG] Fetching settings for type: " + type + ", activeOnly=" + activeOnly);
+            System.out.println(">>> [LOG] Đang tải cài đặt loại: " + type + ", activeOnly=" + activeOnly);
             List<Setting> entities = settingService.getSettingsByType(type, activeOnly);
             
             // Chuyển đổi sang DTO để loại bỏ hoàn toàn lỗi JSON Serialization
@@ -43,8 +43,8 @@ public class SettingApiController {
                     .description(s.getDescription())
                     .build()).collect(Collectors.toList());
 
-            System.out.println(">>> [LOG] Successfully mapped " + dtos.size() + " items to DTO.");
-            return ResponseEntity.ok(ResponseData.success("Success", dtos));
+            System.out.println(">>> [LOG] Đã ánh xạ " + dtos.size() + " mục sang DTO.");
+            return ResponseEntity.ok(ResponseData.success("Thành công", dtos));
         } catch (Exception e) {
             System.err.println(">>> [ERROR] Failed to fetch settings: " + e.getMessage());
             e.printStackTrace();

@@ -10,11 +10,11 @@ import java.util.List;
 @Builder
 public class ManualQuestionDTO {
 
-    @NotBlank(message = "Question content is required")
-    @Size(min = 10, max = 2000, message = "Content must be 10-2000 characters")
+    @NotBlank(message = "Nội dung câu hỏi là bắt buộc")
+    @Size(min = 10, max = 2000, message = "Nội dung phải từ 10 đến 2000 ký tự")
     private String content;
 
-    @NotBlank(message = "Question type is required")
+    @NotBlank(message = "Loại câu hỏi là bắt buộc")
     private String questionType; // "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK", "MATCHING", "WRITING", "SPEAKING"
 
     private String explanation;
