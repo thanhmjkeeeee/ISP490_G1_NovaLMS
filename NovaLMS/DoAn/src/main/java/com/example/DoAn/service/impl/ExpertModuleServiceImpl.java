@@ -2,12 +2,17 @@ package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.request.ModuleRequestDTO;
 import com.example.DoAn.dto.response.ModuleResponseDTO;
+import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.exception.ResourceNotFoundException;
 import com.example.DoAn.model.*;
 import com.example.DoAn.model.Module;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.IExpertModuleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,18 +101,23 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CourseOwnedByExpertDTO> getCoursesOwnedByExpert(String email) {
+    public PageResponse<CourseOwnedByExpertDTO> getCoursesOwnedByExpert(String email, String search, String status,
+            int pageNo, int pageSize) {
         User user = userRepository.findByEmailWithRole(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
 
-        List<Course> courses;
-        if (isAdmin(user)) {
-            courses = courseRepository.findAll();
-        } else {
-            courses = courseRepository.findByExpertUserId(user.getUserId());
+        Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("courseId").descending());
+
+        Integer expertId = isAdmin(user) ? null : user.getUserId();
+
+        // Normalize status
+        if (status != null && (status.isEmpty() || status.equalsIgnoreCase("all"))) {
+            status = null;
         }
 
-        return courses.stream().map(c -> {
+        Page<Course> coursePage = courseRepository.findByExpertAndSearch(expertId, search, status, pageable);
+
+        List<CourseOwnedByExpertDTO> items = coursePage.getContent().stream().map(c -> {
             CourseOwnedByExpertDTO dto = new CourseOwnedByExpertDTO();
             dto.setCourseId(c.getCourseId());
             dto.setCourseName(c.getCourseName());
@@ -122,6 +132,15 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
 
             return dto;
         }).collect(Collectors.toList());
+
+        return PageResponse.<CourseOwnedByExpertDTO>builder()
+                .items(items)
+                .pageNo(coursePage.getNumber())
+                .pageSize(coursePage.getSize())
+                .totalElements(coursePage.getTotalElements())
+                .totalPages(coursePage.getTotalPages())
+                .last(coursePage.isLast())
+                .build();
     }
 
     @Override
@@ -169,7 +188,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     @Override
     @Transactional(readOnly = true)
     public List<ModuleResponseDTO> getAllModulesByExpert(String email) {
-        List<CourseOwnedByExpertDTO> courses = getCoursesOwnedByExpert(email);
+        List<CourseOwnedByExpertDTO> courses = getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems();
         return courses.stream()
                 .flatMap(c -> {
                     List<Module> modules = moduleRepository.findByCourse_CourseIdOrderByOrderIndexAsc(c.getCourseId());

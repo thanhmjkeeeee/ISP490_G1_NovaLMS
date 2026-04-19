@@ -22,7 +22,8 @@ public class ExpertViewController {
     private final com.example.DoAn.service.ICourseService courseService;
 
     private String getEmail(Principal principal) {
-        if (principal instanceof OAuth2AuthenticationToken t) return t.getPrincipal().getAttribute("email");
+        if (principal instanceof OAuth2AuthenticationToken t)
+            return t.getPrincipal().getAttribute("email");
         return principal.getName();
     }
 
@@ -37,9 +38,10 @@ public class ExpertViewController {
     @GetMapping("/modules")
     public String modulesPage(Model model, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
-        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email);
+        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems();
         model.addAttribute("courses", coursesResult);
         model.addAttribute("isDashboard", true);
         return "expert/module-list";
@@ -50,15 +52,16 @@ public class ExpertViewController {
     @GetMapping("/content")
     public String contentPage(Model model, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
-        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email);
+        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems();
         model.addAttribute("courses", coursesResult);
         model.addAttribute("isDashboard", true);
         return "expert/content";
     }
 
-    @GetMapping({"/content/course", "/content/course/"})
+    @GetMapping({ "/content/course", "/content/course/" })
     public String contentRedirect() {
         return "redirect:/expert/content";
     }
@@ -66,11 +69,12 @@ public class ExpertViewController {
     @GetMapping("/content/course/{courseId}")
     public String courseContentPage(@PathVariable Integer courseId, Model model, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
         var course = courseService.getById(courseId);
         List<?> modulesResult = moduleService.getModulesByCourse(courseId, email);
-        
+
         model.addAttribute("courseId", courseId);
         model.addAttribute("course", course);
         model.addAttribute("modules", modulesResult);
@@ -83,15 +87,16 @@ public class ExpertViewController {
     @GetMapping("/quiz-bank")
     public String quizBankPage(Model model, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
-        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email);
+        List<?> coursesResult = moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems();
         model.addAttribute("courses", coursesResult);
         model.addAttribute("isDashboard", true);
         return "expert/quiz-bank";
     }
 
-    @GetMapping({"/quiz-bank/course", "/quiz-bank/course/"})
+    @GetMapping({ "/quiz-bank/course", "/quiz-bank/course/" })
     public String quizBankRedirect() {
         return "redirect:/expert/quiz-bank";
     }
@@ -99,7 +104,8 @@ public class ExpertViewController {
     @GetMapping("/quiz-bank/course/{courseId}")
     public String courseQuizBankPage(@PathVariable Integer courseId, Model model, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
         List<?> modulesResult = moduleService.getModulesByCourse(courseId, email);
         model.addAttribute("courseId", courseId);
@@ -109,7 +115,7 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  QUESTION BANK (Quản lý ngân hàng đề)
+    // QUESTION BANK (Quản lý ngân hàng đề)
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/question-bank")
@@ -125,7 +131,8 @@ public class ExpertViewController {
     }
 
     @GetMapping("/question-bank/{itemId}/edit")
-    public String questionEditPage(@PathVariable Integer itemId, @RequestParam(required = false, defaultValue = "SINGLE") String type, Model model) {
+    public String questionEditPage(@PathVariable Integer itemId,
+            @RequestParam(required = false, defaultValue = "SINGLE") String type, Model model) {
         model.addAttribute("isDashboard", true);
         model.addAttribute("itemId", itemId);
         model.addAttribute("itemType", type);
@@ -133,7 +140,7 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  AI QUESTION GENERATION (MODAL SPLIT INTO PAGES)
+    // AI QUESTION GENERATION (MODAL SPLIT INTO PAGES)
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/question-bank/ai-quick")
@@ -146,7 +153,7 @@ public class ExpertViewController {
     public String aiModulePage(Model model, Principal principal) {
         String email = getEmail(principal);
         if (email != null) {
-            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems());
         }
         model.addAttribute("isDashboard", true);
         return "expert/ai-module";
@@ -159,7 +166,7 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  QUESTION APPROVAL QUEUE (SPEC 003)
+    // QUESTION APPROVAL QUEUE (SPEC 003)
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/question-approval")
@@ -169,14 +176,14 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  QUIZ MANAGEMENT
+    // QUIZ MANAGEMENT
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/quiz-management")
     public String quizListPage(Model model, Principal principal) {
         String email = getEmail(principal);
         if (email != null) {
-            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems());
         }
         model.addAttribute("isDashboard", true);
         model.addAttribute("mode", "QUIZ");
@@ -209,14 +216,14 @@ public class ExpertViewController {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  ASSIGNMENT MANAGEMENT (redirect to unified quiz list)
+    // ASSIGNMENT MANAGEMENT (redirect to unified quiz list)
     // ══════════════════════════════════════════════════════════════════════
 
     @GetMapping("/assignment-management")
     public String assignmentListPage(Model model, Principal principal) {
         String email = getEmail(principal);
         if (email != null) {
-            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email));
+            model.addAttribute("courses", moduleService.getCoursesOwnedByExpert(email, null, null, 0, 1000).getItems());
         }
         model.addAttribute("isDashboard", true);
         model.addAttribute("mode", "ASSIGNMENT");

@@ -146,8 +146,8 @@ async function loadCourseFilter() {
     try {
         const res = await fetch('/api/v1/expert/modules/courses');
         const result = await res.json();
-        if (result.status === 200 && result.data) {
-            result.data.forEach(function(c) {
+        if (result.status === 200 && result.data && result.data.items) {
+            result.data.items.forEach(function(c) {
                 ALL_COURSES.push(c);
                 const opt = document.createElement('option');
                 opt.value = c.courseId;

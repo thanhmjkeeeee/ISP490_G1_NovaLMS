@@ -236,6 +236,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
         AssignmentGradingDetailDTO dto = new AssignmentGradingDetailDTO();
         dto.setResultId(resultId);
+        dto.setStatus(result.getStatus());
         dto.setAssignmentSessionId(result.getAssignmentSessionId());
         dto.setStudentName(result.getUser() != null ? result.getUser().getFullName() : null);
         dto.setQuizTitle(quiz.getTitle());

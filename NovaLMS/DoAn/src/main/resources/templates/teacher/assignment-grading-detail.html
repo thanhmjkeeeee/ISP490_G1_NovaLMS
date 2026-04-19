@@ -70,20 +70,20 @@
     </div>
 
     <!-- ── Submit ──────────────────────────────────────────────────────── -->
-    <div class="card border-0 shadow-sm rounded-4 mt-4">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="text-muted small">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Điểm LISTENING / READING đã được chấm tự động.
-                    Vui lòng nhập điểm cho SPEAKING / WRITING, sau đó nhấn <strong>Lưu điểm chấm</strong>.
+            <div class="card border-0 shadow-sm rounded-4 mt-4" th:if="${detail != null and detail.status != 'GRADED'}">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Điểm LISTENING / READING đã được chấm tự động.
+                            Vui lòng nhập điểm cho SPEAKING / WRITING, sau đó nhấn <strong>Lưu điểm chấm</strong>.
+                        </div>
+                        <button class="btn btn-success btn-lg px-5" id="submitGradeBtn" onclick="submitGrade()">
+                            <i class="bi bi-check-circle me-1"></i> Lưu điểm chấm
+                        </button>
+                    </div>
                 </div>
-                <button class="btn btn-success btn-lg px-5" id="submitGradeBtn" onclick="submitGrade()">
-                    <i class="bi bi-check-circle me-1"></i> Lưu điểm chấm
-                </button>
             </div>
-        </div>
-    </div>
 </main>
 
 <script>
@@ -261,6 +261,7 @@ function renderQuestion(q, qi, isAutoGraded) {
             </span>
         </div>`;
     } else {
+        const isGraded = (gradingData && gradingData.status === 'GRADED');
         inputBlock = `
         <div class="row g-3 mt-2 align-items-end">
             <div class="col-md-3">
@@ -270,14 +271,16 @@ function renderQuestion(q, qi, isAutoGraded) {
                        class="form-control teacher-score"
                        data-question-id="${q.questionId}"
                        data-max="${q.maxPoints}"
-                       value="${scoreVal}">
+                       value="${scoreVal}"
+                       ${isGraded ? 'readonly' : ''}>
             </div>
             <div class="col-md-9">
                 <label class="form-label small fw-semibold">Ghi chú</label>
                 <input type="text" class="form-control teacher-note"
                        data-question-id="${q.questionId}"
                        value="${noteVal}"
-                       placeholder="Nhận xét cho câu trả lời này...">
+                       placeholder="Nhận xét cho câu trả lời này..."
+                       ${isGraded ? 'readonly' : ''}>
             </div>
         </div>`;
     }

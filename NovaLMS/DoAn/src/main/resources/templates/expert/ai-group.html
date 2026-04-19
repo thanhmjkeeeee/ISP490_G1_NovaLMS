@@ -65,7 +65,9 @@
             <!-- Passage column -->
             <div class="col-lg-7">
                 <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white py-3 fw-bold text-primary">Đoạn văn / Nội dung (Passage)</div>
+                    <div id="passageHeader" class="card-header bg-white py-3 d-flex justify-content-between align-items-center fw-bold text-primary">
+                        <span>Đoạn văn / Nội dung (Passage)</span>
+                    </div>
                     <div class="card-body">
                         <div id="passageContent" class="p-3 bg-light rounded" style="min-height: 200px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;"></div>
                         <div class="mt-3" id="explanationContent"></div>
@@ -146,6 +148,14 @@
         const g = groupPreviewData;
         if (!g) return;
 
+        const header = document.getElementById('passageHeader');
+        header.innerHTML = `<span>Đoạn văn / Nội dung (Passage)</span>
+            ${g.audioUrl ? `
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="playAudio('${g.audioUrl}', this)">
+                    <i class="bi bi-play-fill me-1"></i> Nghe bài nghe
+                </button>
+            ` : ''}`;
+
         document.getElementById('passageContent').textContent = g.passage || '';
         document.getElementById('explanationContent').innerHTML = g.explanation ? `<div class="small text-muted fst-italic"><i class="bi bi-info-circle me-1"></i>${escapeHtml(g.explanation)}</div>` : '';
         
@@ -219,6 +229,37 @@
             alert('Đã lưu bộ câu hỏi thành công.');
             window.location.href = '/expert/question-bank';
         } catch (e) { alert('Lỗi: ' + e.message); }
+    }
+
+    let currentAudio = null;
+    function playAudio(url, btn) {
+        if (currentAudio) {
+            currentAudio.pause();
+            const prevBtn = document.querySelector('.btn-playing');
+            if (prevBtn) {
+                prevBtn.innerHTML = prevBtn.id === 'btn-passage-play' ? '<i class="bi bi-play-fill me-1"></i> Nghe bài nghe' : '<i class="bi bi-play-fill me-1"></i> Nghe câu hỏi';
+                prevBtn.classList.remove('btn-playing', 'btn-danger');
+                prevBtn.classList.add('btn-outline-primary');
+            }
+            if (currentAudio.src === url) {
+                currentAudio = null;
+                return;
+            }
+        }
+
+        const audio = new Audio(url);
+        currentAudio = audio;
+        btn.classList.add('btn-playing', 'btn-danger');
+        btn.classList.remove('btn-outline-primary');
+        btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i> Dừng';
+
+        audio.play();
+        audio.onended = () => {
+            btn.innerHTML = btn.id === 'btn-passage-play' ? '<i class="bi bi-play-fill me-1"></i> Nghe bài nghe' : '<i class="bi bi-play-fill me-1"></i> Nghe câu hỏi';
+            btn.classList.remove('btn-playing', 'btn-danger');
+            btn.classList.add('btn-outline-primary');
+            currentAudio = null;
+        };
     }
 
     function escapeHtml(text) {

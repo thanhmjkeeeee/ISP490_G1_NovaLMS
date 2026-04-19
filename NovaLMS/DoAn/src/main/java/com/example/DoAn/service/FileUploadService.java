@@ -69,4 +69,22 @@ public class FileUploadService {
             throw new RuntimeException("Lỗi khi tải file lên Cloudinary", e);
         }
     }
+
+    public String uploadBytes(byte[] bytes, String originalFilename, String resourceType) {
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("resource_type", resourceType); // "auto", "video", "raw"
+            params.put("use_filename", true);
+            params.put("unique_filename", true);
+            
+            if (originalFilename != null) {
+                params.put("public_id", originalFilename.replaceAll("[^a-zA-Z0-9-]", "_") + "_" + System.currentTimeMillis());
+            }
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(bytes, params);
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tải dữ liệu lên Cloudinary", e);
+        }
+    }
 }
