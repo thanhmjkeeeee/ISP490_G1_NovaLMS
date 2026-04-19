@@ -25,11 +25,17 @@ public interface IStudentAssignmentService {
     Map<String, Object> submitSpeakingSection(Long sessionId,
             Map<Integer, String> audioUrls, String userEmail);
 
+    /** Save external link (Google Drive, etc.) */
+    void saveExternalSubmission(Long sessionId, String link, String note, String userEmail);
+
     /** Complete assignment — returns QuizResult.id */
     Integer completeAssignment(Long sessionId, String userEmail);
 
     /** Auto-submit on timer expiry */
     void autoSubmit(Long sessionId, String userEmail);
+
+    /** Process all expired sessions in background */
+    void autoSubmitAllExpired();
 
     /** Get detailed result for student */
     AssignmentGradingDetailDTO getAssignmentResultDetail(Integer resultId, String studentEmail);
