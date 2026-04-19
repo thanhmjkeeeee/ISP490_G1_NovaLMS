@@ -32,6 +32,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final com.example.DoAn.service.QuizResultService quizResultService;
 
     // ─── Grading Queue ────────────────────────────────────────────────────────
 
@@ -88,10 +89,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         dto.setSubmittedAt(r.getSubmittedAt());
 
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(r.getResultId());
-        dto.setListening(buildSectionStatus(answers, "LISTENING"));
-        dto.setReading(buildSectionStatus(answers, "READING"));
-        dto.setSpeaking(buildSectionStatus(answers, "SPEAKING"));
-        dto.setWriting(buildSectionStatus(answers, "WRITING"));
+        dto.setListening(buildSectionStatus(r.getQuiz().getQuizId(), answers, "LISTENING"));
+        dto.setReading(buildSectionStatus(r.getQuiz().getQuizId(), answers, "READING"));
+        dto.setSpeaking(buildSectionStatus(r.getQuiz().getQuizId(), answers, "SPEAKING"));
+        dto.setWriting(buildSectionStatus(r.getQuiz().getQuizId(), answers, "WRITING"));
 
         // Overall auto score (LISTENING + READING)
         BigDecimal autoScore = BigDecimal.ZERO;
@@ -118,7 +119,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     }
 
     private AssignmentGradingQueueDTO.SectionStatus buildSectionStatus(
-            List<QuizAnswer> answers, String skill) {
+            Integer quizId, List<QuizAnswer> answers, String skill) {
 
         List<QuizAnswer> sectionAnswers = answers.stream()
                 .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
@@ -135,7 +136,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         for (QuizAnswer a : sectionAnswers) {
             BigDecimal pts = a.getPointsAwarded();
             BigDecimal max = a.getQuestion() != null
-                    ? getQuestionMaxPoints(a.getQuestion())
+                    ? getQuestionMaxPoints(quizId, a.getQuestion())
                     : BigDecimal.ONE;
 
             maxScore = maxScore.add(max);
@@ -148,11 +149,12 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 gradingStatus = "AUTO";
             } else {
                 // SPEAKING / WRITING: teacher-graded
-                if (pts != null) {
-                    totalScore = totalScore.add(pts);
+                if (a.getTeacherOverrideScore() != null) {
+                    totalScore = totalScore.add(pts != null ? pts : BigDecimal.ZERO);
                     gradingStatus = "GRADED";
                 } else if (a.getAiScore() != null) {
                     gradingStatus = "AI_READY";
+                    totalScore = totalScore.add(pts != null ? pts : BigDecimal.ZERO);
                     if (aiScore == null) aiScore = a.getAiScore();
                     if (aiFeedback == null) aiFeedback = a.getAiFeedback();
                 } else {
@@ -186,10 +188,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         return s;
     }
 
-    private BigDecimal getQuestionMaxPoints(Question q) {
+    private BigDecimal getQuestionMaxPoints(Integer quizId, Question q) {
         // Try QuizQuestion for explicit points, else default to 1
         return quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
-                        q.getQuestionId(), q.getQuestionId())
+                        quizId, q.getQuestionId())
                 .filter(qq -> qq.getPoints() != null)
                 .map(QuizQuestion::getPoints)
                 .orElse(BigDecimal.ONE);
@@ -259,7 +261,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
             for (QuizAnswer a : skillAnswers) {
                 Question q = a.getQuestion();
-                BigDecimal maxPts = getQuestionMaxPoints(q);
+                BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), q);
                 sectionMax = sectionMax.add(maxPts);
 
                 AssignmentGradingDetailDTO.QuestionGradeItem item =
@@ -339,6 +341,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         QuizResult result = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả không tìm thấy: " + resultId));
 
+        Quiz quiz = result.getQuiz();
+
         // 1. Save per-question scores
         if (request.getGradingItems() != null) {
             for (AssignmentGradingRequestDTO.QuestionGradingItem item : request.getGradingItems()) {
@@ -347,59 +351,35 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                     answer.setPointsAwarded(item.getPointsAwarded());
                     answer.setTeacherNote(item.getTeacherNote());
                     answer.setIsCorrect(item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                    
+                    // Set override score for recalculateQuizResult logic
+                    if (item.getPointsAwarded() != null) {
+                        answer.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                    } else {
+                        answer.setTeacherOverrideScore(null);
+                    }
+                    
                     quizAnswerRepository.save(answer);
                 }
             }
         }
 
-        // 2. Recalculate everything from DB to avoid scoring bugs
-        List<QuizAnswer> allAnswers = quizAnswerRepository.findByQuizResultResultId(resultId);
-        Map<String, BigDecimal> sectionScores = new LinkedHashMap<>();
-        BigDecimal totalScoreSum = BigDecimal.ZERO;
-
-        for (QuizAnswer a : allAnswers) {
-            BigDecimal pts = a.getPointsAwarded() != null ? a.getPointsAwarded() : BigDecimal.ZERO;
-            String skill = (a.getQuestion() != null && a.getQuestion().getSkill() != null) ? a.getQuestion().getSkill() : "OTHER";
-            sectionScores.put(skill, sectionScores.getOrDefault(skill, BigDecimal.ZERO).add(pts));
-            totalScoreSum = totalScoreSum.add(pts);
-        }
-
-        try {
-            result.setSectionScores(objectMapper.writeValueAsString(sectionScores));
-        } catch (Exception e) {
-            throw new RuntimeException("Serialization error", e);
-        }
-        result.setScore(totalScoreSum.setScale(0, RoundingMode.HALF_UP).intValue());
-
-        Quiz quiz = result.getQuiz();
-        BigDecimal totalMax = BigDecimal.ZERO;
-        if (quiz != null) {
-            totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
-                    .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-        }
+        quizResultRepository.save(result);
 
         // 3. Status and Passed check
         boolean isFinal = Boolean.TRUE.equals(request.getIsFinal());
         if (isFinal) {
-            if (quiz != null) {
-                BigDecimal rate = totalMax.compareTo(BigDecimal.ZERO) > 0
-                        ? totalScoreSum.divide(totalMax, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
-                        : BigDecimal.ZERO;
-                result.setCorrectRate(rate);
-
-                if (quiz.getPassScore() != null) {
-                    result.setPassed(rate.compareTo(quiz.getPassScore()) >= 0);
-                } else {
-                    result.setPassed(true);
-                }
-            }
             result.setStatus("GRADED");
         } else {
             result.setStatus("GRADING");
         }
-
         quizResultRepository.save(result);
+
+        // 4. Recalculate everything using the shared logic (updates overallBand, correctRate, etc.)
+        quizResultService.recalculateQuizResult(resultId);
+        
+        // Refresh result after recalculation
+        result = quizResultRepository.findById(resultId).orElse(result);
 
         // ── Send email + in-app notification to student ──────────────────────
         if (isFinal && result.getUser() != null) {
@@ -409,7 +389,17 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
             String assignmentTitle = quiz != null ? quiz.getTitle() : "";
             String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
-            String scoreStr = totalScoreSum != null ? totalScoreSum.intValue() + "/" + totalMax.intValue() : "";
+            
+            // Re-fetch totals for notification
+            BigDecimal totalScoreSum = result.getScore() != null ? BigDecimal.valueOf(result.getScore()) : BigDecimal.ZERO;
+            BigDecimal totalMax = BigDecimal.ZERO;
+            if (quiz != null) {
+                totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+            }
+
+            String scoreStr = totalScoreSum.intValue() + "/" + totalMax.intValue();
             String passedStatus = Boolean.TRUE.equals(result.getPassed()) ? "Dat" : "Khong dat";
 
             if (email != null && !email.isBlank()) {

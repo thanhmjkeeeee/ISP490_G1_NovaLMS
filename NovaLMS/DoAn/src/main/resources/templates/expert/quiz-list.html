@@ -3,6 +3,9 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:with="isDashboard=true">
 <head th:replace="~{fragments/head :: common-head(pageTitle='Quiz Management - Expert')}"></head>
+<style>
+    .extra-small { font-size: 0.75rem; }
+</style>
 <body class="dashboard-body">
 
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Quiz Management', breadcrumb='Expert')}"></header>
@@ -75,6 +78,7 @@
                         <th>Tên Quiz</th>
                         <th>Loại</th>
                         <th>Khóa học</th>
+                        <th>Ngày tạo</th>
                         <th>Phạm vi</th>
                         <th>Câu hỏi</th>
                         <th>Trạng thái</th>
@@ -162,13 +166,17 @@ async function loadQuizzes(page = 0) {
                     <td class="fw-medium">${q.title || '—'}</td>
                     <td>${categoryBadge(q.quizCategory)}</td>
                     <td>${q.courseName || '—'}</td>
+                    <td>
+                        <div class="small fw-bold">${q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : '—'}</div>
+                        <div class="extra-small text-muted">${q.createdAt ? new Date(q.createdAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'}) : ''}</div>
+                    </td>
                     <td><span class="small text-muted">${q.moduleName || q.lessonName || '—'}</span></td>
                     <td><span class="badge bg-light text-dark">${q.totalQuestions} câu</span></td>
                     <td>${statusBadge(q.status)}</td>
                     <td class="text-end px-4">
                         <a href="/expert/quiz-management/${q.quizId}/questions" class="btn btn-sm btn-outline-info me-1" title="Quản lý câu hỏi"><i class="bi bi-list-check"></i></a>
                         <a href="/expert/quiz-management/${q.quizId}/edit" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
-                        ${!q.hasAttempts ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuiz(${q.quizId})"><i class="bi bi-trash"></i></button>` : ''}
+                        ${(!q.hasAttempts && (!q.registrationCount || q.registrationCount === 0)) ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuiz(${q.quizId})"><i class="bi bi-trash"></i></button>` : ''}
                     </td>
                 </tr>
             `).join('');
