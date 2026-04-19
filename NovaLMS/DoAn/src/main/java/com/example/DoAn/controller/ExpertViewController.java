@@ -58,6 +58,11 @@ public class ExpertViewController {
         return "expert/content";
     }
 
+    @GetMapping({"/content/course", "/content/course/"})
+    public String contentRedirect() {
+        return "redirect:/expert/content";
+    }
+
     @GetMapping("/content/course/{courseId}")
     public String courseContentPage(@PathVariable Integer courseId, Model model, Principal principal) {
         String email = getEmail(principal);
@@ -84,6 +89,11 @@ public class ExpertViewController {
         model.addAttribute("courses", coursesResult);
         model.addAttribute("isDashboard", true);
         return "expert/quiz-bank";
+    }
+
+    @GetMapping({"/quiz-bank/course", "/quiz-bank/course/"})
+    public String quizBankRedirect() {
+        return "redirect:/expert/quiz-bank";
     }
 
     @GetMapping("/quiz-bank/course/{courseId}")
