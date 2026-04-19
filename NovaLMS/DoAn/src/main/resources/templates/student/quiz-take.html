@@ -465,7 +465,15 @@ window.wsSpeak = function (text) {
         return;
     }
 
-    window.speechSynthesis.cancel();
+    if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        if (window._wsLastText === text) {
+            window._wsLastText = null;
+            return;
+        }
+    }
+    window._wsLastText = text;
+
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return;
 
@@ -488,7 +496,7 @@ window.wsSpeak = function (text) {
     const speakerVoiceMap = {};
 
     const playNextLine = (index) => {
-        if (index >= lines.length) return;
+        if (index >= lines.length || window._wsLastText !== text) return;
 
         const line = lines[index];
         const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
@@ -516,7 +524,13 @@ window.wsSpeak = function (text) {
         if (speakerVoiceMap[speakerName]) utterance.voice = speakerVoiceMap[speakerName];
 
         utterance.onend = () => {
-            setTimeout(() => playNextLine(index + 1), 500);
+            if (window._wsLastText === text) {
+                setTimeout(() => playNextLine(index + 1), 500);
+            }
+        };
+        
+        utterance.onerror = (err) => {
+            console.error('SpeechSynthesis error:', err);
         };
 
         window.speechSynthesis.speak(utterance);
@@ -697,7 +711,7 @@ function buildPassage(q) {
       <div class="q-passage-title d-flex justify-content-between align-items-center">
         <span><i class="bi ${icon}"></i> ${title}</span>
         ${(isL && q.passage) ? `
-          <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" onclick="wsSpeak(this.nextElementSibling.innerText)">
+          <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" onclick="wsSpeak(this.parentElement.nextElementSibling.innerText)">
             <i class="bi bi-play-fill"></i> NGHE (TTS)
           </button>
         ` : ''}

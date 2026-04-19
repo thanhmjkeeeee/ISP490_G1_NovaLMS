@@ -250,7 +250,22 @@ function renderQuestion(q, qi, isAutoGraded) {
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', loadDetail);
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDetail();
+    
+    // Polling if not yet graded
+    if (gradingData && gradingData.totalScore === null) {
+        setInterval(async () => {
+            try {
+                const resp = await fetch(`/api/v1/student/quiz/result/${resultId}/ai-status`);
+                const data = await resp.json();
+                if (data.status === 200 && (data.overallStatus === 'GRADED' || data.passed !== null)) {
+                    location.reload();
+                }
+            } catch(e) {}
+        }, 3000);
+    }
+});
 /*]]>*/
 </script>
 

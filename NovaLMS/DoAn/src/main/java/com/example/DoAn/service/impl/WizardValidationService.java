@@ -21,7 +21,9 @@ public class WizardValidationService {
     private static final Set<String> VALID_SKILLS = Set.of(
             "LISTENING", "READING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_CEFR = Set.of(
-            "A1", "A2", "B1", "B2", "C1", "C2");
+            "A1", "A2", "B1", "B2", "C1", "C2",
+            "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0"
+    );
 
     private static final Map<String, Set<String>> SKILL_TYPE_MAP = Map.of(
             "LISTENING", Set.of("MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK", "MATCHING"),

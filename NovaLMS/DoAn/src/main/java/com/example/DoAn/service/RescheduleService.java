@@ -295,11 +295,12 @@ public class RescheduleService {
                 .count();
     }
 
+    @Transactional(readOnly = true)
     public List<RescheduleResponseDTO> getTeacherRequests(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) return java.util.Collections.emptyList();
         
-        List<RescheduleRequest> requests = rescheduleRequestRepository.findByCreatedBy_UserIdOrderByCreatedAtDesc(user.getUserId());
+        List<RescheduleRequest> requests = rescheduleRequestRepository.findByCreatedBy_UserIdWithDetails(user.getUserId());
         
         return requests.stream().map(this::mapToDTO).collect(java.util.stream.Collectors.toList());
     }
