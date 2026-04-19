@@ -2,6 +2,7 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.request.ModuleRequestDTO;
 import com.example.DoAn.dto.response.ModuleResponseDTO;
+import com.example.DoAn.dto.response.PageResponse;
 import lombok.*;
 
 import java.util.List;
@@ -16,7 +17,7 @@ public interface IExpertModuleService {
 
     void deleteModule(Integer moduleId, String email);
 
-    List<CourseOwnedByExpertDTO> getCoursesOwnedByExpert(String email);
+    PageResponse<CourseOwnedByExpertDTO> getCoursesOwnedByExpert(String email, String search, String status, int pageNo, int pageSize);
 
     List<ModuleResponseDTO> getAllModulesByExpert(String email);
 

@@ -57,8 +57,10 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional(readOnly = true)
     public QuizTakingDTO getQuizForTaking(Integer quizId, String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         if (!"PUBLISHED".equals(quiz.getStatus())) {
             throw new RuntimeException("Quiz chưa được xuất bản");
@@ -106,25 +108,34 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
+        // Kiểm tra xem giáo viên có đang "mở cưỡng ép" (Manual Open) hay không
+        boolean isForceOpen = (openSq != null && Boolean.TRUE.equals(openSq.getIsOpen()));
+
         // Kiểm tra thời điểm mở/đóng tự động theo lịch (openAt / closeAt)
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime effectiveOpenAt = (openSq != null && openSq.getOpenAt() != null) ? openSq.getOpenAt() : quiz.getOpenAt();
-        LocalDateTime effectiveCloseAt = (openSq != null && openSq.getCloseAt() != null) ? openSq.getCloseAt() : quiz.getCloseAt();
+        LocalDateTime effectiveOpenAt = (openSq != null && openSq.getOpenAt() != null) ? openSq.getOpenAt()
+                : quiz.getOpenAt();
+        LocalDateTime effectiveCloseAt = (openSq != null && openSq.getCloseAt() != null) ? openSq.getCloseAt()
+                : quiz.getCloseAt();
 
-        if (effectiveOpenAt != null && now.isBefore(effectiveOpenAt)) {
-            throw new RuntimeException("Quiz chưa đến thời điểm mở bài. Vui lòng quay lại sau (Mở lúc: " 
-                    + effectiveOpenAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ").");
-        }
-        if (effectiveCloseAt != null && now.isAfter(effectiveCloseAt)) {
-            throw new RuntimeException("Quiz đã đóng (Đóng lúc: " 
-                    + effectiveCloseAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "). Vui lòng liên hệ giáo viên.");
+        // Nếu giáo viên đã chủ động Mở (isOpen = true), bỏ qua kiểm tra thời gian
+        if (!isForceOpen) {
+            if (effectiveOpenAt != null && now.isBefore(effectiveOpenAt)) {
+                throw new RuntimeException("Bài tập chưa đến giờ mở (Mở lúc: "
+                        + effectiveOpenAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
+            }
+            if (effectiveCloseAt != null && now.isAfter(effectiveCloseAt)) {
+                throw new RuntimeException("Bài tập đã đóng (Đóng lúc: "
+                        + effectiveCloseAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                        + "). Vui lòng liên hệ giáo viên.");
+            }
         }
 
         // Kiểm tra deadline cho ASSIGNMENT
         if ("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory())) {
-            LocalDateTime effectiveDeadline = ( openSq != null && openSq.getDeadline() != null) ? openSq.getDeadline()
+            LocalDateTime effectiveDeadline = (openSq != null && openSq.getDeadline() != null) ? openSq.getDeadline()
                     : quiz.getDeadline();
-            if (effectiveDeadline != null && now.isAfter(effectiveDeadline)) {
+            if (!isForceOpen && effectiveDeadline != null && now.isAfter(effectiveDeadline)) {
                 throw new RuntimeException("Đã hết hạn nộp bài. Deadline: " + effectiveDeadline);
             }
             // Kiểm tra enrollment
@@ -264,8 +275,10 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public Integer submitQuiz(Integer quizId, String email, Map<Integer, Object> answers) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
         long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(),
@@ -658,6 +671,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .maxAttempts(quiz.getMaxAttempts())
                 .usedAttempts(usedAttempts)
                 .canRetake(isStudent && (quiz.getMaxAttempts() == null || usedAttempts < quiz.getMaxAttempts()))
+                .status(qr.getStatus())
                 .build();
     }
 
@@ -862,24 +876,22 @@ public class QuizResultServiceImpl implements QuizResultService {
             String qType = ans.getQuestion().getQuestionType();
 
             // Apply teacher grading
-            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                if (gradeMap.containsKey(qId)) {
-                    BigDecimal awarded = gradeMap.get(qId);
-                    ans.setPointsAwarded(awarded);
-                    ans.setTeacherOverrideScore(awarded.toString());
-                    ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
+            if (gradeMap.containsKey(qId)) {
+                BigDecimal awarded = gradeMap.get(qId);
+                ans.setPointsAwarded(awarded);
+                ans.setTeacherOverrideScore(awarded.toString());
+                ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
 
-                    gradingItems.stream()
-                            .filter(i -> i.getQuestionId().equals(qId))
-                            .findFirst()
-                            .ifPresent(item -> {
-                                if (item.getTeacherNote() != null) {
-                                    ans.setTeacherNote(item.getTeacherNote());
-                                }
-                            });
-                    ans.setPendingAiReview(false);
-                    quizAnswerRepository.save(ans);
-                }
+                gradingItems.stream()
+                        .filter(i -> i.getQuestionId().equals(qId))
+                        .findFirst()
+                        .ifPresent(item -> {
+                            if (item.getTeacherNote() != null) {
+                                ans.setTeacherNote(item.getTeacherNote());
+                            }
+                        });
+                ans.setPendingAiReview(false);
+                quizAnswerRepository.save(ans);
             }
 
             // Sum up
@@ -909,13 +921,15 @@ public class QuizResultServiceImpl implements QuizResultService {
             passed = true;
         }
 
-        qr.setScore(newScore);
-        qr.setCorrectRate(correctRate.setScale(2, RoundingMode.HALF_UP));
-        qr.setPassed(passed);
+        // Recalculate everything using the centralized IELTS logic
+        recalculateQuizResult(qr);
+
         qr.setStatus("GRADED"); // Mark as graded by teacher
         quizResultRepository.save(qr);
 
         // ── Send email + in-app notification to student ──────────────────────
+        passed = qr.getPassed();
+        // maxScoreAvailable already calculated above
         if (qr.getUser() != null && passed != null) {
             User student = qr.getUser();
             String studentName = student.getFullName() != null ? student.getFullName() : "";
@@ -1036,14 +1050,20 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
+        // Mark all as reviewed when finalizing
+        for (QuizAnswer a : qr.getQuizAnswers()) {
+            a.setPendingAiReview(false);
+            quizAnswerRepository.save(a);
+        }
+
+        // Recalculate everything using the centralized IELTS logic
+        recalculateQuizResult(qr);
+
         qr.setStatus("GRADED");
         quizResultRepository.save(qr);
 
-        // Recalculate everything using the centralized IELTS logic
-        recalculateQuizResult(resultId);
-
         // Fetch the updated record for email/notification
-        QuizResult updatedQr = quizResultRepository.findById(resultId).orElse(qr);
+        QuizResult updatedQr = qr;
         int maxScoreAvailable = quiz.getQuizQuestions().stream()
                 .mapToInt(qq -> qq.getPoints() != null ? qq.getPoints().intValue() : 1)
                 .sum();
@@ -1104,8 +1124,10 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public Map<String, Object> handleViolation(Integer quizId, String email, String reason) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         QuizResult qr = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "IN_PROGRESS")
                 .orElseGet(() -> {
@@ -1173,7 +1195,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public void unlockQuiz(Integer resultId) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+        QuizResult qr = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         if ("LOCKED".equals(qr.getStatus())) {
             quizResultRepository.delete(qr);
         }
@@ -1182,7 +1205,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public void requestUnlock(Integer resultId, String email, String reason) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
+        QuizResult qr = quizResultRepository.findById(resultId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         if (!qr.getUser().getEmail().equals(email))
             throw new RuntimeException("Không được phép thực hiện.");
         if (!"LOCKED".equals(qr.getStatus()))
@@ -1197,8 +1221,15 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional
     public void recalculateQuizResult(Integer resultId) {
         QuizResult result = quizResultRepository.findById(resultId).orElse(null);
+        if (result != null) {
+            recalculateQuizResult(result);
+        }
+    }
+
+    private void recalculateQuizResult(QuizResult result) {
         if (result == null)
             return;
+        Integer resultId = result.getResultId();
 
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
         boolean anyPending = answers.stream().anyMatch(a -> Boolean.TRUE.equals(a.getPendingAiReview()));
@@ -1218,42 +1249,54 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             skillMaxScore.put(skill, skillMaxScore.getOrDefault(skill, 0.0) + pts);
 
-            if ("WRITING".equals(qType) || "SPEAKING".equals(qType)) {
-                if (a.getTeacherOverrideScore() != null) {
-                    try {
-                        double teacherPts = Double.parseDouble(a.getTeacherOverrideScore());
-                        skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
-                    } catch (Exception ignored) {
-                    }
-                } else if (a.getAiScore() != null) {
-                    try {
-                        String scoreStr = a.getAiScore();
-                        double scoreVal = Double.parseDouble(scoreStr.split("/")[0].trim());
-                        int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
-                        double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
-                        skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
+            // 1. Ưu tiên Teacher Override (Chuỗi hoặc BigDecimal)
+            if (a.getTeacherOverrideScore() != null) {
+                try {
+                    double teacherPts = Double.parseDouble(a.getTeacherOverrideScore());
+                    skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
 
-                        // Sync pointsAwarded if not set
-                        if (a.getPointsAwarded() == null) {
-                            a.setPointsAwarded(BigDecimal.valueOf(scaledScore));
-                            quizAnswerRepository.save(a);
-                        }
-                    } catch (Exception ignored) {
+                    // Đồng bộ pointsAwarded nếu chưa có
+                    if (a.getPointsAwarded() == null) {
+                        a.setPointsAwarded(BigDecimal.valueOf(teacherPts));
+                        quizAnswerRepository.save(a);
                     }
+                    continue; // Đã xử lý xong câu này bằng điểm của giáo viên
+                } catch (Exception ignored) {
                 }
-            } else {
-                if (Boolean.TRUE.equals(a.getIsCorrect())) {
-                    skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + pts);
-                    // Sync pointsAwarded for auto-graded if null
-                    if (a.getPointsAwarded() == null) {
-                        a.setPointsAwarded(BigDecimal.valueOf(pts));
-                        quizAnswerRepository.save(a);
-                    }
-                } else if (Boolean.FALSE.equals(a.getIsCorrect())) {
-                    if (a.getPointsAwarded() == null) {
-                        a.setPointsAwarded(BigDecimal.ZERO);
-                        quizAnswerRepository.save(a);
-                    }
+            }
+
+            if (a.getPointsAwarded() != null) {
+                skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + a.getPointsAwarded().doubleValue());
+                continue;
+            }
+
+            // 2. Nếu là Writing/Speaking và có điểm AI (nhưng chưa có điểm giáo viên)
+            if (("WRITING".equals(qType) || "SPEAKING".equals(qType)) && a.getAiScore() != null) {
+                try {
+                    String scoreStr = a.getAiScore();
+                    double scoreVal = Double.parseDouble(scoreStr.split("/")[0].trim());
+                    int maxVal = Integer.parseInt(scoreStr.split("/")[1].trim());
+                    double scaledScore = maxVal > 0 ? (scoreVal / maxVal) * pts : 0;
+                    skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + scaledScore);
+
+                    a.setPointsAwarded(BigDecimal.valueOf(scaledScore));
+                    quizAnswerRepository.save(a);
+                    continue;
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 3. Cuối cùng mới dùng logic isCorrect (cho Trắc nghiệm/Điền từ tự động)
+            if (Boolean.TRUE.equals(a.getIsCorrect())) {
+                skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + pts);
+                if (a.getPointsAwarded() == null) {
+                    a.setPointsAwarded(BigDecimal.valueOf(pts));
+                    quizAnswerRepository.save(a);
+                }
+            } else if (Boolean.FALSE.equals(a.getIsCorrect())) {
+                if (a.getPointsAwarded() == null) {
+                    a.setPointsAwarded(BigDecimal.ZERO);
+                    quizAnswerRepository.save(a);
                 }
             }
         }
@@ -1290,9 +1333,23 @@ public class QuizResultServiceImpl implements QuizResultService {
                     result.setPassed(true);
                 }
 
-                // Finalize status
-                if (!"LOCKED".equals(result.getStatus()) && !"GRADED".equals(result.getStatus())) {
-                    result.setStatus("SUBMITTED");
+                // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
+                // GRADED
+                boolean hasManual = quiz.getQuizQuestions().stream()
+                        .anyMatch(qq -> {
+                            String skill = qq.getQuestion().getSkill();
+                            return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill);
+                        });
+
+                if (!"LOCKED".equals(result.getStatus())) {
+                    if (!hasManual) {
+                        result.setStatus("GRADED");
+                    } else {
+                        // Nếu có câu tự luận, chỉ đặt SUBMITTED nếu chưa được chấm xong (GRADED)
+                        if (!"GRADED".equals(result.getStatus())) {
+                            result.setStatus("SUBMITTED");
+                        }
+                    }
                 }
 
                 // If passed, mark lesson completed
@@ -1315,7 +1372,8 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     public List<Map<String, Object>> getQuizCompletionList(String teacherEmail, Integer classId, Integer quizId) {
-        User teacher = userRepository.findByEmail(teacherEmail).orElseThrow(() -> new RuntimeException("Teacher not found"));
+        User teacher = userRepository.findByEmail(teacherEmail)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
         Clazz clazz = clazzRepository.findById(classId).orElseThrow(() -> new RuntimeException("Class not found"));
 
         if (clazz.getTeacher() == null || !clazz.getTeacher().getUserId().equals(teacher.getUserId())) {
@@ -1333,7 +1391,8 @@ public class QuizResultServiceImpl implements QuizResultService {
             m.put("email", student.getEmail());
 
             // Get latest result for this quiz
-            Optional<QuizResult> optResult = quizResultRepository.findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, student.getUserId());
+            Optional<QuizResult> optResult = quizResultRepository
+                    .findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, student.getUserId());
 
             if (optResult.isPresent()) {
                 QuizResult r = optResult.get();

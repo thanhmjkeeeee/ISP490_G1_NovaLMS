@@ -153,12 +153,12 @@
                 <div class="card-body p-4">
                     <form id="quizForm">
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
                                 <input type="text" id="title" class="form-control form-control-lg border-2" required
                                     placeholder="VD: Entry Test IELTS A1">
                             </div>
-                            <div class="col-md-3" id="quizCategoryCol">
+                            <div class="col-md-2" id="quizCategoryCol">
                                 <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
                                 <select id="quizCategory" class="form-select form-select-lg border-2" required
                                     onchange="onCategoryChange()">
@@ -174,15 +174,9 @@
                                 </select>
                             </div>
                             <div class="col-md-3" id="moduleSection" style="display:none">
-                                <label class="form-label fw-bold">Chương/Module</label>
-                                <select id="moduleIdSelect" class="form-select form-select-lg border-2" onchange="onModuleChange()">
+                                <label class="form-label fw-bold">Chương (Module)</label>
+                                <select id="moduleId" class="form-select form-select-lg border-2">
                                     <option value="">-- Chọn chương --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3" id="lessonSection" style="display:none">
-                                <label class="form-label fw-bold">Buổi học (Lesson)</label>
-                                <select id="lessonIdSelect" class="form-select form-select-lg border-2">
-                                    <option value="">-- Chọn buổi --</option>
                                 </select>
                             </div>
                         </div>
@@ -830,7 +824,9 @@
             const deadlineSection = document.getElementById('deadlineSection');
 
             if (courseSection) {
-                courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
+                const isCourseLevel = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT');
+                courseSection.style.display = isCourseLevel ? 'block' : 'none';
+                document.getElementById('moduleSection').style.display = isCourseLevel ? 'block' : 'none';
             }
 
             if (deadlineSection) {
@@ -869,67 +865,39 @@
                     loadCourses();
                 } else {
                     document.getElementById('courseSection').style.display = 'none';
-                    document.getElementById('moduleSection').style.display = 'none';
-                    document.getElementById('lessonSection').style.display = 'none';
                 }
             }
         }
 
         async function onCourseChange() {
             const courseId = document.getElementById('courseId').value;
-            const moduleSection = document.getElementById('moduleSection');
-            const lessonSection = document.getElementById('lessonSection');
-            
+            const moduleSelect = document.getElementById('moduleId');
+            if (!moduleSelect) return;
+
             if (!courseId) {
-                moduleSection.style.display = 'none';
-                lessonSection.style.display = 'none';
+                moduleSelect.innerHTML = '<option value="">-- Chọn chương --</option>';
                 return;
             }
-            
-            moduleSection.style.display = 'block';
-            loadModules(courseId);
-        }
 
-        async function loadModules(courseId) {
-            const select = document.getElementById('moduleIdSelect');
-            select.innerHTML = '<option value="">-- Đang tải chương... --</option>';
+            moduleSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
             try {
                 const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
                 const result = await res.json();
                 if (result.status === 200 && result.data) {
-                    select.innerHTML = '<option value="">-- Chọn chương --</option>';
+                    moduleSelect.innerHTML = '<option value="">-- Chọn chương (Không bắt buộc) --</option>';
                     result.data.forEach(m => {
-                        select.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
+                        moduleSelect.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
                     });
+                } else {
+                    moduleSelect.innerHTML = '<option value="">-- Không có chương nào --</option>';
                 }
-            } catch (e) { console.error(e); }
-        }
-
-        async function onModuleChange() {
-            const moduleId = document.getElementById('moduleIdSelect').value;
-            const lessonSection = document.getElementById('lessonSection');
-            if (!moduleId) {
-                lessonSection.style.display = 'none';
-                return;
+            } catch (e) {
+                moduleSelect.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
             }
-            lessonSection.style.display = 'block';
-            loadLessons(moduleId);
         }
 
-        async function loadLessons(moduleId) {
-            const select = document.getElementById('lessonIdSelect');
-            select.innerHTML = '<option value="">-- Đang tải bài học... --</option>';
-            try {
-                const res = await fetch(`/api/v1/expert/lessons?moduleId=${moduleId}`);
-                const result = await res.json();
-                if (result.status === 200 && result.data) {
-                    select.innerHTML = '<option value="">-- Chọn buổi (lesson) --</option>';
-                    result.data.forEach(l => {
-                        select.innerHTML += `<option value="${l.lessonId}">${l.lessonName}</option>`;
-                    });
-                }
-            } catch (e) { console.error(e); }
-        }
+
+
 
         async function loadCourses() {
             const select = document.getElementById('courseId');
@@ -939,14 +907,14 @@
 
             try {
                 console.log("Fetching courses for expert...");
-                const res = await fetch('/api/v1/expert/modules/courses');
+                const res = await fetch('/api/v1/expert/modules/courses?limit=100');
                 const result = await res.json();
 
                 console.log("Courses result:", result);
 
-                if (result.status === 200 && result.data && result.data.length > 0) {
+                if (result.status === 200 && result.data && result.data.items && result.data.items.length > 0) {
                     select.innerHTML = '<option value="">-- Chọn khóa học --</option>';
-                    result.data.forEach(c => {
+                    result.data.items.forEach(c => {
                         const name = c.courseName || c.title || 'Course #' + c.courseId;
                         select.innerHTML += `<option value="${c.courseId}">${name}</option>`;
                     });
@@ -996,9 +964,8 @@
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value || null,
                 quizCategory: cat,
-                courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') ? parseInt(document.getElementById('courseId').value) || null : null,
-                moduleId: parseInt(document.getElementById('moduleIdSelect').value) || moduleId || null,
-                lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
+                courseId: parseInt(document.getElementById('courseId').value) || null,
+                moduleId: parseInt(document.getElementById('moduleId').value) || null,
                 timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
                 passScore: parseFloat(document.getElementById('passScore').value) || null,
                 maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
@@ -1557,73 +1524,69 @@
             finally { btn.disabled = false; spinner.style.display = 'none'; }
         }
 
-        // --- TTS logic ---
-        let currentUtterance = null;
-        let ttsInterval = null;
+        let currentAudio = null;
 
         function wsSpeak(idx) {
             wsStop(idx); // stop any playing
             const q = _generatedAiQuestions[idx];
             if (!q) return;
 
-            const textToSpeak = q.passage || q.groupContent || q.content;
-            if (!textToSpeak) return;
-
-            const btnPlay = document.getElementById('btn-play-' + idx);
-            const btnStop = document.getElementById('btn-stop-' + idx);
-            const progress = document.getElementById('tts-progress-' + idx);
-
-            if (btnPlay) btnPlay.style.display = 'none';
-            if (btnStop) btnStop.style.display = 'inline-block';
-            if (progress) {
-                progress.style.width = '0%';
-                progress.parentElement.style.display = 'flex';
-            }
-
-            currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-            currentUtterance.lang = 'en-US';
-            currentUtterance.rate = 0.9;
-
-            // Randomly select a voice
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                const enVoices = voices.filter(v => v.lang.startsWith('en'));
-                if (enVoices.length > 0) currentUtterance.voice = enVoices[Math.floor(Math.random() * enVoices.length)];
-            }
-
-            let startMs = Date.now();
-            // Estimate duration: ~15 chars per second for English speech at rate 0.9
-            const estDurationMs = (textToSpeak.length / 15) * 1000;
-
-            ttsInterval = setInterval(() => {
+            if (q.audioUrl) {
+                // Step 1: Real Audio URL from Google TTS
+                currentAudio = new Audio(q.audioUrl);
                 if (progress) {
-                    let elapsed = Date.now() - startMs;
-                    let pct = Math.min((elapsed / estDurationMs) * 100, 99);
-                    progress.style.width = pct + '%';
+                    progress.style.width = '0%';
+                    progress.parentElement.style.display = 'flex';
+                    currentAudio.ontimeupdate = () => {
+                        if (currentAudio.duration) {
+                            let pct = (currentAudio.currentTime / currentAudio.duration) * 100;
+                            progress.style.width = pct + '%';
+                        }
+                    };
                 }
-            }, 100);
+                currentAudio.onended = () => wsStop(idx);
+                currentAudio.onerror = () => wsStop(idx);
+                currentAudio.play();
+            } else {
+                // Step 2: Fallback to Browser Speech Synthesis
+                const textToSpeak = q.passage || q.groupContent || q.content;
+                if (!textToSpeak) { wsStop(idx); return; }
 
-            currentUtterance.onend = () => {
-                if (ttsInterval) clearInterval(ttsInterval);
-                if (progress) progress.style.width = '100%';
-                setTimeout(() => {
-                    if (btnStop) btnStop.style.display = 'none';
-                    if (btnPlay) btnPlay.style.display = 'inline-block';
+                currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+                currentUtterance.lang = 'en-US';
+                currentUtterance.rate = 0.9;
+
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    const enVoices = voices.filter(v => v.lang.startsWith('en'));
+                    if (enVoices.length > 0) currentUtterance.voice = enVoices[Math.floor(Math.random() * enVoices.length)];
+                }
+
+                let startMs = Date.now();
+                const estDurationMs = (textToSpeak.length / 15) * 1000;
+
+                ttsInterval = setInterval(() => {
                     if (progress) {
-                        if (progress.parentElement) progress.parentElement.style.display = 'none';
-                        progress.style.width = '0%';
+                        let elapsed = Date.now() - startMs;
+                        let pct = Math.min((elapsed / estDurationMs) * 100, 99);
+                        progress.style.width = pct + '%';
                     }
-                }, 500);
-            };
+                }, 100);
 
-            currentUtterance.onerror = () => wsStop(idx);
-
-            window.speechSynthesis.speak(currentUtterance);
+                currentUtterance.onend = () => wsStop(idx);
+                currentUtterance.onerror = () => wsStop(idx);
+                window.speechSynthesis.speak(currentUtterance);
+            }
         }
 
         function wsStop(idx) {
             window.speechSynthesis.cancel();
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
             if (ttsInterval) clearInterval(ttsInterval);
+            
             const btnPlay = document.getElementById('btn-play-' + idx);
             const btnStop = document.getElementById('btn-stop-' + idx);
             const progress = document.getElementById('tts-progress-' + idx);
@@ -1632,7 +1595,7 @@
             if (btnStop) btnStop.style.display = 'none';
             if (progress) {
                 progress.style.width = '0%';
-                progress.parentElement.style.display = 'none';
+                if (progress.parentElement) progress.parentElement.style.display = 'none';
             }
         }
 

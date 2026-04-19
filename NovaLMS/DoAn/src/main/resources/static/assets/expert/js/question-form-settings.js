@@ -68,7 +68,7 @@
   }
 
   function fallbackCefr() {
-    return ['4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'].map((v) => ({
+    return ['3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0', '7.5', '8.0', '8.5', '9.0'].map((v) => ({
       value: v,
       name: 'IELTS Band ' + v
     }));
@@ -155,7 +155,15 @@
   }
 
   function fillCefrSelect(selectEl, options) {
-    let list = fallbackCefr(); // Force IELTS bands
+    let list = state.cefr.length ? state.cefr : [];
+    const fall = fallbackCefr();
+    // Merge: add fallback items if not already in state.cefr
+    const seen = new Set(list.map(x => String(x.value).toUpperCase()));
+    for (const f of fall) {
+      if (!seen.has(f.value.toUpperCase())) {
+        list.push(f);
+      }
+    }
     fillSelect(selectEl, list, options);
   }
 
@@ -173,7 +181,13 @@
 
   function getCefrOptionsHtml(selectedValue) {
     const sel = (selectedValue || '').trim().toUpperCase();
-    const list = state.cefr.length ? state.cefr : fallbackCefr();
+    let list = state.cefr.length ? [...state.cefr] : [];
+    const fall = fallbackCefr();
+    const seen = new Set(list.map(x => String(x.value).toUpperCase()));
+    for (const f of fall) {
+      if (!seen.has(f.value.toUpperCase())) list.push(f);
+    }
+
     return list
       .map((s) => {
         const v = (s.value || '').trim().toUpperCase();

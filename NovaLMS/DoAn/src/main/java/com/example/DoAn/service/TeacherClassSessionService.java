@@ -507,6 +507,42 @@ public class TeacherClassSessionService {
         }
     }
 
+    /**
+     * Chuyển quiz từ buổi này sang buổi khác.
+     */
+    @Transactional
+    public ResponseData<Void> reassignQuiz(String email, Integer quizId, Integer oldSessionId, Integer newSessionId) {
+        try {
+            ClassSession oldSession = getSessionWithAuth(email, oldSessionId);
+            ClassSession newSession = getSessionWithAuth(email, newSessionId);
+
+            if (oldSession == null || newSession == null) {
+                return ResponseData.error(401, "Không tìm thấy buổi học hoặc không có quyền");
+            }
+
+            SessionQuiz sq = sessionQuizRepository.findBySessionSessionIdAndQuizQuizId(oldSessionId, quizId)
+                    .orElse(null);
+            if (sq == null) {
+                return ResponseData.error(404, "Không tìm thấy quiz trong buổi cũ");
+            }
+
+            // Check if already in new session
+            if (sessionQuizRepository.existsBySessionSessionIdAndQuizQuizId(newSessionId, quizId)) {
+                return ResponseData.error(400, "Quiz này đã có trong buổi học mới");
+            }
+
+            sq.setSession(newSession);
+            // Reset orderIndex to end of new session
+            int count = sessionQuizRepository.countBySessionSessionId(newSessionId);
+            sq.setOrderIndex(count + 1);
+
+            sessionQuizRepository.save(sq);
+            return ResponseData.success("Đã chuyển quiz sang buổi học mới");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────
     // MATERIALS (FILE UPLOAD)
     // ─────────────────────────────────────────────────────────────

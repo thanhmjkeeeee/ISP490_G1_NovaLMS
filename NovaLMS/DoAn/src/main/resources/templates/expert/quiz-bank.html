@@ -34,17 +34,17 @@
 <script>
 (async function() {
     try {
-        const res = await fetch('/api/v1/expert/modules/courses');
+        const res = await fetch('/api/v1/expert/modules/courses?limit=100');
         const result = await res.json();
         const container = document.getElementById('courseList');
 
-        if (result.status !== 200 || !result.data || result.data.length === 0) {
+        if (result.status !== 200 || !result.data || !result.data.items || result.data.items.length === 0) {
             container.innerHTML = '<div class="col-12"><div class="alert alert-info">Bạn chưa sở hữu khóa học nào.</div></div>';
             return;
         }
 
         container.innerHTML = '';
-        result.data.forEach(course => {
+        result.data.items.forEach(course => {
             const statusBadge = course.status === 'Active'
                 ? '<span class="badge bg-success ms-2">Hoạt động</span>'
                 : '<span class="badge bg-warning text-dark ms-2">' + (course.status || 'Tạm dừng') + '</span>';
@@ -60,8 +60,7 @@
                                 </div>
                                 ${statusBadge}
                             </div>
-                            <a th:href="@{/expert/quiz-bank/course/${course.courseId}}"
-                               href="/expert/quiz-bank/course/${course.courseId}"
+                            <a href="/expert/quiz-bank/course/${course.courseId}"
                                class="btn btn-sm w-100"
                                style="background:#136ad5;color:#fff;border:none;">
                                 <i class="bi bi-collection me-1"></i> Quản lý Quiz

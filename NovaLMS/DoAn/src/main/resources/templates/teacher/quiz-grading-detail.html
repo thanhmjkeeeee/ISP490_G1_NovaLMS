@@ -31,10 +31,8 @@
                     </div>
                     <div class="col-md-4 mb-2">
                         <i class="bi bi-check-circle me-1"></i>Trạng thái:
-                        <span th:if="${result != null and result.passed == null}"
-                            class="badge bg-warning text-dark">Đang chờ chấm</span>
-                        <span th:if="${result != null and result.passed != null}" class="badge bg-success">Đã chấm
-                            điểm</span>
+                        <span th:if="${result != null and result.status == 'GRADED'}" class="badge bg-success">Đã chấm điểm</span>
+                        <span th:if="${result != null and result.status != 'GRADED'}" class="badge bg-warning text-dark">Đang chờ chấm</span>
                     </div>
                 </div>
 
@@ -50,7 +48,7 @@
                     </span>
                 </p>
                 <div class="d-flex align-items-center">
-                    <a th:href="${result != null and result.passed != null ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
+                    <a th:href="${result != null and result.status == 'GRADED' ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
                         class="btn btn-sm btn-outline-secondary rounded-pill me-3">
                         <i class="bi bi-arrow-left"></i> Quay lại
                     </a>
@@ -64,12 +62,18 @@
 
         <div class="tab-content" id="tabContent"></div>
 
-        <div th:if="${result != null and result.passed == null}"
-            class="card border-0 shadow-sm rounded-4 mt-4 text-center">
+        <div class="card border-0 shadow-sm rounded-4 mt-4 text-center">
             <div class="card-body p-4">
-                <button id="submitGradesBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm">
-                    Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>
-                </button>
+                <div th:if="${result != null and result.status != 'GRADED'}">
+                    <button id="submitGradesBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm mb-3">
+                        Hoàn Tất Chấm Bài <i class="bi bi-check2-circle ms-2"></i>
+                    </button>
+                    <br>
+                </div>
+                <a th:href="${result != null and result.status == 'GRADED' ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
+                    class="btn btn-outline-secondary rounded-pill px-5">
+                    <i class="bi bi-arrow-left me-1"></i> Quay lại
+                </a>
             </div>
         </div>
 
@@ -97,7 +101,7 @@
         // ── Load grading detail ─────────────────────────────────────────────────────
         // ĐÃ FIX: Bọc an toàn cho các biến truyền từ Spring Boot sang JS
         const resultId = /*[[${resultId}]]*/ null;
-        const isGraded = /*[[${result != null && result.passed != null}]]*/ false;
+        const isGraded = /*[[${result != null && result.status == 'GRADED'}]]*/ false;
 
         (async () => {
             if (!resultId) {

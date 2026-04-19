@@ -18,7 +18,7 @@ import java.util.Map;
 public class MaintenanceServiceImpl implements MaintenanceService {
 
     @PersistenceContext
-    private final EntityManager entityManager;
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -59,10 +59,55 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             log.info("System maintenance cleanup completed: {}", summary);
             return ResponseData.success("Dọn dẹp hệ thống thành công", summary);
-
         } catch (Exception e) {
-            log.error("Error during system cleanup: ", e);
-            return ResponseData.error(500, "Dọn dẹp thất bại: " + e.getMessage());
+            log.error("Maintenance cleanup failed: ", e);
+            return ResponseData.error(500, "Lỗi khi dọn dẹp hệ thống: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseData<Void> migrateToIELTSBands() {
+        try {
+            // 1. Update Settings table
+            entityManager.createNativeQuery("DELETE FROM setting WHERE setting_type = 'CEFR_LEVEL'").executeUpdate();
+            String[] bands = {"3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0"};
+            for (int i = 0; i < bands.length; i++) {
+                entityManager.createNativeQuery(
+                    "INSERT INTO setting (name, value, setting_type, order_index, status) VALUES (?, ?, 'CEFR_LEVEL', ?, 'ACTIVE')"
+                )
+                .setParameter(1, bands[i])
+                .setParameter(2, bands[i])
+                .setParameter(3, i + 1)
+                .executeUpdate();
+            }
+
+            // 2. Map existing A1-C2 to Bands
+            Map<String, String> mapping = Map.of(
+                "A1", "3.0",
+                "A2", "4.0",
+                "B1", "5.0",
+                "B2", "6.0",
+                "C1", "7.0",
+                "C2", "8.0"
+            );
+
+            for (Map.Entry<String, String> entry : mapping.entrySet()) {
+                entityManager.createNativeQuery("UPDATE question SET cefr_level = ? WHERE cefr_level = ?")
+                        .setParameter(1, entry.getValue())
+                        .setParameter(2, entry.getKey())
+                        .executeUpdate();
+                entityManager.createNativeQuery("UPDATE question_group SET cefr_level = ? WHERE cefr_level = ?")
+                        .setParameter(1, entry.getValue())
+                        .setParameter(2, entry.getKey())
+                        .executeUpdate();
+            }
+
+            log.info("Migration to IELTS Bands completed successfully.");
+            return ResponseData.success("Di chuyển sang IELTS Bands thành công");
+        } catch (Exception e) {
+            log.error("Migration failed: ", e);
+            return ResponseData.error(500, "Lỗi khi di chuyển dữ liệu: " + e.getMessage());
         }
     }
 }
