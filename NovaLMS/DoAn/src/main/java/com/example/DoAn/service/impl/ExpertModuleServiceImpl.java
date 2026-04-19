@@ -23,6 +23,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     private final LessonRepository lessonRepository;
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
+    private final RegistrationRepository registrationRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,9 +73,12 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
             module.setCourse(newCourse);
         }
 
-        if (request.getModuleName() != null) module.setModuleName(request.getModuleName());
-        if (request.getOrderIndex() != null) module.setOrderIndex(request.getOrderIndex());
-        if (request.getCefrLevel() != null) module.setCefrLevel(request.getCefrLevel());
+        if (request.getModuleName() != null)
+            module.setModuleName(request.getModuleName());
+        if (request.getOrderIndex() != null)
+            module.setOrderIndex(request.getOrderIndex());
+        if (request.getCefrLevel() != null)
+            module.setCefrLevel(request.getCefrLevel());
 
         moduleRepository.save(module);
         return toResponseDTO(module);
@@ -109,12 +113,13 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
             dto.setCourseName(c.getCourseName());
             dto.setStatus(c.getStatus());
             dto.setCategoryName(c.getCategory() != null ? c.getCategory().getName() : null);
-            
+
             // Thêm thống kê số lượng
             dto.setModuleCount(moduleRepository.countByCourse_CourseId(c.getCourseId()));
             dto.setLessonCount(lessonRepository.countByModuleCourse_CourseId(c.getCourseId()));
             dto.setQuestionCount(questionRepository.countByModule_Course_CourseId(c.getCourseId()));
-            
+            dto.setRegistrationCount(registrationRepository.countByCourse_CourseId(c.getCourseId()));
+
             return dto;
         }).collect(Collectors.toList());
     }
@@ -124,7 +129,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     public ExpertDashboardStatsDTO getDashboardStats(String email) {
         User user = userRepository.findByEmailWithRole(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
-        
+
         if (isAdmin(user)) {
             return ExpertDashboardStatsDTO.builder()
                     .totalCourses(courseRepository.count())
@@ -147,6 +152,8 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     private ModuleResponseDTO toResponseDTO(Module module) {
         int lessonCount = lessonRepository.findByModule_ModuleIdOrderByOrderIndexAsc(module.getModuleId()).size();
         int questionCount = questionRepository.findByModuleModuleId(module.getModuleId()).size();
+        long regCount = registrationRepository.countByCourse_CourseId(module.getCourse().getCourseId());
+
         return ModuleResponseDTO.builder()
                 .moduleId(module.getModuleId())
                 .courseId(module.getCourse().getCourseId())
@@ -155,6 +162,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
                 .lessonCount(lessonCount)
                 .questionCount(questionCount)
                 .cefrLevel(module.getCefrLevel())
+                .registrationCount(regCount)
                 .build();
     }
 
@@ -173,8 +181,9 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     private void validateExpertOwnsCourse(String email, Integer courseId) {
         User user = userRepository.findByEmailWithRole(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
-        
-        if (isAdmin(user)) return;
+
+        if (isAdmin(user))
+            return;
 
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học."));
@@ -184,11 +193,12 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
     }
 
     private boolean isAdmin(User user) {
-        if (user.getRole() == null) return false;
+        if (user.getRole() == null)
+            return false;
         String val = user.getRole().getValue();
         String name = user.getRole().getName();
-        return "ROLE_ADMIN".equalsIgnoreCase(val) || "ADMIN".equalsIgnoreCase(val) || 
-               "ROLE_ADMIN".equalsIgnoreCase(name) || "ADMIN".equalsIgnoreCase(name) ||
-               "Quản trị viên".equalsIgnoreCase(name);
+        return "ROLE_ADMIN".equalsIgnoreCase(val) || "ADMIN".equalsIgnoreCase(val) ||
+                "ROLE_ADMIN".equalsIgnoreCase(name) || "ADMIN".equalsIgnoreCase(name) ||
+                "Quản trị viên".equalsIgnoreCase(name);
     }
 }

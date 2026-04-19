@@ -31,6 +31,7 @@ public interface IExpertModuleService {
         private Long moduleCount;
         private Long lessonCount;
         private Long questionCount;
+        private Long registrationCount;
     }
 
     @Data

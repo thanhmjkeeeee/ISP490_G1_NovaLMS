@@ -677,6 +677,8 @@ public class TeacherQuizService {
                             .source(q.getSource())
                             .orderIndex(qq.getOrderIndex())
                             .points(qq.getPoints())
+                            .groupId(q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupId() : null)
+                            .groupContent(q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupContent() : null)
                             .options(optDTOs)
                             .build();
                 })
@@ -784,6 +786,8 @@ public class TeacherQuizService {
             private String source;
             private Integer orderIndex;
             private java.math.BigDecimal points;
+            private Integer groupId;
+            private String groupContent;
             private List<AnswerOptionSimpleDTO> options;
         }
 
@@ -994,21 +998,8 @@ public class TeacherQuizService {
                     }
                 }
 
-                // Handle Question Group (Passage)
-                if (request.getPassage() != null && !request.getPassage().isBlank()) {
-                    // All questions in this import batch will share this passage
-                    QuestionGroup group = QuestionGroup.builder()
-                            .groupContent(request.getPassage())
-                            .skill(q.getSkill())
-                            .cefrLevel(q.getCefrLevel())
-                            .topic(q.getTopic())
-                            .status("DRAFT")
-                            .user(teacher)
-                            .build();
-                    questionGroupRepository.save(group);
-                    question.setQuestionGroup(group);
-                    questionRepository.save(question); // Re-save with group
-                }
+                // Question is already linked to sharedGroup via builder at line 932
+
 
                 // Add to quiz (if quizId provided)
                 if (quiz != null) {
@@ -1018,6 +1009,7 @@ public class TeacherQuizService {
                         QuizQuestion qq = QuizQuestion.builder()
                                 .quiz(quiz)
                                 .question(question)
+                                .questionGroup(question.getQuestionGroup()) // Link to group for UI grouping
                                 .orderIndex(currentCount + 1)
                                 .points(BigDecimal.ONE)
                                 .build();

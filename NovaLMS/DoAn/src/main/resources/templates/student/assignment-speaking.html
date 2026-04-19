@@ -116,6 +116,7 @@
 
 <script th:inline="javascript">
 const sessionId = /*[[${sessionId}]]*/ 0;
+const isPreview = /*[[${isPreview}]]*/ false;
 let mediaRecorder = null;
 let audioChunks = [];
 let currentRecordingUrl = null;
@@ -132,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSection() {
     try {
-        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING`);
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        const resp = await fetch(`${apiBase}/session/${sessionId}/section/SPEAKING`);
         const result = await resp.json();
         if (result.status !== 200) {
             document.getElementById('questionsContainer').innerHTML =
@@ -150,8 +152,9 @@ async function loadSection() {
         renderQuestions(section.questions || []);
 
         if (section.previousSkill) {
+            const viewBase = isPreview ? '/teacher/assignment/preview' : '/student/assignment';
             document.getElementById('prevBtn').href =
-                `/student/assignment/session/${sessionId}/section/${section.previousSkill}`;
+                `${viewBase}/session/${sessionId}/section/${section.previousSkill}`;
         } else {
             document.getElementById('prevBtn').style.visibility = 'hidden';
         }
@@ -217,7 +220,8 @@ async function saveDraft() {
     try {
         const answers = {};
         currentQuestionIds.forEach(id => { answers[id] = currentRecordingUrl; });
-        await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING`, {
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        await fetch(`${apiBase}/session/${sessionId}/section/SPEAKING`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers })
@@ -250,7 +254,7 @@ function startRecording() {
                 if (speakingSeconds <= 0) {
                     clearInterval(speakingTimerInterval);
                     stopRecording();
-                    setTimeout(autoSubmitAndUpload, 500);
+                    if (!isPreview) setTimeout(autoSubmitAndUpload, 500);
                 }
             }, 1000);
         })
@@ -351,14 +355,16 @@ async function submitSection() {
     currentQuestionIds.forEach(id => { answers[id] = currentRecordingUrl; });
 
     try {
-        const resp = await fetch(`/api/v1/student/assignment/session/${sessionId}/section/SPEAKING/submit`, {
+        const apiBase = isPreview ? '/api/v1/teacher/assignment/preview' : '/api/v1/student/assignment';
+        const resp = await fetch(`${apiBase}/session/${sessionId}/section/SPEAKING/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(answers)
         });
         const result = await resp.json();
         if (result.status === 200) {
-            window.location.href = `/student/assignment/session/${sessionId}/section/WRITING`;
+            const viewBase = isPreview ? '/teacher/assignment/preview' : '/student/assignment';
+            window.location.href = `${viewBase}/session/${sessionId}/section/WRITING`;
         } else {
             alert('Lỗi: ' + (result.message || 'Không thể nộp'));
             btn.disabled = false;

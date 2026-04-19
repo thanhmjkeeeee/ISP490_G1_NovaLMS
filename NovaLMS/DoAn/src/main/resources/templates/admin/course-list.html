@@ -234,7 +234,7 @@
                     <a href="/admin/courses/detail/${course.courseId}" class="btn btn-sm btn-light border shadow-sm" title="Xem chi tiết">
                         <i class="bi bi-eye text-primary"></i>
                     </a>
-                    ${(!course.registrationCount || course.registrationCount === 0)
+                    ${(!course.registrationCount || course.registrationCount == 0)
                         ? `<button class="btn btn-sm btn-light border shadow-sm ms-1" onclick="deleteCourse(${course.courseId})" title="Xóa">
                                <i class="bi bi-trash text-danger"></i>
                            </button>`

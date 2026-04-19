@@ -21,6 +21,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
 
 
     long countByQuizQuizId(Integer quizId);
+    
+    boolean existsByQuizQuizIdAndStatusIn(Integer quizId, List<String> statuses);
 
     long countByQuizQuizIdAndUserUserId(Integer quizId, Integer userId);
 
@@ -31,6 +33,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     long countByQuizQuizIdAndUserUserIdAndStatusNot(Integer quizId, Integer userId, String status);
 
     Optional<QuizResult> findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(Integer quizId, Integer userId);
+    Optional<QuizResult> findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(Integer quizId, Integer userId);
 
     Page<QuizResult> findByPassedIsNullAndQuiz_User_EmailOrderBySubmittedAtAsc(String email, Pageable pageable);
 
@@ -46,7 +49,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
-           "WHERE (qr.passed IS NULL OR qr.status = 'LOCKED') " +
+           "WHERE qr.status != 'GRADED' AND (qr.passed IS NULL OR qr.status = 'LOCKED') " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
            "AND (:classId IS NULL OR (reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
@@ -67,7 +70,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
-           "WHERE qr.passed IS NOT NULL " +
+           "WHERE (qr.passed IS NOT NULL OR qr.status = 'GRADED') " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
            "AND (:classId IS NULL OR (reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
@@ -104,7 +107,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
         JOIN FETCH qr.quiz q
         LEFT JOIN FETCH qr.user stu
         JOIN Registration reg ON reg.user.userId = stu.userId
-        WHERE reg.clazz.classId = :classId
+        WHERE (:classId IS NULL OR reg.clazz.classId = :classId)
           AND LOWER(reg.status) = 'approved'
           AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED'))
           AND (
@@ -119,10 +122,10 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
           )
           AND (
             'ALL' IN :status
-            OR ('PENDING_SPEAKING' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL)) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL))
-            OR ('PENDING_WRITING' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL)) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL))
-            OR ('PENDING_BOTH' IN :status AND qr.passed IS NULL AND (qr.status = 'GRADING' OR (EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.pointsAwarded IS NULL) AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.pointsAwarded IS NULL))))
-            OR ('ALL_GRADED' IN :status AND qr.passed IS NOT NULL)
+            OR ('PENDING_SPEAKING' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.teacherOverrideScore IS NULL))
+            OR ('PENDING_WRITING' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.teacherOverrideScore IS NULL))
+            OR ('PENDING_BOTH' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'WRITING' AND qa.teacherOverrideScore IS NULL) AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND qu.skill = 'SPEAKING' AND qa.teacherOverrideScore IS NULL))
+            OR ('ALL_GRADED' IN :status AND qr.status = 'GRADED')
           )
         ORDER BY qr.submittedAt DESC
         """)

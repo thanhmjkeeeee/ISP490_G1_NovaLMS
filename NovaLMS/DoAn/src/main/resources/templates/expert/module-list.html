@@ -210,9 +210,10 @@ function renderModuleTable(modules) {
                 '<button class="btn btn-sm btn-light border shadow-sm" onclick="openEditModal(' + m.moduleId + ')" title="Sửa">' +
                     '<i class="bi bi-pencil-square text-primary"></i>' +
                 '</button> ' +
+                (m.registrationCount > 0 ? '' : 
                 '<button class="btn btn-sm btn-light border shadow-sm" onclick="deleteModule(' + m.moduleId + ')" title="Xóa">' +
                     '<i class="bi bi-trash text-danger"></i>' +
-                '</button>' +
+                '</button>') +
             '</td>' +
         '</tr>';
     }).join('');
