@@ -170,8 +170,20 @@
                             </div>
                             <div class="col-md-3" id="courseSection" style="display:none">
                                 <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
-                                <select id="courseId" class="form-select form-select-lg border-2">
+                                <select id="courseId" class="form-select form-select-lg border-2" onchange="onCourseChange()">
                                     <option value="">-- Chọn khóa học --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="moduleSection" style="display:none">
+                                <label class="form-label fw-bold">Chương/Module</label>
+                                <select id="moduleIdSelect" class="form-select form-select-lg border-2" onchange="onModuleChange()">
+                                    <option value="">-- Chọn chương --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="lessonSection" style="display:none">
+                                <label class="form-label fw-bold">Buổi học (Lesson)</label>
+                                <select id="lessonIdSelect" class="form-select form-select-lg border-2">
+                                    <option value="">-- Chọn buổi --</option>
                                 </select>
                             </div>
                         </div>
@@ -347,18 +359,29 @@
                                 <div class="row g-2">
                                     <div class="col-md-4">
                                         <select id="modalSkill" class="form-select form-select-sm"
-                                            onchange="loadBankQuestions(0)"></select>
+                                            onchange="loadBankQuestions(0)">
+                                            <option value="">-- Tất cả Kỹ năng --</option>
+                                            <option value="LISTENING">Listening</option>
+                                            <option value="READING">Reading</option>
+                                            <option value="WRITING">Writing</option>
+                                            <option value="SPEAKING">Speaking</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-3">
                                         <select id="modalCefr" class="form-select form-select-sm"
                                             onchange="loadBankQuestions(0)">
-                                            <option value="">-- CEFR --</option>
-                                            <option value="A1">A1</option>
-                                            <option value="A2">A2</option>
-                                            <option value="B1">B1</option>
-                                            <option value="B2">B2</option>
-                                            <option value="C1">C1</option>
-                                            <option value="C2">C2</option>
+                                            <option value="">-- Trình độ IELTS --</option>
+                                            <option value="4.0">IELTS 4.0</option>
+                                            <option value="4.5">IELTS 4.5</option>
+                                            <option value="5.0">IELTS 5.0</option>
+                                            <option value="5.5">IELTS 5.5</option>
+                                            <option value="6.0">IELTS 6.0</option>
+                                            <option value="6.5">IELTS 6.5</option>
+                                            <option value="7.0">IELTS 7.0</option>
+                                            <option value="7.5">IELTS 7.5</option>
+                                            <option value="8.0">IELTS 8.0</option>
+                                            <option value="8.5">IELTS 8.5</option>
+                                            <option value="9.0">IELTS 9.0</option>
                                         </select>
                                     </div>
                                     <div class="col-md-4">
@@ -810,18 +833,14 @@
             if (courseSection) {
                 courseSection.style.display = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
             }
+
             if (deadlineSection) {
-                deadlineSection.style.display = (cat === 'COURSE_ASSIGNMENT') ? 'block' : 'none';
-                if (cat === 'COURSE_ASSIGNMENT') {
-                    const now = new Date();
-                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                    document.getElementById('deadline').min = now.toISOString().slice(0, 16);
-                }
+                deadlineSection.style.display = 'none';
             }
 
             if (cat === 'COURSE_ASSIGNMENT') {
                 perSkillSection.style.display = 'block';
-                timeLimitInput.readOnly = true; // Khóa ô tổng lại
+                timeLimitInput.readOnly = true; 
                 timeLimitInput.style.backgroundColor = '#e9ecef';
                 timeLimitInput.placeholder = 'Tự động tính';
             } else {
@@ -847,8 +866,70 @@
             if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
                 const btnNext = document.getElementById('btnNextStep');
                 if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
-                if (cat !== 'ENTRY_TEST') loadCourses();
+                if (cat !== 'ENTRY_TEST') {
+                    loadCourses();
+                } else {
+                    document.getElementById('courseSection').style.display = 'none';
+                    document.getElementById('moduleSection').style.display = 'none';
+                    document.getElementById('lessonSection').style.display = 'none';
+                }
             }
+        }
+
+        async function onCourseChange() {
+            const courseId = document.getElementById('courseId').value;
+            const moduleSection = document.getElementById('moduleSection');
+            const lessonSection = document.getElementById('lessonSection');
+            
+            if (!courseId) {
+                moduleSection.style.display = 'none';
+                lessonSection.style.display = 'none';
+                return;
+            }
+            
+            moduleSection.style.display = 'block';
+            loadModules(courseId);
+        }
+
+        async function loadModules(courseId) {
+            const select = document.getElementById('moduleIdSelect');
+            select.innerHTML = '<option value="">-- Đang tải chương... --</option>';
+            try {
+                const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    select.innerHTML = '<option value="">-- Chọn chương --</option>';
+                    result.data.forEach(m => {
+                        select.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function onModuleChange() {
+            const moduleId = document.getElementById('moduleIdSelect').value;
+            const lessonSection = document.getElementById('lessonSection');
+            if (!moduleId) {
+                lessonSection.style.display = 'none';
+                return;
+            }
+            lessonSection.style.display = 'block';
+            loadLessons(moduleId);
+        }
+
+        async function loadLessons(moduleId) {
+            const select = document.getElementById('lessonIdSelect');
+            select.innerHTML = '<option value="">-- Đang tải bài học... --</option>';
+            try {
+                const res = await fetch(`/api/v1/expert/lessons?moduleId=${moduleId}`);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    select.innerHTML = '<option value="">-- Chọn buổi (lesson) --</option>';
+                    result.data.forEach(l => {
+                        select.innerHTML += `<option value="${l.lessonId}">${l.lessonName}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
         }
 
         async function loadCourses() {
@@ -880,6 +961,19 @@
             }
         }
 
+        // Toast mixin
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
         async function submitQuiz(status) {
             const moduleId = /*[[${moduleId}]]*/ null;
             let cat = document.getElementById('quizCategory').value;
@@ -891,19 +985,10 @@
 
             // Validate 4 kỹ năng nếu là ASSIGNMENT
             let timeLimits = null;
-            if (cat === 'COURSE_ASSIGNMENT') {
+            if (cat === 'COURSE_ASSIGNMENT' || cat === 'MODULE_ASSIGNMENT') {
                 timeLimits = buildTimeLimitPerSkill();
                 if (!timeLimits) {
-                    alert('Vui lòng nhập đầy đủ thời gian cho các kỹ năng đã chọn!');
-                    return;
-                }
-                const dlValue = document.getElementById('deadline').value;
-                if (!dlValue) {
-                    alert('Vui lòng chọn hạn nộp bài cho Assignment!');
-                    return;
-                }
-                if (new Date(dlValue) < new Date()) {
-                    alert('Hạn nộp bài không được ở trong quá khứ.');
+                    Swal.fire('Thiếu thông tin', 'Vui lòng nhập đầy đủ thời gian cho các kỹ năng đã chọn!', 'warning');
                     return;
                 }
             }
@@ -912,15 +997,16 @@
                 title: document.getElementById('title').value,
                 description: document.getElementById('description').value || null,
                 quizCategory: cat,
-                courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') ? parseInt(document.getElementById('courseId').value) || null : null,
-                moduleId: moduleId || null,
+                courseId: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') ? parseInt(document.getElementById('courseId').value) || null : null,
+                moduleId: parseInt(document.getElementById('moduleIdSelect').value) || moduleId || null,
+                lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
                 timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
                 passScore: parseFloat(document.getElementById('passScore').value) || null,
                 maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
                 questionOrder: document.getElementById('questionOrder').value,
                 showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-                deadline: document.getElementById('deadline').value || null,
-                timeLimitPerSkill: timeLimits, // Đã đẩy 4 kỹ năng lên BE từ bước Create
+                deadline: null,
+                timeLimitPerSkill: timeLimits,
                 status: status
             };
 
@@ -935,9 +1021,9 @@
                     _quizId = result.data.quizId;
                     goToStep(2);
                 } else {
-                    alert(result.message || 'Có lỗi xảy ra.');
+                    Swal.fire('Lỗi', result.message || 'Có lỗi xảy ra.', 'error');
                 }
-            } catch (e) { alert('Lỗi: ' + e.message); }
+            } catch (e) { Swal.fire('Lỗi hệ thống', e.message, 'error'); }
         }
 
         // ── NAVIGATION LOGIC ──────────────────────────────────────────────────────
@@ -964,7 +1050,7 @@
 
         function validateAndGoToStep2() {
             const title = document.getElementById('title').value;
-            if (!title) { alert('Vui lòng nhập tên Quiz'); return; }
+            if (!title) { Swal.fire('Thông báo', 'Vui lòng nhập tên Quiz', 'info'); return; }
 
             // Nếu chưa có quizId thì tạo mới (DRAFT), nếu có rồi thì chỉ chuyển bước
             if (!_quizId) {
@@ -977,6 +1063,18 @@
         // ── STEP 2 LOGIC ──────────────────────────────────────────────────────────
         let _quizQuestions = [];
         let _currentBankPage = 0;
+
+        function typeName(type) {
+            switch (type) {
+                case 'MULTIPLE_CHOICE_SINGLE': return 'Trắc nghiệm (1)';
+                case 'MULTIPLE_CHOICE_MULTI': return 'Trắc nghiệm (N)';
+                case 'FILL_IN_BLANK': return 'Điền từ';
+                case 'MATCHING': return 'Nối';
+                case 'WRITING': return 'Viết';
+                case 'SPEAKING': return 'Nói';
+                default: return type || '—';
+            }
+        }
 
         function initStep2() {
             loadQuizQuestions();
@@ -1008,19 +1106,7 @@
         function renderAddedQuestions() {
             const container = document.getElementById('addedQuestionsList');
 
-            // Nhóm câu hỏi
-            const groups = new Map();
-            const lones = [];
-            _quizQuestions.forEach(q => {
-                if (q.groupId) {
-                    if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
-                    groups.get(q.groupId).items.push(q);
-                } else {
-                    lones.push(q);
-                }
-            });
-
-            const totalItems = groups.size + lones.length;
+            const totalItems = new Set(_quizQuestions.map(q => q.groupId ? 'G' + q.groupId : 'Q' + q.questionId)).size;
             document.getElementById('currentCountBadge').textContent = `${totalItems} câu`;
 
             if (totalItems === 0) {
@@ -1030,70 +1116,102 @@
                 return;
             }
 
-            let html = '';
+            // Group by Skill first
+            const skillGroups = new Map();
+            _quizQuestions.forEach(q => {
+                const skill = q.skill || 'OTHER';
+                if (!skillGroups.has(skill)) skillGroups.set(skill, { groups: new Map(), lones: [] });
 
-            // Render Groups (Passages)
-            groups.forEach(g => {
-                const isExpanded = _expandedGroups.has(g.id);
-                html += `
-            <div class="card mb-3 border shadow-sm" style="border-radius: 12px; border-left: 5px solid #0d6efd !important;">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-start">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-sm btn-light me-2 rounded-circle p-0" style="width:24px; height:24px;" onclick="toggleGroup(${g.id})">
-                            <i class="bi ${isExpanded ? 'bi-dash' : 'bi-plus'}"></i>
-                        </button>
-                        <div class="small fw-bold text-primary"><i class="bi bi-journal-text me-1"></i> BỘ CÂU HỎI (PASSAGE)</div>
-                    </div>
-                    <button class="btn btn-sm btn-link text-danger p-0" onclick="removeGroup(${g.id})" title="Gỡ cả bộ">
-                        <i class="bi bi-trash"></i> Gỡ bộ
-                    </button>
-                </div>
-                <div class="card-body pt-2">
-                    <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
-                    <div class="${isExpanded ? '' : 'd-none'}">
-                        ${g.items.map((sq, idx) => `
-                            <div class="d-flex justify-content-between align-items-center mb-2 last-child-mb-0">
-                                <div class="small text-muted">
-                                    <span class="badge bg-light text-dark me-1">${idx + 1}</span>
-                                    ${sq.questionContent}
-                                </div>
-                                <div class="extra-small text-info">${typeName(sq.questionType)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-            `;
+                if (q.groupId) {
+                    if (!skillGroups.get(skill).groups.has(q.groupId)) {
+                        skillGroups.get(skill).groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
+                    }
+                    skillGroups.get(skill).groups.get(q.groupId).items.push(q);
+                } else {
+                    skillGroups.get(skill).lones.push(q);
+                }
             });
 
-            // Render Lone Questions
-            lones.forEach((q, i) => {
-                html += `
-            <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div style="max-width: 85%;">
-                            <div class="small fw-bold text-success mb-1">CÂU LẺ • ${typeName(q.questionType)}</div>
-                            <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
+            let html = '';
+
+            skillGroups.forEach((data, skill) => {
+                const skillName = skill === 'OTHER' ? 'KHÁC' : skill.toUpperCase();
+                html += `<h6 class="fw-bold text-primary mt-3 mb-2" style="border-bottom: 2px solid #e9ecef; padding-bottom: 5px;">PHẦN THI: ${skillName}</h6>`;
+
+                // Render Groups (Passages)
+                data.groups.forEach(g => {
+                    const isExpanded = _expandedGroups.has(g.id);
+                    html += `
+                <div class="card mb-3 border shadow-sm" style="border-radius: 12px; border-left: 5px solid #0d6efd !important;">
+                    <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-start">
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-light me-2 rounded-circle p-0" style="width:24px; height:24px;" onclick="toggleGroup(${g.id})">
+                                <i class="bi ${isExpanded ? 'bi-dash' : 'bi-plus'}"></i>
+                            </button>
+                            <div class="small fw-bold text-primary"><i class="bi bi-journal-text me-1"></i> BỘ CÂU HỎI (PASSAGE)</div>
                         </div>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="removeQuestion(${q.questionId})">
-                            <i class="bi bi-trash"></i>
+                        <button class="btn btn-sm btn-link text-danger p-0" onclick="removeGroup(${g.id})" title="Gỡ cả bộ">
+                            <i class="bi bi-trash"></i> Gỡ bộ
                         </button>
                     </div>
+                    <div class="card-body pt-2">
+                        <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
+                        <div class="${isExpanded ? '' : 'd-none'}">
+                            ${g.items.map((sq, idx) => `
+                                <div class="d-flex justify-content-between align-items-center mb-2 last-child-mb-0">
+                                    <div class="small text-muted">
+                                        <span class="badge bg-light text-dark me-1">${idx + 1}</span>
+                                        ${sq.questionContent}
+                                    </div>
+                                    <div class="extra-small text-info">${typeName(sq.questionType)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
-            </div>
-            `;
+                `;
+                });
+
+                // Render Lone Questions
+                data.lones.forEach((q, i) => {
+                    html += `
+                <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div style="max-width: 85%;">
+                                <div class="small fw-bold text-success mb-1">CÂU LẺ • ${typeName(q.questionType)}</div>
+                                <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger border-0" onclick="removeQuestion(${q.questionId})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+                });
             });
 
             container.innerHTML = html;
         }
 
         async function removeGroup(groupId) {
-            if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
+            const result = await Swal.fire({
+                title: 'Xác nhận gỡ?',
+                text: "Gỡ toàn bộ Passage này cùng các câu hỏi con?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý gỡ',
+                cancelButtonText: 'Hủy'
+            });
+            if (!result.isConfirmed) return;
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/groups/${groupId}`, { method: 'DELETE' });
-                if (res.ok) loadQuizQuestions();
-            } catch (e) { alert('Lỗi: ' + e.message); }
+                if (res.ok) {
+                    Toast.fire({ icon: 'success', title: 'Đã gỡ bộ câu hỏi' });
+                    loadQuizQuestions();
+                }
+            } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
         }
 
         let _lastBankResult = null;
@@ -1179,13 +1297,14 @@
                     })
                 });
                 if (res.ok) {
+                    Toast.fire({ icon: 'success', title: 'Đã thêm vào Quiz' });
                     initStep3();
                     loadQuizQuestions();
                 } else {
                     const r = await res.json();
-                    alert(r.message || 'Không thể thêm.');
+                    Swal.fire('Lỗi', r.message || 'Không thể thêm.', 'error');
                 }
-            } catch (e) { alert('Lỗi: ' + e.message); }
+            } catch (e) { Swal.fire('Lỗi kết nối', e.message, 'error'); }
         }
 
         async function removeQuestion(questionId) {
@@ -1277,14 +1396,19 @@
                 window.location.href = '/expert/quiz-management';
                 return;
             }
-            if (confirm('Bạn có chắc chắn muốn hủy? Toàn bộ nội dung đang tạo sẽ bị xóa.')) {
+            const result = await Swal.fire({
+                title: 'Hủy tạo Quiz?',
+                text: "Toàn bộ nội dung đang tạo sẽ bị xóa.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Đồng ý hủy',
+                cancelButtonText: 'Quay lại'
+            });
+            if (result.isConfirmed) {
                 try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' });
-                    if (res.ok) {
-                        window.location.href = '/expert/quiz-management';
-                    } else {
-                        window.location.href = '/expert/quiz-management';
-                    }
+                    await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' });
+                    window.location.href = '/expert/quiz-management';
                 } catch (e) {
                     window.location.href = '/expert/quiz-management';
                 }
@@ -1318,7 +1442,16 @@
         }
 
         async function finalPublish() {
-            if (!confirm('Xác nhận xuất bản Quiz này?')) return;
+            const result = await Swal.fire({
+                title: 'Xác nhận xuất bản?',
+                text: "Sau khi xuất bản, học sinh có thể bắt đầu làm bài.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Xuất bản ngay',
+                cancelButtonText: 'Hủy'
+            });
+            if (!result.isConfirmed) return;
+
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/status`, {
                     method: 'PATCH',
@@ -1326,13 +1459,359 @@
                     body: JSON.stringify({ status: 'PUBLISHED' })
                 });
                 if (res.ok) {
-                    alert('Chúc mừng! Quiz đã được xuất bản thành công.');
+                    await Swal.fire('Thành công', 'Chúc mừng! Quiz đã được xuất bản thành công.', 'success');
                     window.location.href = '/expert/quiz-management';
                 } else {
                     const r = await res.json();
-                    alert(r.message || 'Lỗi khi xuất bản.');
+                    Swal.fire('Lỗi', r.message || 'Lỗi khi xuất bản.', 'error');
                 }
-            } catch (e) { alert('Lỗi: ' + e.message); }
+            } catch (e) { Swal.fire('Lỗi kết nối', e.message, 'error'); }
+        }
+        // ─── AI GENERATION LOGIC ────────────────────────────────────────────
+        let expertAiModal;
+        let wsAiResultModal;
+        let _generatedAiQuestions = [];
+
+        function openExpertAiModal() {
+            if (!expertAiModal) expertAiModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+            document.getElementById('adv-topic').value = document.getElementById('title').value || '';
+            toggleAiAdvancedFields();
+            expertAiModal.show();
+        }
+
+        function updateAdvSkill(skill) {
+            document.getElementById('adv-skill').value = skill;
+            toggleAiAdvancedFields();
+        }
+
+        function updateAdvCefr(val) {
+            document.getElementById('adv-cefr').value = val;
+        }
+
+        function toggleAiAdvancedFields() {
+            const skill = document.getElementById('adv-skill').value;
+            const isMatching = document.getElementById('type-match').checked;
+
+            document.getElementById('field-listening').style.display = skill === 'LISTENING' ? 'block' : 'none';
+            document.getElementById('field-reading').style.display = skill === 'READING' ? 'block' : 'none';
+            document.getElementById('field-matching').style.display = isMatching ? 'block' : 'none';
+        }
+
+        async function runExpertAiGeneration() {
+            const topic = document.getElementById('adv-topic').value.trim();
+            const skill = document.getElementById('adv-skill').value;
+            const cefr = document.getElementById('adv-cefr').value;
+            const qty = parseInt(document.getElementById('adv-qty').value) || 5;
+
+            if (!topic) { Swal.fire('Thông báo', 'Vui lòng nhập chủ đề.', 'info'); return; }
+
+            const types = [];
+            if (document.getElementById('type-mc-s').checked) types.push('MULTIPLE_CHOICE_SINGLE');
+            if (document.getElementById('type-mc-m').checked) types.push('MULTIPLE_CHOICE_MULTI');
+            if (document.getElementById('type-fib').checked) types.push('FILL_IN_BLANK');
+            if (document.getElementById('type-match').checked) types.push('MATCHING');
+
+            if (types.length === 0) { Swal.fire('Thông báo', 'Vui lòng chọn ít nhất 1 loại câu hỏi.', 'info'); return; }
+
+            const advancedOptions = {};
+            if (skill === 'LISTENING') advancedOptions.listeningType = document.getElementById('adv-listen-type').value;
+            if (skill === 'READING') {
+                const readLen = document.querySelector('input[name="adv-read-len"]:checked');
+                if (readLen) advancedOptions.readingLength = readLen.value;
+            }
+            if (types.includes('MATCHING')) {
+                advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
+            }
+
+            const payload = {
+                topic,
+                quantity: qty,
+                skill,
+                cefrLevel: cefr,
+                questionTypes: types,
+                mode: "ADVANCED",
+                advancedOptions
+            };
+
+            const btn = document.getElementById('btn-run-ai');
+            const spinner = document.getElementById('ai-loading-spinner');
+            btn.disabled = true; spinner.style.display = 'inline-block';
+
+            try {
+                const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (result.status === 200) {
+                    _generatedAiQuestions = result.data.questions || [];
+                    expertAiModal.hide();
+                    if (!wsAiResultModal) wsAiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
+                    wsAiResultModal.show();
+                    wsRenderAiResults();
+                } else {
+                    Swal.fire('Lỗi AI', result.message || 'Lỗi sinh câu hỏi.', 'error');
+                }
+            } catch (e) { Swal.fire('Lỗi kết nối', e.message, 'error'); }
+            finally { btn.disabled = false; spinner.style.display = 'none'; }
+        }
+
+        // --- TTS logic ---
+        let currentUtterance = null;
+        let ttsInterval = null;
+
+        function wsSpeak(idx) {
+            wsStop(idx); // stop any playing
+            const q = _generatedAiQuestions[idx];
+            if (!q) return;
+
+            const textToSpeak = q.passage || q.groupContent || q.content;
+            if (!textToSpeak) return;
+
+            const btnPlay = document.getElementById('btn-play-' + idx);
+            const btnStop = document.getElementById('btn-stop-' + idx);
+            const progress = document.getElementById('tts-progress-' + idx);
+
+            if (btnPlay) btnPlay.style.display = 'none';
+            if (btnStop) btnStop.style.display = 'inline-block';
+            if (progress) {
+                progress.style.width = '0%';
+                progress.parentElement.style.display = 'flex';
+            }
+
+            currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+            currentUtterance.lang = 'en-US';
+            currentUtterance.rate = 0.9;
+
+            // Randomly select a voice
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                const enVoices = voices.filter(v => v.lang.startsWith('en'));
+                if (enVoices.length > 0) currentUtterance.voice = enVoices[Math.floor(Math.random() * enVoices.length)];
+            }
+
+            let startMs = Date.now();
+            // Estimate duration: ~15 chars per second for English speech at rate 0.9
+            const estDurationMs = (textToSpeak.length / 15) * 1000;
+
+            ttsInterval = setInterval(() => {
+                if (progress) {
+                    let elapsed = Date.now() - startMs;
+                    let pct = Math.min((elapsed / estDurationMs) * 100, 99);
+                    progress.style.width = pct + '%';
+                }
+            }, 100);
+
+            currentUtterance.onend = () => {
+                if (ttsInterval) clearInterval(ttsInterval);
+                if (progress) progress.style.width = '100%';
+                setTimeout(() => {
+                    if (btnStop) btnStop.style.display = 'none';
+                    if (btnPlay) btnPlay.style.display = 'inline-block';
+                    if (progress) {
+                        if (progress.parentElement) progress.parentElement.style.display = 'none';
+                        progress.style.width = '0%';
+                    }
+                }, 500);
+            };
+
+            currentUtterance.onerror = () => wsStop(idx);
+
+            window.speechSynthesis.speak(currentUtterance);
+        }
+
+        function wsStop(idx) {
+            window.speechSynthesis.cancel();
+            if (ttsInterval) clearInterval(ttsInterval);
+            const btnPlay = document.getElementById('btn-play-' + idx);
+            const btnStop = document.getElementById('btn-stop-' + idx);
+            const progress = document.getElementById('tts-progress-' + idx);
+
+            if (btnPlay) btnPlay.style.display = 'inline-block';
+            if (btnStop) btnStop.style.display = 'none';
+            if (progress) {
+                progress.style.width = '0%';
+                progress.parentElement.style.display = 'none';
+            }
+        }
+
+        function wsRenderAiResults() {
+            const list = document.getElementById('wsAiList');
+            document.getElementById('wsAiTotalCount').textContent = _generatedAiQuestions.length;
+            document.getElementById('wsAiSelectedCount').textContent = _generatedAiQuestions.length;
+
+            if (_generatedAiQuestions.length === 0) {
+                list.innerHTML = '<div class="text-center py-5 text-muted">Không sinh được câu hỏi nào.</div>';
+                return;
+            }
+
+            let html = '';
+            _generatedAiQuestions.forEach((q, idx) => {
+                q._selected = true; // Default selected
+
+                // Check for Group/Passage
+                if (q.type === 'GROUP' || q.groupId || q.passage) {
+                    html += `
+                    <div class="list-group-item list-group-item-action p-4 mb-3 rounded-4 border">
+                        <div class="d-flex gap-3">
+                            <div class="form-check mt-1">
+                                <input class="form-check-input ws-ai-cb fs-5" type="checkbox" value="${idx}" checked onchange="wsUpdateAiSelection()">
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between mb-3 align-items-center">
+                                    <span class="badge bg-primary text-white px-3 py-2 rounded-pill"><i class="bi bi-collection-fill me-1"></i> PASSAGE / LISTENING</span>
+                                    <div>
+                                        <button id="btn-play-${idx}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="wsSpeak(${idx})"><i class="bi bi-play-fill"></i> Nghe thử</button>
+                                        <button id="btn-stop-${idx}" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold" style="display:none;" onclick="wsStop(${idx})"><i class="bi bi-stop-fill"></i> Dừng</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress mb-3" style="height: 6px; display: none;">
+                                  <div id="tts-progress-${idx}" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
+                                </div>
+
+                                <div class="p-3 bg-light rounded-3 mb-3 text-dark fw-medium" style="max-height: 200px; overflow-y:auto; line-height:1.6;">
+                                    ${q.passage || q.content || '—'}
+                                </div>
+                                <h6 class="fw-bold mb-3 border-bottom pb-2">Danh sách câu hỏi con:</h6>
+                                <div class="d-flex flex-column gap-2 ps-3">
+                                    ${(q.questions || []).map((subQ, sIdx) => {
+                        let ansHtml = '';
+                        const opts = subQ.options || subQ.answers || [];
+                        if (opts.length > 0) {
+                            ansHtml = '<div class="mt-2 ps-2 border-start border-2 border-primary border-opacity-25">';
+                            opts.forEach(a => {
+                                const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '';
+                                ansHtml += `<div class="small text-muted mb-1">• ${a.title || a.answerText} ${isCorrect}</div>`;
+                            });
+                            ansHtml += '</div>';
+                        }
+                        return `
+                                        <div class="p-3 border rounded-3 bg-white">
+                                            <div class="fw-bold text-dark mb-2">${sIdx + 1}. ${subQ.content || subQ.questionContent}</div>
+                                            <span class="badge bg-light text-dark border">${typeName(subQ.questionType)}</span>
+                                            ${ansHtml}
+                                        </div>`;
+                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                } else {
+                    // Single question
+                    let ansHtml = '';
+                    const opts = q.options || q.answers || [];
+                    if (opts.length > 0) {
+                        ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
+                        opts.forEach(a => {
+                            const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
+                            ansHtml += `<div class="small text-muted mb-1">• ${a.title || a.answerText} ${isCorrect}</div>`;
+                        });
+                        ansHtml += '</div>';
+                    }
+
+                    html += `
+                    <div class="list-group-item list-group-item-action p-3 mb-2 rounded-3 border">
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input ws-ai-cb" type="checkbox" value="${idx}" checked onchange="wsUpdateAiSelection()">
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge bg-light text-dark border">${typeName(q.questionType)}</span>
+                                    ${q.skill === 'LISTENING' ? `
+                                        <div>
+                                            <button id="btn-play-${idx}" class="btn btn-xs btn-outline-primary rounded-pill px-2" onclick="wsSpeak(${idx})"><i class="bi bi-play-fill"></i> Nghe</button>
+                                            <button id="btn-stop-${idx}" class="btn btn-xs btn-danger rounded-pill px-2" style="display:none;" onclick="wsStop(${idx})"><i class="bi bi-stop-fill"></i></button>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 4px; display: none; width: 100px;">
+                                            <div id="tts-progress-${idx}" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="text-dark fw-medium mb-2">${q.content || q.questionContent}</div>
+                                ${ansHtml}
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            });
+            list.innerHTML = html;
+        }
+
+        function wsUpdateAiSelection() {
+            const cbs = document.querySelectorAll('.ws-ai-cb');
+            let count = 0;
+            cbs.forEach(cb => {
+                const idx = parseInt(cb.value);
+                _generatedAiQuestions[idx]._selected = cb.checked;
+                if (cb.checked) count++;
+            });
+            document.getElementById('wsAiSelectedCount').textContent = count;
+        }
+
+        function wsToggleAllAI() {
+            const cbs = document.querySelectorAll('.ws-ai-cb');
+            const allChecked = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !allChecked);
+            wsUpdateAiSelection();
+        }
+
+        async function wsImportSelectedAi() {
+            const selected = _generatedAiQuestions.filter(q => q._selected);
+            if (selected.length === 0) { 
+                Swal.fire('Thông báo', 'Vui lòng chọn ít nhất 1 câu hỏi để nhập.', 'info'); 
+                return; 
+            }
+
+            let finalQuestions = [];
+            let passage = null;
+
+            selected.forEach(q => {
+                if (q.type === 'GROUP' || q.questions) {
+                    // Đây là bộ câu hỏi có passage/audio transcript
+                    passage = q.passage || q.content;
+                    if (q.questions && q.questions.length > 0) {
+                        q.questions.forEach(sub => {
+                            // Đảm bảo sub-question có đủ metadata từ group nếu thiếu
+                            if (!sub.skill) sub.skill = q.skill;
+                            if (!sub.cefrLevel) sub.cefrLevel = q.cefrLevel;
+                            if (!sub.topic) sub.topic = q.topic;
+                            finalQuestions.push(sub);
+                        });
+                    }
+                } else {
+                    finalQuestions.push(q);
+                }
+            });
+
+            const btn = document.getElementById('wsBtnImportAi');
+            const spinner = document.getElementById('wsImportAiSpinner');
+            btn.disabled = true; spinner.style.display = 'inline-block';
+
+            try {
+                let url = `/api/v1/expert/quizzes/${_quizId}/ai/import`;
+                if (passage) {
+                    url += `?passage=${encodeURIComponent(passage)}`;
+                }
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(finalQuestions)
+                });
+                const result = await res.json();
+                if (result.status === 200) {
+                    Toast.fire({ icon: 'success', title: 'Đã nhập câu hỏi thành công' });
+                    wsAiResultModal.hide();
+                    loadQuizQuestions();
+                } else {
+                    Swal.fire('Lỗi Import', result.message || 'Không thể nhập câu hỏi.', 'error');
+                }
+            } catch (e) { Swal.fire('Lỗi kết nối', e.message, 'error'); }
+            finally { btn.disabled = false; spinner.style.display = 'none'; }
         }
     </script>
 </body>
