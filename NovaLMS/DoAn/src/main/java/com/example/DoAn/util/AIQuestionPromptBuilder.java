@@ -583,6 +583,7 @@ public class AIQuestionPromptBuilder {
                         constraints,
                         writingConstraint,
                         speakingConstraint,
+                        cefrLevel,
                         jsonStructure);
     }
 }

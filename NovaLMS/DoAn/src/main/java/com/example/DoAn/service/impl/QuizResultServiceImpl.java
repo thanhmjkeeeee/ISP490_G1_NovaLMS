@@ -1413,4 +1413,16 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
         return list;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getResultBasicStatus(Integer resultId) {
+        QuizResult qr = quizResultRepository.findById(resultId).orElse(null);
+        Map<String, Object> map = new HashMap<>();
+        if (qr != null) {
+            map.put("status", qr.getStatus());
+            map.put("passed", qr.getPassed());
+        }
+        return map;
+    }
 }

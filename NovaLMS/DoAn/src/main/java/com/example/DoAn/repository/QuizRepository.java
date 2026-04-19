@@ -33,7 +33,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     // Tìm tất cả quiz theo danh sách courseId (cho teacher xem quiz của các lớp mình + bài của expert đã publish)
     @Query("SELECT q FROM Quiz q WHERE q.course.courseId IN :courseIds " +
-           "AND (q.quizCategory = 'COURSE_QUIZ' OR q.quizCategory = 'COURSE_ASSIGNMENT') " +
+           "AND (q.quizCategory IN ('COURSE_QUIZ', 'COURSE_ASSIGNMENT', 'MODULE_QUIZ', 'LESSON_QUIZ', 'MODULE_ASSIGNMENT')) " +
            "AND (q.user.userId = :userId OR q.status = 'PUBLISHED') " +
            "ORDER BY q.createdAt DESC")
     List<Quiz> findAllVisibleForTeacher(@Param("courseIds") List<Integer> courseIds, @Param("userId") Integer userId);
@@ -61,10 +61,12 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
     @Query("SELECT DISTINCT q FROM Quiz q " +
            "JOIN q.course c " +
            "JOIN c.classes cl " +
+           "LEFT JOIN FETCH q.module m " +
+           "LEFT JOIN FETCH q.user u " +
            "WHERE cl.classId = :classId " +
            "AND q.status = 'PUBLISHED' " +
            "AND q.user.role.value = 'ROLE_EXPERT' " +
-           "AND (q.quizCategory = 'COURSE_ASSIGNMENT' OR q.quizCategory = 'COURSE_QUIZ')")
+           "AND q.quizCategory IN ('COURSE_ASSIGNMENT', 'COURSE_QUIZ', 'MODULE_QUIZ', 'LESSON_QUIZ', 'MODULE_ASSIGNMENT')")
     List<Quiz> findExpertQuizzesByClassId(@Param("classId") Integer classId);
 
 }

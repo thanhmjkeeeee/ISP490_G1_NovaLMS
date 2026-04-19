@@ -115,7 +115,13 @@ public class StudentQuizTakingController {
                     return map;
                 })
                 .toList();
-        return ResponseEntity.ok(Map.of("status", 200, "data", data));
+        Map<String, Object> basicStatus = quizResultService.getResultBasicStatus(resultId);
+        return ResponseEntity.ok(Map.of(
+                "status", 200,
+                "data", data,
+                "overallStatus", basicStatus.getOrDefault("status", "UNKNOWN"),
+                "passed", basicStatus.getOrDefault("passed", null)
+        ));
     }
 
     @PostMapping("/api/v1/student/quiz/result/{resultId}/request-unlock")

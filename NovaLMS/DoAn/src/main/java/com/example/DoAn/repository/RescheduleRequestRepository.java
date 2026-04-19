@@ -40,6 +40,14 @@ public interface RescheduleRequestRepository extends JpaRepository<RescheduleReq
             @Param("status") String status,
             Pageable pageable);
 
+    @Query("SELECT r FROM RescheduleRequest r " +
+           "JOIN FETCH r.session s " +
+           "JOIN FETCH s.clazz c " +
+           "JOIN FETCH r.createdBy u " +
+           "WHERE u.userId = :userId " +
+           "ORDER BY r.createdAt DESC")
+    List<RescheduleRequest> findByCreatedBy_UserIdWithDetails(@Param("userId") Integer userId);
+
     List<RescheduleRequest> findByCreatedBy_UserIdOrderByCreatedAtDesc(Integer userId);
 
     /**

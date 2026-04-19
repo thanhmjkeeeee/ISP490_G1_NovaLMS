@@ -475,23 +475,39 @@
         renderRubric(el, isTeacher);
     });
 
-    // ── AI polling ──────────────────────────────────────────────────────────
+    // ── Polling logic for both AI & Manual Grading ──────────────────────────
     var resultId = /*[[${resultId}]]*/ 0;
-    var pendingBadge = document.querySelector('.bg-warning.text-dark');
-    if (!pendingBadge) return;
+    
+    // Check if we are in "Waiting for Grade" state (Manual or AI)
+    var isWaiting = document.querySelector('.score-glass h4') && 
+                    document.querySelector('.score-glass h4').innerText.includes('Chờ Chấm Điểm');
+    
+    // Also poll if any question is still PENDING AI
+    var hasAiPending = document.querySelector('.badge.bg-warning-subtle');
 
-    setInterval(function() {
-        fetch('/api/v1/student/quiz/result/' + resultId + '/ai-status')
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.status !== 200) return;
-                var allDone = data.data.every(function(q) {
-                    return q.aiGradingStatus !== 'PENDING';
-                });
-                if (allDone) location.reload();
-            })
-            .catch(function() {});
-    }, 3000);
+    if (isWaiting || hasAiPending) {
+        setInterval(function() {
+            fetch('/api/v1/student/quiz/result/' + resultId + '/ai-status')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.status !== 200) return;
+                    
+                    // Check if teacher finished manual grading
+                    var manualDone = data.overallStatus === 'GRADED' || data.passed !== null;
+                    
+                    // Check if AI finished all questions
+                    var aiDone = !data.data || data.data.every(function(q) {
+                        return q.aiGradingStatus !== 'PENDING';
+                    });
+
+                    // If we were waiting for teacher and it's done, OR if AI just finished
+                    if (manualDone || (hasAiPending && aiDone)) {
+                        location.reload();
+                    }
+                })
+                .catch(function() {});
+        }, 3000);
+    }
 })();
 </script>
 

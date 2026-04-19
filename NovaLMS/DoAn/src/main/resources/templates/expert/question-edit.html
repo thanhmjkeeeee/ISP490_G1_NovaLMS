@@ -58,7 +58,7 @@
                     <select id="skill" class="form-select border-0 bg-light shadow-none" disabled></select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase">Cấp độ CEFR</label>
+                    <label class="form-label fw-bold small text-uppercase">Cấp độ IELTS (Band)</label>
                     <select id="cefrLevel" class="form-select border-0 bg-light shadow-none"></select>
                 </div>
                 <div class="col-md-4">
@@ -186,7 +186,7 @@ function switchToSplitView(groupData) {
                     </select>
                 </div>
                 <div class="col-6">
-                    <label class="form-label small fw-bold text-muted">CEFR</label>
+                    <label class="form-label small fw-bold text-muted">Band</label>
                     <select id="cefrLevel" class="form-select border-0 bg-light">
                         ${window.NovaQuestionFormSettings ? NovaQuestionFormSettings.getCefrOptionsHtml(groupData.cefrLevel || 'B1') : ''}
                     </select>

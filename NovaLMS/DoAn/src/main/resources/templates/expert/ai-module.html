@@ -39,8 +39,22 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-bold">Trình độ (CEFR/Band)</label>
-                    <select id="aiCefr" class="form-select"></select>
+                    <label class="form-label fw-bold">Trình độ (IELTS Band)</label>
+                    <select id="aiCefr" class="form-select">
+                        <option value="3.0">IELTS Band 3.0</option>
+                        <option value="3.5">IELTS Band 3.5</option>
+                        <option value="4.0">IELTS Band 4.0</option>
+                        <option value="4.5">IELTS Band 4.5</option>
+                        <option value="5.0" selected>IELTS Band 5.0</option>
+                        <option value="5.5">IELTS Band 5.5</option>
+                        <option value="6.0">IELTS Band 6.0</option>
+                        <option value="6.5">IELTS Band 6.5</option>
+                        <option value="7.0">IELTS Band 7.0</option>
+                        <option value="7.5">IELTS Band 7.5</option>
+                        <option value="8.0">IELTS Band 8.0</option>
+                        <option value="8.5">IELTS Band 8.5</option>
+                        <option value="9.0">IELTS Band 9.0</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-bold">Số lượng (1-50)</label>
@@ -86,23 +100,29 @@
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
 <script th:inline="javascript">
     let aiQuestions = [];
     let aiSelectedSet = new Set();
     let allAiSelected = false;
 
-    window.onload = async () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         loadModules(); // Load ban đầu nếu có thể
         try {
             if (window.NovaQuestionFormSettings) {
                 await NovaQuestionFormSettings.load();
-                NovaQuestionFormSettings.fillCefrSelect(document.getElementById('aiCefr'));
                 const cefrSel = document.getElementById('aiCefr');
-                if (cefrSel.querySelector('option[value="B1"]')) cefrSel.value = 'B1';
+                NovaQuestionFormSettings.fillCefrSelect(cefrSel);
+                // Mặc định chọn một band IELTS phổ biến nếu có
+                if (cefrSel.querySelector('option[value="5.0"]')) {
+                    cefrSel.value = '5.0';
+                } else if (cefrSel.querySelector('option[value="B1"]')) {
+                    cefrSel.value = 'B1';
+                }
             }
         } catch(e) { console.error(e); }
-    };
+    });
 
     async function loadModules() {
         const courseId = document.getElementById('courseId').value;

@@ -48,7 +48,10 @@ public class TeacherQuizService {
             "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK",
             "MATCHING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_SKILLS = Set.of("LISTENING", "READING", "WRITING", "SPEAKING");
-    private static final Set<String> VALID_CEFR = Set.of("A1", "A2", "B1", "B2", "C1", "C2");
+    private static final Set<String> VALID_CEFR = Set.of(
+            "A1", "A2", "B1", "B2", "C1", "C2",
+            "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0"
+    );
     private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -331,6 +334,10 @@ public class TeacherQuizService {
             }
 
             List<TeacherQuizDTO> dtos = quizzes.stream()
+                    .filter(q -> {
+                        String cat = q.getQuizCategory();
+                        return "COURSE_QUIZ".equals(cat) || "MODULE_QUIZ".equals(cat) || "LESSON_QUIZ".equals(cat);
+                    })
                     .map(this::toTeacherQuizDTO)
                     .collect(Collectors.toList());
             return ResponseData.success("Danh sách quiz", dtos);
@@ -377,7 +384,7 @@ public class TeacherQuizService {
                     .explanation(request.getExplanation())
                     .audioUrl(request.getAudioUrl())
                     .imageUrl(request.getImageUrl())
-                    .status("DRAFT")
+                    .status("PENDING_REVIEW")
                     .source("TEACHER_PRIVATE")
                     .user(teacher)
                     .build();
@@ -900,7 +907,7 @@ public class TeacherQuizService {
                         .skill(first.getSkill())
                         .cefrLevel(first.getCefrLevel())
                         .topic(first.getTopic())
-                        .status("DRAFT")
+                        .status("PENDING_REVIEW")
                         .user(teacher)
                         .build();
                 questionGroupRepository.save(sharedGroup);
@@ -933,7 +940,7 @@ public class TeacherQuizService {
                         .audioUrl(q.getAudioUrl())
                         .imageUrl(q.getImageUrl())
                         .questionGroup(sharedGroup) // Link to shared passage if any
-                        .status("DRAFT")
+                        .status("PENDING_REVIEW")
                         .source("TEACHER_PRIVATE")
                         .user(teacher)
                         .build();

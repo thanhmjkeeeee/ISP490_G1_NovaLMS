@@ -38,4 +38,7 @@ public interface QuizResultService {
     void recalculateQuizResult(Integer resultId);
 
     List<Map<String, Object>> getQuizCompletionList(String teacherEmail, Integer classId, Integer quizId);
+    
+    /** Gets lightweight status info for polling */
+    Map<String, Object> getResultBasicStatus(Integer resultId);
 }

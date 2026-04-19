@@ -46,7 +46,8 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     );
 
     private static final Set<String> VALID_CEFR_LEVELS = Set.of(
-        "A1", "A2", "B1", "B2", "C1", "C2"
+        "A1", "A2", "B1", "B2", "C1", "C2",
+        "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0"
     );
 
     private static final Set<String> VALID_STATUSES = Set.of(
