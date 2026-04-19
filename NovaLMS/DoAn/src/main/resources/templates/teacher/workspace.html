@@ -1913,33 +1913,7 @@
             }
         }
 
-        // Handle Reschedule form submit
-        document.getElementById('rescheduleForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const sessionId = document.getElementById('res-sessionId').value;
-            const payload = {
-                newDate: document.getElementById('res-newDate').value,
-                newStartTime: document.getElementById('res-newStartTime').value,
-                reason: document.getElementById('res-reason').value
-            };
-
-            try {
-                const res = await fetch(`/teacher/api/session/${sessionId}/reschedule`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-                if (json.status === 200) {
-                    alert('Gửi yêu cầu thành công!');
-                    bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal')).hide();
-                } else {
-                    alert('Lỗi: ' + json.message);
-                }
-            } catch (err) {
-                alert('Lỗi kết nối server: ' + err.message);
-            }
-        });
+        // Reschedule: chỉ một handler submit (cuối file, kèm Swal + loadSchedule + chống double-submit).
 
         let wsAllSessionsForTable = [];
 
@@ -5131,6 +5105,8 @@
         if (resForm) {
             resForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
+                if (resForm.dataset.submitting === '1') return;
+                resForm.dataset.submitting = '1';
                 const sessionId = document.getElementById('res-sessionId').value;
                 const newDate = document.getElementById('res-newDate').value;
                 const newStartTime = document.getElementById('res-newStartTime').value;
@@ -5142,6 +5118,7 @@
 
                 if (newDate === originalDate && newStartTime === originalTime) {
                     Swal.fire('Chú ý', 'Lịch mới phải khác với lịch hiện tại.', 'warning');
+                    resForm.dataset.submitting = '0';
                     return;
                 }
 
@@ -5178,6 +5155,7 @@
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = oldHtml;
+                    resForm.dataset.submitting = '0';
                 }
             });
         }

@@ -44,6 +44,10 @@ public class RescheduleService {
         User user = userRepository.findByEmail(userEmail).orElse(null);
         if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
 
+        // Khóa theo giáo viên để không thể tạo đồng thời hai yêu cầu PENDING trùng slot (hai buổi khác nhau).
+        user = userRepository.findByIdForUpdate(user.getUserId()).orElse(null);
+        if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
+
         ClassSession session = classSessionRepository.findByIdForUpdate(sessionId).orElse(null);
         if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
 
@@ -113,6 +117,11 @@ public class RescheduleService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        // Kiểm tra lại ngay trước khi ghi (phòng các race hiếm gặp sau khi validate dài).
+        if (rescheduleRequestRepository.findPendingBySessionId(sessionId).isPresent()) {
+            return ResponseData.error(400, "Bạn đã gửi yêu cầu đổi lịch cho buổi này, vui lòng chờ duyệt");
+        }
+
         rescheduleRequestRepository.save(request);
 
         // ── Notify all managers ──────────────────────────────────────────────
@@ -175,7 +184,7 @@ public class RescheduleService {
 
     @Transactional
     public ResponseData<Void> updateStatus(Integer requestId, String status, String managerNote) {
-        RescheduleRequest request = rescheduleRequestRepository.findById(requestId).orElse(null);
+        RescheduleRequest request = rescheduleRequestRepository.findByIdForUpdate(requestId).orElse(null);
         if (request == null) return ResponseData.error(404, "Không tìm thấy yêu cầu");
 
         if (!"PENDING".equals(request.getStatus())) {
