@@ -272,7 +272,8 @@ public class LearningServiceImpl implements LearningService {
                         .isOpen(isOpen)
                         .openAt(openAtStr)
                         .closeAt(closeAtStr)
-                        .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
+                        .deadline(sq != null && sq.getDeadline() != null ? sq.getDeadline().toString() : 
+                                 (quiz.getDeadline() != null ? quiz.getDeadline().toString() : null))
                         .build());
             }
             courseInfo.setQuizzes(quizList);

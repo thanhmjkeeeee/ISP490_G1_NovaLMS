@@ -374,6 +374,7 @@
 
     <script th:inline="javascript">
         const COURSE_ID = /*[[${courseId}]]*/ 0;
+        const REGISTRATION_COUNT = /*[[${course.registrationCount}]]*/ 0;
 
         /* ─────────────────────────────────────────────────────────────
            MODULE APIs:
@@ -457,11 +458,12 @@
                     '<i class="bi bi-pencil-square"></i>' +
                     '</button>' +
                     // Delete Module
+                    (REGISTRATION_COUNT === 0 ? 
                     '<button class="btn btn-sm btn-icon-round border-0 shadow-none text-danger bg-light" ' +
                     'style="width:32px; height:32px; border-radius:50%;" ' +
                     'title="Xóa chương" onclick="event.stopPropagation(); deleteModule(' + m.moduleId + ')">' +
                     '<i class="bi bi-trash"></i>' +
-                    '</button>' +
+                    '</button>' : '') +
                     // Add Lesson
                     '<button class="btn btn-sm fw-bold px-3 ms-2 shadow-sm rounded-pill text-white" ' +
                     'style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; font-size:0.8rem;" ' +
@@ -638,9 +640,10 @@
                     '<button class="btn btn-sm btn-light border shadow-sm" onclick="editLesson(' + moduleId + ',' + l.lessonId + ')" title="Sửa">' +
                     '<i class="bi bi-pencil-square text-primary"></i>' +
                     '</button> ' +
+                    (REGISTRATION_COUNT === 0 ? 
                     '<button class="btn btn-sm btn-light border shadow-sm" onclick="deleteLesson(' + moduleId + ',' + l.lessonId + ')" title="Xóa">' +
                     '<i class="bi bi-trash text-danger"></i>' +
-                    '</button>' +
+                    '</button>' : '') +
                     '</td>' +
                     '</tr>';
             }).join('');

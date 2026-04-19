@@ -41,6 +41,7 @@ public class QuizResponseDTO {
     private String deadline;
     private Boolean isSequential;
     private String skillOrder; // JSON string
+    private Long registrationCount;
 
     private List<QuizQuestionResponseDTO> questions;
 

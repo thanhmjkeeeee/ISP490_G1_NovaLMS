@@ -35,4 +35,5 @@ public class AssignmentSectionDTO {
     private String externalSubmissionInstruction;
     private String externalSubmissionLink;
     private String externalSubmissionNote;
+    private Boolean isPreview;
 }

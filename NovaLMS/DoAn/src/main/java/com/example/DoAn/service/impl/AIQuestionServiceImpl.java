@@ -94,22 +94,30 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
         log.info("[AI_GENERATE] Sending prompt to AI (mode={}):\n{}", mode, prompt);
 
-        String rawJson = callAI(prompt);
-        log.info("[AI_GENERATE] Received raw JSON from AI (mode={}):\n{}", mode, rawJson);
+        try {
+            String rawJson = callAI(prompt);
+            log.info("[AI_GENERATE] Received raw JSON from AI (mode={}):\n{}", mode, rawJson);
 
-        List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
+            List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
 
-        String warning = null;
-        if (questions.isEmpty()) {
-            warning = "AI không sinh được câu hỏi nào. Kiểm tra server logs để biết chi tiết.";
-        } else if (questions.size() < request.getQuantity()) {
-            warning = String.format("AI chỉ sinh được %d/%d câu hỏi.", questions.size(), request.getQuantity());
+            String warning = null;
+            if (questions.isEmpty()) {
+                warning = "AI không sinh được câu hỏi nào. Kiểm tra server logs để biết chi tiết.";
+            } else if (questions.size() < request.getQuantity()) {
+                warning = String.format("AI chỉ sinh được %d/%d câu hỏi.", questions.size(), request.getQuantity());
+            }
+
+            return AIGenerateResponseDTO.builder()
+                    .questions(questions)
+                    .warning(warning)
+                    .build();
+        } catch (Exception e) {
+            log.error("[AI_GENERATE] Error generating questions: {}", e.getMessage());
+            return AIGenerateResponseDTO.builder()
+                    .questions(new java.util.ArrayList<>())
+                    .warning("Lỗi AI: " + e.getMessage())
+                    .build();
         }
-
-        return AIGenerateResponseDTO.builder()
-                .questions(questions)
-                .warning(warning)
-                .build();
     }
 
     @Override
@@ -135,15 +143,15 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         
         log.info("[AI_GENERATE_GROUP] Sending prompt to AI:\n{}", prompt);
 
-        String rawJson = callAI(prompt);
-        log.info("[AI_GENERATE_GROUP] Received raw JSON from AI:\n{}", rawJson);
-
-        AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
-                .skill(skill)
-                .cefrLevel(cefr)
-                .topic(topic);
-
         try {
+            String rawJson = callAI(prompt);
+            log.info("[AI_GENERATE_GROUP] Received raw JSON from AI:\n{}", rawJson);
+
+            AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
+                    .skill(skill)
+                    .cefrLevel(cefr)
+                    .topic(topic);
+
             String cleaned = cleanAiJson(rawJson);
             Map<String, Object> parsed = objectMapper.readValue(cleaned, new TypeReference<>() {});
             if (parsed.get("passage") != null) builder.passage((String) parsed.get("passage"));
@@ -185,21 +193,19 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             }
             builder.questions(questions);
             if (questions.isEmpty()) {
-                // Log raw JSON for debugging
-                log.warn("[GROUP] No valid questions parsed. Raw JSON length={}: {}",
-                        rawJson.length(), rawJson.substring(0, Math.min(500, rawJson.length())));
-                builder.warning("AI trả về định dạng không hợp lệ hoặc không sinh được câu hỏi. Vui lòng thử lại.");
+                log.warn("[GROUP] No valid questions parsed.");
+                builder.warning("AI không sinh được câu hỏi hợp lệ. Vui lòng thử lại.");
             } else if (questions.size() < qty) {
                 builder.warning(String.format("AI chỉ sinh được %d/%d câu hỏi.", questions.size(), qty));
             }
+            return builder.build();
         } catch (Exception e) {
-            log.error("[GROUP] Failed to parse JSON: {}. Raw: {}", e.getMessage(),
-                    rawJson.substring(0, Math.min(300, rawJson.length())));
-            builder.questions(new ArrayList<>());
-            builder.warning("AI trả về định dạng không hợp lệ. Vui lòng thử lại.");
+            log.error("[AI_GENERATE_GROUP] Error: {}", e.getMessage());
+            return AIGenerateGroupResponseDTO.builder()
+                    .questions(new ArrayList<>())
+                    .warning("Lỗi AI: " + e.getMessage())
+                    .build();
         }
-
-        return builder.build();
     }
 
     private String buildPrompt(AIGenerateRequestDTO request) {
@@ -243,27 +249,35 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     }
 
     private String callAI(String prompt) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", aiModel);
-        body.put("temperature", 0.7);
-        body.put("max_tokens", 4000);
+        boolean isGemini = aiApiUrlBase != null && aiApiUrlBase.contains("googleapis.com");
 
-        List<Map<String, String>> messages = List.of(
-                Map.of("role", "user", "content", prompt)
-        );
-        body.put("messages", messages);
+        Map<String, Object> body = new LinkedHashMap<>();
+        String fullUrl;
+        Request.Builder requestBuilder = new Request.Builder()
+                .addHeader("Content-Type", "application/json");
+
+        if (isGemini) {
+            // Google Gemini Format
+            fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + aiModel + ":generateContent?key=" + aiApiKey;
+            body.put("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))));
+        } else {
+            // OpenAI Compatible Format (Kyma, Groq, etc.)
+            fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
+            body.put("model", aiModel);
+            body.put("temperature", 0.7);
+            body.put("max_tokens", 4000);
+            body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+            requestBuilder.addHeader("Authorization", "Bearer " + aiApiKey);
+        }
 
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 String jsonBody = objectMapper.writeValueAsString(body);
-                String fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
-                Request request = new Request.Builder()
+                Request request = requestBuilder
                         .url(fullUrl)
                         .post(okhttp3.RequestBody.create(jsonBody,
                                 okhttp3.MediaType.parse("application/json; charset=utf-8")))
-                        .addHeader("Authorization", "Bearer " + aiApiKey)
-                        .addHeader("Content-Type", "application/json")
                         .build();
 
                 try (Response resp = httpClient.newCall(request).execute()) {
@@ -322,13 +336,35 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private String extractContent(String response) {
         try {
             Map<String, Object> respMap = objectMapper.readValue(response, new TypeReference<>() {});
-            List<?> choices = (List<?>) respMap.get("choices");
-            if (choices == null || choices.isEmpty()) {
-                throw new AIException("Groq trả về danh sách rỗng.", null);
+            
+            // Check for Gemini format
+            if (respMap.containsKey("candidates")) {
+                List<?> candidates = (List<?>) respMap.get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<?, ?> candidate = (Map<?, ?>) candidates.get(0);
+                    Map<?, ?> content = (Map<?, ?>) candidate.get("content");
+                    if (content != null) {
+                        List<?> parts = (List<?>) content.get("parts");
+                        if (parts != null && !parts.isEmpty()) {
+                            Map<?, ?> part = (Map<?, ?>) parts.get(0);
+                            return (String) part.get("text");
+                        }
+                    }
+                }
+                throw new AIException("Gemini trả về response không có nội dung.", null);
             }
-            Map<?, ?> choice = (Map<?, ?>) choices.get(0);
-            Map<?, ?> message = (Map<?, ?>) choice.get("message");
-            return (String) message.get("content");
+
+            // Check for OpenAI format
+            List<?> choices = (List<?>) respMap.get("choices");
+            if (choices != null && !choices.isEmpty()) {
+                Map<?, ?> choice = (Map<?, ?>) choices.get(0);
+                Map<?, ?> message = (Map<?, ?>) choice.get("message");
+                if (message != null) {
+                    return (String) message.get("content");
+                }
+            }
+            
+            throw new AIException("AI trả về danh sách rỗng hoặc định dạng không nhận dạng được.", null);
         } catch (ClassCastException | NullPointerException e) {
             String preview = (response != null && response.length() > 500) ? response.substring(0, 500) : response;
             log.error("Failed to parse AI response: {}. Error: {}", preview, e.getMessage());
@@ -445,9 +481,16 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             List<AIGenerateResponseDTO.OptionDTO> opts = new ArrayList<>();
             for (Object item : raw) {
                 if (item instanceof Map<?, ?> m) {
+                    String optionText = (String) m.get("title");
+                    if (optionText == null || optionText.isBlank()) optionText = (String) m.get("text");
+                    if (optionText == null || optionText.isBlank()) optionText = (String) m.get("content");
+                    Boolean isCorrect = (Boolean) m.get("correct");
+                    if (isCorrect == null) isCorrect = (Boolean) m.get("isCorrect");
+                    if (isCorrect == null) isCorrect = (Boolean) m.get("is_correct");
+
                     opts.add(AIGenerateResponseDTO.OptionDTO.builder()
-                            .title((String) m.get("title"))
-                            .correct((Boolean) m.get("correct"))
+                            .title(optionText)
+                            .correct(isCorrect != null ? isCorrect : false)
                             .build());
                 } else if (item instanceof String s) {
                     // Handle simple string list from AI

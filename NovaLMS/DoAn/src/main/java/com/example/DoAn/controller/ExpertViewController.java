@@ -19,6 +19,7 @@ import java.util.List;
 public class ExpertViewController {
 
     private final IExpertModuleService moduleService;
+    private final com.example.DoAn.service.ICourseService courseService;
 
     private String getEmail(Principal principal) {
         if (principal instanceof OAuth2AuthenticationToken t) return t.getPrincipal().getAttribute("email");
@@ -62,8 +63,11 @@ public class ExpertViewController {
         String email = getEmail(principal);
         if (email == null) return "redirect:/login.html";
 
+        var course = courseService.getById(courseId);
         List<?> modulesResult = moduleService.getModulesByCourse(courseId, email);
+        
         model.addAttribute("courseId", courseId);
+        model.addAttribute("course", course);
         model.addAttribute("modules", modulesResult);
         model.addAttribute("isDashboard", true);
         return "expert/content-course";
