@@ -128,29 +128,56 @@
 
         /* Animations */
         @keyframes pulse-soft {
-            0% {
-                transform: scale(1);
-                opacity: 0.5;
-            }
-
-            50% {
-                transform: scale(1.1);
-                opacity: 0.8;
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 0.5;
-            }
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 0.5; }
         }
 
         .pulse-animation {
             animation: pulse-soft 2s infinite ease-in-out;
         }
 
+        .extra-small {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .modal-backdrop.show {
             opacity: 0.7;
             backdrop-filter: blur(4px);
+        }
+
+        /* AI Modal Premium Styles */
+        .ai-modal-header {
+            background: linear-gradient(135deg, #136ad5 0%, #2575fc 100%);
+            border-bottom: none;
+            padding: 1.5rem 2rem;
+        }
+        .ai-card-selector {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            user-select: none;
+        }
+        .ai-card-selector:hover {
+            border-color: #136ad5;
+            background: #f8faff;
+        }
+        .ai-card-selector.active {
+            border-color: #136ad5;
+            background: #eef4ff;
+            color: #136ad5;
+            font-weight: 600;
+        }
+        .ai-card-selector input {
+            display: none;
         }
     </style>
 </head>
@@ -205,8 +232,8 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <!-- Category -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
                             <label class="form-label fw-bold">Loại Quiz</label>
                             <select id="quizCategory" class="form-select" disabled>
                                 <option value="ENTRY_TEST">Bài kiểm tra đầu vào (Entry Test)</option>
@@ -216,19 +243,30 @@
                                 <option value="MODULE_ASSIGNMENT">Bài tập lớn chương (Module Assignment)</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <label class="form-label fw-bold">Trạng thái</label>
                             <select id="status" class="form-select">
                                 <option value="DRAFT">Draft</option>
                                 <option value="PUBLISHED">Published</option>
-                                <option value="ARCHIVED">Archived</option>
+                                <option value="ARCHIVED">Arvhived</option>
                             </select>
                         </div>
-                        <div class="col-md-4" id="courseSection" style="display:none;">
-                            <label class="form-label fw-bold">Khóa học</label>
-                            <input type="text" id="courseName" class="form-control" readonly placeholder="—">
-                            <select id="courseId" class="form-select mt-2" style="display:none;">
-                                <option value="">-- Chọn khóa học --</option>
+                        <div class="col-md-2" id="courseSection">
+                            <label class="form-label fw-bold small">Khóa học</label>
+                            <select id="courseIdSelect" class="form-select" onchange="onCourseChange()">
+                                <option value="">-- Khóa học --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2" id="moduleSection">
+                            <label class="form-label fw-bold small">Chương/Module</label>
+                            <select id="moduleIdSelect" class="form-select" onchange="onModuleChange()">
+                                <option value="">-- Chương --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3" id="lessonSection">
+                            <label class="form-label fw-bold small">Buổi học (Lesson)</label>
+                            <select id="lessonIdSelect" class="form-select">
+                                <option value="">-- Buổi --</option>
                             </select>
                         </div>
                     </div>
@@ -246,25 +284,21 @@
                     </div>
 
                     <!-- Config -->
-                    <h6 class="fw-bold mt-4 mb-3"
-                        style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                    <h6 class="fw-bold mt-4 mb-3" style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
                         Cấu hình nâng cao
                     </h6>
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Thời gian (phút)</label>
-                            <input type="number" id="timeLimitMinutes" class="form-control" min="1"
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            <input type="number" id="timeLimitMinutes" class="form-control" min="1">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
-                            <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01"
-                                oninput="if(this.value < 0) this.value = 0; if(this.value > 100) this.value = 100;">
+                            <input type="number" id="passScore" class="form-control" min="0" max="100" step="0.01">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
-                            <input type="number" id="maxAttempts" class="form-control" min="1"
-                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            <input type="number" id="maxAttempts" class="form-control" min="1">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Thứ tự câu hỏi</label>
@@ -277,113 +311,50 @@
 
                     <!-- Per-skill time -->
                     <div id="perSkillTimeSection" style="display:none;">
-                        <h6 class="fw-bold mt-4 mb-3"
-                            style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
+                        <h6 class="fw-bold mt-4 mb-3" style="color:#223a58; border-left:4px solid #136ad5; padding-left:10px;">
                             Thời gian từng phần (phút)
                         </h6>
                         <div class="row g-3">
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">LISTENING <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="timeLimit_LISTENING" class="form-control skill-time-input"
-                                    placeholder="Phút"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
-                                <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên
-                                    1-100</div>
+                                <label class="form-label fw-bold small text-muted">LISTENING <span class="text-danger">*</span></label>
+                                <input type="text" id="timeLimit_LISTENING" class="form-control skill-time-input" oninput="validateSkillTimes()">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">READING <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="timeLimit_READING" class="form-control skill-time-input"
-                                    placeholder="Phút"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
-                                <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên
-                                    1-100</div>
+                                <label class="form-label fw-bold small text-muted">READING <span class="text-danger">*</span></label>
+                                <input type="text" id="timeLimit_READING" class="form-control skill-time-input" oninput="validateSkillTimes()">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">SPEAKING <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="timeLimit_SPEAKING" class="form-control skill-time-input"
-                                    placeholder="Phút"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
-                                <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên
-                                    1-100</div>
+                                <label class="form-label fw-bold small text-muted">SPEAKING <span class="text-danger">*</span></label>
+                                <input type="text" id="timeLimit_SPEAKING" class="form-control skill-time-input" oninput="validateSkillTimes()">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">WRITING <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input"
-                                    placeholder="Phút"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, ''); debouncedValidate()">
-                                <div class="invalid-feedback skill-time-error" style="font-size:0.75rem;">Nhập số nguyên
-                                    1-100</div>
+                                <label class="form-label fw-bold small text-muted">WRITING <span class="text-danger">*</span></label>
+                                <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input" oninput="validateSkillTimes()">
                             </div>
                         </div>
                     </div>
 
                     <div class="mt-3">
-                        <div class="form-check form-switch" style="padding-left:2.5rem !important;">
-                            <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit"
-                                style="width:2.5em; height:1.25em;">
-                            <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">
-                                Cho phép xem đáp án sau khi nộp bài
-                            </label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showAnswerAfterSubmit">
+                            <label class="form-check-label fw-bold ms-2" for="showAnswerAfterSubmit">Cho phép xem đáp án sau khi nộp</label>
                         </div>
                     </div>
 
-                    <!-- Assignment schedule fields (hidden by default) -->
-                    <div id="assignmentScheduleSection"
-                        class="mt-4 p-3 border border-2 border-warning rounded-4 bg-warning bg-opacity-5"
-                        style="display:none;">
-                        <h6 class="fw-bold text-warning mb-3">
-                            <i class="bi bi-calendar-event me-2"></i>Cài đặt thời hạn Assignment
-                        </h6>
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Mở bài lúc</label>
-                                <input type="datetime-local" id="openAt" class="form-control"
-                                    placeholder="Để trống = mở ngay">
-                                <div class="form-text small">Để trống = mở ngay khi teacher bật isOpen</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Đóng bài lúc</label>
-                                <input type="datetime-local" id="closeAt" class="form-control"
-                                    placeholder="Không đóng tự động">
-                                <div class="form-text small">Để trống = không đóng tự động</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Deadline nộp bài <span
-                                        class="text-danger">*</span></label>
-                                <input type="datetime-local" id="deadline" class="form-control">
-                                <div class="form-text small">Sau deadline không thể nộp bài</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="entryTestWarning" class="alert alert-soft-warning border-0 py-3 px-4 mt-4"
-                        style="display:none; background-color: #fff9db; color: #856404; border-radius: 12px;">
-                        <div class="d-flex">
-                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-                            <div>
-                                <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
-                                <p class="small m-0">Hệ thống chỉ tự động chấm các dạng câu hỏi Trắc nghiệm và Điền từ.
-                                    Dạng Writing/Speaking sẽ cần chấm bằng tay hoặc bị tính là sai.</p>
-                            </div>
+                    <div id="entryTestWarning" class="alert alert-warning mt-4" style="display:none;">
+                        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
+                            <p class="small m-0">Writing/Speaking sẽ cần giáo viên chấm thủ công.</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Step 1 nav -->
             <div class="d-flex justify-content-end gap-3">
-                <button type="button" class="btn btn-lg btn-light px-4 fw-bold" style="border-radius:12px;"
-                    onclick="window.history.back()">Hủy</button>
-                <button type="button" class="btn btn-lg btn-outline-primary px-4 fw-bold" style="border-radius:12px;"
-                    onclick="doSaveDraft()">Lưu thay đổi</button>
-                <button type="button" id="btnNextStep1" class="btn btn-lg text-white px-5 fw-bold"
-                    style="background-color:#136ad5; border-radius:12px;" onclick="validateAndGoToStep2()">
-                    Tiếp theo: Câu hỏi <i class="bi bi-arrow-right ms-2"></i>
-                </button>
+                <button type="button" class="btn btn-lg btn-light px-4" onclick="window.history.back()">Hủy</button>
+                <button type="button" class="btn btn-lg btn-outline-primary px-4" onclick="doSaveDraft()">Lưu thay đổi</button>
+                <button type="button" id="btnNextStep1" class="btn btn-lg btn-primary text-white px-5" onclick="goToStep(2)">Tiếp theo <i class="bi bi-arrow-right ms-2"></i></button>
             </div>
         </div>
 
@@ -392,83 +363,36 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="row g-0" style="min-height: 600px;">
-                        <!-- Left: Current Quiz -->
                         <div class="col-md-5 border-end p-4">
-                            <h5 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-3 d-flex justify-content-between">
                                 <span>Đề thi hiện tại</span>
                                 <span class="badge bg-primary rounded-pill" id="currentCountBadge">0 câu</span>
                             </h5>
-                            <div id="addedQuestionsList" class="overflow-auto" style="max-height: 500px;">
-                                <div class="text-center py-5 text-muted">
-                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                    Chưa có câu hỏi nào. <br>Chọn từ Ngân hàng để thêm vào.
-                                </div>
-                            </div>
+                            <div id="addedQuestionsList" class="overflow-auto" style="max-height: 500px;"></div>
                         </div>
-                        <!-- Right: Question Bank Browser -->
-                        <div class="col-md-7 p-0 bg-light bg-opacity-10 d-flex flex-column">
-                            <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+                        <div class="col-md-7 p-0 d-flex flex-column">
+                            <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
                                 <h5 class="fw-bold mb-0">Ngân hàng câu hỏi</h5>
-                                <button class="btn btn-primary btn-sm rounded-pill px-3"
-                                    onclick="openAdvancedAiModal()">
-                                    <i class="bi bi-robot me-1"></i> Sinh bằng AI
-                                </button>
+                                <button class="btn btn-primary btn-sm rounded-pill" onclick="openExpertAiModal()">AI Sinh câu hỏi</button>
                             </div>
-                            <div class="p-4 border-bottom bg-white">
-                                <!-- Filters for Bank -->
+                            <div class="p-4 border-bottom">
                                 <div class="row g-2">
-                                    <div class="col-md-4">
-                                        <select id="modalSkill" class="form-select form-select-sm"
-                                            onchange="loadBankQuestions(0)"></select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <select id="modalCefr" class="form-select form-select-sm"
-                                            onchange="loadBankQuestions(0)"></select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <input type="text" id="modalKeyword" class="form-control form-control-sm"
-                                            placeholder="Tìm kiếm..."
-                                            onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
-                                    </div>
-                                    <div class="col-md-1">
-                                        <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i
-                                                class="bi bi-search"></i></button>
-                                    </div>
+                                    <div class="col-md-4"><select id="modalSkill" class="form-select" onchange="loadBankQuestions(0)"></select></div>
+                                    <div class="col-md-4"><select id="modalCefr" class="form-select" onchange="loadBankQuestions(0)"></select></div>
+                                    <div class="col-md-4"><input type="text" id="modalKeyword" class="form-control" placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)"></div>
                                 </div>
                             </div>
-
-                            <div id="bankBrowserSection" class="flex-grow-1 overflow-auto p-0"
-                                style="max-height: 500px;">
-                                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
-                                    <thead class="table-light sticky-top">
-                                        <tr>
-                                            <th class="ps-4">Nội dung</th>
-                                            <th>Loại</th>
-                                            <th>CEFR</th>
-                                            <th class="text-end pe-4">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="bankQuestionsBody">
-                                        <tr>
-                                            <td colspan="4" class="text-center py-5 text-muted">Đang tải câu hỏi...</td>
-                                        </tr>
-                                    </tbody>
+                            <div class="flex-grow-1 overflow-auto">
+                                <table class="table align-middle">
+                                    <tbody id="bankQuestionsBody"></tbody>
                                 </table>
                             </div>
-                            <div class="p-3 bg-white border-top">
-                                <nav>
-                                    <ul class="pagination pagination-sm justify-content-center mb-0"
-                                        id="bankPagination"></ul>
-                                </nav>
-                            </div>
+                            <div class="p-3 border-top"><ul class="pagination justify-content-center" id="bankPagination"></ul></div>
                         </div>
                     </div>
                     <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
-                        <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i
-                                class="bi bi-arrow-left me-1"></i> Quay lại</button>
-                        <div class="small text-muted">Tự động lưu...</div>
-                        <button class="btn btn-primary px-5 fw-bold" onclick="saveAndGoToStep3()">Lưu & Xem trước <i
-                                class="bi bi-arrow-right ms-1"></i></button>
+                        <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)">Quay lại</button>
+                        <button class="btn btn-primary px-5 fw-bold" onclick="goToStep(3)">Lưu & Xem trước</button>
                     </div>
                 </div>
             </div>
@@ -478,186 +402,95 @@
         <div id="wizard-step-3" class="wizard-section" style="display:none;">
             <div class="card border-0 shadow-sm text-center py-5 px-4">
                 <div class="py-4">
-                    <div class="mb-4">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
-                    </div>
-                    <h3 class="fw-bold" id="previewTitle">Tên Quiz của bạn</h3>
-                    <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0%</p>
-                    <p class="text-muted small mb-4" id="previewQuestionCount">0 câu hỏi đã thêm</p>
-
-                    <!-- Skill status cards -->
+                    <div class="mb-4"><i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i></div>
+                    <h3 class="fw-bold" id="previewTitle"></h3>
+                    <p class="text-muted mb-2" id="previewSummary"></p>
+                    <p class="text-muted small mb-4" id="previewQuestionCount"></p>
                     <div class="d-flex justify-content-center gap-3 flex-wrap mb-4" id="skillStatusCards"></div>
-
-                    <!-- Validation message -->
-                    <div id="publishValidationMsg" class="alert d-flex align-items-center gap-2 mx-auto mb-4"
-                        style="max-width:500px; display:none;">
-                        <i class="bi fs-5"></i>
-                        <span class="small"></span>
-                    </div>
-
+                    <div id="publishValidationMsg" class="alert mx-auto mb-4" style="max-width:500px; display:none;"></div>
                     <div class="d-flex justify-content-center gap-3">
-                        <button class="btn btn-lg btn-outline-secondary px-4" onclick="goToStep(2)">Quay lại
-                            sửa</button>
-                        <button class="btn btn-lg btn-outline-primary px-4 fw-bold" onclick="doSaveDraft()">Lưu thay
-                            đổi</button>
-                        <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal"
-                            onclick="publishQuiz()">
-                            <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
-                        </button>
+                        <button class="btn btn-lg btn-outline-secondary px-4" onclick="goToStep(2)">Quay lại sửa</button>
+                        <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal" onclick="publishQuiz()">Xuất bản</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── MODAL: ADVANCED AI GENERATOR ──────────────────────────────── -->
-        <div class="modal fade" id="aiGenerateModal" tabindex="-1" aria-hidden="true">
+        <!-- AI MODAL PREMIUM -->
+        <div class="modal fade" id="aiGenerateModal" tabindex="-1">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
-                    <div class="modal-header border-0 bg-primary bg-gradient text-white p-4">
+                    <div class="modal-header ai-modal-header text-white">
                         <div class="d-flex align-items-center">
-                            <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3 pulse-animation">
-                                <i class="bi bi-robot fs-3"></i>
+                            <div class="bg-white bg-opacity-20 rounded-circle p-2 me-3">
+                                <i class="bi bi-robot fs-4"></i>
                             </div>
                             <div>
-                                <h5 class="modal-title fw-bold mb-0">Advanced AI Question Generator</h5>
-                                <p class="small mb-0 text-white-50">Tạo câu hỏi chất lượng cao theo từng kỹ năng</p>
+                                <h5 class="modal-title fw-bold mb-0">AI Question Generator</h5>
+                                <p class="small mb-0 text-white-50">Sử dụng trí tuệ nhân tạo để tạo bộ đề nhanh chóng</p>
                             </div>
                         </div>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body p-4 bg-light bg-opacity-50">
+                    <div class="modal-body p-4 p-lg-5">
                         <div class="row g-4">
-                            <!-- Left: Core Info -->
-                            <div class="col-md-5">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-body p-4">
-                                        <h6 class="fw-bold text-primary mb-3">Cài đặt chung</h6>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">Chủ đề (Topic)</label>
-                                            <input type="text" id="adv-topic" class="form-control"
-                                                placeholder="E.g. Daily Life, Technology...">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">Số lượng câu hỏi</label>
-                                            <input type="number" id="adv-qty" class="form-control" value="5" min="1"
-                                                max="20">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">Kỹ năng</label>
-                                            <select id="adv-skill" class="form-select"
-                                                onchange="toggleAiAdvancedFields()">
-                                                <option value="LISTENING">Listening</option>
-                                                <option value="READING" selected>Reading</option>
-                                                <option value="WRITING">Writing</option>
-                                                <option value="SPEAKING">Speaking</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label small fw-bold">Độ khó (CEFR)</label>
-                                            <select id="adv-cefr" class="form-select">
-                                                <option value="A1">A1</option>
-                                                <option value="A2">A2</option>
-                                                <option value="B1" selected>B1</option>
-                                                <option value="B2">B2</option>
-                                                <option value="C1">C1</option>
-                                                <option value="C2">C2</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                            <div class="col-md-7">
+                                <label class="form-label fw-bold text-dark">Chủ đề bài thi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-tag"></i></span>
+                                    <input type="text" id="adv-topic" class="form-control form-control-lg bg-light border-start-0" placeholder="Ví dụ: Công nghệ 4.0, Biến đổi khí hậu...">
                                 </div>
                             </div>
-
-                            <!-- Right: Skill Specific Details -->
-                            <div class="col-md-7">
-                                <div class="card border-0 shadow-sm h-100" style="border-radius: 15px;">
-                                    <div class="card-body p-4">
-                                        <h6 class="fw-bold text-primary mb-3">Tùy chọn chi tiết</h6>
-
-                                        <div class="mb-4">
-                                            <label class="form-label small fw-bold mb-2">Loại câu hỏi muốn sinh</label>
-                                            <div id="adv-types" class="d-flex flex-wrap gap-2">
-                                                <div class="form-check bg-light border rounded-pill px-3 py-1">
-                                                    <input class="form-check-input" type="checkbox"
-                                                        value="MULTIPLE_CHOICE_SINGLE" id="type-mcs" checked>
-                                                    <label class="form-check-label small" for="type-mcs">Trắc nghiệm
-                                                        (1)</label>
-                                                </div>
-                                                <div class="form-check bg-light border rounded-pill px-3 py-1">
-                                                    <input class="form-check-input" type="checkbox"
-                                                        value="MULTIPLE_CHOICE_MULTI" id="type-mcm">
-                                                    <label class="form-check-label small" for="type-mcm">Trắc nghiệm
-                                                        (n)</label>
-                                                </div>
-                                                <div class="form-check bg-light border rounded-pill px-3 py-1">
-                                                    <input class="form-check-input" type="checkbox"
-                                                        value="FILL_IN_BLANK" id="type-fib">
-                                                    <label class="form-check-label small" for="type-fib">Điền từ</label>
-                                                </div>
-                                                <div class="form-check bg-light border rounded-pill px-3 py-1">
-                                                    <input class="form-check-input" type="checkbox" value="MATCHING"
-                                                        id="type-match" onchange="toggleAiAdvancedFields()">
-                                                    <label class="form-check-label small" for="type-match">Nối đáp
-                                                        án</label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Listening Option -->
-                                        <div id="field-listening" class="mb-3" style="display:none;">
-                                            <label class="form-label small fw-bold">Scenario Type (Listening)</label>
-                                            <select id="adv-listen-type" class="form-select">
-                                                <option value="Dialogue">Dialogue (Hội thoại)</option>
-                                                <option value="Monologue">Monologue (Độc thoại)</option>
-                                                <option value="Announcement">Announcement (Thông báo)</option>
-                                                <option value="Radio/Podcast">Radio Host/Podcast</option>
-                                            </select>
-                                        </div>
-
-                                        <!-- Reading Option -->
-                                        <div id="field-reading" class="mb-3">
-                                            <label class="form-label small fw-bold mb-2">Độ dài đoạn văn (Reading
-                                                Passage)</label>
-                                            <div class="d-flex gap-2">
-                                                <input type="radio" class="btn-check" name="adv-read-len" id="len-short"
-                                                    value="SHORT">
-                                                <label class="btn btn-sm btn-outline-secondary px-3"
-                                                    for="len-short">Ngắn (100-150 từ)</label>
-
-                                                <input type="radio" class="btn-check" name="adv-read-len" id="len-med"
-                                                    value="MEDIUM" checked>
-                                                <label class="btn btn-sm btn-outline-secondary px-3" for="len-med">Vừa
-                                                    (200-300 từ)</label>
-
-                                                <input type="radio" class="btn-check" name="adv-read-len" id="len-long"
-                                                    value="LONG">
-                                                <label class="btn btn-sm btn-outline-secondary px-3" for="len-long">Dài
-                                                    (400-600 từ)</label>
-                                            </div>
-                                        </div>
-
-                                        <!-- Matching Option -->
-                                        <div id="field-matching" class="mb-3" style="display:none;">
-                                            <label class="form-label small fw-bold">Số lượng cặp nối (Matching
-                                                Pairs)</label>
-                                            <select id="adv-match-pairs" class="form-select">
-                                                <option value="3">3 cặp</option>
-                                                <option value="4" selected>4 cặp</option>
-                                                <option value="5">5 cặp</option>
-                                            </select>
-                                        </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-dark">Số lượng câu hỏi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
+                                    <input type="number" id="adv-qty" class="form-control form-control-lg bg-light border-start-0" value="5" min="1" max="20">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">Kỹ năng mục tiêu</label>
+                                <div class="row g-2">
+                                    <div class="col-3">
+                                        <input type="radio" class="btn-check" name="ai-skill" id="ai-sk-reading" value="READING" checked onchange="toggleAiAdvancedFields()">
+                                        <label class="btn btn-outline-primary w-100 py-3 rounded-4" for="ai-sk-reading">
+                                            <i class="bi bi-book d-block fs-4 mb-1"></i> Reading
+                                        </label>
                                     </div>
+                                    <div class="col-3">
+                                        <input type="radio" class="btn-check" name="ai-skill" id="ai-sk-listening" value="LISTENING" onchange="toggleAiAdvancedFields()">
+                                        <label class="btn btn-outline-primary w-100 py-3 rounded-4" for="ai-sk-listening">
+                                            <i class="bi bi-headphones d-block fs-4 mb-1"></i> Listening
+                                        </label>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="radio" class="btn-check" name="ai-skill" id="ai-sk-writing" value="WRITING" onchange="toggleAiAdvancedFields()">
+                                        <label class="btn btn-outline-primary w-100 py-3 rounded-4" for="ai-sk-writing">
+                                            <i class="bi bi-pencil d-block fs-4 mb-1"></i> Writing
+                                        </label>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="radio" class="btn-check" name="ai-skill" id="ai-sk-speaking" value="SPEAKING" onchange="toggleAiAdvancedFields()">
+                                        <label class="btn btn-outline-primary w-100 py-3 rounded-4" for="ai-sk-speaking">
+                                            <i class="bi bi-mic d-block fs-4 mb-1"></i> Speaking
+                                        </label>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="adv-skill" value="READING">
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-dark">Loại câu hỏi muốn tạo</label>
+                                <div id="adv-types" class="d-flex gap-2 flex-wrap">
+                                    <!-- Sẽ được fill bằng JS -->
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer border-0 p-4">
-                        <button type="button" class="btn btn-light rounded-pill px-4 fw-bold"
-                            data-bs-dismiss="modal">Hủy</button>
-                        <button type="button" id="btn-run-ai" class="btn btn-primary rounded-pill px-5 fw-bold"
-                            onclick="runAdvancedAiGeneration()">
-                            <span id="ai-loading-spinner" class="spinner-border spinner-border-sm me-2"
-                                style="display:none;"></span>
-                            <i class="bi bi-stars me-1"></i> Bắt đầu sinh câu hỏi
+                    <div class="modal-footer bg-light p-4">
+                        <button type="button" class="btn btn-light px-4 fw-bold" data-bs-dismiss="modal">Đóng</button>
+                        <button type="button" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm" id="btn-run-ai" onclick="runAdvancedAiGeneration()">
+                            Bắt đầu sinh câu hỏi <i class="bi bi-stars ms-2"></i>
                         </button>
                     </div>
                 </div>
@@ -672,808 +505,506 @@
     <script th:inline="javascript">
         const quizId = /*[[${quizId}]]*/ 0;
         let _currentCategory = null;
-        let _quizData = null;
+        let _quizQuestions = [];
+        let _currentBankPage = 0;
+        let _expandedGroups = new Set();
+        
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
 
-        const wsToast = (msg, icon = 'success') => {
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
-            });
-            Toast.fire({ icon: icon, title: msg });
-        };
+        async function loadQuiz() {
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
+                const r = await res.json();
+                if (r.status !== 200) return;
+                const q = r.data;
+                _currentCategory = q.quizCategory;
+                document.getElementById('quizCategory').value = q.quizCategory;
+                document.getElementById('title').value = q.title || '';
+                document.getElementById('description').value = q.description || '';
+                document.getElementById('status').value = q.status || 'DRAFT';
+                document.getElementById('timeLimitMinutes').value = q.timeLimitMinutes || '';
+                document.getElementById('passScore').value = q.passScore || '';
+                document.getElementById('maxAttempts').value = q.maxAttempts || '';
+                document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit;
 
-        // ─── STEPPER ─────────────────────────────────────────────────────────
-        async function goToStep(step) {
-            if (step > 1) {
-                if (!validateStep1()) return;
+                if (q.courseId) {
+                    await loadCourses();
+                    document.getElementById('courseIdSelect').value = q.courseId;
+                    await loadModules(q.courseId);
+                    if (q.moduleId) {
+                        document.getElementById('moduleIdSelect').value = q.moduleId;
+                        await loadLessons(q.moduleId);
+                        if (q.lessonId) {
+                            document.getElementById('lessonIdSelect').value = q.lessonId;
+                        }
+                    }
+                } else if (q.quizCategory !== 'ENTRY_TEST') {
+                    await loadCourses();
+                }
+                
+                if (q.hasAttempts) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Thông báo',
+                        text: 'Quiz này đã có học viên thực hiện bài làm. Một số thiết lập quan trọng sẽ bị khóa để đảm bảo tính công bằng.',
+                        confirmButtonText: 'Tôi đã hiểu'
+                    });
+                    // Bạn có thể thêm logic disable các field quan trọng ở đây nếu cần
+                }
+
+                if (q.quizCategory.includes('ASSIGNMENT')) {
+                    document.getElementById('perSkillTimeSection').style.display = 'block';
+                    document.getElementById('timeLimitMinutes').readOnly = true;
+                    const times = typeof q.timeLimitPerSkill === 'string' ? JSON.parse(q.timeLimitPerSkill || '{}') : (q.timeLimitPerSkill || {});
+                    Object.entries(times).forEach(([s, m]) => { if(document.getElementById('timeLimit_'+s)) document.getElementById('timeLimit_'+s).value = m; });
+                }
+                await loadQuizQuestions();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadCourses() {
+            const select = document.getElementById('courseIdSelect');
+            try {
+                const res = await fetch('/api/v1/expert/modules/courses');
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    select.innerHTML = '<option value="">-- Khóa học --</option>';
+                    result.data.forEach(c => {
+                        select.innerHTML += `<option value="${c.courseId}">${c.courseName}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function onCourseChange() {
+            const courseId = document.getElementById('courseIdSelect').value;
+            if (courseId) loadModules(courseId);
+            else {
+                document.getElementById('moduleIdSelect').innerHTML = '<option value="">-- Chương --</option>';
+                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Buổi --</option>';
             }
+        }
 
-            document.querySelectorAll('.wizard-section').forEach(s => s.style.display = 'none');
-            document.getElementById('wizard-step-' + step).style.display = 'block';
-            updateStepperUI(step);
+        async function loadModules(courseId) {
+            const select = document.getElementById('moduleIdSelect');
+            try {
+                const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    select.innerHTML = '<option value="">-- Chương --</option>';
+                    result.data.forEach(m => {
+                        select.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
 
-            if (step === 2) initStep2();
-            if (step === 3) initPreview();
+        async function onModuleChange() {
+            const moduleId = document.getElementById('moduleIdSelect').value;
+            if (moduleId) loadLessons(moduleId);
+            else document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Buổi --</option>';
+        }
+
+        async function loadLessons(moduleId) {
+            const select = document.getElementById('lessonIdSelect');
+            try {
+                const res = await fetch(`/api/v1/expert/lessons?moduleId=${moduleId}`);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    select.innerHTML = '<option value="">-- Buổi --</option>';
+                    result.data.forEach(l => {
+                        select.innerHTML += `<option value="${l.lessonId}">${l.lessonName}</option>`;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadQuizQuestions() {
+            const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
+            const r = await res.json();
+            if (r.status === 200) { _quizQuestions = r.data.questions || []; renderAddedQuestions(); }
+        }
+
+        function renderAddedQuestions() {
+            const container = document.getElementById('addedQuestionsList');
+            document.getElementById('currentCountBadge').textContent = _quizQuestions.length + ' câu';
+            
+            if (_quizQuestions.length === 0) {
+                container.innerHTML = '<div class="text-center py-5 text-muted">Chưa có câu hỏi nào được chọn.</div>';
+                return;
+            }
+            
+            // Nhóm câu hỏi theo kỹ năng
+            const groups = { 'LISTENING': [], 'READING': [], 'WRITING': [], 'SPEAKING': [] };
+            _quizQuestions.forEach(q => {
+                const s = q.skill || 'OTHER';
+                if (!groups[s]) groups[s] = [];
+                groups[s].push(q);
+            });
+
+            let html = '';
+            const skillIcons = { 'LISTENING': 'headphones', 'READING': 'book', 'WRITING': 'pencil-square', 'SPEAKING': 'mic' };
+            const skillLabels = { 'LISTENING': 'Listening', 'READING': 'Reading', 'WRITING': 'Writing', 'SPEAKING': 'Speaking' };
+
+            Object.entries(groups).forEach(([skill, questions]) => {
+                if (questions.length === 0) return;
+                
+                html += `
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2 pb-1 border-bottom">
+                            <i class="bi bi-${skillIcons[skill] || 'question-circle'} me-2 text-primary"></i>
+                            <span class="fw-bold text-dark">${skillLabels[skill] || skill}</span>
+                            <span class="badge bg-light text-dark ms-2 small">${questions.length}</span>
+                        </div>
+                        <div class="skill-group-content">
+                            ${questions.map(q => `
+                                <div class="card mb-2 p-3 shadow-none border-start border-4 border-primary" style="border-radius: 8px;">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="small pe-3" style="line-height: 1.4;">
+                                            ${q.groupContent ? `<div class="fw-bold text-muted extra-small mb-1">[Đoạn văn]</div>` : ''}
+                                            ${q.questionContent}
+                                        </div>
+                                        <button class="btn btn-sm text-danger p-0" onclick="removeQuestion(${q.questionId})" title="Gỡ bỏ">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        async function loadBankQuestions(page) {
+            _currentBankPage = page;
+            const skill = document.getElementById('modalSkill').value;
+            const cefr = document.getElementById('modalCefr').value;
+            const keyword = document.getElementById('modalKeyword').value;
+            
+            const res = await fetch(`/api/v1/expert/question-bank?page=${page}&size=10&status=PUBLISHED&skill=${skill}&cefrLevel=${cefr}&keyword=${keyword}`);
+            const r = await res.json();
+            const tbody = document.getElementById('bankQuestionsBody');
+            
+            if (r.status === 200 && r.data.items.length > 0) {
+                tbody.innerHTML = r.data.items.map(q => `
+                    <tr>
+                        <td class="ps-3">
+                            <div class="small fw-medium mb-1">${q.content}</div>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-light text-primary border extra-small">${q.skill}</span>
+                                <span class="badge bg-light text-secondary border extra-small">${q.cefrLevel}</span>
+                                <span class="badge bg-light text-dark border extra-small">${q.type}</span>
+                            </div>
+                        </td>
+                        <td class="text-end pe-3">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="addToQuiz(${q.id}, '${q.type}')">
+                                <i class="bi bi-plus-lg me-1"></i>Thêm
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                renderPagination(r.data.totalPages);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center py-5 text-muted">Không tìm thấy câu hỏi phù hợp.</td></tr>';
+                document.getElementById('bankPagination').innerHTML = '';
+            }
+        }
+
+        function renderPagination(total) {
+            let html = '';
+            for(let i=0; i<total; i++) html += `<li class="page-item ${i===_currentBankPage?'active':''}"><a class="page-link" href="#" onclick="loadBankQuestions(${i})">${i+1}</a></li>`;
+            document.getElementById('bankPagination').innerHTML = html;
+        }
+
+        async function addToQuiz(id, type) {
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions`, { 
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'}, 
+                    body:JSON.stringify({questionId:id, itemType:type, points:1.0}) 
+                });
+                const r = await res.json();
+                if(res.ok) {
+                    Toast.fire({ icon: 'success', title: 'Đã thêm câu hỏi' });
+                    loadQuizQuestions();
+                } else {
+                    Swal.fire('Lỗi', r.message || 'Không thể thêm câu hỏi', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Lỗi', 'Có lỗi kết nối hệ thống', 'error');
+            }
+        }
+
+        async function removeQuestion(id) {
+            try {
+                const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions/${id}`, { method:'DELETE' });
+                if(res.ok) {
+                    Toast.fire({ icon: 'success', title: 'Đã gỡ câu hỏi' });
+                    loadQuizQuestions();
+                } else {
+                    const r = await res.json();
+                    Swal.fire('Lỗi', r.message || 'Không thể gỡ câu hỏi', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Lỗi', 'Có lỗi kết nối hệ thống', 'error');
+            }
         }
 
         function validateStep1() {
-            const title = document.getElementById('title')?.value?.trim();
-            if (!title) {
-                highlightField('title', true);
-                alert('Vui lòng nhập tên quiz trước.');
-                return false;
-            }
-            highlightField('title', false);
-
-            const cat = _currentCategory || document.getElementById('quizCategory').value;
-            if (cat === 'COURSE_ASSIGNMENT' || cat === 'MODULE_ASSIGNMENT') {
-                const deadline = document.getElementById('deadline')?.value;
-                if (!deadline) {
-                    highlightField('deadline', true);
-                    alert('Bài tập lớn (Assignment) bắt buộc phải có Deadline nộp bài.');
-                    return false;
-                }
-                highlightField('deadline', false);
-
-                const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-                let missingSkill = false;
-                skills.forEach(s => {
-                    const el = document.getElementById('timeLimit_' + s);
-                    if (!el?.value) {
-                        highlightField('timeLimit_' + s, true);
-                        missingSkill = true;
-                    } else {
-                        highlightField('timeLimit_' + s, false);
-                    }
-                });
-
-                if (missingSkill) {
-                    alert('Vui lòng thiết lập thời gian cho tất cả 4 kỹ năng của Bài tập lớn.');
-                    return false;
-                }
+            const t = document.getElementById('title').value.trim();
+            if(!t) { 
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập tên Quiz.' });
+                return false; 
             }
             return true;
         }
 
-        function highlightField(id, isError) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            if (isError) {
-                el.classList.add('is-invalid');
-                el.style.borderColor = '#dc3545';
-            } else {
-                el.classList.remove('is-invalid');
-                el.style.borderColor = '';
-            }
-        }
+        function goToStep(s) {
+            if(s>1 && !validateStep1()) return;
 
-        function updateStepperUI(currentStep) {
-            for (let i = 1; i <= 3; i++) {
-                const item = document.getElementById('step-' + i + '-item');
-                const circle = document.getElementById('step-' + i + '-circle');
-                if (!item) continue;
+            // Update UI Sections
+            document.querySelectorAll('.wizard-section').forEach(x => x.style.display='none');
+            document.getElementById('wizard-step-'+s).style.display='block';
+
+            // Update Stepper UI
+            document.querySelectorAll('.step-item').forEach((item, idx) => {
                 item.classList.remove('active', 'completed');
-                if (i < currentStep) {
-                    item.classList.add('completed');
-                    circle.innerHTML = '<i class="bi bi-check-lg"></i>';
-                } else if (i === currentStep) {
-                    item.classList.add('active');
-                    circle.textContent = i;
-                } else {
-                    circle.textContent = i;
-                }
+                const stepNum = idx + 1;
+                if (stepNum < s) item.classList.add('completed');
+                if (stepNum === s) item.classList.add('active');
+            });
+
+            if(s===2) { loadBankQuestions(0); }
+            if(s===3) initPreview();
+        }
+
+        function initPreview() {
+            document.getElementById('previewTitle').textContent = document.getElementById('title').value;
+            const time = document.getElementById('timeLimitMinutes').value;
+            
+            // Đếm câu hỏi theo kỹ năng
+            const counts = {};
+            _quizQuestions.forEach(q => { counts[q.skill] = (counts[q.skill] || 0) + 1; });
+            
+            const summary = Object.entries(counts)
+                .map(([s, c]) => `${c} ${s.charAt(0) + s.slice(1).toLowerCase()}`)
+                .join(', ');
+
+            document.getElementById('previewSummary').textContent = summary || 'Chưa có câu hỏi nào';
+            document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút`;
+            
+            // Vẽ các card trạng thái kỹ năng
+            const container = document.getElementById('skillStatusCards');
+            const skills = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+            container.innerHTML = skills.map(s => {
+                const count = counts[s] || 0;
+                const isReady = count > 0;
+                return `
+                    <div class="skill-status-card ${isReady ? 'ready' : 'missing'}">
+                        <div class="${isReady ? 'preview-icon-ok' : 'preview-icon-warn'} mb-2">
+                            <i class="bi bi-${isReady ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i>
+                        </div>
+                        <div class="fw-bold small">${s}</div>
+                        <div class="extra-small text-muted">${count} câu</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buildUpdateBody() {
+            return {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                quizCategory: _currentCategory,
+                timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || 0,
+                passScore: parseFloat(document.getElementById('passScore').value) || 0,
+                maxAttempts: parseInt(document.getElementById('maxAttempts').value) || 1,
+                showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+                status: document.getElementById('status').value,
+                courseId: parseInt(document.getElementById('courseIdSelect').value) || null,
+                moduleId: parseInt(document.getElementById('moduleIdSelect').value) || null,
+                lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
+                deadline: null, openAt: null, closeAt: null,
+                timeLimitPerSkill: buildTimeLimitPerSkill()
+            };
+        }
+
+        function buildTimeLimitPerSkill() {
+            const res = {};
+            ['LISTENING','READING','SPEAKING','WRITING'].forEach(s => {
+                const v = document.getElementById('timeLimit_'+s)?.value;
+                if(v) res[s] = parseInt(v);
+            });
+            return Object.keys(res).length > 0 ? res : null;
+        }
+
+        async function doSaveDraft() {
+            const b = buildUpdateBody();
+            const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) });
+            if(res.ok) Toast.fire({ icon: 'success', title: 'Đã lưu nháp' });
+        }
+
+        async function publishQuiz() {
+            const result = await Swal.fire({
+                title: 'Xác nhận xuất bản?',
+                text: "Học sinh sẽ có thể nhìn thấy và làm bài thi này.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Xuất bản ngay',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#198754'
+            });
+
+            if (!result.isConfirmed) return;
+
+            const res = await fetch(`/api/v1/expert/quizzes/${quizId}/publish`, { method:'PATCH' });
+            if(res.ok) { 
+                await Swal.fire('Thành công', 'Quiz đã được xuất bản!', 'success');
+                window.location.href='/expert/quiz-management'; 
+            } else {
+                Swal.fire('Lỗi', 'Không thể xuất bản quiz.', 'error');
             }
-            const l12 = document.getElementById('step-line-1-2');
-            const l23 = document.getElementById('step-line-2-3');
-            if (l12) l12.style.background = currentStep > 1 ? '#10b981' : '#e9ecef';
-            if (l23) l23.style.background = currentStep > 2 ? '#10b981' : '#e9ecef';
         }
 
-        // ─── LOAD QUIZ ───────────────────────────────────────────────────────
-        async function loadQuiz() {
-            try {
-                const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
-                const result = await res.json();
-                if (result.status !== 200) { alert('Không tìm thấy quiz.'); return; }
-
-                const q = result.data;
-                _quizData = q;
-                _currentCategory = q.quizCategory;
-
-                document.getElementById('quizCategory').value = q.quizCategory;
-                document.getElementById('status').value = q.status;
-                document.getElementById('title').value = q.title || '';
-                document.getElementById('description').value = q.description || '';
-                document.getElementById('courseName').value = q.courseName || '—';
-                document.getElementById('timeLimitMinutes').value = q.timeLimitMinutes || '';
-                document.getElementById('passScore').value = q.passScore || '';
-                document.getElementById('maxAttempts').value = q.maxAttempts || '';
-                document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
-                document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit || false;
-
-                if (q.hasAttempts) {
-                    document.getElementById('attemptWarning').style.display = 'flex';
-                }
-
-                if (q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
-                    document.getElementById('perSkillTimeSection').style.display = 'block';
-                    document.getElementById('timeLimitMinutes').readOnly = true;
-
-                    console.log("timeLimitPerSkill raw:", q.timeLimitPerSkill);
-                    try {
-                        const skillTime = typeof q.timeLimitPerSkill === 'string'
-                            ? JSON.parse(q.timeLimitPerSkill || '{}')
-                            : (q.timeLimitPerSkill || {});
-
-                        Object.entries(skillTime).forEach(([skill, minutes]) => {
-                            const el = document.getElementById('timeLimit_' + skill);
-                            if (el) el.value = minutes;
-                        });
-                    } catch (e) {
-                        console.error("Error parsing timeLimitPerSkill:", e);
-                    }
-                    validateSkillTimes(); // Khởi tạo tính tổng lần đầu
-                }
-
-                // Load assignment schedule fields
-                if (q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
-                    document.getElementById('openAt').value = q.openAt || '';
-                    document.getElementById('closeAt').value = q.closeAt || '';
-                    document.getElementById('deadline').value = q.deadline || '';
-                }
-
-                // Show course section for COURSE_QUIZ / COURSE_ASSIGNMENT
-                if (q.quizCategory === 'COURSE_QUIZ' || q.quizCategory === 'COURSE_ASSIGNMENT' || q.quizCategory === 'MODULE_ASSIGNMENT') {
-                    document.getElementById('courseSection').style.display = 'block';
-                }
-
-                // Show entry test warning
-                if (q.quizCategory === 'ENTRY_TEST') {
-                    document.getElementById('entryTestWarning').style.display = 'block';
-                }
-
-                // Load questions
-                await loadQuizQuestions();
-
-            } catch (e) { console.error(e); alert('Lỗi tải quiz.'); }
+        function validateSkillTimes() {
+            let total = 0;
+            ['LISTENING','READING','SPEAKING','WRITING'].forEach(s => {
+                total += parseInt(document.getElementById('timeLimit_'+s)?.value || 0);
+            });
+            document.getElementById('timeLimitMinutes').value = total;
         }
 
-        // ─── AI GENERATION LOGIC ─────────────────────────────────────────────
-        let aiGenModal;
-
-        function openAdvancedAiModal() {
-            if (!aiGenModal) aiGenModal = new bootstrap.Modal('#aiGenerateModal');
-
-            // Sync topic from quiz title if any
-            const currentTitle = document.getElementById('title')?.value || '';
-            document.getElementById('adv-topic').value = currentTitle;
-
+        // --- AI GENERATION ---
+        function openExpertAiModal() {
+            const modal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+            modal.show();
             toggleAiAdvancedFields();
-            aiGenModal.show();
         }
 
         function toggleAiAdvancedFields() {
-            const skill = document.getElementById('adv-skill').value;
-            const isMatchingChecked = document.getElementById('type-match').checked;
-
-            document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
-            document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
-            document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
+            const skill = document.querySelector('input[name="ai-skill"]:checked').value;
+            document.getElementById('adv-skill').value = skill;
+            const container = document.getElementById('adv-types');
+            
+            if (skill === 'READING' || skill === 'LISTENING') {
+                container.innerHTML = `
+                    <div class="ai-card-selector active" onclick="const cb=this.querySelector('input'); cb.checked=!cb.checked; this.classList.toggle('active', cb.checked)">
+                        <input type="checkbox" value="MULTIPLE_CHOICE_SINGLE" checked>
+                        <i class="bi bi-check2-circle text-primary"></i>
+                        <span>Trắc nghiệm (1 đáp án)</span>
+                    </div>
+                    <div class="ai-card-selector" onclick="const cb=this.querySelector('input'); cb.checked=!cb.checked; this.classList.toggle('active', cb.checked)">
+                        <input type="checkbox" value="FILL_IN_BLANK">
+                        <i class="bi bi-input-cursor-text"></i>
+                        <span>Điền từ vào chỗ trống</span>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-info border-0 shadow-sm w-100 mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i> Kỹ năng <strong>${skill}</strong> sẽ được AI tạo câu hỏi tự luận theo mặc định.
+                    </div>
+                `;
+            }
         }
 
         async function runAdvancedAiGeneration() {
-            const topic = document.getElementById('adv-topic').value.trim();
-            const qty = parseInt(document.getElementById('adv-qty').value);
-            const skill = document.getElementById('adv-skill').value;
-            const cefr = document.getElementById('adv-cefr').value;
-
-            if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
-
-            const types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
-            if (types.length === 0) { alert('Vui lòng chọn ít nhất 1 loại câu hỏi.'); return; }
-
-            const advancedOptions = {};
-            if (skill === 'LISTENING') advancedOptions.listeningType = document.getElementById('adv-listen-type').value;
-            if (skill === 'READING') {
-                const readLen = document.querySelector('input[name="adv-read-len"]:checked')?.value;
-                advancedOptions.readingLength = readLen;
-            }
-            if (types.includes('MATCHING')) {
-                advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
-            }
-
-            const payload = {
-                topic,
-                quantity: qty,
-                skill,
-                cefrLevel: cefr,
-                questionTypes: types,
-                mode: "ADVANCED",
-                advancedOptions
-            };
-
             const btn = document.getElementById('btn-run-ai');
-            const spinner = document.getElementById('ai-loading-spinner');
-            btn.disabled = true; spinner.style.display = 'inline-block';
+            const topic = document.getElementById('adv-topic').value.trim();
+            const qty = document.getElementById('adv-qty').value;
+            const skill = document.getElementById('adv-skill').value;
+            
+            if(!topic) { 
+                Swal.fire('Cảnh báo', 'Vui lòng nhập chủ đề bài thi để AI có cơ sở tạo câu hỏi.', 'warning'); 
+                return; 
+            }
+
+            // Lấy các loại câu hỏi đã chọn
+            const selectedTypes = [];
+            const checkboxes = document.querySelectorAll('#adv-types .ai-card-selector.active input');
+            checkboxes.forEach(cb => selectedTypes.push(cb.value));
+            
+            // Nếu là Writing/Speaking thì mặc định là Essay/Speaking
+            if(skill === 'WRITING' || skill === 'SPEAKING') selectedTypes.push(skill);
+            
+            if(selectedTypes.length === 0) {
+                Swal.fire('Thông báo', 'Vui lòng chọn ít nhất một loại câu hỏi.', 'info');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang phân tích & tạo đề...';
 
             try {
-                const res = await fetch('/api/v1/teacher/quizzes/ai/generate', {
+                // Bước 1: Sinh câu hỏi preview từ AI
+                const genRes = await fetch('/api/v1/expert/quizzes/ai/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        topic: topic,
+                        quantity: parseInt(qty),
+                        skill: skill,
+                        cefrLevel: 'B2',
+                        questionTypes: selectedTypes
+                    })
                 });
-                const result = await res.json();
-
-                if (result.status === 200) {
-                    // To simplify for the Expert view, we'll automatically import these into the current quiz
-                    const newQuestions = result.data.questions || [];
-                    if (newQuestions.length > 0) {
-                        await importAiQuestionsToQuiz(newQuestions);
-                        aiGenModal.hide();
-                        Swal.fire('Thành công', `Đã sinh và thêm ${newQuestions.length} câu hỏi vào đề thi.`, 'success');
-                    }
-                } else {
-                    alert(result.message || 'Lỗi sinh câu hỏi.');
+                
+                const genR = await genRes.json();
+                if (!genRes.ok || !genR.data || !genR.data.questions) {
+                    Swal.fire('Thất bại', genR.message || 'AI không thể sinh câu hỏi lúc này.', 'error');
+                    return;
                 }
-            } catch (e) { alert('Lỗi kết nối: ' + e.message); }
-            finally { btn.disabled = false; spinner.style.display = 'none'; }
-        }
 
-        async function importAiQuestionsToQuiz(questions) {
-            try {
-                const payload = {
-                    quizId: parseInt(quizId),
-                    questions: questions
-                };
+                const generatedQuestions = genR.data.questions;
 
-                const res = await fetch(`/api/v1/teacher/quizzes/ai/import`, {
+                // Bước 2: Import các câu hỏi này trực tiếp vào Quiz
+                const importRes = await fetch(`/api/v1/expert/quizzes/${quizId}/ai/import`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(generatedQuestions)
                 });
-                const result = await res.json();
-                if (result.status === 200) {
-                    await loadQuizQuestions();
+                
+                const importR = await importRes.json();
+                if (importRes.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('aiGenerateModal')).hide();
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Hoàn tất!',
+                        text: `AI đã tạo thành công và thêm ${generatedQuestions.length} câu hỏi vào bộ đề của bạn.`,
+                        confirmButtonText: 'Tuyệt vời'
+                    });
+                    loadQuizQuestions();
                 } else {
-                    alert('Lỗi khi import câu hỏi: ' + (result.message || 'Unknown error'));
+                    Swal.fire('Lỗi Import', importR.message || 'Không thể lưu câu hỏi vào Quiz.', 'error');
                 }
             } catch (e) {
-                console.error('Lỗi khi import:', e);
-                alert('Lỗi kết nối khi import câu hỏi AI.');
+                console.error(e);
+                Swal.fire('Lỗi', 'Có lỗi xảy ra trong quá trình xử lý AI.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Bắt đầu sinh câu hỏi <i class="bi bi-stars ms-2"></i>';
             }
         }
-            // ─── VALIDATION ──────────────────────────────────────────────────────
 
-            function validateAndGoToStep2() {
-                if (_currentCategory === 'COURSE_ASSIGNMENT') {
-                    if (!validateSkillTimes()) return;
-                }
-                goToStep(2);
-            }
-
-            let _debounceTimer;
-            function debouncedValidate() {
-                // Tức thì highlight lỗi nếu có xóa input (bắt buộc theo prompt)
-                validateSkillTimes(false); // fast un-debounced check for empty
-                clearTimeout(_debounceTimer);
-                _debounceTimer = setTimeout(() => validateSkillTimes(true), 400);
-            }
-
-            function validateSkillTimes(isFullCheck = true) {
-                if (_currentCategory !== 'COURSE_ASSIGNMENT') return true;
-
-                const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-                let total = 0;
-                let isValid = true;
-                const regex = /^\d+$/;
-
-                for (const skill of skills) {
-                    const input = document.getElementById('timeLimit_' + skill);
-                    const val = input.value.trim();
-                    const isEmpty = val === '';
-
-                    let skillValid = true;
-
-                    // Xóa là báo lỗi ngay
-                    if (isEmpty) {
-                        skillValid = false;
-                    } else if (!regex.test(val)) {
-                        skillValid = false; // Có chữ số âm / thập phân / kí tự đặc biệt
-                    } else {
-                        const num = parseInt(val, 10);
-                        if (num <= 0 || num > 100) {
-                            skillValid = false;
-                        }
-                    }
-
-                    if (!skillValid) {
-                        input.classList.add('is-invalid');
-                        isValid = false;
-                    } else {
-                        input.classList.remove('is-invalid');
-                        total += parseInt(val, 10);
-                    }
-                }
-
-                if (isValid) {
-                    document.getElementById('timeLimitMinutes').value = total;
-                } else {
-                    document.getElementById('timeLimitMinutes').value = '';
-                }
-
-                const btnNext = document.getElementById('btnNextStep1');
-                if (btnNext) btnNext.disabled = !isValid;
-
-                return isValid;
-            }
-
-            // ─── STEP 2 LOGIC ────────────────────────────────────────────────────
-            let _quizQuestions = [];
-            let _currentBankPage = 0;
-
-            function initStep2() {
-                loadQuizQuestions();
-                loadBankQuestions(0);
-            }
-
-            async function loadQuizQuestions() {
-                if (!quizId) return;
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
-                    const result = await res.json();
-                    if (result.status === 200 && result.data) {
-                        _quizQuestions = result.data.questions || [];
-                        renderAddedQuestions();
-                        renderBankQuestions(_lastBankResult);
-                    }
-                } catch (e) { console.error(e); }
-            }
-
-            let _expandedGroups = new Set();
-
-            function toggleGroup(groupId) {
-                if (_expandedGroups.has(groupId)) _expandedGroups.delete(groupId);
-                else _expandedGroups.add(groupId);
-                renderAddedQuestions();
-            }
-
-            function renderAddedQuestions() {
-                const container = document.getElementById('addedQuestionsList');
-
-                // Nhóm câu hỏi
-                const groups = new Map();
-                const lones = [];
-                _quizQuestions.forEach(q => {
-                    if (q.groupId) {
-                        if (!groups.has(q.groupId)) groups.set(q.groupId, { id: q.groupId, content: q.groupContent, items: [] });
-                        groups.get(q.groupId).items.push(q);
-                    } else {
-                        lones.push(q);
-                    }
+        document.addEventListener('DOMContentLoaded', () => {
+            if(window.NovaQuestionFormSettings) {
+                NovaQuestionFormSettings.load().then(() => {
+                    NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('modalSkill'), {includeEmpty:true});
+                    NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), {includeEmpty:true});
                 });
-
-                const totalItems = groups.size + lones.length;
-                const badge = document.getElementById('currentCountBadge');
-                if (badge) badge.textContent = `${totalItems} câu`;
-
-                if (totalItems === 0) {
-                    container.innerHTML = `<div class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chưa có câu hỏi nào.
-            </div>`;
-                    return;
-                }
-
-                let html = '';
-
-                // Render Groups (Passages)
-                groups.forEach(g => {
-                    const isExpanded = _expandedGroups.has(g.id);
-                    html += `
-            <div class="card mb-3 border shadow-sm" style="border-radius: 12px; border-left: 5px solid #0d6efd !important;">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-start">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-sm btn-light me-2 rounded-circle p-0" style="width:24px; height:24px;" onclick="toggleGroup(${g.id})">
-                            <i class="bi ${isExpanded ? 'bi-dash' : 'bi-plus'}"></i>
-                        </button>
-                        <div class="small fw-bold text-primary"><i class="bi bi-journal-text me-1"></i> BỘ CÂU HỎI (PASSAGE)</div>
-                    </div>
-                    <button class="btn btn-sm btn-link text-danger p-0" onclick="removeGroup(${g.id})" title="Gỡ cả bộ">
-                        <i class="bi bi-trash"></i> Gỡ bộ
-                    </button>
-                </div>
-                <div class="card-body pt-2">
-                    <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
-                    <div class="${isExpanded ? '' : 'd-none'}">
-                        ${g.items.map((sq, idx) => `
-                            <div class="d-flex justify-content-between align-items-center mb-2 last-child-mb-0">
-                                <div class="small text-muted">
-                                    <span class="badge bg-light text-dark me-1">${idx + 1}</span>
-                                    ${sq.questionContent}
-                                </div>
-                                <div class="extra-small text-info">${typeName(sq.questionType)}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-            `;
-                });
-
-                // Render Lone Questions
-                lones.forEach((q, i) => {
-                    html += `
-            <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div style="max-width: 85%;">
-                            <div class="small fw-bold text-success mb-1">CÂU LẺ • ${typeName(q.questionType)}</div>
-                            <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="removeQuestion(${q.questionId})">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            `;
-                });
-
-                container.innerHTML = html;
             }
-
-            async function removeGroup(groupId) {
-                if (!confirm('Gỡ toàn bộ Passage này cùng các câu hỏi con?')) return;
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}/groups/${groupId}`, { method: 'DELETE' });
-                    if (res.ok) loadQuizQuestions();
-                } catch (e) { alert('Lỗi: ' + e.message); }
-            }
-
-            let _lastBankResult = null;
-            async function loadBankQuestions(page) {
-                _currentBankPage = page;
-                const params = new URLSearchParams();
-                const skill = document.getElementById('modalSkill')?.value;
-                const cefr = document.getElementById('modalCefr')?.value;
-                const keyword = document.getElementById('modalKeyword')?.value;
-                if (skill) params.append('skill', skill);
-                if (cefr) params.append('cefrLevel', cefr);
-                if (keyword) params.append('keyword', keyword);
-                params.append('status', 'PUBLISHED');
-                params.append('page', page);
-                params.append('size', 10);
-
-                try {
-                    const res = await fetch(`/api/v1/expert/question-bank?${params}`);
-                    const result = await res.json();
-                    _lastBankResult = result;
-                    renderBankQuestions(result);
-                } catch (e) { console.error(e); }
-            }
-
-            function renderBankQuestions(result) {
-                if (!result) return;
-                const tbody = document.getElementById('bankQuestionsBody');
-                if (result.status === 200 && result.data && result.data.items.length > 0) {
-                    const existingIds = new Set(_quizQuestions.map(q => q.questionId));
-                    tbody.innerHTML = result.data.items.map(q => {
-                        let isAdded = false;
-                        if (q.type === 'SINGLE') {
-                            isAdded = existingIds.has(q.id);
-                        } else if (q.type === 'GROUP' && q.questions) {
-                            isAdded = q.questions.some(subQ => existingIds.has(subQ.questionId));
-                        }
-
-                        return `
-                    <tr>
-                        <td class="ps-4">
-                            <div class="text-truncate" style="max-width: 250px;" title="${escHtml(q.content)}">${q.content || '—'}</div>
-                            <div class="extra-small text-muted">${q.skill || '—'}</div>
-                        </td>
-                        <td><span class="badge bg-light text-dark">${typeName(q.questionType)}</span></td>
-                        <td><span class="badge bg-info text-dark">${q.cefrLevel}</span></td>
-                        <td class="text-end pe-4">
-                            ${isAdded
-                                ? '<span class="badge bg-success rounded-pill px-3 py-2 fw-bold"><i class="bi bi-check-lg me-1"></i>Đã thêm</span>'
-                                : `<button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" onclick="addToQuiz(${q.id}, '${q.type}')">
-                                    <i class="bi bi-plus-lg me-1"></i> Thêm
-                                   </button>`
-                            }
-                        </td>
-                    </tr>
-                `;
-                    }).join('');
-
-                    // Pagination
-                    const pg = document.getElementById('bankPagination');
-                    let pgHtml = '';
-                    const total = result.data.totalPages;
-                    for (let i = 0; i < total; i++) {
-                        pgHtml += `<li class="page-item ${i === _currentBankPage ? 'active' : ''}">
-                    <a class="page-link" href="javascript:void(0)" onclick="loadBankQuestions(${i})">${i + 1}</a>
-                </li>`;
-                    }
-                    if (pg) pg.innerHTML = pgHtml;
-                } else {
-                    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Không tìm thấy câu hỏi nào.</td></tr>';
-                    const pg = document.getElementById('bankPagination');
-                    if (pg) pg.innerHTML = '';
-                }
-            }
-
-            async function addToQuiz(id, type) {
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            questionId: id,
-                            itemType: type,
-                            points: 1.0
-                        })
-                    });
-                    if (res.ok) {
-                        loadQuizQuestions();
-                    } else {
-                        const r = await res.json();
-                        alert(r.message || 'Không thể thêm.');
-                    }
-                } catch (e) { alert('Lỗi: ' + e.message); }
-            }
-
-            async function removeQuestion(questionId) {
-                if (!confirm('Gỡ câu hỏi này khỏi đề thi?')) return;
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions/${questionId}`, { method: 'DELETE' });
-                    if (res.ok) loadQuizQuestions();
-                } catch (e) { alert('Lỗi: ' + e.message); }
-            }
-
-            // ─── PREVIEW ────────────────────────────────────────────────────────
-
-            async function initPreview() {
-                // Tải dữ liệu quiz mới nhất từ backend
-                await loadQuizQuestions();
-
-                // Đồng thời tải tóm tắt theo kỹ năng từ backend để đảm bảo chính xác tuyệt đối
-                let skillSummaries = {};
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}/skills`);
-                    const result = await res.json();
-                    if (result.status === 200) skillSummaries = result.data;
-                } catch (e) { console.error("Lỗi tải thống kê kỹ năng:", e); }
-
-                const title = document.getElementById('title').value || 'Tên Quiz';
-                const time = document.getElementById('timeLimitMinutes').value || '—';
-                const pass = document.getElementById('passScore').value || '0';
-                const cat = _currentCategory || document.getElementById('quizCategory').value;
-
-                // Tính tổng câu hỏi từ thống kê kỹ năng
-                const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-
-                document.getElementById('previewTitle').textContent = title;
-                document.getElementById('previewSummary').textContent =
-                    `Tóm tắt: ${totalQuestions} câu hỏi | Thời gian ${time} phút | Điểm đạt ${pass}%`;
-                const countEl = document.getElementById('previewQuestionCount');
-                if (countEl) countEl.textContent = `${totalQuestions} câu hỏi đã thêm`;
-
-                renderSkillStatusCards(skillSummaries);
-                validateForPublish(skillSummaries);
-            }
-
-            function renderSkillStatusCards(skillSummaries) {
-                const container = document.getElementById('skillStatusCards');
-                if (!container) return;
-                const cat = _currentCategory || document.getElementById('quizCategory').value;
-
-                if (cat === 'ENTRY_TEST') {
-                    const total = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-                    container.innerHTML = `
-                <div class="skill-status-card ready mx-auto" style="min-width:200px;">
-                    <div class="preview-icon-ok mb-2"><i class="bi bi-check-circle-fill"></i></div>
-                    <div class="fw-bold">${total} câu hỏi đã thêm</div>
-                    <div class="small text-muted">Entry Test — không bắt buộc 4 kỹ năng</div>
-                </div>`;
-                    return;
-                }
-
-                const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-                const icons = { LISTENING: 'bi-ear', READING: 'bi-book', SPEAKING: 'bi-mic', WRITING: 'bi-pen' };
-                const skillLabels = { LISTENING: 'Listening', READING: 'Reading', SPEAKING: 'Speaking', WRITING: 'Writing' };
-
-                container.innerHTML = skills.map(skill => {
-                    const summary = skillSummaries[skill] || { questionCount: 0 };
-                    const count = summary.questionCount;
-                    const isOk = count > 0;
-                    const textColor = isOk ? '#166534' : '#92400e';
-                    return `
-                <div class="skill-status-card ${isOk ? 'ready' : 'missing'}">
-                    <div class="${isOk ? 'preview-icon-ok' : 'preview-icon-warn'} mb-1">
-                        <i class="bi ${isOk ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>
-                    </div>
-                    <div class="fw-bold" style="font-size:1.3rem; color:${isOk ? '#10b981' : '#f59e0b'};">${count}</div>
-                    <div class="small fw-bold mb-1" style="color:${textColor};">
-                        <i class="bi ${icons[skill]} me-1"></i>${skillLabels[skill]}
-                    </div>
-                    <div class="small text-muted">${isOk ? 'Đã có câu hỏi' : 'Chưa có câu hỏi'}</div>
-                </div>`;
-                }).join('');
-            }
-
-            function validateForPublish(skillSummaries) {
-                const cat = _currentCategory || document.getElementById('quizCategory').value;
-                const msg = document.getElementById('publishValidationMsg');
-                const btn = document.getElementById('btnPublishFinal');
-                if (!msg || !btn) return;
-
-                let canPublish = true;
-                let msgText = '';
-
-                const totalQuestions = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-
-                if (totalQuestions === 0) {
-                    canPublish = false;
-                    msgText = 'Cần thêm ít nhất 1 câu hỏi để xuất bản.';
-                } else if (cat === 'COURSE_ASSIGNMENT') {
-                    const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-                    const missingTime = skills.filter(s => !document.getElementById('timeLimit_' + s)?.value);
-                    if (missingTime.length > 0) {
-                        canPublish = false;
-                        msgText = 'Chưa đặt thời gian cho: ' + missingTime.map(s => s.charAt(0) + s.slice(1).toLowerCase()).join(', ');
-                    }
-                }
-
-                if (canPublish) {
-                    msg.style.display = 'flex';
-                    msg.style.background = '#f0fdf4'; msg.style.border = '1px solid #10b981';
-                    msg.style.color = '#166134'; msg.style.borderRadius = '12px';
-                    msg.innerHTML = '<i class="bi bi-check-circle-fill fs-5 me-2"></i><span class="small">Sẵn sàng xuất bản!</span>';
-                } else {
-                    msg.style.display = 'flex';
-                    msg.style.background = '#fff1f2'; msg.style.border = '1px solid #f43f5e';
-                    msg.style.color = '#9f1239'; msg.style.borderRadius = '12px';
-                    msg.innerHTML = `<i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i><span class="small">${msgText}</span>`;
-                }
-                btn.disabled = !canPublish;
-            }
-
-            // ─── SAVE / PUBLISH ─────────────────────────────────────────────────
-
-            async function doSaveDraft() {
-                const title = document.getElementById('title')?.value?.trim();
-                if (!title) {
-                    Swal.fire('Chú ý', 'Vui lòng nhập tên quiz.', 'warning');
-                    return;
-                }
-
-                const body = buildUpdateBody();
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
-                    const result = await res.json();
-                    if (res.ok) {
-                        wsToast('Đã lưu thay đổi thành công!');
-                        setTimeout(() => {
-                            window.location.href = '/expert/quiz-bank/course/' + (body.courseId || '');
-                        }, 1000);
-                    } else {
-                        Swal.fire('Thất bại', result.message || 'Có lỗi xảy ra.', 'error');
-                    }
-                } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
-            }
-
-            async function saveAndGoToStep3() {
-                const title = document.getElementById('title')?.value?.trim();
-                if (!title) { alert('Vui lòng nhập tên quiz trước.'); return; }
-
-                const body = buildUpdateBody();
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
-                    if (res.ok) {
-                        goToStep(3);
-                    } else {
-                        const r = await res.json();
-                        alert(r.message || 'Lỗi khi lưu.');
-                    }
-                } catch (e) { alert('Lỗi: ' + e.message); }
-            }
-
-            function buildUpdateBody() {
-                const cat = _currentCategory || document.getElementById('quizCategory').value;
-                return {
-                    title: document.getElementById('title').value.trim(),
-                    description: document.getElementById('description').value || null,
-                    quizCategory: cat,
-                    timeLimitMinutes: parseInt(document.getElementById('timeLimitMinutes').value) || null,
-                    passScore: parseFloat(document.getElementById('passScore').value) || null,
-                    maxAttempts: parseInt(document.getElementById('maxAttempts').value) || null,
-                    questionOrder: document.getElementById('questionOrder').value,
-                    showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
-                    status: document.getElementById('status').value,
-                    isSequential: (cat === 'COURSE_ASSIGNMENT'),
-                    skillOrder: (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT')
-                        ? ['LISTENING', 'READING', 'SPEAKING', 'WRITING'] : null,
-                    timeLimitPerSkill: buildTimeLimitPerSkill(),
-                    openAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('openAt').value || null) : null,
-                    closeAt: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('closeAt').value || null) : null,
-                    deadline: cat === 'COURSE_ASSIGNMENT' ? (document.getElementById('deadline').value || null) : null
-                };
-            }
-
-            async function publishQuiz() {
-                if (!confirm('Xác nhận xuất bản quiz này?')) return;
-
-                const body = buildUpdateBody();
-                try {
-                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
-                    if (!res.ok) {
-                        const r = await res.json();
-                        alert(r.message || 'Lỗi khi lưu cấu hình.'); return;
-                    }
-
-                    const publishRes = await fetch(`/api/v1/expert/quizzes/${quizId}/publish`, { method: 'PATCH' });
-                    if (publishRes.ok) {
-                        alert('Chúc mừng! Quiz đã được xuất bản thành công.');
-                        window.location.href = '/expert/quiz-management';
-                    } else {
-                        const r = await publishRes.json();
-                        alert(r.message || 'Lỗi khi xuất bản.');
-                    }
-                } catch (e) { alert('Lỗi: ' + e.message); }
-            }
-
-            function buildTimeLimitPerSkill() {
-                const result = {};
-                ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(s => {
-                    const el = document.getElementById('timeLimit_' + s);
-                    if (el?.value) result[s] = parseInt(el.value);
-                });
-                return Object.keys(result).length > 0 ? result : null;
-            }
-
-            // ─── HELPERS ─────────────────────────────────────────────────────────
-            function typeName(type) {
-                const map = {
-                    MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm (1)',
-                    MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm (n)',
-                    FILL_IN_BLANK: 'Điền từ',
-                    MATCHING: 'Nối đáp án',
-                    WRITING: 'Viết',
-                    SPEAKING: 'Nói'
-                };
-                return map[type] || type || '—';
-            }
-
-            function escHtml(str) {
-                if (!str) return '';
-                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            }
-
-            document.addEventListener('DOMContentLoaded', async () => {
-                try {
-                    if (window.NovaQuestionFormSettings) {
-                        await NovaQuestionFormSettings.load();
-                        NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('modalSkill'), { includeEmpty: true, emptyLabel: '-- Tất cả Kỹ năng --' });
-                        NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: '-- CEFR --' });
-                    }
-                } catch (e) { console.error(e); }
-                loadQuiz();
-            });
+            loadQuiz();
+        });
     </script>
 </body>
-
 </html>
