@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class AssignmentGradingDetailDTO {
     private Integer resultId;
+    private String status;
     private Long assignmentSessionId;
     private Integer classId;
     private String studentName;

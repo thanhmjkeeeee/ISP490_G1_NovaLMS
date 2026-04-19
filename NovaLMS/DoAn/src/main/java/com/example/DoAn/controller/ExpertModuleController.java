@@ -2,6 +2,7 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.ModuleRequestDTO;
 import com.example.DoAn.dto.response.ModuleResponseDTO;
+import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.ResponseData;
 import com.example.DoAn.service.IExpertModuleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,9 +30,14 @@ public class ExpertModuleController {
 
     @Operation(summary = "Get all courses owned by the current expert")
     @GetMapping("/courses")
-    public ResponseData<List<IExpertModuleService.CourseOwnedByExpertDTO>> getMyCourses(Principal principal) {
+    public ResponseData<PageResponse<IExpertModuleService.CourseOwnedByExpertDTO>> getMyCourses(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int limit,
+            Principal principal) {
         return ResponseData.success("Danh sách khóa học",
-                moduleService.getCoursesOwnedByExpert(getEmail(principal)));
+                moduleService.getCoursesOwnedByExpert(getEmail(principal), search, status, page, limit));
     }
 
     @Operation(summary = "Get dashboard statistics for expert")

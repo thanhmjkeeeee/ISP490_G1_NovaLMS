@@ -12,6 +12,8 @@ import com.example.DoAn.repository.ModuleRepository;
 import com.example.DoAn.service.AIQuestionService;
 import com.example.DoAn.util.AIQuestionPromptBuilder;
 import com.example.DoAn.util.RateLimitWindowStore;
+import com.example.DoAn.service.FileUploadService;
+import com.example.DoAn.service.ITextToSpeechService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +37,8 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final AIQuestionPromptBuilder promptBuilder;
     private final RateLimitWindowStore rateLimitStore;
     private final ObjectMapper objectMapper;
+    private final ITextToSpeechService ttsService;
+    private final FileUploadService fileUploadService;
 
     @Value("${groq.api.key:}")
     private String aiApiKey;
@@ -64,7 +68,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
         String prompt;
         if ("ADVANCED".equals(mode)) {
-            String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "B1";
+            String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "5.0";
             if (request.hasModuleId()) {
                 Optional<Module> moduleOpt = moduleRepository.findById(request.getModuleId());
                 if (moduleOpt.isEmpty()) {
@@ -100,6 +104,15 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
             List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
 
+            // Handle TTS for independent questions
+            if ("LISTENING".equalsIgnoreCase(request.getSkill())) {
+                for (QuestionDTO q : questions) {
+                    if (q.getAudioUrl() == null || q.getAudioUrl().isBlank()) {
+                        generateAudioForQuestion(q);
+                    }
+                }
+            }
+
             String warning = null;
             if (questions.isEmpty()) {
                 warning = "AI không sinh được câu hỏi nào. Kiểm tra server logs để biết chi tiết.";
@@ -130,7 +143,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         String topic = request.hasTopic() ? request.getTopic()
                 : (request.hasModuleId() ? "Module-based content" : "");
         String skill = request.getSkill() != null ? request.getSkill() : "READING";
-        String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "B1";
+        String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "5.0";
         int qty = request.getQuantity() != null ? request.getQuantity() : 5;
         boolean isAdvanced = request.getMode() != null && "ADVANCED".equalsIgnoreCase(request.getMode());
 
@@ -161,6 +174,18 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             if (parsed.get("skill") != null) builder.skill((String) parsed.get("skill"));
             if (parsed.get("cefrLevel") != null) builder.cefrLevel((String) parsed.get("cefrLevel"));
             if (parsed.get("topic") != null) builder.topic((String) parsed.get("topic"));
+
+            // Handle TTS for passage-based Listening
+            if ("LISTENING".equalsIgnoreCase(skill)) {
+                String passage = (String) parsed.get("passage");
+                if (passage != null && !passage.isBlank()) {
+                    byte[] audioBytes = ttsService.synthesizeDialogue(passage);
+                    if (audioBytes != null) {
+                        String audioUrl = fileUploadService.uploadBytes(audioBytes, "ai_listening", "video");
+                        builder.audioUrl(audioUrl);
+                    }
+                }
+            }
 
             List<AIGenerateResponseDTO.QuestionDTO> questions = new ArrayList<>();
             List<?> rawQuestions = (List<?>) parsed.get("questions");
@@ -562,5 +587,18 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             if (left.size() < 2 || left.size() != right.size()) return false;
         }
         return true;
+    }
+
+    private void generateAudioForQuestion(QuestionDTO q) {
+        try {
+            if (q.getContent() == null || q.getContent().isBlank()) return;
+            byte[] audioBytes = ttsService.synthesizeDialogue(q.getContent());
+            if (audioBytes != null) {
+                String audioUrl = fileUploadService.uploadBytes(audioBytes, "ai_q_listening", "video");
+                q.setAudioUrl(audioUrl);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to generate audio for question: {}", e.getMessage());
+        }
     }
 }

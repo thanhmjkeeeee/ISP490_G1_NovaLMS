@@ -19,8 +19,7 @@ public class AIQuestionPromptBuilder {
     private static final Set<String> VALID_SKILLS = Set.of(
             "LISTENING", "READING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_CEFR = Set.of(
-            "A1", "A2", "B1", "B2", "C1", "C2",
-            "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0");
+            "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0");
 
     public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, String skill,
             Map<String, Object> advancedOptions) {
@@ -40,16 +39,17 @@ public class AIQuestionPromptBuilder {
 
                 Requirements:
                 - Question types: %s
-                - CEFR levels: mix from A1 to C2
+                - IELTS Bands: mix from 3.0 to 9.0. DO NOT use CEFR like A1, B2, C1.
                 %s
                 %s
-                - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
+                - Every question must have: content, questionType, skill, cefrLevel (store the IELTS Band here, e.g., "5.5"), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
                 - FILL_IN_BLANK: content contains "___", correctAnswer is the answer to fill in
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index order)
                 - WRITING, SPEAKING: no options needed
 
+                CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "5.0", "6.5"). DO NOT use "A1", "B2", etc.
                 IMPORTANT: Every "title" field must contain real ENGLISH text. Do NOT leave title as null, empty, or a number.
 
                 Return ONLY a JSON array, no other text:
@@ -99,16 +99,17 @@ public class AIQuestionPromptBuilder {
 
                 Requirements:
                 - Question types: %s
-                - CEFR levels: mix from A1 to C2
+                - IELTS Bands: mix from 3.0 to 9.0. DO NOT use CEFR like A1, B2, C1.
                 %s
                 %s
-                - Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null)
+                - Every question must have: content, questionType, skill, cefrLevel (store the IELTS Band here, e.g. "6.0"), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
                 - FILL_IN_BLANK: content contains "___", correctAnswer is the answer to fill in
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index)
                 - WRITING, SPEAKING: no options needed
 
+                CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "5.0", "7.5"). DO NOT use letters like "B2".
                 IMPORTANT: Every "title" field must contain real ENGLISH text. Do NOT leave title as null, empty, or a number.
 
                 Return ONLY a JSON array, no other text:
@@ -144,7 +145,7 @@ public class AIQuestionPromptBuilder {
      */
     public String buildGroupPrompt(String topic, String skill, String cefrLevel,
             int questionCount, List<String> questionTypes, Map<String, Object> advancedOptions) {
-        String cefr = cefrLevel != null ? cefrLevel : "B1";
+        String cefr = cefrLevel != null ? cefrLevel : "5.5";
         String topicVal = topic != null ? topic : "General English";
         String skillVal = skill != null ? skill : "READING";
 
@@ -188,7 +189,7 @@ public class AIQuestionPromptBuilder {
         sb.append("You are an expert English language test designer.\n\n");
         sb.append("Generate a ").append(skillVal).append(" question group in JSON format.\n");
         sb.append("Requirement: ").append(taskInstruction).append("\n");
-        sb.append("The content must be in English and appropriate for CEFR level ").append(cefr).append(".\n\n");
+        sb.append("The content must be in English and appropriate for IELTS Band ").append(cefr).append(".\n\n");
         sb.append("Return ONLY a valid JSON object with this exact structure:\n");
         sb.append("{\n");
         sb.append("  \"passage\": \"<").append(contentLabel).append(" text, ").append(passageConstraint).append(">\",\n");
@@ -232,6 +233,7 @@ public class AIQuestionPromptBuilder {
                 "  IMPORTANT: The passage MUST explicitly state each pair. If the passage only mentions 'Libraries provide books' then Libraries→books is valid. Do NOT guess pairs that are not clearly stated in the passage.\n");
         sb.append("- All content, options, explanations MUST be in English only. No Vietnamese.\n");
         sb.append("- Every 'title' must be real English text, not null, empty, or just a number.\n");
+        sb.append("- CRITICAL: The 'cefrLevel' field MUST be exactly \"").append(cefr).append("\". DO NOT use CEFR letters like B2.\n");
         sb.append("- Return ONLY the JSON object, no markdown fences, no commentary.\n");
 
         return sb.toString();
@@ -300,12 +302,16 @@ public class AIQuestionPromptBuilder {
     }
 
     private String getBucket(String cefr) {
-        return switch (cefr == null ? "B1" : cefr.toUpperCase()) {
-            case "A1", "A2" -> "beginner";
-            case "B1", "B2" -> "intermediate";
-            case "C1", "C2" -> "advanced";
-            default -> "intermediate";
-        };
+        if (cefr == null) return "intermediate";
+        String u = cefr.toUpperCase();
+        try {
+            double band = Double.parseDouble(u);
+            if (band <= 4.5) return "beginner";
+            if (band <= 6.5) return "intermediate";
+            return "advanced";
+        } catch (NumberFormatException e) {
+            return "intermediate";
+        }
     }
 
     private Map<String, Object> getFallbackBucketConfig(String bucket) {
@@ -346,8 +352,8 @@ public class AIQuestionPromptBuilder {
         String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
-        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate CEFR-level verbs (Analyze/Evaluate)."));
-        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General CEFR grammar"));
+        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate IELTS-level verbs (Analyze/Evaluate)."));
+        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General IELTS grammar"));
 
         String skillsInstruction;
         if (targetSkill != null && !targetSkill.equalsIgnoreCase("MIXED") && isValidSkill(targetSkill)) {
@@ -361,7 +367,7 @@ public class AIQuestionPromptBuilder {
         String speakingConstraint = String.valueOf(cfg.getOrDefault("speaking_constraint", "4-8 sentences"));
 
         return """
-                You are a professional English teacher specializing in advanced question design for CEFR level %s.
+                You are a professional English teacher specializing in advanced question design for IELTS Band %s.
                 The module "%s" has the following lesson content:
                 %s
 
@@ -400,6 +406,8 @@ public class AIQuestionPromptBuilder {
 
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
                 Do NOT generate questions that only test recall or simple comprehension. Focus on analysis, evaluation, or creation.
+                
+                CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "6.0", "7.5"). DO NOT use "B2", "C1", etc.
 
                 Return ONLY a JSON array, no other text:
                 [
@@ -451,8 +459,8 @@ public class AIQuestionPromptBuilder {
         String constraints = buildAdvancedConstraints(advancedOptions);
         Map<String, Object> cfg = getBucketConfig(cefrLevel);
 
-        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate CEFR-level verbs (Analyze/Evaluate)."));
-        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General CEFR grammar"));
+        String bloomInstruction = String.valueOf(cfg.getOrDefault("bloom_instruction", "Use appropriate IELTS-level verbs (Analyze/Evaluate)."));
+        List<String> grammarFocus = (List<String>) cfg.getOrDefault("grammar_focus", List.of("General IELTS grammar"));
 
         String skillsInstruction;
         if (targetSkill != null && !targetSkill.equalsIgnoreCase("MIXED") && isValidSkill(targetSkill)) {
@@ -517,7 +525,7 @@ public class AIQuestionPromptBuilder {
                 """.formatted(cefrLevel, topic);
 
         return """
-                You are a professional English teacher specializing in advanced question design for CEFR level %s.
+                You are a professional English teacher specializing in advanced question design for IELTS Band %s.
                 %s
                 Topic: "%s"
 
@@ -556,6 +564,8 @@ public class AIQuestionPromptBuilder {
 
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
                 Do NOT generate questions that only test recall or simple comprehension. Focus on analysis, evaluation, or creation.
+                
+                CRITICAL: The field "cefrLevel" MUST be exactly "%s". DO NOT use CEFR letters like "A2", "B1".
                 
                 %s
                 

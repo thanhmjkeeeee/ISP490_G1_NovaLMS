@@ -25,20 +25,21 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label class="form-label fw-bold">Chủ đề <span class="text-danger">*</span></label>
                     <input type="text" id="aiTopic" class="form-control" placeholder="VD: Travel and Tourism, Climate Change...">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label fw-bold">Kỹ năng</label>
                     <select id="aiSkill" class="form-select"></select>
                 </div>
                 <div class="col-md-3">
+                    <label class="form-label fw-bold">Trình độ (CEFR/Band)</label>
+                    <select id="aiCefr" class="form-select"></select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label fw-bold">Số lượng (1-25) <span class="text-danger">*</span></label>
                     <input type="number" id="aiQty" class="form-control" min="1" max="25" value="10">
-                    <div class="form-text small" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle me-1"></i>Giới hạn 25 câu.
-                    </div>
                 </div>
             </div>
             <div class="mt-3 text-end">
@@ -142,12 +143,13 @@
     async function generateAI() {
         const topic = document.getElementById('aiTopic').value.trim();
         const skill = document.getElementById('aiSkill').value;
+        const cefr = document.getElementById('aiCefr').value;
         const qty = parseInt(document.getElementById('aiQty').value);
 
         if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
         if (!qty || qty < 1 || qty > 25) { alert('Số lượng phải từ 1-25.'); return; }
 
-        const body = { topic: topic, skill: skill, quantity: qty };
+        const body = { topic: topic, skill: skill, cefrLevel: cefr, quantity: qty };
         
         document.getElementById('aiLoading').style.display = 'block';
         document.getElementById('aiPreview').style.display = 'none';
@@ -203,11 +205,16 @@
                             onchange="toggleAI(${i})">
                     </div>
                     <div class="flex-grow-1">
-                        <div class="d-flex gap-2 flex-wrap mb-2">
+                        <div class="d-flex gap-2 flex-wrap mb-2 align-items-center">
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">${q.questionType}</span>
                             <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">${q.skill}</span>
                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">${q.cefrLevel}</span>
                             ${q.topic ? `<span class="badge bg-light text-dark border rounded-pill">${q.topic}</span>` : ''}
+                            ${q.audioUrl ? `
+                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 ms-auto fw-bold" onclick="playAudio('${q.audioUrl}', this)">
+                                    <i class="bi bi-play-fill me-1"></i> Nghe câu hỏi
+                                </button>
+                            ` : ''}
                         </div>
                         <h6 class="mb-2 fw-bold text-dark">Câu ${i + 1}: ${escapeHtml(q.content || '')}</h6>
                         ${q.options && q.options.length > 0 ? `
@@ -268,11 +275,46 @@
         } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
+    let currentAudio = null;
+    function playAudio(url, btn) {
+        if (currentAudio) {
+            currentAudio.pause();
+            const prevBtn = document.querySelector('.btn-playing');
+            if (prevBtn) {
+                prevBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Nghe câu hỏi';
+                prevBtn.classList.remove('btn-playing', 'btn-danger');
+                prevBtn.classList.add('btn-outline-primary');
+            }
+            if (currentAudio.src === url) {
+                currentAudio = null;
+                return;
+            }
+        }
+
+        const audio = new Audio(url);
+        currentAudio = audio;
+        btn.classList.add('btn-playing', 'btn-danger');
+        btn.classList.remove('btn-outline-primary');
+        btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i> Dừng';
+
+        audio.play();
+        audio.onended = () => {
+            btn.innerHTML = '<i class="bi bi-play-fill me-1"></i> Nghe câu hỏi';
+            btn.classList.remove('btn-playing', 'btn-danger');
+            btn.classList.add('btn-outline-primary');
+            currentAudio = null;
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             if (window.NovaQuestionFormSettings) {
                 await NovaQuestionFormSettings.load();
                 NovaQuestionFormSettings.fillAiQuickSkillSelect(document.getElementById('aiSkill'));
+                NovaQuestionFormSettings.fillCefrSelect(document.getElementById('aiCefr'));
+                // Default to B1
+                const cefrSel = document.getElementById('aiCefr');
+                if (cefrSel.querySelector('option[value="B1"]')) cefrSel.value = 'B1';
             }
         } catch (e) { console.error(e); }
     });

@@ -138,6 +138,19 @@ public class TeacherClassSessionApiController {
         return sessionService.toggleQuizOpenInSession(email, sessionId, quizId, timeLimitMinutes);
     }
 
+    @PatchMapping("/{oldSessionId}/quizzes/{quizId}/reassign")
+    public ResponseData<Void> reassignQuiz(
+            @PathVariable Integer oldSessionId,
+            @PathVariable Integer quizId,
+            @RequestBody Map<String, Integer> body,
+            Principal principal) {
+        String email = getEmail(principal);
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
+        Integer newSessionId = body.get("newSessionId");
+        if (newSessionId == null) return ResponseData.error(400, "Thiếu mã buổi học mới (newSessionId)");
+        return sessionService.reassignQuiz(email, quizId, oldSessionId, newSessionId);
+    }
+
     @PatchMapping("/{sessionId}/quizzes/{quizId}/toggle-open-with-time")
     public ResponseData<?> toggleQuizOpenInSessionWithTime(
             @PathVariable Integer sessionId,

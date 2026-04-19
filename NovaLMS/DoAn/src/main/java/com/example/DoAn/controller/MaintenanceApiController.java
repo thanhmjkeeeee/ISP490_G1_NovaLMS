@@ -20,4 +20,9 @@ public class MaintenanceApiController {
     public ResponseData<Map<String, Long>> triggerCleanup() {
         return maintenanceService.performCleanup();
     }
+
+    @PostMapping("/migrate-bands")
+    public ResponseData<Void> triggerMigration() {
+        return maintenanceService.migrateToIELTSBands();
+    }
 }

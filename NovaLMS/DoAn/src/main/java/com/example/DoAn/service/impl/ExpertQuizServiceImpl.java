@@ -679,6 +679,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     // ═══════════════════════════════════════════════════════════════════════
 
     @Override
+    @Transactional(readOnly = true)
     public Map<String, SkillSectionSummaryDTO> getSkillSummaries(Integer quizId) {
         if (!quizRepository.existsById(quizId)) {
             throw new ResourceNotFoundException("Quiz not found");
@@ -817,6 +818,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AssignmentPreviewDTO getAssignmentPreview(Integer quizId) {
         Quiz quiz = findQuiz(quizId);
         Map<String, SkillSectionSummaryDTO> summaries = getSkillSummaries(quizId);
