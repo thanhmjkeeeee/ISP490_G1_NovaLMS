@@ -10,9 +10,9 @@ import lombok.*;
 @Builder
 public class WizardSaveDTO {
 
-    @NotNull(message = "Status is required")
+    @NotNull(message = "Trạng thái là bắt buộc")
     private String status; // "DRAFT" or "PUBLISHED"
 
-    @NotBlank(message = "Source is required")
+    @NotBlank(message = "Nguồn là bắt buộc")
     private String source; // "EXPERT_BANK" or "TEACHER_PRIVATE"
 }

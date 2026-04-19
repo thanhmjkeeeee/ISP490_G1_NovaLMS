@@ -36,7 +36,6 @@
                     <label class="form-label small fw-bold">Loại Quiz</label>
                     <select id="filterCategory" class="form-select form-select-sm" onchange="loadQuizzes()">
                         <option value="">Tất cả loại</option>
-                        <option value="ENTRY_TEST">Entry Test</option>
                         <option value="COURSE_QUIZ">Bài KT Khóa học</option>
                         <option value="MODULE_QUIZ">Bài KT Module</option>
                         <option value="LESSON_QUIZ">Bài KT Bài học</option>
@@ -55,10 +54,7 @@
                 </div>
                 <div class="col-md-5">
                     <label class="form-label small fw-bold">Tìm kiếm nhanh</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" id="filterKeyword" class="form-control" placeholder="Tên quiz...">
-                        <button class="btn btn-primary px-3" onclick="loadQuizzes()"><i class="bi bi-search"></i></button>
-                    </div>
+                    <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Tên quiz...">
                 </div>
             </div>
         </div>
@@ -132,6 +128,11 @@ window.onload = () => {
         const catFilter = document.getElementById('filterCategory');
         if (catFilter) catFilter.value = 'COURSE_ASSIGNMENT';
     }
+    let quizListKeywordDebounce;
+    document.getElementById('filterKeyword').addEventListener('input', function () {
+        clearTimeout(quizListKeywordDebounce);
+        quizListKeywordDebounce = setTimeout(function () { loadQuizzes(0); }, 400);
+    });
     loadQuizzes();
 };
 
@@ -194,7 +195,6 @@ async function deleteQuiz(id) {
     } catch (e) { alert('Lỗi: ' + e.message); }
 }
 
-loadQuizzes();
 </script>
 </body>
 </html>

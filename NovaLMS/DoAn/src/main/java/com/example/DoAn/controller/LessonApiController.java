@@ -27,7 +27,7 @@ public class LessonApiController {
     @GetMapping("/view-data/{lessonId}")
     public ResponseData<Map<String, Object>> getLessonViewData(@PathVariable Integer lessonId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         return learningService.getLessonViewData(lessonId, email);
     }
@@ -35,7 +35,7 @@ public class LessonApiController {
     @PostMapping("/complete")
     public ResponseData<Void> markLessonCompleted(@RequestBody Map<String, Integer> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         Integer lessonId = payload.get("lessonId");
         return learningService.markLessonCompleted(lessonId, email);

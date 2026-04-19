@@ -4,6 +4,27 @@
 <head th:replace="~{fragments/head :: common-head(pageTitle='Không gian làm việc Giảng viên')}"></head>
 
 <body class="dashboard-body">
+    <style>
+        /* Modal Gắn Quiz — checkbox đủ lớn, căn cột rõ */
+        .ws-attach-quiz-item .ws-attach-quiz-check-cell {
+            width: 2.25rem;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            padding-top: 0.2rem;
+        }
+        .ws-attach-quiz-item .ws-attach-quiz-input {
+            width: 1.35rem;
+            height: 1.35rem;
+            margin: 0;
+            cursor: pointer;
+            border-width: 2px;
+            border-radius: 0.35rem;
+        }
+        .ws-attach-quiz-item label.cursor-pointer {
+            cursor: pointer;
+        }
+    </style>
     <header
         th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Workspace', breadcrumb='Không gian làm việc')}">
     </header>
@@ -1069,8 +1090,65 @@
             mappingClassId: null,
             sessions: [],
             currentWeek: 0,
-            currentYear: 0
+            currentYear: 0,
+            /** Buổi + quiz đã gắn (từ loadQuizzes) — dùng để ẩn quiz đã gắn khi mở modal Gắn Quiz */
+            lastLoadedSessions: []
         };
+
+        /** Khóa slot theo mọi buổi dạy của GV trong ngày + yêu cầu đổi lịch PENDING (mọi lớp). */
+        async function refreshRescheduleBusySlots() {
+            const dateInput = document.getElementById('res-newDate');
+            const timeSelect = document.getElementById('res-newStartTime');
+            if (!dateInput || !timeSelect) return;
+
+            const selectedDate = dateInput.value;
+            const originalDate = dateInput.dataset.originalDate || '';
+            const originalTime = dateInput.dataset.originalTime || '';
+            const sessionId = document.getElementById('res-sessionId')?.value || '';
+
+            const resetOptions = () => {
+                Array.from(timeSelect.options).forEach(opt => {
+                    if (!opt.value) return;
+                    opt.disabled = false;
+                    opt.title = '';
+                });
+            };
+
+            if (!selectedDate) {
+                resetOptions();
+                return;
+            }
+
+            try {
+                let url = `/teacher/api/reschedule/busy-slots?date=${encodeURIComponent(selectedDate)}`;
+                if (sessionId) url += `&excludeSessionId=${encodeURIComponent(sessionId)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                const busyList = (json.status === 200 && Array.isArray(json.data)) ? json.data : [];
+                const busy = new Set(busyList);
+
+                Array.from(timeSelect.options).forEach(opt => {
+                    if (!opt.value) return;
+                    const takenElsewhere = busy.has(opt.value);
+                    const sameAsCurrentSlot = selectedDate === originalDate && opt.value === originalTime;
+                    opt.disabled = takenElsewhere || sameAsCurrentSlot;
+                    if (opt.disabled) {
+                        opt.title = sameAsCurrentSlot && !takenElsewhere
+                            ? 'Trùng lịch buổi học hiện tại'
+                            : 'Đã có buổi dạy hoặc yêu cầu đổi lịch chờ duyệt ở lớp khác';
+                    } else {
+                        opt.title = '';
+                    }
+                });
+                const sel = timeSelect.selectedOptions[0];
+                if (sel && sel.disabled) {
+                    timeSelect.value = '';
+                }
+            } catch (err) {
+                console.error('refreshRescheduleBusySlots:', err);
+                resetOptions();
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             const now = new Date();
@@ -1083,22 +1161,7 @@
             // Initial load default
             refreshActiveTab();
 
-            // 3. EVENT LISTENER CHO VIỆC KHÓA SLOT TRÙNG (TRONG RESCHEDULE)
-            document.getElementById('res-newDate').addEventListener('change', function (e) {
-                const selectedDate = e.target.value;
-                const originalDate = e.target.dataset.originalDate;
-                const originalTime = e.target.dataset.originalTime;
-                const timeSelect = document.getElementById('res-newStartTime');
-
-                Array.from(timeSelect.options).forEach(opt => {
-                    if (selectedDate === originalDate && opt.value === originalTime) {
-                        opt.disabled = true;
-                        if (timeSelect.value === originalTime) timeSelect.value = "";
-                    } else {
-                        opt.disabled = false;
-                    }
-                });
-            });
+            document.getElementById('res-newDate').addEventListener('change', refreshRescheduleBusySlots);
         });
 
         function initTimeSelectors() {
@@ -1521,10 +1584,17 @@
                     resTab.innerHTML = '<i class="bi bi-calendar-event me-2"></i>Đổi lịch dạy';
                     resTab.classList.remove('disabled', 'text-muted');
 
-                    // Lưu thông tin gốc để so sánh khi chọn ngày mới
+                    // Lưu thông tin gốc để so sánh khi chọn ngày mới (chuẩn HH:mm khớp <select>)
                     const newDateInput = document.getElementById('res-newDate');
+                    const toSlotVal = (t) => {
+                        if (!t || String(t).indexOf(':') < 0) return String(t || '');
+                        const p = String(t).trim().split(':');
+                        const h = parseInt(p[0], 10);
+                        const mi = parseInt((p[1] || '0').replace(/\D/g, '').substring(0, 2) || '0', 10);
+                        return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+                    };
                     newDateInput.dataset.originalDate = `${yyyy}-${mm}-${dd}`;
-                    newDateInput.dataset.originalTime = d.startTime;
+                    newDateInput.dataset.originalTime = toSlotVal(d.startTime);
 
                     // Check Reschedule Status
                     const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
@@ -1541,6 +1611,16 @@
                     } else {
                         document.getElementById('rescheduleFormContainer').style.display = 'block';
                         document.getElementById('reschedulePendingMsg').style.display = 'none';
+                        newDateInput.value = '';
+                        const ts = document.getElementById('res-newStartTime');
+                        ts.value = '';
+                        const reasonEl = document.getElementById('res-reason');
+                        if (reasonEl) reasonEl.value = '';
+                        Array.from(ts.options).forEach(opt => {
+                            if (!opt.value) return;
+                            opt.disabled = false;
+                            opt.title = '';
+                        });
                     }
                 }
 
@@ -1603,34 +1683,6 @@
             }
         }
 
-        // Handle Reschedule form submit
-        document.getElementById('rescheduleForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const sessionId = document.getElementById('res-sessionId').value;
-            const payload = {
-                newDate: document.getElementById('res-newDate').value,
-                newStartTime: document.getElementById('res-newStartTime').value,
-                reason: document.getElementById('res-reason').value
-            };
-
-            try {
-                const res = await fetch(`/teacher/api/session/${sessionId}/reschedule`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-                if (json.status === 200) {
-                    alert('Gửi yêu cầu thành công!');
-                    bootstrap.Modal.getInstance(document.getElementById('sessionDetailModal')).hide();
-                } else {
-                    alert('Lỗi: ' + json.message);
-                }
-            } catch (err) {
-                alert('Lỗi kết nối server: ' + err.message);
-            }
-        });
-
         // --- TAB 3: QUIZ MANAGEMENT ---
         async function loadQuizzes(page = 0) {
             state.quizPage = page;
@@ -1660,6 +1712,7 @@
                 }
 
                 const sessions = json.data;
+                state.lastLoadedSessions = sessions;
                 const pageSize = 10;
                 const totalPages = Math.ceil(sessions.length / pageSize);
                 const pageRows = sessions.slice(page * pageSize, (page + 1) * pageSize);
@@ -2290,6 +2343,7 @@
 
                 list.innerHTML = grouped.map(item => {
                     if (item.isGroup) {
+                        const allInQuiz = item.questions.every(q => wsSelectedQuestions.some(sq => sq.questionId === q.questionId));
                         const qsHtml = item.questions.map(q => {
                             const isAdded = wsSelectedQuestions.some(sq => sq.questionId === q.questionId);
                             let optsHtml = '';
@@ -2317,10 +2371,19 @@
                         return `
                     <div class="border rounded-3 mb-2 bg-white overflow-hidden shadow-sm">
                         <div class="p-3 bg-primary bg-opacity-10 border-bottom">
-                            <div class="d-flex gap-2 mb-2">
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary border">${item.skill || ''}</span>
-                                <span class="badge bg-info bg-opacity-10 text-info border">${item.cefrLevel || ''}</span>
-                                <span class="badge bg-dark bg-opacity-10 text-dark border">BỘ CÂU HỎI</span>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border">${item.skill || ''}</span>
+                                    <span class="badge bg-info bg-opacity-10 text-info border">${item.cefrLevel || ''}</span>
+                                    <span class="badge bg-dark bg-opacity-10 text-dark border">BỘ CÂU HỎI</span>
+                                </div>
+                                ${allInQuiz
+                                ? `<span class="badge bg-success bg-opacity-10 text-success border flex-shrink-0 align-self-center">Đã có trong quiz</span>`
+                                : `<button type="button" class="btn btn-sm btn-success rounded-pill flex-shrink-0"
+                                    onclick="event.preventDefault(); event.stopPropagation(); wsAddBankGroup(${item.groupId})"
+                                    title="Thêm tất cả câu trong bộ vào quiz (không cần bấm từng câu)">
+                                    <i class="bi bi-stack me-1"></i>Thêm cả bộ
+                                </button>`}
                             </div>
                             <div class="small text-dark fw-bold mb-1">Passage / Đề bài:</div>
                             <div class="small text-muted" style="max-height: 100px; overflow-y: auto;">
@@ -2374,6 +2437,10 @@
                 console.error("Quiz: No currentQuizId");
                 return;
             }
+            const modalBody = document.querySelector('#wsQuizModal .modal-body');
+            const bankList = document.getElementById('wsBankList');
+            const mbScroll = modalBody?.scrollTop ?? 0;
+            const blScroll = bankList?.scrollTop ?? 0;
             const data = wsBankCache.get(qId);
             try {
                 const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions`, {
@@ -2395,13 +2462,76 @@
                             : { questionId: qId, content: '', questionType: '', skill: '', cefrLevel: '', status: 'PUBLISHED', source: 'EXPERT_BANK' });
                     }
                     wsRenderSelected();
-                    wsLoadBank();
+                    await wsLoadBank();
+                    requestAnimationFrame(() => {
+                        const mb = document.querySelector('#wsQuizModal .modal-body');
+                        const bl = document.getElementById('wsBankList');
+                        if (mb) mb.scrollTop = mbScroll;
+                        if (bl) bl.scrollTop = blScroll;
+                    });
                 } else { alert(json.message || 'Lỗi khi thêm câu hỏi'); }
             } catch (e) { alert('Lỗi kết nối: ' + e.message); }
         };
 
+        /** Thêm mọi câu con trong cùng groupId (Master Bank) vào quiz — một thao tác, giữ scroll như wsAddBankQ */
+        window.wsAddBankGroup = async function (groupId) {
+            if (!wsCurrentQuizId) {
+                Swal.fire('Chú ý', 'Không tìm thấy ID Quiz. Vui lòng lưu thông tin ở Bước 1 trước.', 'warning');
+                return;
+            }
+            const gid = Number(groupId);
+            const ids = Array.from(wsBankCache.values())
+                .filter(q => q.groupId != null && Number(q.groupId) === gid
+                    && !wsSelectedQuestions.some(sq => sq.questionId === q.questionId))
+                .map(q => q.questionId);
+            if (ids.length === 0) {
+                Swal.fire('Chú ý', 'Cả bộ câu đã có trong quiz hoặc không có câu con.', 'info');
+                return;
+            }
+            const modalBody = document.querySelector('#wsQuizModal .modal-body');
+            const bankList = document.getElementById('wsBankList');
+            const mbScroll = modalBody?.scrollTop ?? 0;
+            const blScroll = bankList?.scrollTop ?? 0;
+            try {
+                for (const qId of ids) {
+                    const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ questionIdForQuiz: qId })
+                    });
+                    const json = await res.json();
+                    if (json.status !== 200 && json.status !== 201) {
+                        Swal.fire('Lỗi', json.message || `Không thêm được câu #${qId}`, 'error');
+                        break;
+                    }
+                }
+                const qRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}`);
+                const qJson = await qRes.json();
+                if (qJson.status === 200 && qJson.data) {
+                    const qs = qJson.data.questions || qJson.data.quizQuestions || [];
+                    wsSelectedQuestions = qs.map(sq => ({
+                        questionId: sq.questionId, content: sq.content, questionType: sq.questionType,
+                        skill: sq.skill, cefrLevel: sq.cefrLevel, status: sq.status, source: sq.source || 'TEACHER_PRIVATE'
+                    }));
+                }
+                wsRenderSelected();
+                await wsLoadBank();
+                requestAnimationFrame(() => {
+                    const mb = document.querySelector('#wsQuizModal .modal-body');
+                    const bl = document.getElementById('wsBankList');
+                    if (mb) mb.scrollTop = mbScroll;
+                    if (bl) bl.scrollTop = blScroll;
+                });
+            } catch (e) {
+                Swal.fire('Lỗi', e.message || 'Lỗi kết nối', 'error');
+            }
+        };
+
         window.wsRemoveBankQ = async function (qId) {
             if (!wsCurrentQuizId) return;
+            const modalBody = document.querySelector('#wsQuizModal .modal-body');
+            const bankList = document.getElementById('wsBankList');
+            const mbScroll = modalBody?.scrollTop ?? 0;
+            const blScroll = bankList?.scrollTop ?? 0;
             try {
                 const res = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/questions/${qId}`, { method: 'DELETE' });
                 const json = await res.json();
@@ -2417,7 +2547,13 @@
                         wsSelectedQuestions = wsSelectedQuestions.filter(sq => sq.questionId !== qId);
                     }
                     wsRenderSelected();
-                    wsLoadBank();
+                    await wsLoadBank();
+                    requestAnimationFrame(() => {
+                        const mb = document.querySelector('#wsQuizModal .modal-body');
+                        const bl = document.getElementById('wsBankList');
+                        if (mb) mb.scrollTop = mbScroll;
+                        if (bl) bl.scrollTop = blScroll;
+                    });
                 }
             } catch (e) { console.error("Quiz: Remove error", e); }
         };
@@ -2762,7 +2898,26 @@
                     return;
                 }
 
-                wsAttachAvailableQuizzes = json.data;
+                let sid = Number(sessionId);
+                let sess = (state.lastLoadedSessions || []).find(s => Number(s.sessionId) === sid);
+                if (!sess && state.selectedClassId && state.selectedClassId !== 'ALL') {
+                    try {
+                        const sRes = await fetch(`/api/v1/teacher/class-sessions/${state.selectedClassId}`);
+                        const sJson = await sRes.json();
+                        if (sJson.status === 200 && Array.isArray(sJson.data)) {
+                            state.lastLoadedSessions = sJson.data;
+                            sess = state.lastLoadedSessions.find(s => Number(s.sessionId) === sid);
+                        }
+                    } catch (_) { /* giữ filter rỗng nếu lỗi */ }
+                }
+                const attachedIds = new Set((sess?.quizzes || []).map(q => Number(q.quizId)));
+                wsAttachAvailableQuizzes = json.data.filter(q => !attachedIds.has(Number(q.quizId)));
+
+                if (wsAttachAvailableQuizzes.length === 0) {
+                    alert('Tất cả quiz của lớp đã được gắn vào buổi học này.');
+                    return;
+                }
+
                 wsRenderAttachQuizCheckboxList();
 
                 if (!wsAttachQuizModal) {
@@ -2815,14 +2970,17 @@
                 const createdTxt = q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : '';
 
                 return `
-            <div class="form-check border rounded-3 p-0 mb-2 overflow-hidden" style="transition: box-shadow 0.2s;">
-                <div class="d-flex align-items-start p-3">
-                    <input class="form-check-input wsQuizCheckbox mt-1 me-3 flex-shrink-0" type="checkbox" value="${q.quizId}" 
-                           id="wsQuizCheck_${q.quizId}" onchange="wsUpdateAttachQuizCount()" style="width:1.1em;height:1.1em;">
-                    <label class="form-check-label w-100 cursor-pointer" for="wsQuizCheck_${q.quizId}">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <div class="fw-semibold text-dark" style="font-size:0.95rem;">${wsEscape(q.title || 'Quiz')}</div>
-                            <span class="badge ${statusCls} bg-opacity-15 text-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'} border border-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'} flex-shrink-0 ms-2" style="font-size:0.7rem;">
+            <div class="ws-attach-quiz-item border rounded-3 mb-2 overflow-hidden" style="transition: box-shadow 0.2s;">
+                <div class="d-flex align-items-start p-3 gap-2">
+                    <div class="ws-attach-quiz-check-cell">
+                        <input class="form-check-input ws-attach-quiz-input wsQuizCheckbox" type="checkbox" value="${q.quizId}"
+                               id="wsQuizCheck_${q.quizId}" onchange="wsUpdateAttachQuizCount()"
+                               aria-label="Chọn quiz: ${wsEscape(q.title || 'Quiz')}">
+                    </div>
+                    <label class="flex-grow-1 min-w-0 mb-0 cursor-pointer" for="wsQuizCheck_${q.quizId}">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <span class="fw-semibold text-dark" style="font-size:0.95rem;">${wsEscape(q.title || 'Quiz')}</span>
+                            <span class="badge ${statusCls} bg-opacity-15 text-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'} border border-${q.status === 'PUBLISHED' ? 'success' : q.status === 'DRAFT' ? 'warning' : 'secondary'}" style="font-size:0.72rem;">
                                 ${statusLabel}
                             </span>
                         </div>

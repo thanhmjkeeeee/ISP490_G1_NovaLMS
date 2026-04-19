@@ -48,7 +48,7 @@ public class TeacherAssignmentGradingApiController {
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         // --- ĐÃ FIX: XỬ LÝ LỖI PARSING STATUS ---
         List<String> processedStatus = status;
@@ -62,7 +62,7 @@ public class TeacherAssignmentGradingApiController {
         try {
             Page<AssignmentGradingQueueDTO> page = gradingService.getGradingQueue(
                     email, quizId, classId, processedStatus, pageable);
-            return ResponseData.success("OK", page);
+            return ResponseData.success("Thành công", page);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -78,11 +78,11 @@ public class TeacherAssignmentGradingApiController {
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             AssignmentGradingDetailDTO detail = gradingService.getGradingDetail(resultId, email);
-            return ResponseData.success("OK", detail);
+            return ResponseData.success("Thành công", detail);
         } catch (Exception e) {
             return ResponseData.error(404, e.getMessage());
         }
@@ -99,7 +99,7 @@ public class TeacherAssignmentGradingApiController {
             Principal principal) {
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             gradingService.gradeAssignment(resultId, request, email);

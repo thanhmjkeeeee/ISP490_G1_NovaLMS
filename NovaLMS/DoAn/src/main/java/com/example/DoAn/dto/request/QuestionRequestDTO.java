@@ -15,16 +15,16 @@ public class QuestionRequestDTO {
     private Integer moduleId;
     private Integer questionId;  // Dùng khi update câu hỏi con trong Group
 
-    @NotBlank(message = "Content is required")
+    @NotBlank(message = "Nội dung câu hỏi là bắt buộc")
     private String content;
 
-    @NotBlank(message = "Question type is required")
+    @NotBlank(message = "Loại câu hỏi là bắt buộc")
     private String questionType;
 
-    @NotBlank(message = "Skill is required")
+    @NotBlank(message = "Kỹ năng là bắt buộc")
     private String skill;
 
-    @NotBlank(message = "CEFR level is required")
+    @NotBlank(message = "Cấp độ CEFR là bắt buộc")
     private String cefrLevel;
 
     private String topic;
@@ -42,7 +42,7 @@ public class QuestionRequestDTO {
     @AllArgsConstructor
     @Builder
     public static class AnswerOptionDTO {
-        @NotBlank(message = "Option title is required")
+        @NotBlank(message = "Nội dung phương án là bắt buộc")
         private String title;
 
         private Boolean correct;

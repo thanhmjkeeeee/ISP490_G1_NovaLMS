@@ -46,7 +46,7 @@ public class TeacherQuizApiController {
     @PostMapping
     public ResponseData<?> createQuiz(@RequestBody QuizRequestDTO request, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.createQuiz(request, email);
     }
 
@@ -57,7 +57,7 @@ public class TeacherQuizApiController {
     @GetMapping("/{quizId}")
     public ResponseData<?> getQuiz(@PathVariable Integer quizId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.getQuizById(quizId);
     }
 
@@ -68,7 +68,7 @@ public class TeacherQuizApiController {
     @GetMapping("/class/{classId}")
     public ResponseData<List<TeacherQuizService.TeacherQuizDTO>> getQuizzesByClass(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.getQuizzesByClass(classId, email);
     }
 
@@ -79,7 +79,7 @@ public class TeacherQuizApiController {
     @PutMapping("/{quizId}")
     public ResponseData<?> updateQuiz(@PathVariable Integer quizId, @RequestBody QuizRequestDTO request, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.updateQuiz(quizId, request, email);
     }
 
@@ -90,7 +90,7 @@ public class TeacherQuizApiController {
     @PostMapping("/{quizId}/publish")
     public ResponseData<?> publishQuiz(@PathVariable Integer quizId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.publishQuiz(quizId, email);
     }
 
@@ -101,7 +101,7 @@ public class TeacherQuizApiController {
     @PatchMapping("/{quizId}/toggle-open")
     public ResponseData<?> toggleQuizOpen(@PathVariable Integer quizId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.toggleQuizOpen(quizId, email);
     }
 
@@ -112,7 +112,7 @@ public class TeacherQuizApiController {
     @DeleteMapping("/{quizId}")
     public ResponseData<?> deleteQuiz(@PathVariable Integer quizId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.deleteQuiz(quizId, email);
     }
 
@@ -123,7 +123,7 @@ public class TeacherQuizApiController {
     @PostMapping("/results/{resultId}/unlock")
     public ResponseData<?> unlockQuizResult(@PathVariable Integer resultId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         try {
             quizResultService.unlockQuiz(resultId);
             return ResponseData.success("Mở khóa bài làm thành công.");
@@ -148,7 +148,7 @@ public class TeacherQuizApiController {
             @RequestParam(required = false) String keyword,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.getPublishedQuestions(skill, cefrLevel, questionType, keyword);
     }
 
@@ -165,7 +165,7 @@ public class TeacherQuizApiController {
     @PostMapping("/questions")
     public ResponseData<?> createPrivateQuestion(@RequestBody QuestionBankRequestDTO request, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.createQuestion(request, email);
     }
 
@@ -184,7 +184,7 @@ public class TeacherQuizApiController {
             @RequestBody QuestionBankRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.addQuestionToQuiz(
                 quizId, request.getQuestionIdForQuiz(),
                 request.getOrderIndex(), request.getPoints(), email);
@@ -200,7 +200,7 @@ public class TeacherQuizApiController {
             @PathVariable Integer questionId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.removeQuestionFromQuiz(quizId, questionId, email);
     }
 
@@ -217,7 +217,7 @@ public class TeacherQuizApiController {
             @PathVariable Integer quizId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return ResponseData.success(teacherQuizService.getSkillSummary(quizId));
     }
 
@@ -235,7 +235,7 @@ public class TeacherQuizApiController {
             @Valid @RequestBody AIGenerateRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return ResponseData.success("Sinh câu hỏi thành công", aiQuestionService.generate(request, email));
     }
 
@@ -248,7 +248,7 @@ public class TeacherQuizApiController {
             @Valid @RequestBody  AIGenerateGroupRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return ResponseData.success("Sinh bộ câu hỏi thành công", aiQuestionService.generateGroup(request, email));
     }
 
@@ -262,7 +262,7 @@ public class TeacherQuizApiController {
             @RequestBody TeacherQuizService.AIImportRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.importAIQuestions(request, email);
     }
 
@@ -273,7 +273,7 @@ public class TeacherQuizApiController {
     @PostMapping("/questions/{questionId}/submit")
     public ResponseData<?> submitQuestionForReview(@PathVariable Integer questionId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.submitQuestionForReview(questionId, email);
     }
 
@@ -284,7 +284,7 @@ public class TeacherQuizApiController {
     @PostMapping("/questions/submit-batch")
     public ResponseData<?> submitQuestionsBatch(@RequestBody List<Integer> questionIds, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.submitQuestionsBatch(questionIds, email);
     }
 }

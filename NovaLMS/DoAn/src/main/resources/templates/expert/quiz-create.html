@@ -82,7 +82,6 @@
                             <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
                             <select id="quizCategory" class="form-select form-select-lg border-2" required onchange="onCategoryChange()">
                                 <option value="">-- Chọn --</option>
-                                <option value="ENTRY_TEST">Entry Test</option>
                                 <option value="COURSE_QUIZ">Bài kiểm tra</option>
                                 <option value="COURSE_ASSIGNMENT">Bài tập lớn (Assignment)</option>
                             </select>
@@ -158,16 +157,6 @@
                         </div>
                     </div>
 
-                    <div id="entryTestWarning" class="alert alert-soft-warning border-0 py-3 px-4 mb-4" style="display:none; background-color: #fff9db; color: #856404; border-radius: 12px;">
-                        <div class="d-flex">
-                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-                            <div>
-                                <h6 class="fw-bold mb-1">Lưu ý cho Entry Test</h6>
-                                <p class="small m-0">Hệ thống chỉ tự động chấm các dạng câu hỏi Trắc nghiệm và Điền từ. Dạng Writing/Speaking sẽ cần chấm bằng tay hoặc bị tính là sai.</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="d-flex justify-content-end gap-3 pt-3 border-top">
                         <button type="button" class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;" onclick="window.history.back()">Hủy</button>
                         <button type="button" id="btnNextStep" class="btn btn-lg text-white px-5 fw-bold" style="background-color: #136ad5; border-radius: 12px;" onclick="validateAndGoToStep2()">
@@ -209,11 +198,8 @@
                                 <div class="col-md-3">
                                     <select id="modalCefr" class="form-select form-select-sm" onchange="loadBankQuestions(0)"></select>
                                 </div>
-                                <div class="col-md-4">
-                                    <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
-                                </div>
-                                <div class="col-md-1">
-                                    <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i class="bi bi-search"></i></button>
+                                <div class="col-md-5">
+                                    <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Tìm kiếm...">
                                 </div>
                             </div>
                         </div>
@@ -343,26 +329,14 @@
             perSkillSection.style.display = 'none';
             timeLimitInput.readOnly = false;
             timeLimitInput.style.backgroundColor = '';
-            if (cat === 'ENTRY_TEST') {
-                timeLimitInput.value = 20;
-                document.getElementById('passScore').value = 40;
-                document.getElementById('maxAttempts').value = 1;
-            } else {
-                timeLimitInput.value = '';
-                timeLimitInput.placeholder = 'Không giới hạn';
-            }
+            timeLimitInput.value = '';
+            timeLimitInput.placeholder = 'Không giới hạn';
         }
 
-        if (cat === 'ENTRY_TEST') {
-            document.getElementById('entryTestWarning').style.display = 'block';
-        } else {
-            document.getElementById('entryTestWarning').style.display = 'none';
-        }
-
-        if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
+        if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT') {
             const btnNext = document.getElementById('btnNextStep');
             if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
-            if (cat !== 'ENTRY_TEST') loadCourses();
+            loadCourses();
         }
     }
 
@@ -401,8 +375,6 @@
 
         if (moduleId) cat = 'MODULE_QUIZ';
         else if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
-
-        if (cat === 'ENTRY_TEST') status = 'DRAFT';
 
         // Validate 4 kỹ năng nếu là ASSIGNMENT
         let timeLimits = null;
@@ -741,18 +713,6 @@
     function renderSkillStatusCards(skillSummaries) {
         const container = document.getElementById('skillStatusCards');
         if (!container) return;
-        const cat = document.getElementById('quizCategory').value;
-
-        if (cat === 'ENTRY_TEST') {
-            const total = Object.values(skillSummaries).reduce((sum, s) => sum + s.questionCount, 0);
-            container.innerHTML = `
-                <div class="skill-status-card ready mx-auto" style="min-width:200px;">
-                    <div class="preview-icon-ok mb-2"><i class="bi bi-check-circle-fill"></i></div>
-                    <div class="fw-bold">${total} câu hỏi đã thêm</div>
-                    <div class="small text-muted">Entry Test — không bắt buộc 4 kỹ năng</div>
-                </div>`;
-            return;
-        }
 
         const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
         const icons = { LISTENING:'bi-ear', READING:'bi-book', SPEAKING:'bi-mic', WRITING:'bi-pen' };
@@ -797,7 +757,6 @@
     }
 
     function validateForPublish(skillSummaries) {
-        const cat = document.getElementById('quizCategory').value;
         const msg = document.getElementById('publishValidationMsg');
         const btn = document.getElementById('btnPublishFinal');
         if (!msg || !btn) return;
@@ -840,6 +799,7 @@
         } catch (e) { alert('Lỗi: ' + e.message); }
     }
 
+    let quizCreateBankKeywordDebounce;
     document.addEventListener('DOMContentLoaded', async () => {
         try {
             if (window.NovaQuestionFormSettings) {
@@ -848,6 +808,13 @@
                 NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: '-- CEFR --' });
             }
         } catch (e) { console.error(e); }
+        const mk = document.getElementById('modalKeyword');
+        if (mk) {
+            mk.addEventListener('input', function () {
+                clearTimeout(quizCreateBankKeywordDebounce);
+                quizCreateBankKeywordDebounce = setTimeout(function () { loadBankQuestions(0); }, 400);
+            });
+        }
     });
 </script>
 </body>

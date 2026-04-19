@@ -48,24 +48,24 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     @Transactional(readOnly = true)
     public AssignmentInfoDTO getAssignmentInfo(Integer quizId, String userEmail) {
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài kiểm tra"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         // Validate sequential assignment
         if (quiz.getIsSequential() == null || !quiz.getIsSequential()) {
-            throw new InvalidDataException("This is not a sequential assignment");
+            throw new InvalidDataException("Đây không phải bài tập theo thứ tự từng phần");
         }
 
         // Validate published + open
         if (!"PUBLISHED".equals(quiz.getStatus()) || quiz.getIsOpen() == null || !quiz.getIsOpen()) {
-            throw new InvalidDataException("Assignment is not available");
+            throw new InvalidDataException("Bài tập hiện không khả dụng");
         }
 
         // Validate enrollment
         if (quiz.getClazz() == null) {
-            throw new InvalidDataException("Assignment is not linked to a class");
+            throw new InvalidDataException("Bài tập chưa được gắn với lớp học");
         }
         boolean enrolled = registrationRepository
                 .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
@@ -183,7 +183,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         AssignmentSession session = getSessionForUser(sessionId, userEmail);
         int skillIdx = SEQUENTIAL_SKILLS.indexOf(skill);
         if (skillIdx < 0) {
-            throw new InvalidDataException("Invalid skill: " + skill);
+            throw new InvalidDataException("Kỹ năng không hợp lệ: " + skill);
         }
 
         // Cannot access future sections
@@ -307,7 +307,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
         // Guard: already completed
         if ("COMPLETED".equals(session.getStatus())) {
-            throw new InvalidDataException("Assignment already completed");
+            throw new InvalidDataException("Bài tập đã hoàn thành");
         }
 
         // Guard: section already submitted
@@ -316,7 +316,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
                 Map<String, String> statuses = objectMapper.readValue(
                         session.getSectionStatuses(), new TypeReference<Map<String, String>>() {});
                 if ("COMPLETED".equals(statuses.get(skill))) {
-                    throw new InvalidDataException("Section already submitted");
+                    throw new InvalidDataException("Phần này đã được nộp");
                 }
             } catch (Exception ignored) {}
         }
@@ -540,9 +540,9 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
     private AssignmentSession getSessionForUser(Long sessionId, String userEmail) {
         AssignmentSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học"));
         if (!session.getUser().getEmail().equals(userEmail)) {
-            throw new InvalidDataException("Access denied");
+            throw new InvalidDataException("Không có quyền truy cập");
         }
         return session;
     }

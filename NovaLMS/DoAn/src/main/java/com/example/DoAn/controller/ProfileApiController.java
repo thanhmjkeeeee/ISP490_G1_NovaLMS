@@ -27,13 +27,13 @@ public class ProfileApiController {
 
     @PutMapping("/update")
     public ResponseData<Void> updateProfile(@RequestBody ProfileRequestDTO dto, Principal principal) {
-        if (principal == null) return ResponseData.error(401, "Unauthorized");
+        if (principal == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return userService.updateUserProfile(getEmailFromPrincipal(principal), dto);
     }
 
     @PostMapping("/upload-avatar")
     public ResponseData<String> uploadAvatar(@RequestParam("file") MultipartFile file, Principal principal) {
-        if (principal == null) return ResponseData.error(401, "Unauthorized");
+        if (principal == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return userService.updateAvatar(getEmailFromPrincipal(principal), file);
     }
     @PutMapping("/change-password")

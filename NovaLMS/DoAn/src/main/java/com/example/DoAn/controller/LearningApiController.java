@@ -29,7 +29,7 @@ public class LearningApiController {
     @GetMapping("/course/{courseId}")
     public ResponseEntity<ResponseData<CourseLearningInfoDTO>> getCourseInfo(@PathVariable Long courseId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
 
         ResponseData<CourseLearningInfoDTO> response = learningService.getCourseLearningInfo(courseId, email);
         if (response.getStatus() != 200) {
@@ -41,7 +41,7 @@ public class LearningApiController {
     @PostMapping("/track-time")
     public ResponseEntity<ResponseData<Void>> trackTime(@RequestBody Map<String, Integer> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+        if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
 
         Integer seconds = payload.get("seconds");
         if (seconds == null) seconds = 0;

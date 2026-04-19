@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/head :: common-head('403 - Không có quyền truy cập')}">
+</head>
+
+<body class="page-403">
+
+<header th:replace="~{fragments/header :: header-fragment('')}"></header>
+
+<main class="main">
+
+  <div class="page-title light-background">
+    <div class="container d-lg-flex justify-content-between align-items-center">
+      <h1 class="mb-2 mb-lg-0">403</h1>
+      <nav class="breadcrumbs">
+        <ol>
+          <li><a th:href="@{/}">Trang chủ</a></li>
+          <li class="current">Không có quyền</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <section id="error-403" class="error-404 section">
+    <div class="container" data-aos="fade-up" data-aos-delay="100">
+      <div class="error-wrapper">
+        <div class="row align-items-center">
+          <div class="col-lg-6" data-aos="fade-right" data-aos-delay="200">
+            <div class="error-illustration" style="--error-accent: #b45309;">
+              <i class="bi bi-shield-lock-fill" style="color: #ea580c;"></i>
+              <div class="circle circle-1"></div>
+              <div class="circle circle-2"></div>
+              <div class="circle circle-3"></div>
+            </div>
+          </div>
+          <div class="col-lg-6" data-aos="fade-left" data-aos-delay="300">
+            <div class="error-content">
+              <span class="error-badge" style="background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); color: #c2410c; border: 1px solid rgba(234, 88, 12, 0.25);"
+                    data-aos="zoom-in" data-aos-delay="400">Forbidden</span>
+              <h1 class="error-code" data-aos="fade-up" data-aos-delay="500">403</h1>
+              <h2 class="error-title" data-aos="fade-up" data-aos-delay="600">Không có quyền truy cập</h2>
+              <p class="error-description" data-aos="fade-up" data-aos-delay="700">
+                <span th:if="${detailMessage != null and !#strings.isEmpty(detailMessage)}"
+                      th:remove="tag"
+                      th:text="${detailMessage}">Chi tiết lỗi</span>
+                <span th:unless="${detailMessage != null and !#strings.isEmpty(detailMessage)}"
+                      th:remove="tag">Bạn đã đăng nhập nhưng không đủ quyền để mở nội dung này. Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ quản trị viên.</span>
+              </p>
+
+              <div class="error-actions" data-aos="fade-up" data-aos-delay="800">
+                <a th:href="@{/}" class="btn-home">
+                  <i class="bi bi-house-door"></i> Về trang chủ
+                </a>
+                <a href="javascript:history.back()" class="btn-help">
+                  <i class="bi bi-arrow-left"></i> Quay lại trang trước
+                </a>
+              </div>
+
+              <div class="error-suggestions" data-aos="fade-up" data-aos-delay="900">
+                <h3>Gợi ý</h3>
+                <ul>
+                  <li sec:authorize="isAuthenticated()">
+                    <a th:href="@{/profile}"><i class="bi bi-arrow-right-circle"></i> Kiểm tra hồ sơ &amp; vai trò</a>
+                  </li>
+                  <li sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login.html}"><i class="bi bi-arrow-right-circle"></i> Đăng nhập bằng tài khoản khác</a>
+                  </li>
+                  <li>
+                    <a th:href="@{/contact.html}"><i class="bi bi-arrow-right-circle"></i> Liên hệ hỗ trợ</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+</body>
+</html>

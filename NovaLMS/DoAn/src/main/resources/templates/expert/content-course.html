@@ -63,18 +63,6 @@
                         <input type="number" id="moduleOrder" class="form-control"
                             placeholder="Để trống = tự động sắp xếp" min="1">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Cấp độ (CEFR)</label>
-                        <select id="moduleLevel" class="form-select">
-                            <option value="">-- Chọn cấp độ --</option>
-                            <option value="A1">A1 - Beginner</option>
-                            <option value="A2">A2 - Elementary</option>
-                            <option value="B1">B1 - Intermediate</option>
-                            <option value="B2">B2 - Upper Intermediate</option>
-                            <option value="C1">C1 - Advanced</option>
-                            <option value="C2">C2 - Proficiency</option>
-                        </select>
-                    </div>
                     <div id="moduleError" class="text-danger small" style="display:none;"></div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
@@ -526,7 +514,6 @@
             document.getElementById('moduleId').value = '';
             document.getElementById('moduleName').value = '';
             document.getElementById('moduleOrder').value = '';
-            document.getElementById('moduleLevel').value = '';
             document.getElementById('moduleError').style.display = 'none';
             moduleModal.show();
         }
@@ -539,7 +526,6 @@
             document.getElementById('moduleId').value = m.moduleId;
             document.getElementById('moduleName').value = m.moduleName || '';
             document.getElementById('moduleOrder').value = m.orderIndex || '';
-            document.getElementById('moduleLevel').value = m.cefrLevel || '';
             document.getElementById('moduleError').style.display = 'none';
             moduleModal.show();
         }
@@ -548,7 +534,6 @@
             var moduleId = document.getElementById('moduleId').value;
             var moduleName = document.getElementById('moduleName').value.trim();
             var orderStr = document.getElementById('moduleOrder').value.trim();
-            var level = document.getElementById('moduleLevel').value;
             var errorEl = document.getElementById('moduleError');
 
             if (!moduleName) {
@@ -558,7 +543,7 @@
             var body = {
                 courseId: COURSE_ID, moduleName: moduleName,
                 orderIndex: orderStr ? parseInt(orderStr) : null,
-                cefrLevel: level || null
+                cefrLevel: null
             };
             var method = moduleId ? 'PUT' : 'POST';
             var url = moduleId ? '/api/v1/expert/modules/' + moduleId : '/api/v1/expert/modules';

@@ -157,12 +157,12 @@
                                 <div class="row g-3">
                                     <div class="col-6">
                                         <label class="small text-muted">File Audio</label>
-                                        <input type="file" class="form-control form-control-sm" onchange="uploadMedia(this, 'audio', 'groupAudioUrl')">
+                                        <input type="file" class="form-control form-control-sm" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.opus,.flac" onchange="uploadMedia(this, 'audio', 'groupAudioUrl')">
                                         <input type="hidden" id="groupAudioUrl">
                                     </div>
                                     <div class="col-6">
                                         <label class="small text-muted">Hình ảnh minh họa</label>
-                                        <input type="file" class="form-control form-control-sm" onchange="uploadMedia(this, 'image', 'groupImageUrl')">
+                                        <input type="file" class="form-control form-control-sm" accept="image/*,.jpg,.jpeg,.png,.gif,.webp" onchange="uploadMedia(this, 'image', 'groupImageUrl')">
                                         <input type="hidden" id="groupImageUrl">
                                     </div>
                                 </div>
@@ -295,9 +295,30 @@
     }
 
     // --- MEDIA UPLOAD ---
+    const _AUDIO_EXT = new Set(['mp3','wav','ogg','m4a','aac','opus','flac','webm']);
+    const _IMAGE_EXT = new Set(['jpg','jpeg','png','gif','webp','bmp','svg']);
+    function _fileExt(name) {
+        if (!name || !name.includes('.')) return '';
+        return name.slice(name.lastIndexOf('.') + 1).toLowerCase();
+    }
     async function uploadMedia(input, type, targetId) {
         const file = input.files[0];
         if(!file) return;
+        const mime = (file.type || '').toLowerCase();
+        const ext = _fileExt(file.name);
+        if (type === 'audio') {
+            if (!mime.startsWith('audio/') && !_AUDIO_EXT.has(ext)) {
+                alert('Vui lòng chọn file âm thanh (mp3, wav, m4a, ...).');
+                input.value = '';
+                return;
+            }
+        } else if (type === 'image') {
+            if (!mime.startsWith('image/') && !_IMAGE_EXT.has(ext)) {
+                alert('Vui lòng chọn file ảnh (jpg, png, gif, ...).');
+                input.value = '';
+                return;
+            }
+        }
         const formData = new FormData();
         formData.append('file', file);
         try {
@@ -306,8 +327,11 @@
             if(res.ok && result.data) {
                 document.getElementById(targetId).value = result.data;
                 alert('Tải lên thành công!');
+            } else {
+                alert(result.message || 'Tải lên thất bại.');
+                input.value = '';
             }
-        } catch(e) { alert('Lỗi tải file'); }
+        } catch(e) { alert('Lỗi tải file'); input.value = ''; }
     }
 
     // --- SINGLE MODE LOGIC ---

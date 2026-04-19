@@ -55,7 +55,7 @@ public class StudentQuizTakingController {
     @ResponseBody
     public ResponseEntity<?> reportViolation(@RequestBody Map<String, Object> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             Integer quizId = (Integer) payload.get("quizId");
             String reason = (String) payload.get("reason");
@@ -72,7 +72,7 @@ public class StudentQuizTakingController {
     @ResponseBody
     public ResponseEntity<?> submitQuiz(@RequestBody QuizSubmissionDTO request, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             Integer resultId = quizResultService.submitQuiz(request.getQuizId(), email, request.getAnswers());
             return ResponseEntity.ok(Map.of("resultId", resultId));
@@ -122,7 +122,7 @@ public class StudentQuizTakingController {
     @ResponseBody
     public ResponseEntity<?> requestUnlock(@PathVariable Integer resultId, @RequestBody Map<String, String> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             String reason = payload.get("reason");
             quizResultService.requestUnlock(resultId, email, reason);

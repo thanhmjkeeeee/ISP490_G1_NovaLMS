@@ -44,7 +44,7 @@ public class ManagerRescheduleController {
     @GetMapping("/api/requests/pending-count")
     @ResponseBody
     public ResponseData<Long> getPendingCount() {
-        return ResponseData.success("Success", rescheduleService.getPendingCount());
+        return ResponseData.success("Thành công", rescheduleService.getPendingCount());
     }
 
     @Data

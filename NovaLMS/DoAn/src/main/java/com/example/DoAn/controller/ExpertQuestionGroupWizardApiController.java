@@ -24,7 +24,7 @@ public class ExpertQuestionGroupWizardApiController {
             @Valid @RequestBody WizardStep1DTO dto,
             HttpSession session) {
         wizardService.saveStep1(session, dto);
-        return ResponseEntity.ok(ResponseData.success("Step 1 saved", null));
+        return ResponseEntity.ok(ResponseData.success("Đã lưu bước 1", null));
     }
 
     @PostMapping("/step2")
@@ -34,15 +34,15 @@ public class ExpertQuestionGroupWizardApiController {
             Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseEntity.status(401)
-                .body(ResponseData.error(401, "Unauthorized"));
+                .body(ResponseData.error(401, "Vui lòng đăng nhập."));
         WizardStep2ResultDTO result = wizardService.processStep2(session, dto, email);
-        return ResponseEntity.ok(ResponseData.success("Step 2 processed", result));
+        return ResponseEntity.ok(ResponseData.success("Đã xử lý bước 2", result));
     }
 
     @PostMapping("/validate")
     public ResponseEntity<ResponseData<WizardValidationResultDTO>> validate(HttpSession session) {
         WizardValidationResultDTO result = wizardService.validate(session);
-        return ResponseEntity.ok(ResponseData.success("Validation complete", result));
+        return ResponseEntity.ok(ResponseData.success("Đã kiểm tra dữ liệu", result));
     }
 
     @PostMapping("/save")
@@ -52,9 +52,9 @@ public class ExpertQuestionGroupWizardApiController {
             Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseEntity.status(401)
-                .body(ResponseData.error(401, "Unauthorized"));
+                .body(ResponseData.error(401, "Vui lòng đăng nhập."));
         Integer groupId = wizardService.saveWizard(session, dto, email);
-        return ResponseEntity.ok(ResponseData.success("Question group saved", groupId));
+        return ResponseEntity.ok(ResponseData.success("Đã lưu nhóm câu hỏi", groupId));
     }
 
     @GetMapping("/step-data")
@@ -67,7 +67,7 @@ public class ExpertQuestionGroupWizardApiController {
                 .questions(questions)
                 .validationResult(validation)
                 .build();
-        return ResponseEntity.ok(ResponseData.success("Step data retrieved", data));
+        return ResponseEntity.ok(ResponseData.success("Đã tải dữ liệu wizard", data));
     }
 
     @PostMapping("/step2/manual")
@@ -77,15 +77,15 @@ public class ExpertQuestionGroupWizardApiController {
             Principal principal) {
         String email = getEmail(principal);
         if (email == null) return ResponseEntity.status(401)
-                .body(ResponseData.error(401, "Unauthorized"));
+                .body(ResponseData.error(401, "Vui lòng đăng nhập."));
         WizardStep2ResultDTO result = wizardService.processStep2(session, dto, email);
-        return ResponseEntity.ok(ResponseData.success("Manual questions added", result));
+        return ResponseEntity.ok(ResponseData.success("Đã thêm câu hỏi thủ công", result));
     }
 
     @GetMapping("/abandon")
     public ResponseEntity<ResponseData<Void>> abandon(HttpSession session) {
         wizardService.abandon(session);
-        return ResponseEntity.ok(ResponseData.success("Wizard abandoned", null));
+        return ResponseEntity.ok(ResponseData.success("Đã hủy wizard", null));
     }
 
     private String getEmail(Principal principal) {

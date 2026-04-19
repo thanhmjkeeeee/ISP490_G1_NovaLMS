@@ -40,11 +40,11 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             PageResponse<QuizResultPendingDTO> list = quizResultService.getPendingGradingList(email, classId, page, size);
-            return ResponseData.success("Success", list);
+            return ResponseData.success("Thành công", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -57,11 +57,11 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             PageResponse<QuizResultPendingDTO> list = quizResultService.getUnlockRequests(email, classId, page, size);
-            return ResponseData.success("Success", list);
+            return ResponseData.success("Thành công", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -74,11 +74,11 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             PageResponse<QuizResultGradedDTO> list = quizResultService.getGradedResults(email, classId, page, size);
-            return ResponseData.success("Success", list);
+            return ResponseData.success("Thành công", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -90,7 +90,7 @@ public class TeacherQuizGradingApiController {
             @RequestBody List<QuestionGradingRequestDTO> gradingItems,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             quizResultService.gradeQuizResult(resultId, gradingItems, email);
@@ -110,7 +110,7 @@ public class TeacherQuizGradingApiController {
             @RequestBody QuizGradingRequestDTO request,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             quizResultService.gradeQuizResult(resultId, request, email);
@@ -129,11 +129,11 @@ public class TeacherQuizGradingApiController {
             @PathVariable Integer resultId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             QuizResultDetailDTO detail = quizResultService.getQuizResult(resultId, email);
-            return ResponseData.success("OK", detail);
+            return ResponseData.success("Thành công", detail);
         } catch (Exception e) {
             return ResponseData.error(404, e.getMessage());
         }
@@ -149,11 +149,11 @@ public class TeacherQuizGradingApiController {
             @RequestParam String score,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             QuizAnswer answer = quizAnswerRepository.findById(answerId)
-                    .orElseThrow(() -> new RuntimeException("Answer not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy câu trả lời."));
             answer.setTeacherOverrideScore(score);
             answer.setAiGradingStatus("REVIEWED");
             quizAnswerRepository.save(answer);
@@ -172,7 +172,7 @@ public class TeacherQuizGradingApiController {
             @PathVariable Integer resultId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             quizResultService.unlockQuiz(resultId);

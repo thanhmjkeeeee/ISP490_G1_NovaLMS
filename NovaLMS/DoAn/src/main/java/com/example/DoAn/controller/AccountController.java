@@ -31,7 +31,7 @@ public class AccountController {
         log.info("Adding new account: {}", request.getEmail());
         try {
             Integer userId = accountService.saveAccount(request);
-            return new ResponseData<>(HttpStatus.CREATED.value(), "Success", userId);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Thành công", userId);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -58,7 +58,7 @@ public class AccountController {
             @RequestParam(required = false) String status) {
         try {
             PageResponse<?> response = accountService.getAllAccounts(pageNo, pageSize, search, roleId, status);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -80,7 +80,7 @@ public class AccountController {
     public ResponseData<AccountDetailResponse> getAccountById(@PathVariable Integer id) {
         try {
             AccountDetailResponse response = accountService.getAccountById(id);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
