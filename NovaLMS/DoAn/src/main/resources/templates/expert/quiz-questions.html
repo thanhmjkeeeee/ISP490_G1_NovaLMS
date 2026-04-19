@@ -48,7 +48,7 @@
                         <th>Nội dung</th>
                         <th>Loại</th>
                         <th>Kỹ năng</th>
-                        <th>CEFR</th>
+                        <th>Band</th>
                         <th>Điểm</th>
                         <th class="text-end px-4">Hành động</th>
                     </tr>
@@ -91,7 +91,7 @@
                         <th>Nội dung</th>
                         <th>Loại</th>
                         <th>Kỹ năng</th>
-                        <th>CEFR</th>
+                        <th>Band</th>
                         <th>Chủ đề</th>
                         <th class="text-end">Thêm</th>
                     </tr>
@@ -479,7 +479,7 @@ async function previewQuestion(questionId) {
                 }
             }
             document.getElementById('previewContent').innerHTML = `
-                <p><strong>Loại:</strong> ${typeName(q.questionType)} | <strong>Skill:</strong> ${q.skill} | <strong>CEFR:</strong> ${q.cefrLevel}</p>
+                <p><strong>Loại:</strong> ${typeName(q.questionType)} | <strong>Skill:</strong> ${q.skill} | <strong>Band:</strong> ${q.cefrLevel}</p>
                 <p>${q.content || '—'}</p>
                 ${q.explanation ? `<p class="text-muted small"><i>Giải thích:</i> ${q.explanation}</p>` : ''}
                 ${optionsHtml}
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.NovaQuestionFormSettings) {
             await NovaQuestionFormSettings.load();
             NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('modalSkill'), { includeEmpty: true, emptyLabel: 'Kỹ năng' });
-            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: 'CEFR' });
+            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('modalCefr'), { includeEmpty: true, emptyLabel: 'Band' });
         }
     } catch (e) { console.error(e); }
     document.getElementById('modalSkill').addEventListener('change', function () { loadBankQuestions(0); });

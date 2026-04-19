@@ -130,27 +130,35 @@ public class TeacherClassSessionService {
                 m.put("quizTitle", s.getQuiz() != null ? s.getQuiz().getTitle() : null);
                 m.put("quizStatus", s.getQuiz() != null ? s.getQuiz().getStatus() : null);
 
-                // New multi-quiz from session_quiz table (ONLY COURSE_QUIZ for the Quiz tab)
+                // New multi-quiz from session_quiz table (Filter for QUIZ categories only for this list)
                 List<SessionQuiz> sqList = sessionQuizRepository
-                        .findBySessionSessionIdAndQuiz_QuizCategoryOrderByOrderIndexAsc(s.getSessionId(),
-                                "COURSE_QUIZ");
-                List<Map<String, Object>> quizzesList = sqList.stream().map(sq -> {
-                    Map<String, Object> qm = new LinkedHashMap<>();
-                    Quiz q = sq.getQuiz();
-                    qm.put("sessionQuizId", sq.getId());
-                    qm.put("quizId", q.getQuizId());
-                    qm.put("title", q.getTitle());
-                    qm.put("status", q.getStatus());
-                    qm.put("isOpen", sq.getIsOpen() != null ? sq.getIsOpen() : false);
-                    qm.put("orderIndex", sq.getOrderIndex());
-                    qm.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
-                    return qm;
-                }).toList();
+                        .findBySessionSessionIdOrderByOrderIndexAsc(s.getSessionId());
+                List<Map<String, Object>> quizzesList = sqList.stream()
+                        .filter(sq -> {
+                            String cat = sq.getQuiz().getQuizCategory();
+                            return "COURSE_QUIZ".equals(cat) || "MODULE_QUIZ".equals(cat) || "LESSON_QUIZ".equals(cat);
+                        })
+                        .map(sq -> {
+                            Map<String, Object> qm = new LinkedHashMap<>();
+                            Quiz q = sq.getQuiz();
+                            qm.put("sessionQuizId", sq.getId());
+                            qm.put("quizId", q.getQuizId());
+                            qm.put("title", q.getTitle());
+                            qm.put("status", q.getStatus());
+                            qm.put("isOpen", sq.getIsOpen() != null ? sq.getIsOpen() : false);
+                            qm.put("orderIndex", sq.getOrderIndex());
+                            qm.put("questionCount", q.getQuizQuestions() != null ? q.getQuizQuestions().size() : 0);
+                            return qm;
+                        }).toList();
                 m.put("quizzes", quizzesList);
 
-                boolean allOpen = !quizzesList.isEmpty() && quizzesList.stream()
-                        .allMatch(q -> Boolean.TRUE.equals(q.get("isOpen")));
-                m.put("isAllOpen", allOpen);
+                // Map to moduleIds via session_lesson
+                List<Integer> moduleIds = sessionLessonRepository.findBySessionSessionId(s.getSessionId())
+                        .stream()
+                        .filter(sl -> sl.getLesson() != null && sl.getLesson().getModule() != null)
+                        .map(sl -> sl.getLesson().getModule().getModuleId())
+                        .distinct().toList();
+                m.put("moduleIds", moduleIds);
 
                 return m;
             }).toList();
@@ -686,6 +694,9 @@ public class TeacherClassSessionService {
                     m.put("cefrLevels", List.of());
                 }
 
+                m.put("moduleId", q.getModule() != null ? q.getModule().getModuleId() : null);
+                m.put("moduleName", q.getModule() != null ? q.getModule().getModuleName() : null);
+
                 return m;
             }).toList();
 
@@ -886,10 +897,14 @@ public class TeacherClassSessionService {
                 return ResponseData.error(403, "Không có quyền");
 
             // 1. Get all expert quizzes for this class's course
-            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
-
+            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId).stream()
+                    .filter(q -> "COURSE_ASSIGNMENT".equals(q.getQuizCategory()) || "MODULE_ASSIGNMENT".equals(q.getQuizCategory()))
+                    .toList();
+            
             // 2. Get all session assignments for this class to check status
-            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
+            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId).stream()
+                    .filter(sq -> "COURSE_ASSIGNMENT".equals(sq.getQuiz().getQuizCategory()) || "MODULE_ASSIGNMENT".equals(sq.getQuiz().getQuizCategory()))
+                    .toList();
 
             // 3. Map status
             List<Map<String, Object>> result = expertQuizzes.stream().map(q -> {
@@ -920,6 +935,9 @@ public class TeacherClassSessionService {
                     m.put("closeAt", null);
                     m.put("deadline", null);
                 }
+                m.put("moduleId", q.getModule() != null ? q.getModule().getModuleId() : null);
+                m.put("moduleName", q.getModule() != null ? q.getModule().getModuleName() : null);
+                m.put("createdByName", q.getUser() != null ? q.getUser().getFullName() : "Expert");
                 return m;
             }).toList();
 
@@ -939,10 +957,14 @@ public class TeacherClassSessionService {
                 return ResponseData.error(403, "Không có quyền");
 
             // 1. Get all expert assignments for this class's course
-            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId);
+            List<Quiz> expertQuizzes = quizRepository.findExpertQuizzesByClassId(classId).stream()
+                    .filter(q -> "COURSE_ASSIGNMENT".equals(q.getQuizCategory()) || "MODULE_ASSIGNMENT".equals(q.getQuizCategory()))
+                    .toList();
 
             // 2. Get all session assignments for this class
-            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId);
+            List<SessionQuiz> sqList = sessionQuizRepository.findBySession_Clazz_ClassId(classId).stream()
+                    .filter(sq -> "COURSE_ASSIGNMENT".equals(sq.getQuiz().getQuizCategory()) || "MODULE_ASSIGNMENT".equals(sq.getQuiz().getQuizCategory()))
+                    .toList();
 
             // 3. Merge status
             List<Map<String, Object>> result = expertQuizzes.stream().map(q -> {
@@ -975,6 +997,9 @@ public class TeacherClassSessionService {
                     m.put("closeAt", null);
                     m.put("deadline", null);
                 }
+                m.put("moduleId", q.getModule() != null ? q.getModule().getModuleId() : null);
+                m.put("moduleName", q.getModule() != null ? q.getModule().getModuleName() : null);
+                m.put("createdByName", q.getUser() != null ? q.getUser().getFullName() : "Expert");
                 return m;
             }).toList();
 

@@ -581,11 +581,12 @@
                     lockedState = 'opacity: 0.6; cursor: not-allowed;';
                 } else if (!canRetake) {
                     lockedState = 'opacity: 0.6; cursor: not-allowed;';
-                    onclick = `onclick="alert('Bạn đã hết lượt làm bài tập này!')"`;
+                    onclick = `onclick="Swal.fire('Thông báo', 'Bạn đã hết lượt làm bài tập này!', 'info')"` ;
                 } else if (qId) {
                     url = q.isSequential ? `/student/assignment/${qId}` : `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
+                    onclick = `onclick="confirmStartQuiz('${url}', '${wsEscape(title)}'); return false;"`;
                 } else {
-                    onclick = `onclick="alert('Chưa có ID bài tập!')"`;
+                    onclick = `onclick="Swal.fire('Lỗi', 'Chưa có ID bài tập!', 'error')"`;
                 }
 
                 const latestResultId = q.latestResultId;
@@ -619,6 +620,24 @@
         }
 
         modalInstance.show();
+    }
+
+    window.confirmStartQuiz = function(url, title) {
+        Swal.fire({
+            title: 'Xác nhận làm bài',
+            text: `Bạn có chắc chắn muốn bắt đầu làm bài "${title}" không?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Bắt đầu ngay',
+            cancelButtonText: 'Để sau',
+            borderRadius: '15px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
     }
 
     // --- RENDER UTILS ---
@@ -767,7 +786,7 @@
                         
                         <div class="d-flex gap-2">
                             ${!isLocked && canRetake ? `
-                                <a href="${url}" class="btn btn-sm btn-primary rounded-pill px-3 flex-grow-1">
+                                <a href="${url}" onclick="confirmStartQuiz('${url}', '${wsEscape(q.lessonTitle || q.lessonName)}'); return false;" class="btn btn-sm btn-primary rounded-pill px-3 flex-grow-1">
                                     <i class="bi bi-play-fill"></i> ${q.latestResultId ? 'Làm lại bài' : 'Bắt đầu làm'}
                                 </a>
                             ` : `
@@ -809,6 +828,16 @@
 
     function formatDateDM(date) {
         return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function wsEscape(s) {
+        if (!s) return "";
+        return s.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 </script>
 

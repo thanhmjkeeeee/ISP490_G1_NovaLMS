@@ -122,31 +122,36 @@ function renderRequests(items) {
         return;
     }
 
-    tbody.innerHTML = items.map((item, idx) => `
+    tbody.innerHTML = items.map((item, idx) => {
+        const className = item.session && item.session.clazz ? item.session.clazz.className : 'N/A';
+        const sessionNo = item.session ? item.session.sessionNumber : '—';
+        const createdDate = item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '—';
+        
+        return `
         <tr>
             <td class="ps-4">${idx + 1}</td>
             <td>
-                <div class="fw-bold text-primary">${item.className}</div>
-                <div class="small">Session ${item.sessionNumber}</div>
+                <div class="fw-bold text-primary">${className}</div>
+                <div class="small">Buổi số ${sessionNo}</div>
             </td>
             <td>
-                <div class="small text-muted">${item.oldDate}</div>
-                <div class="small text-muted">${item.oldStartTime}</div>
+                <div class="small text-muted">${item.oldDate || '—'}</div>
+                <div class="small text-muted">${item.oldStartTime || '—'}</div>
             </td>
             <td>
-                <div class="fw-bold text-success">${item.newDate}</div>
-                <div class="small text-success">Slot: ${item.newStartTime}</div>
+                <div class="fw-bold text-success">${item.newDate || '—'}</div>
+                <div class="small text-success">Giờ: ${item.newStartTime || '—'}</div>
             </td>
             <td>
                 <div class="small text-dark mb-1">${item.reason || '—'}</div>
-                ${item.managerFeedback ? `<div class="small text-danger italic"><i class="bi bi-chat-dots me-1"></i>${item.managerFeedback}</div>` : ''}
+                ${item.managerNote ? `<div class="small text-danger italic"><i class="bi bi-chat-dots me-1"></i>${item.managerNote}</div>` : ''}
             </td>
             <td class="text-center">
                 ${renderStatusBadge(item.status)}
             </td>
-            <td class="text-end pe-4 small text-muted">${item.createdAt}</td>
+            <td class="text-end pe-4 small text-muted">${createdDate}</td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 function renderStatusBadge(status) {

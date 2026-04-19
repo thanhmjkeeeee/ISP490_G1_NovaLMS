@@ -855,13 +855,20 @@
                                 <div class="col-md-2">
                                     <select class="form-select form-select-sm rounded-3" id="wsBankCefr"
                                         onchange="wsLoadBank()">
-                                        <option value="">-- CEFR --</option>
-                                        <option value="A1">A1</option>
-                                        <option value="A2">A2</option>
-                                        <option value="B1">B1</option>
-                                        <option value="B2">B2</option>
-                                        <option value="C1">C1</option>
-                                        <option value="C2">C2</option>
+                                        <option value="">-- Band --</option>
+                                        <option value="3.0">3.0</option>
+                                        <option value="3.5">3.5</option>
+                                        <option value="4.0">4.0</option>
+                                        <option value="4.5">4.5</option>
+                                        <option value="5.0">5.0</option>
+                                        <option value="5.5">5.5</option>
+                                        <option value="6.0">6.0</option>
+                                        <option value="6.5">6.5</option>
+                                        <option value="7.0">7.0</option>
+                                        <option value="7.5">7.5</option>
+                                        <option value="8.0">8.0</option>
+                                        <option value="8.5">8.5</option>
+                                        <option value="9.0">9.0</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
@@ -896,7 +903,7 @@
                                 </div>
                                 <h5 class="fw-bold">AI Question Expert</h5>
                                 <p class="text-muted small px-5">Tận dụng sức mạnh trí tuệ nhân tạo để thiết kế câu hỏi
-                                    tiếng Anh chuẩn CEFR với các tùy chọn nâng cao cho kỹ năng Nghe/Đọc.</p>
+                                    tiếng Anh chuẩn IELTS với các tùy chọn nâng cao cho kỹ năng Nghe/Đọc.</p>
                                 <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"
                                     onclick="openAdvancedAiModal()">
                                     <i class="bi bi-stars me-1"></i> Mở trình cấu hình AI nâng cao
@@ -1000,29 +1007,62 @@
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label small fw-bold">Trình độ CEFR</label>
+                                    <label class="form-label small fw-bold">Trình độ IELTS (Band)</label>
                                     <div class="ai-selector-group d-flex flex-wrap gap-2" id="cefr-selector">
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-a1"
-                                            value="A1" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-a1">A1</label>
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-30"
+                                            value="3.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-30">3.0</label>
 
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-a2"
-                                            value="A2" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-a2">A2</label>
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-35"
+                                            value="3.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-35">3.5</label>
 
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-b1"
-                                            value="B1" checked onchange="updateAdvCefr(this.value)">
-                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-b1">B1</label>
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-40"
+                                            value="4.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-40">4.0</label>
 
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-b2"
-                                            value="B2" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-b2">B2</label>
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-45"
+                                            value="4.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-45">4.5</label>
 
-                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-c1"
-                                            value="C1" onchange="updateAdvCefr(this.value)">
-                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-c1">C1</label>
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-50"
+                                            value="5.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-50">5.0</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-55"
+                                            value="5.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-55">5.5</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-60"
+                                            value="6.0" checked onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-60">6.0</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-65"
+                                            value="6.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-65">6.5</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-70"
+                                            value="7.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-70">7.0</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-75"
+                                            value="7.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-75">7.5</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-80"
+                                            value="8.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-80">8.0</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-85"
+                                            value="8.5" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-85">8.5</label>
+
+                                        <input type="radio" class="btn-check" name="adv-cefr-radio" id="cefr-90"
+                                            value="9.0" onchange="updateAdvCefr(this.value)">
+                                        <label class="btn rounded-3 px-3 py-2 shadow-none" for="cefr-90">9.0</label>
+
                                     </div>
-                                    <input type="hidden" id="adv-cefr" value="B1">
+                                    <input type="hidden" id="adv-cefr" value="6.0">
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -1219,7 +1259,7 @@
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 m-0" style="min-width: 200px; z-index: 1100;">
-                                            <li><a class="dropdown-item rounded-3 py-2 px-3 mb-1" href="javascript:void(0)" onclick="viewQuizCompletion(${q.quizId}, '${wsEscape(q.title)}')">
+                                            <li><a class="dropdown-item rounded-3 py-2 px-3 mb-1" href="javascript:void(0)" onclick="viewQuizCompletion(${q.quizId}, '${wsEscape(q.title)}', ${isOpen})">
                                                 <div class="d-flex align-items-center">
                                                     <i class="bi bi-bar-chart-fill me-3 text-primary"></i>
                                                     <div>
@@ -1775,7 +1815,7 @@
                             <div class="d-flex align-items-center gap-2">
                                 ${q.quizId ? `
                                     <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
-                                            onclick="viewQuizCompletion(${q.quizId}, '${wsEscape(q.lessonName)}')"
+                                            onclick="viewQuizCompletion(${q.quizId}, '${wsEscape(q.lessonName)}', ${q.isOpen || false})"
                                             style="font-size: 0.7rem;">
                                         <i class="bi bi-people me-1"></i>Kết quả
                                     </button>
@@ -3384,8 +3424,17 @@
                 return;
             }
 
-            // Cancel any ongoing speech
-            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                const btn = document.getElementById('wsAiTtsBtn');
+                if (btn) {
+                    btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)';
+                    btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                    btn.classList.remove('btn-danger');
+                    btn.classList.add('btn-primary');
+                }
+                return;
+            }
 
             // Split into lines and filter empty
             const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -3400,14 +3449,23 @@
                 v.name.toLowerCase().includes('male') ||
                 v.name.toLowerCase().includes('david') ||
                 v.name.toLowerCase().includes('mark') ||
+                v.name.toLowerCase().includes('james') ||
+                v.name.toLowerCase().includes('guy') ||
+                v.name.toLowerCase().includes('andrew') ||
                 v.name.toLowerCase().includes('google us english')
             );
             const femaleVoices = enVoices.filter(v =>
                 v.name.toLowerCase().includes('female') ||
                 v.name.toLowerCase().includes('zira') ||
                 v.name.toLowerCase().includes('linda') ||
+                v.name.toLowerCase().includes('hazel') ||
+                v.name.toLowerCase().includes('susan') ||
+                v.name.toLowerCase().includes('catherine') ||
                 v.name.toLowerCase().includes('google uk english female')
             );
+
+            const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'robert', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry']);
+            const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle']);
 
             const speakerVoiceMap = {};
 
@@ -3415,7 +3473,7 @@
                 if (index >= lines.length) return;
 
                 const line = lines[index];
-                // Format: "Name [Gender]: Content"
+                // Format: "Name [Gender]: Content" or just "Name: Content"
                 const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
 
                 let speakerName = "Default";
@@ -3424,13 +3482,23 @@
 
                 if (match) {
                     speakerName = match[1].trim();
-                    gender = (match[2] || "Female").toLowerCase();
+                    const explicitGender = match[2];
                     content = match[3].trim();
+
+                    if (explicitGender) {
+                        gender = explicitGender.toLowerCase();
+                    } else {
+                        // Guess from name
+                        const lowName = speakerName.toLowerCase();
+                        if (maleNames.has(lowName)) gender = 'male';
+                        else if (femaleNames.has(lowName)) gender = 'female';
+                        else gender = 'female'; // default
+                    }
                 }
 
                 const utterance = new SpeechSynthesisUtterance(content);
                 utterance.lang = 'en-US';
-                utterance.rate = 0.9;
+                utterance.rate = 0.95;
 
                 if (!speakerVoiceMap[speakerName]) {
                     const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
@@ -3441,17 +3509,46 @@
                 if (speakerVoiceMap[speakerName]) utterance.voice = speakerVoiceMap[speakerName];
 
                 utterance.onend = () => {
-                    setTimeout(() => playNextLine(index + 1), 500);
+                    if (index >= lines.length - 1) {
+                        const btn = document.getElementById('wsAiTtsBtn');
+                        if (btn) {
+                            btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)';
+                            btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                            btn.classList.remove('btn-danger');
+                            btn.classList.add('btn-primary');
+                        }
+                    } else {
+                        setTimeout(() => playNextLine(index + 1), 500);
+                    }
+                };
+                utterance.onerror = () => {
+                    const btn = document.getElementById('wsAiTtsBtn');
+                    if (btn) {
+                        btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)';
+                        btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-primary');
+                    }
                 };
 
                 window.speechSynthesis.speak(utterance);
             };
 
-            if (allVoices.length === 0) {
-                // Wait for voices to load
-                window.speechSynthesis.onvoiceschanged = () => playNextLine(0);
-            } else {
+            const startPlaying = () => {
+                const btn = document.getElementById('wsAiTtsBtn');
+                if (btn) {
+                    btn.innerHTML = '<i class="bi bi-stop-circle-fill me-1"></i> Dừng nghe';
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-danger');
+                    btn.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+                }
                 playNextLine(0);
+            };
+
+            if (allVoices.length === 0) {
+                window.speechSynthesis.onvoiceschanged = () => startPlaying();
+            } else {
+                startPlaying();
             }
         };
 
@@ -3507,8 +3604,10 @@
                                 <span class="fw-bold text-primary">${title}:</span>
                             </div>
                             ${isListening ? `
-                                <button class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText)">
-                                    <i class="bi bi-play-fill me-1"></i> Nghe thử (TTS)
+                                <button id="wsAiTtsBtn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all" 
+                                    style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);"
+                                    onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText)">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
                                 </button>
                             ` : ''}
                         </div>
@@ -4094,16 +4193,32 @@
             modal.show();
 
             try {
-                const res = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
-                const json = await res.json();
-                if (json.status === 200 && json.data) {
-                    select.innerHTML = json.data
-                        .filter(s => s.sessionId !== oldSessionId)
+                // Fetch both Quiz info and Sessions
+                const [qRes, sRes] = await Promise.all([
+                    fetch(`/api/v1/teacher/quizzes/${quizId}`),
+                    fetch(`/api/v1/teacher/class-sessions/${classId}`)
+                ]);
+                
+                const qJson = await qRes.json();
+                const sJson = await sRes.json();
+                
+                if (sJson.status === 200 && sJson.data) {
+                    const quizModuleId = qJson.data?.moduleId;
+                    const sessions = sJson.data;
+
+                    const filtered = sessions.filter(s => {
+                        if (s.sessionId == oldSessionId) return false;
+                        if (!quizModuleId) return true; // If quiz has no module, show all
+                        if (!s.moduleIds || s.moduleIds.length === 0) return true; // Show sessions with no module mappings
+                        return s.moduleIds.some(mId => mId == quizModuleId);
+                    });
+
+                    select.innerHTML = filtered
                         .map(s => `<option value="${s.sessionId}">Buổi ${s.sessionNumber}: ${wsEscape(s.topic || 'Chưa có chủ đề')}</option>`)
                         .join('');
 
                     if (select.options.length === 0) {
-                        select.innerHTML = '<option value="">Lớp học chỉ có 1 buổi, không thể chuyển.</option>';
+                        select.innerHTML = `<option value="">Không tìm thấy buổi học nào khác thuộc cùng chương (Module ${quizModuleId || 'N/A'}).</option>`;
                     }
                 } else {
                     select.innerHTML = '<option value="">Lỗi tải danh sách buổi học</option>';
@@ -4158,12 +4273,15 @@
             }
         }
 
-        window.viewQuizCompletion = async function (quizId, quizTitle) {
+        window.viewQuizCompletion = async function (quizId, quizTitle, isOpen = true) {
             const classId = state.selectedClassId;
             if (!classId || classId === 'ALL') {
                 wsToast("Vui lòng chọn một lớp học cụ thể", "warning");
                 return;
             }
+
+            const modalEl = document.getElementById('wsQuizResultsModal');
+            modalEl.dataset.isOpen = isOpen;
 
             document.getElementById('quizResultsTitle').innerText = quizTitle;
             const tbody = document.getElementById('quizResultsTableBody');
@@ -4196,13 +4314,19 @@
                                 break;
                             case 'IN_PROGRESS':
                             case 'GRADING':
-                                statusBadge = `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Đang làm</span>`;
+                                if (isOpen === false) {
+                                    statusBadge = `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Đã đóng</span>`;
+                                } else {
+                                    statusBadge = `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Đang làm</span>`;
+                                }
                                 break;
                             case 'LOCKED':
                                 statusBadge = `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Bị khóa</span>`;
                                 break;
                             default:
-                                statusBadge = `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Chưa làm</span>`;
+                                statusBadge = (isOpen !== false) ?
+                                    `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary">Chưa làm</span>` :
+                                    `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Đã đóng</span>`;
                         }
 
                         const scoreDisplay = s.score !== null ? `<span class="fw-bold">${s.score}</span>` : `<span class="text-muted">—</span>`;
@@ -4259,7 +4383,7 @@
                 if (json.status === 200) {
                     wsToast("Đã mở khóa bài làm!");
                     // Refresh the modal content
-                    viewQuizCompletion(quizId, quizTitle);
+                    viewQuizCompletion(quizId, quizTitle, document.getElementById('wsQuizResultsModal').dataset.isOpen === 'true');
                 } else {
                     Swal.fire('Lỗi', json.message || 'Không thể mở khóa bài làm', 'error');
                 }
@@ -4402,9 +4526,14 @@
                         ${wsEscape(a.title)}
                         ${a.createdByName && a.createdByName.toLowerCase().includes('expert') ? '<span class="badge bg-info text-white ms-1" style="font-size:0.6rem;">Expert</span>' : ''}
                     </div>
-                    <small>
-                        ${a.sessionNumber ? `<span class="text-primary">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary small">Chưa gán</span>`}
-                    </small>
+                    <div class="mt-1">
+                        <div class="small text-muted mb-1">
+                            <i class="bi bi-folder2-open me-1"></i>${a.moduleName ? wsEscape(a.moduleName) : 'Chưa gán chương'}
+                        </div>
+                        <div class="small">
+                            ${a.sessionNumber ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size:0.65rem;">Buổi ${a.sessionNumber}</span>` : `<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-size:0.65rem;">Chưa gán buổi</span>`}
+                        </div>
+                    </div>
                 </td>
                 <td class="text-center">
                     ${a.status === 'DRAFT' ? '<span class="badge bg-warning bg-opacity-10 text-warning border border-warning me-1" style="font-size:0.7rem;">Nháp</span>' : ''}
@@ -4423,7 +4552,7 @@
                         <i class="bi ${a.isOpen ? 'bi-lock' : 'bi-unlock'} me-1"></i>${a.isOpen ? 'Đóng' : 'Mở'}
                     </button>
                     <button class="btn btn-sm btn-outline-primary rounded-pill px-3 ms-1"
-                            onclick="viewQuizCompletion(${a.quizId}, '${wsEscape(a.title)}')">
+                            onclick="viewQuizCompletion(${a.quizId}, '${wsEscape(a.title)}', ${a.isOpen})">
                         <i class="bi bi-people me-1"></i>Kết quả
                     </button>
                     <button class="btn btn-sm btn-outline-info rounded-pill px-3 ms-1" onclick="wsPreviewQuiz(${a.quizId})">
@@ -4444,49 +4573,85 @@
 
 
         // --- CREATE ASSIGNMENT MODAL LOGIC ---
+        let caSessions = [];
+        let caQuizzes = [];
+
         window.openCreateAssignmentModal = async function () {
             const classId = state.selectedClassId;
             const modal = new bootstrap.Modal('#createAssignmentModal');
 
-            // Populate modal with loading skeleton
             document.getElementById('ca-sessions-list').innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div> Đang tải buổi học...';
             document.getElementById('ca-quizzes-list').innerHTML = '<div class="spinner-border text-primary spinner-border-sm"></div> Đang tải Quiz...';
 
             modal.show();
 
             try {
-                // Fetch Sessions
-                const sRes = await fetch(`/api/v1/teacher/class-sessions/${classId}`);
+                const [sRes, qRes] = await Promise.all([
+                    fetch(`/api/v1/teacher/class-sessions/${classId}`),
+                    fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`)
+                ]);
+                
                 const sJson = await sRes.json();
-                const sessions = sJson.data || [];
+                caSessions = sJson.data || [];
 
-                document.getElementById('ca-sessions-list').innerHTML = sessions.map(s => `
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="ca-selected-session" id="ca-session-${s.sessionId}" value="${s.sessionId}">
-                    <label class="form-check-label small" for="ca-session-${s.sessionId}">
-                        <strong>Buổi ${s.sessionNumber}</strong>: ${wsEscape(s.topic || 'Chưa có chủ đề')}
-                    </label>
-                </div>`).join('') || '<p class="text-muted small">Chưa có buổi học nào.</p>';
-
-                // Fetch Assignments (Only unassigned ones)
-                const qRes = await fetch(`/api/v1/teacher/class-sessions/${classId}/assignments`);
                 const qJson = await qRes.json();
-                const assignments = qJson.data || [];
-                const unassignedAssignments = assignments.filter(a => a.sessionQuizId == null);
+                const allQuizzes = qJson.data || [];
+                caQuizzes = allQuizzes.filter(a => a.sessionQuizId == null);
 
-                document.getElementById('ca-quizzes-list').innerHTML = unassignedAssignments.map(q => `
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" name="ca-selected-quiz" id="ca-quiz-${q.quizId}" value="${q.quizId}">
-                    <label class="form-check-label small" for="ca-quiz-${q.quizId}">
-                        <strong>${wsEscape(q.title)}</strong> (${q.questionCount} câu)
-                    </label>
-                </div>`).join('') || '<p class="text-muted small">Tất cả Assignment đã được gán vào buổi học.</p>';
+                renderCaQuizzes();
+                renderCaSessions(); // Initially show all
 
             } catch (err) {
                 console.error("Error loading create assignment data:", err);
                 alert("Lỗi tải dữ liệu. Vui lòng thử lại.");
             }
         };
+
+        function renderCaQuizzes() {
+            const container = document.getElementById('ca-quizzes-list');
+            container.innerHTML = caQuizzes.map(q => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input ca-quiz-checkbox" type="checkbox" name="ca-selected-quiz" 
+                        id="ca-quiz-${q.quizId}" value="${q.quizId}" data-module-id="${q.moduleId || ''}"
+                        onchange="filterCaSessions()">
+                    <label class="form-check-label small" for="ca-quiz-${q.quizId}">
+                        <strong>${wsEscape(q.title)}</strong> ${q.moduleName ? `<span class="badge bg-light text-primary border ms-1">${wsEscape(q.moduleName)}</span>` : ''}
+                    </label>
+                </div>`).join('') || '<p class="text-muted small">Tất cả Assignment đã được gán vào buổi học.</p>';
+        }
+
+        window.filterCaSessions = function() {
+            const selectedCheckboxes = Array.from(document.querySelectorAll('.ca-quiz-checkbox:checked'));
+            const selectedModuleIds = selectedCheckboxes
+                .map(cb => cb.dataset.moduleId)
+                .filter(id => id !== '');
+
+            if (selectedModuleIds.length === 0) {
+                renderCaSessions(); // Show all
+                return;
+            }
+
+            // Show sessions that match ANY of the selected module IDs
+            const filtered = caSessions.filter(s => {
+                if (!s.moduleIds || s.moduleIds.length === 0) return true; // Show sessions with no modules too? Or hide them?
+                return s.moduleIds.some(mId => selectedModuleIds.includes(mId.toString()));
+            });
+
+            renderCaSessions(filtered);
+        }
+
+        function renderCaSessions(filteredSessions) {
+            const sessionsToRender = filteredSessions || caSessions;
+            const container = document.getElementById('ca-sessions-list');
+            
+            container.innerHTML = sessionsToRender.map(s => `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="ca-selected-session" id="ca-session-${s.sessionId}" value="${s.sessionId}">
+                    <label class="form-check-label small" for="ca-session-${s.sessionId}">
+                        <strong>Buổi ${s.sessionNumber}</strong>: ${wsEscape(s.topic || 'Chưa có chủ đề')}
+                    </label>
+                </div>`).join('') || '<p class="text-muted small">Không tìm thấy buổi học phù hợp với chương này.</p>';
+        }
 
         window.saveNewAssignments = async function () {
             const sessionId = document.querySelector('input[name="ca-selected-session"]:checked')?.value;
