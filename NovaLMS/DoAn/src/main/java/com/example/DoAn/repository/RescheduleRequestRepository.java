@@ -1,9 +1,11 @@
 package com.example.DoAn.repository;
 
 import com.example.DoAn.dto.request.RescheduleRequest;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,7 +19,17 @@ public interface RescheduleRequestRepository extends JpaRepository<RescheduleReq
     @Query("SELECT r FROM RescheduleRequest r WHERE r.session.sessionId = :sessionId AND r.status = 'PENDING'")
     Optional<RescheduleRequest> findPendingBySessionId(@Param("sessionId") Integer sessionId);
 
-    @Query("SELECT r FROM RescheduleRequest r " +
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM RescheduleRequest r WHERE r.id = :id")
+    Optional<RescheduleRequest> findByIdForUpdate(@Param("id") Integer id);
+
+    @Query(value = "SELECT DISTINCT r FROM RescheduleRequest r " +
+           "LEFT JOIN r.session s " +
+           "LEFT JOIN s.clazz c " +
+           "LEFT JOIN c.teacher u " +
+           "WHERE (:teacherName IS NULL OR :teacherName = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :teacherName, '%'))) " +
+           "AND (:status IS NULL OR :status = '' OR r.status = :status)",
+           countQuery = "SELECT COUNT(DISTINCT r.id) FROM RescheduleRequest r " +
            "LEFT JOIN r.session s " +
            "LEFT JOIN s.clazz c " +
            "LEFT JOIN c.teacher u " +

@@ -131,7 +131,8 @@
 
 <script>
     let state = {
-        items: [], page: 0, size: 10, totalPages: 1, totalElements: 0, selectedRequestId: null
+        items: [], page: 0, size: 10, totalPages: 1, totalElements: 0, selectedRequestId: null,
+        updating: false
     };
 
     let debounceTimer;
@@ -256,8 +257,10 @@
     }
 
     async function updateStatus(id, status, note = '') {
+        if (state.updating) return;
         if (status === 'APPROVED' && !confirm('Bạn chắc chắn muốn PHÊ DUYỆT yêu cầu này? Lịch học sẽ được cập nhật tự động.')) return;
 
+        state.updating = true;
         try {
             // FIX LỖI 2: Đổi URL cập nhật trạng thái cho khớp với Backend
             const url = `/manager/reschedule/api/requests/${id}/status`;
@@ -282,6 +285,8 @@
         } catch (err) {
             console.error("Update Status Error:", err);
             alert('Lỗi kết nối Server!');
+        } finally {
+            state.updating = false;
         }
     }
 
