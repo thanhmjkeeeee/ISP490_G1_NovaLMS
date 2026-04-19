@@ -14,5 +14,6 @@ public class ModuleResponseDTO {
     private int lessonCount;
     private int questionCount;
     private String cefrLevel;
+    private Long registrationCount;
 }
 

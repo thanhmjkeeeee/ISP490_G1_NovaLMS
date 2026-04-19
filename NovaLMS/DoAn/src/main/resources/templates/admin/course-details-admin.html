@@ -129,13 +129,18 @@
                         document.getElementById('detailContainer').style.display = 'block';
                         document.getElementById('loadingState').style.display = 'none';
 
-                        // Xử lý nút xóa
-                        document.getElementById('btnDelete').onclick = () => {
-                            if(confirm("Bạn có chắc chắn muốn xóa?")) {
-                                fetch(`/api/v1/courses/${courseId}`, { method: 'DELETE' })
-                                    .then(() => window.location.href = "/admin/courses");
-                            }
-                        };
+                        // Xử lý nút xóa - Chỉ hiện nếu chưa có học viên
+                        const btnDelete = document.getElementById('btnDelete');
+                        if (course.registrationCount > 0) {
+                            btnDelete.style.display = 'none';
+                        } else {
+                            btnDelete.onclick = () => {
+                                if(confirm("Bạn có chắc chắn muốn xóa?")) {
+                                    fetch(`/api/v1/courses/${courseId}`, { method: 'DELETE' })
+                                        .then(() => window.location.href = "/admin/courses");
+                                }
+                            };
+                        }
                     }
                 })
                 .catch(err => {

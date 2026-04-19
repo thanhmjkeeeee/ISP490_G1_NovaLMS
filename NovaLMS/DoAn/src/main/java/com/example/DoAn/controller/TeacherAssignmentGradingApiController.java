@@ -53,9 +53,9 @@ public class TeacherAssignmentGradingApiController {
         // --- ĐÃ FIX: XỬ LÝ LỖI PARSING STATUS ---
         List<String> processedStatus = status;
         if (status == null || status.isEmpty()) {
-            processedStatus = Arrays.asList("ALL"); // Tránh lỗi Hibernate khi truyền list null/rỗng
+            // Mặc định: lấy tất cả các bài CHƯA CHẤM XONG
+            processedStatus = Arrays.asList("PENDING_SPEAKING", "PENDING_WRITING", "PENDING_BOTH");
         } else if (status.size() == 1 && status.get(0).contains(",")) {
-            // Nếu Spring Boot gộp nhầm thành 1 chuỗi chứa dấu phẩy -> Cắt ra thành List chuẩn
             processedStatus = Arrays.asList(status.get(0).split(","));
         }
 

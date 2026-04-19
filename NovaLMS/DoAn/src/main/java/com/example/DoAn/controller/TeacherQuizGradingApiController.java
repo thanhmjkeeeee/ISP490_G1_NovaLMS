@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/teacher/quiz-results")
@@ -26,7 +27,8 @@ public class TeacherQuizGradingApiController {
     private final QuizAnswerRepository quizAnswerRepository;
 
     private String getEmailFromPrincipal(Principal principal) {
-        if (principal == null) return null;
+        if (principal == null)
+            return null;
         if (principal instanceof OAuth2AuthenticationToken token) {
             return token.getPrincipal().getAttribute("email");
         }
@@ -40,10 +42,12 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
-            PageResponse<QuizResultPendingDTO> list = quizResultService.getPendingGradingList(email, classId, page, size);
+            PageResponse<QuizResultPendingDTO> list = quizResultService.getPendingGradingList(email, classId, page,
+                    size);
             return ResponseData.success("Success", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -57,7 +61,8 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             PageResponse<QuizResultPendingDTO> list = quizResultService.getUnlockRequests(email, classId, page, size);
@@ -74,7 +79,8 @@ public class TeacherQuizGradingApiController {
             @RequestParam(required = false) Integer classId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             PageResponse<QuizResultGradedDTO> list = quizResultService.getGradedResults(email, classId, page, size);
@@ -90,7 +96,8 @@ public class TeacherQuizGradingApiController {
             @RequestBody List<QuestionGradingRequestDTO> gradingItems,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             quizResultService.gradeQuizResult(resultId, gradingItems, email);
@@ -110,7 +117,8 @@ public class TeacherQuizGradingApiController {
             @RequestBody QuizGradingRequestDTO request,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             quizResultService.gradeQuizResult(resultId, request, email);
@@ -129,7 +137,8 @@ public class TeacherQuizGradingApiController {
             @PathVariable Integer resultId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             QuizResultDetailDTO detail = quizResultService.getQuizResult(resultId, email);
@@ -149,7 +158,8 @@ public class TeacherQuizGradingApiController {
             @RequestParam String score,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             QuizAnswer answer = quizAnswerRepository.findById(answerId)
@@ -172,11 +182,29 @@ public class TeacherQuizGradingApiController {
             @PathVariable Integer resultId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
 
         try {
             quizResultService.unlockQuiz(resultId);
             return ResponseData.success("Đã mở khóa bài làm của học sinh thành công!");
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @GetMapping("/completion-list")
+    public ResponseData<List<Map<String, Object>>> getCompletionList(
+            @RequestParam Integer classId,
+            @RequestParam Integer quizId,
+            Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null)
+            return ResponseData.error(401, "Unauthorized");
+
+        try {
+            List<Map<String, Object>> list = quizResultService.getQuizCompletionList(email, classId, quizId);
+            return ResponseData.success("Success", list);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
