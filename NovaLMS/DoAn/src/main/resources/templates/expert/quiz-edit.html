@@ -251,22 +251,16 @@
                                 <option value="ARCHIVED">Arvhived</option>
                             </select>
                         </div>
-                        <div class="col-md-2" id="courseSection">
+                        <div class="col-md-3" id="courseSection">
                             <label class="form-label fw-bold small">Khóa học</label>
                             <select id="courseIdSelect" class="form-select" onchange="onCourseChange()">
                                 <option value="">-- Khóa học --</option>
                             </select>
                         </div>
-                        <div class="col-md-2" id="moduleSection">
-                            <label class="form-label fw-bold small">Chương/Module</label>
-                            <select id="moduleIdSelect" class="form-select" onchange="onModuleChange()">
-                                <option value="">-- Chương --</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3" id="lessonSection">
-                            <label class="form-label fw-bold small">Buổi học (Lesson)</label>
-                            <select id="lessonIdSelect" class="form-select">
-                                <option value="">-- Buổi --</option>
+                        <div class="col-md-3" id="moduleSection">
+                            <label class="form-label fw-bold small">Chương (Module)</label>
+                            <select id="moduleIdSelect" class="form-select">
+                                <option value="">-- Chọn chương --</option>
                             </select>
                         </div>
                     </div>
@@ -536,13 +530,9 @@
                 if (q.courseId) {
                     await loadCourses();
                     document.getElementById('courseIdSelect').value = q.courseId;
-                    await loadModules(q.courseId);
                     if (q.moduleId) {
+                        await loadModules(q.courseId);
                         document.getElementById('moduleIdSelect').value = q.moduleId;
-                        await loadLessons(q.moduleId);
-                        if (q.lessonId) {
-                            document.getElementById('lessonIdSelect').value = q.lessonId;
-                        }
                     }
                 } else if (q.quizCategory !== 'ENTRY_TEST') {
                     await loadCourses();
@@ -573,9 +563,9 @@
             try {
                 const res = await fetch('/api/v1/expert/modules/courses');
                 const result = await res.json();
-                if (result.status === 200 && result.data) {
+                if (result.status === 200 && result.data && result.data.items) {
                     select.innerHTML = '<option value="">-- Khóa học --</option>';
-                    result.data.forEach(c => {
+                    result.data.items.forEach(c => {
                         select.innerHTML += `<option value="${c.courseId}">${c.courseName}</option>`;
                     });
                 }
@@ -584,20 +574,22 @@
 
         async function onCourseChange() {
             const courseId = document.getElementById('courseIdSelect').value;
-            if (courseId) loadModules(courseId);
-            else {
-                document.getElementById('moduleIdSelect').innerHTML = '<option value="">-- Chương --</option>';
-                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Buổi --</option>';
+            if (courseId) {
+                await loadModules(courseId);
+            } else {
+                document.getElementById('moduleIdSelect').innerHTML = '<option value="">-- Chọn chương --</option>';
             }
         }
 
         async function loadModules(courseId) {
             const select = document.getElementById('moduleIdSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Đang tải... --</option>';
             try {
                 const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
                 const result = await res.json();
                 if (result.status === 200 && result.data) {
-                    select.innerHTML = '<option value="">-- Chương --</option>';
+                    select.innerHTML = '<option value="">-- Chọn chương (Không bắt buộc) --</option>';
                     result.data.forEach(m => {
                         select.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
                     });
@@ -605,25 +597,7 @@
             } catch (e) { console.error(e); }
         }
 
-        async function onModuleChange() {
-            const moduleId = document.getElementById('moduleIdSelect').value;
-            if (moduleId) loadLessons(moduleId);
-            else document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Buổi --</option>';
-        }
 
-        async function loadLessons(moduleId) {
-            const select = document.getElementById('lessonIdSelect');
-            try {
-                const res = await fetch(`/api/v1/expert/lessons?moduleId=${moduleId}`);
-                const result = await res.json();
-                if (result.status === 200 && result.data) {
-                    select.innerHTML = '<option value="">-- Buổi --</option>';
-                    result.data.forEach(l => {
-                        select.innerHTML += `<option value="${l.lessonId}">${l.lessonName}</option>`;
-                    });
-                }
-            } catch (e) { console.error(e); }
-        }
 
         async function loadQuizQuestions() {
             const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
@@ -833,7 +807,6 @@
                 status: document.getElementById('status').value,
                 courseId: parseInt(document.getElementById('courseIdSelect').value) || null,
                 moduleId: parseInt(document.getElementById('moduleIdSelect').value) || null,
-                lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
                 deadline: null, openAt: null, closeAt: null,
                 timeLimitPerSkill: buildTimeLimitPerSkill()
             };

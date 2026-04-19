@@ -5,4 +5,5 @@ import java.util.Map;
 
 public interface MaintenanceService {
     ResponseData<Map<String, Long>> performCleanup();
+    ResponseData<Void> migrateToIELTSBands();
 }

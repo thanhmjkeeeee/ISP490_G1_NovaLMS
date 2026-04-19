@@ -26,4 +26,5 @@ public class QuizResultDetailDTO {
     private Boolean canRetake;
     /** Distinct skills present in this quiz's questions — used for dynamic tab rendering */
     private List<String> skillsPresent;
+    private String status;
 }

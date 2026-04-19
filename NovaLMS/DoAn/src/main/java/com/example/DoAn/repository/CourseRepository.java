@@ -76,6 +76,16 @@ public interface CourseRepository extends JpaRepository<Course, Integer>, JpaSpe
            "ORDER BY COUNT(r) DESC")
     List<Course> findTopFeaturedCourses(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"category", "expert"})
+    @Query("SELECT c FROM Course c WHERE " +
+            "(:expertId IS NULL OR c.expert.userId = :expertId) AND " +
+            "(:status IS NULL OR c.status = :status) AND " +
+            "(:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Course> findByExpertAndSearch(@Param("expertId") Integer expertId,
+                                       @Param("keyword") String keyword,
+                                       @Param("status") String status,
+                                       Pageable pageable);
+
 }
 
 
