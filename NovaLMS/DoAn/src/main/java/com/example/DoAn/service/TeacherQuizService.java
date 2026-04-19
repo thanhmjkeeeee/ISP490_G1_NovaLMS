@@ -454,7 +454,7 @@ public class TeacherQuizService {
     public ResponseData<Void> submitQuestionsBatch(List<Integer> questionIds, String email) {
         try {
             User teacher = userRepository.findByEmail(email).orElse(null);
-            if (teacher == null) return ResponseData.error(401, "Unauthorized");
+            if (teacher == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             List<Question> questions = questionRepository.findAllById(questionIds);
             for (Question q : questions) {

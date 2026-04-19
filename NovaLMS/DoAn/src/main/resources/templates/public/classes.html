@@ -10,6 +10,8 @@
 <!-- Biến toàn cục xác định trạng thái đăng nhập -->
 <script th:inline="javascript">
     var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+    var isAnonymous = /*[[${#authorization.expression('isAnonymous()')}]]*/ true;
+    var isStudent = /*[[${#authorization.expression("hasRole('ROLE_STUDENT')")}]]*/ false;
 </script>
 
 <header th:replace="~{fragments/header :: header-fragment('classes')}"></header>
@@ -42,7 +44,7 @@
                                 <label class="fw-bold text-primary mb-2 text-uppercase" style="font-size: 0.85rem;">Tìm kiếm</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-0 rounded-start-3 text-muted"><i class="bi bi-search"></i></span>
-                                    <input type="text" id="keywordSearch" class="form-control border-0 bg-light rounded-end-3 py-2 shadow-none" placeholder="Nhập tên khóa học hoặc giảng viên..." onkeyup="if(event.key === 'Enter') loadClasses(0)">
+                                    <input type="text" id="keywordSearch" class="form-control border-0 bg-light rounded-end-3 py-2 shadow-none" placeholder="Nhập tên khóa học hoặc giảng viên...">
                                 </div>
                             </div>
                         </div>
@@ -133,10 +135,15 @@
 <script>
     let currentPage = 0;
     const pageSize = 10;
+    let classesKeywordDebounce;
 
     // Load dữ liệu lần đầu ngay khi trang load xong
     document.addEventListener("DOMContentLoaded", function() {
         loadClasses(0);
+        document.getElementById('keywordSearch').addEventListener('input', function () {
+            clearTimeout(classesKeywordDebounce);
+            classesKeywordDebounce = setTimeout(function () { loadClasses(0); }, 400);
+        });
     });
 
     function loadClasses(pageNo) {
@@ -216,9 +223,9 @@
                             </div>
 
                             <div class="col-lg-2 col-12 text-lg-end mt-2 mt-lg-0">
-                                ${isAuthenticated
+                                ${(isAnonymous || isStudent)
                                     ? `<a href="/enroll/${clazz.classId}" class="btn btn-register rounded-pill px-3 py-1 w-100 w-lg-auto fw-bold shadow-sm" style="font-size: 0.9rem;">Đăng ký ngay <i class="bi bi-arrow-right ms-1"></i></a>`
-                                    : `<a href="/login.html?redirect=/enroll/${clazz.classId}" class="btn btn-register rounded-pill px-3 py-1 w-100 w-lg-auto fw-bold shadow-sm" style="font-size: 0.9rem;">Đăng ký ngay <i class="bi bi-arrow-right ms-1"></i></a>`
+                                    : `<span class="text-muted small d-inline-block py-2">Chỉ học viên đăng ký</span>`
                                 }
                             </div>
                         </div>

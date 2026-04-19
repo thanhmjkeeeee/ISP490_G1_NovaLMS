@@ -85,12 +85,15 @@ public class EnrollmentController {
             return ResponseData.error(401, "Vui lòng đăng nhập để đăng ký khóa học.");
         }
 
-        // Load user
-        Optional<User> optUser = userRepository.findByEmail(email);
+        // Load user (kèm role để kiểm tra học viên)
+        Optional<User> optUser = userRepository.findByEmailWithRole(email);
         if (optUser.isEmpty()) {
             return ResponseData.error(401, "Không tìm thấy người dùng.");
         }
         User user = optUser.get();
+        if (user.getRole() == null || !"ROLE_STUDENT".equals(user.getRole().getValue())) {
+            return ResponseData.error(403, "Chỉ học viên mới đăng ký khóa học được.");
+        }
 
         // ── Kiểm tra đăng ký đang chờ (PENDING/Submitted) — cho phép retry thanh toán ──
         // Nếu user back trình duyệt rồi đăng ký lại, vẫn redirect về PayOS thay vì chặn

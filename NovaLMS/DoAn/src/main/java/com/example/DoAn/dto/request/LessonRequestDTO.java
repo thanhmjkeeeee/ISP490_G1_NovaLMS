@@ -12,14 +12,14 @@ import lombok.*;
 public class LessonRequestDTO {
 
     private Integer lessonId;
-    @NotNull(message = "moduleId is required")
+    @NotNull(message = "Mã chương (module) là bắt buộc")
     private Integer moduleId;
 
-    @NotBlank(message = "lessonName is required")
+    @NotBlank(message = "Tên bài học là bắt buộc")
     @Size(max = 255, message = "Tên bài học không được vượt quá 255 ký tự")
     private String lessonName;
 
-    @NotBlank(message = "type is required (VIDEO or DOC)")
+    @NotBlank(message = "Loại bài học là bắt buộc (VIDEO hoặc DOC)")
     private String type;
 
     private String videoUrl;

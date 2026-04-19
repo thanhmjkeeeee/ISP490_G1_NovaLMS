@@ -13,10 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 public class AssignmentQuestionRequestDTO {
 
-    @NotEmpty(message = "Question IDs cannot be empty")
+    @NotEmpty(message = "Danh sách mã câu hỏi không được để trống")
     private List<Integer> questionIds;
 
-    @NotNull(message = "Skill is required")
+    @NotNull(message = "Kỹ năng là bắt buộc")
     private String skill; // LISTENING, READING, SPEAKING, WRITING
 
     private String itemType = "SINGLE"; // SINGLE or GROUP

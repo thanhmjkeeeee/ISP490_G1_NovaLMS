@@ -58,11 +58,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             summary.put("duplicateQuestionsDeleted", (long) deletedDuplicates);
 
             log.info("System maintenance cleanup completed: {}", summary);
-            return ResponseData.success("System Cleanup Successful", summary);
+            return ResponseData.success("Dọn dẹp hệ thống thành công", summary);
 
         } catch (Exception e) {
             log.error("Error during system cleanup: ", e);
-            return ResponseData.error(500, "Clean up failed: " + e.getMessage());
+            return ResponseData.error(500, "Dọn dẹp thất bại: " + e.getMessage());
         }
     }
 }

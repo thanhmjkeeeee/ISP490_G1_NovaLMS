@@ -8,7 +8,7 @@ public class GradeBookControllerNN {
 //    public ResponseData<Integer> addClass(@Valid @RequestBody ClassRequestDTO request) {
 //        try {
 //            Integer classId = classService.saveClass(request);
-//            return new ResponseData<>(HttpStatus.CREATED.value(), "Success", classId);
+//            return new ResponseData<>(HttpStatus.CREATED.value(), "Thành công", classId);
 //        } catch (Exception e) {
 //            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
 //        }
@@ -31,7 +31,7 @@ public class GradeBookControllerNN {
 //            @RequestParam(defaultValue = "0") int pageNo,
 //            @RequestParam(defaultValue = "10") int pageSize) {
 //        try {
-//            return new ResponseData<>(HttpStatus.OK.value(), "Success", classService.getAllClasses(pageNo, pageSize));
+//            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", classService.getAllClasses(pageNo, pageSize));
 //        } catch (Exception e) {
 //            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
 //        }

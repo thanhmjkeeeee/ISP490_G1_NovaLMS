@@ -24,7 +24,7 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
     @Override
     @Transactional(readOnly = true)
     public StudentDashboardDTO getDashboardData(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
         
         List<Registration> registrations = registrationRepository.findByUserEmail(email);
         List<EnrolledCourseDTO> enrolledCourses = new ArrayList<>();

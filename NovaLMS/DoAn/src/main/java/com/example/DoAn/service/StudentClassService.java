@@ -27,7 +27,7 @@ public class StudentClassService {
     public ResponseData<PageResponse<MyClassDTO>> getMyClasses(String email, String keyword, String status, int page, int size) {
         try {
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
             String searchKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
             String classStatus = (status != null && !status.trim().isEmpty()) ? status.trim() : null;
@@ -91,7 +91,7 @@ public class StudentClassService {
     public ResponseData<ClassDetailDTO> getClassDetail(String email, Integer classId) {
         try {
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
             // Verify enrollment
             Optional<Registration> regOpt = registrationRepository.findByUser_EmailAndClazz_ClassIdAndStatus(email, classId, "Approved");            if (regOpt.isEmpty()) {

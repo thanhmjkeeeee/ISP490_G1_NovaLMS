@@ -31,7 +31,7 @@ public class NotificationController {
             @PageableDefault(size = 20) Pageable pageable) {
         Long userId = extractUserId(auth);
         if (userId == null) {
-            return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+            return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
         }
         Page<Notification> inbox = notificationService.getInbox(userId, pageable);
         return ResponseEntity.ok(ResponseData.success(inbox));
@@ -41,7 +41,7 @@ public class NotificationController {
     public ResponseEntity<ResponseData<Map<String, Long>>> getUnreadCount(Authentication auth) {
         Long userId = extractUserId(auth);
         if (userId == null) {
-            return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+            return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
         }
         long count = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(ResponseData.success(Map.of("count", count)));
@@ -51,7 +51,7 @@ public class NotificationController {
     public ResponseEntity<ResponseData<List<Notification>>> getTopUnread(Authentication auth) {
         Long userId = extractUserId(auth);
         if (userId == null) {
-            return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+            return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
         }
         List<Notification> top = notificationService.getTopUnread(userId);
         return ResponseEntity.ok(ResponseData.success(top));
@@ -67,7 +67,7 @@ public class NotificationController {
     public ResponseEntity<ResponseData<Boolean>> markAllAsRead(Authentication auth) {
         Long userId = extractUserId(auth);
         if (userId == null) {
-            return ResponseEntity.status(401).body(ResponseData.error(401, "Unauthorized"));
+            return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
         }
         notificationService.markAllAsRead(userId);
         return ResponseEntity.ok(ResponseData.success(true));

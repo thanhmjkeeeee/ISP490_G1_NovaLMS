@@ -8,16 +8,16 @@ import java.io.Serializable;
 
 @Getter
 public class AccountRequestDTO implements Serializable {
-    @NotBlank(message = "Full name must not be blank")
+    @NotBlank(message = "Họ tên không được để trống")
     private String fullName;
 
-    @Email(message = "Invalid email format")
-    @NotBlank(message = "Email must not be blank")
+    @Email(message = "Định dạng email không hợp lệ")
+    @NotBlank(message = "Email không được để trống")
     private String email;
 
     private String mobile;
 
-    @NotNull(message = "Role ID must not be null")
+    @NotNull(message = "Vai trò (role) là bắt buộc")
     private Integer roleId;
 
     // Password is optional - only required for create, optional for update

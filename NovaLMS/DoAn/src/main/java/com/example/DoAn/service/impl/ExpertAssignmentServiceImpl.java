@@ -52,7 +52,7 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
 
         QuizCategory category = QuizCategory.fromValue(dto.getQuizCategory());
         if (category == null || !category.isAssignment()) {
-            throw new InvalidDataException("Invalid category for assignment");
+            throw new InvalidDataException("Loại bài tập không hợp lệ");
         }
 
         Quiz quiz = new Quiz();
@@ -104,7 +104,7 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
 
         String skill = dto.getSkill();
         if (!SEQUENTIAL_SKILLS.contains(skill)) {
-            throw new InvalidDataException("Invalid skill: " + skill);
+            throw new InvalidDataException("Kỹ năng không hợp lệ: " + skill);
         }
 
         List<QuizQuestion> existing = quizQuestionRepository.findByQuizQuizIdAndSkill(quizId, skill);

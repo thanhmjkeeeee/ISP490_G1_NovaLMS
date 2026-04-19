@@ -84,10 +84,7 @@
                 </div>
                 <div class="col-md-5">
                     <label class="form-label small fw-bold">Tìm kiếm nhanh</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" id="filterKeyword" class="form-control" placeholder="Tìm tên câu hỏi hoặc chủ đề...">
-                        <button class="btn btn-primary px-3" onclick="loadQuestions()"><i class="bi bi-search"></i></button>
-                    </div>
+                    <input type="text" id="filterKeyword" class="form-control form-control-sm" placeholder="Tìm tên câu hỏi hoặc chủ đề...">
                 </div>
             </div>
             <div class="mt-2">
@@ -451,6 +448,11 @@ async function deleteQuestion(id, type) {
             NovaQuestionFormSettings.fillFilterTypeSelect(document.getElementById('filterType'));
         }
     } catch (e) { console.error(e); }
+    let questionBankKeywordDebounce;
+    document.getElementById('filterKeyword').addEventListener('input', function () {
+        clearTimeout(questionBankKeywordDebounce);
+        questionBankKeywordDebounce = setTimeout(function () { loadQuestions(0); }, 400);
+    });
     loadQuestions();
 })();
 

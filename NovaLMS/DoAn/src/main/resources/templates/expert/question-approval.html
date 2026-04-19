@@ -46,14 +46,9 @@
                            placeholder="Tìm kiếm nội dung, chủ đề…">
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                    <div class="d-flex gap-2 w-100">
-                        <button type="button" class="btn btn-primary btn-sm flex-fill" onclick="applyFilters()">
-                            <i class="bi bi-funnel"></i> Lọc
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="clearFilters()" title="Xóa bộ lọc">
+                        <i class="bi bi-x-lg me-1"></i> Xóa bộ lọc
+                    </button>
                 </div>
             </form>
         </div>
@@ -193,6 +188,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
     rejectModal  = new bootstrap.Modal(document.getElementById('rejectModal'));
     previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+
+    ['filterSkill', 'filterCefr', 'filterType'].forEach(function (id) {
+        document.getElementById(id).addEventListener('change', function () { applyFilters(); });
+    });
+    let approvalKeywordDebounce;
+    document.getElementById('filterKeyword').addEventListener('input', function () {
+        clearTimeout(approvalKeywordDebounce);
+        approvalKeywordDebounce = setTimeout(function () { applyFilters(); }, 400);
+    });
+
     loadQueue();
 });
 

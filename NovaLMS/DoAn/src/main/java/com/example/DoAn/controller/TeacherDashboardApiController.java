@@ -21,13 +21,13 @@ public class TeacherDashboardApiController {
     @GetMapping
     public ResponseData<TeacherDashboardResponseDTO> getDashboard(Principal principal) {
         if (principal == null) {
-            return ResponseData.error(401, "Unauthorized: Please log in again");
+            return ResponseData.error(401, "Vui lòng đăng nhập lại.");
         }
         String email = getEmailFromPrincipal(principal);
         if (email == null) {
-            return ResponseData.error(400, "Bad Request: Email not found");
+            return ResponseData.error(400, "Không lấy được email từ tài khoản. Vui lòng thử lại.");
         }
-        return ResponseData.success("OK", teacherDashboardService.getDashboardData(email));
+        return ResponseData.success("Thành công", teacherDashboardService.getDashboardData(email));
     }
 
     private String getEmailFromPrincipal(Principal principal) {

@@ -36,6 +36,7 @@ public class TeacherViewController {
 
     private final EntityManager entityManager;
     private final ClassSessionRepository classSessionRepository;
+    private final RescheduleRequestRepository rescheduleRequestRepository;
     private final RescheduleService rescheduleService;
     private final SessionLessonRepository sessionLessonRepository;
     private final SessionQuizRepository sessionQuizRepository;
@@ -43,12 +44,14 @@ public class TeacherViewController {
 
     public TeacherViewController(EntityManager entityManager,
             ClassSessionRepository classSessionRepository,
+            RescheduleRequestRepository rescheduleRequestRepository,
             RescheduleService rescheduleService,
             SessionLessonRepository sessionLessonRepository,
             SessionQuizRepository sessionQuizRepository,
             ITeacherDashboardService teacherDashboardService) {
         this.entityManager = entityManager;
         this.classSessionRepository = classSessionRepository;
+        this.rescheduleRequestRepository = rescheduleRequestRepository;
         this.rescheduleService = rescheduleService;
         this.sessionLessonRepository = sessionLessonRepository;
         this.sessionQuizRepository = sessionQuizRepository;
@@ -133,7 +136,7 @@ public class TeacherViewController {
 
         String email = getEmailFromPrincipal(principal);
         if (email == null)
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         log.info("Fetching classes for email: {}", email);
 
@@ -196,10 +199,10 @@ public class TeacherViewController {
             data.put("totalElements", total);
             data.put("last", page >= totalPages - 1);
 
-            return ResponseData.success("Success", data);
+            return ResponseData.success("Thành công", data);
         } catch (Exception e) {
             log.error("Error in myClasses: ", e);
-            return ResponseData.error(500, "Internal Server Error: " + e.getMessage());
+            return ResponseData.error(500, "Lỗi máy chủ: " + e.getMessage());
         }
     }
 
@@ -208,7 +211,7 @@ public class TeacherViewController {
     public ResponseData<List<Map<String, Object>>> schedule(Principal principal) {
         Integer teacherId = getTeacherId(principal);
         if (teacherId == null) {
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
         }
 
         @SuppressWarnings("unchecked")
@@ -231,7 +234,7 @@ public class TeacherViewController {
                 .setParameter("teacherId", teacherId)
                 .getResultList();
 
-        return ResponseData.success("Success", items);
+        return ResponseData.success("Thành công", items);
     }
 
     @GetMapping("/api/students")
@@ -239,7 +242,7 @@ public class TeacherViewController {
     public ResponseData<List<Map<String, Object>>> students(Principal principal) {
         Integer teacherId = getTeacherId(principal);
         if (teacherId == null) {
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
         }
 
         @SuppressWarnings("unchecked")
@@ -265,7 +268,7 @@ public class TeacherViewController {
                 .setParameter("teacherId", teacherId)
                 .getResultList();
 
-        return ResponseData.success("Success", items);
+        return ResponseData.success("Thành công", items);
     }
 
     @GetMapping("/api/quiz-bank")
@@ -273,7 +276,7 @@ public class TeacherViewController {
     public ResponseData<List<Map<String, Object>>> quizBank(Principal principal) {
         Integer teacherId = getTeacherId(principal);
         if (teacherId == null) {
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
         }
 
         @SuppressWarnings("unchecked")
@@ -292,7 +295,7 @@ public class TeacherViewController {
                 .setParameter("teacherId", teacherId)
                 .getResultList();
 
-        return ResponseData.success("Success", items);
+        return ResponseData.success("Thành công", items);
     }
 
     @GetMapping("/api/timetable")
@@ -305,7 +308,7 @@ public class TeacherViewController {
         try {
             Integer teacherId = getTeacherId(principal);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             LocalDate weekStart;
             if (date != null && !date.isEmpty()) {
@@ -365,10 +368,10 @@ public class TeacherViewController {
             result.put("weekEnd", weekEnd.minusDays(1).format(isoFmt));
             result.put("grid", grid);
 
-            return ResponseData.success("Timetable loaded", result);
+            return ResponseData.success("Đã tải lịch giảng dạy", result);
         } catch (Exception e) {
             log.error("Timetable error for teacher: ", e);
-            return ResponseData.error(500, "Internal Server Error: " + e.getMessage());
+            return ResponseData.error(500, "Lỗi máy chủ: " + e.getMessage());
         }
     }
 
@@ -381,7 +384,7 @@ public class TeacherViewController {
         try {
             Integer teacherId = getTeacherId(principal);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             ClassSession session = classSessionRepository.findWithDetailsById(sessionId).orElse(null);
             if (session == null)
@@ -465,7 +468,7 @@ public class TeacherViewController {
             return ResponseData.success("Chi tiết buổi học", detail);
         } catch (Exception e) {
             log.error("Error loading session detail for id {}: ", sessionId, e);
-            return ResponseData.error(500, "Internal Server Error: " + e.getMessage());
+            return ResponseData.error(500, "Lỗi máy chủ: " + e.getMessage());
         }
     }
 
@@ -475,7 +478,73 @@ public class TeacherViewController {
         Optional<RescheduleRequest> pending = rescheduleService.getPendingRequest(sessionId);
         Map<String, Object> data = new HashMap<>();
         data.put("hasPending", pending.isPresent());
-        return ResponseData.success("Success", data);
+        return ResponseData.success("Thành công", data);
+    }
+
+    /**
+     * Các slot giờ bắt đầu (HH:mm) đã bận trong ngày — mọi lớp của GV + yêu cầu đổi lịch PENDING,
+     * trừ buổi {@code excludeSessionId} (buổi đang đổi lịch) để không tự khóa slot hiện tại của chính nó.
+     */
+    @GetMapping("/api/reschedule/busy-slots")
+    @ResponseBody
+    public ResponseData<List<String>> busySlotsForReschedule(
+            @RequestParam String date,
+            @RequestParam(required = false) Integer excludeSessionId,
+            Principal principal) {
+        Integer teacherId = getTeacherId(principal);
+        if (teacherId == null) {
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
+        }
+        try {
+            LocalDate d = LocalDate.parse(date);
+            LocalDateTime dayStart = d.atStartOfDay();
+            LocalDateTime dayEnd = d.plusDays(1).atStartOfDay();
+
+            LinkedHashSet<String> busy = new LinkedHashSet<>();
+            List<ClassSession> sessions = classSessionRepository.findByTeacherAndDateRange(
+                    teacherId, dayStart, dayEnd);
+            for (ClassSession s : sessions) {
+                if (excludeSessionId != null && excludeSessionId.equals(s.getSessionId())) {
+                    continue;
+                }
+                String n = normalizeStartTimeForSlot(s.getStartTime());
+                if (n != null) {
+                    busy.add(n);
+                }
+            }
+            List<String> pendingSlots = rescheduleRequestRepository.findPendingNewStartTimesForTeacherOnDay(
+                    teacherId, dayStart, dayEnd, excludeSessionId);
+            for (String t : pendingSlots) {
+                String n = normalizeStartTimeForSlot(t);
+                if (n != null) {
+                    busy.add(n);
+                }
+            }
+            return ResponseData.success("Thành công", new ArrayList<>(busy));
+        } catch (Exception e) {
+            log.error("busy-slots error: ", e);
+            return ResponseData.error(400, "Ngày không hợp lệ: " + e.getMessage());
+        }
+    }
+
+    private static String normalizeStartTimeForSlot(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String s = raw.trim();
+        int colon = s.indexOf(':');
+        if (colon <= 0) {
+            return null;
+        }
+        try {
+            int h = Integer.parseInt(s.substring(0, colon).trim());
+            String after = s.substring(colon + 1);
+            String mPart = after.length() >= 2 ? after.substring(0, 2) : after;
+            int mi = Integer.parseInt(mPart.replaceAll("\\D", ""));
+            return String.format("%02d:%02d", h, mi);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @PostMapping("/api/session/{sessionId}/reschedule")
@@ -497,7 +566,7 @@ public class TeacherViewController {
     @ResponseBody
     public ResponseData<List<RescheduleResponseDTO>> getMyRescheduleRequests(Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        return ResponseData.success("Success", rescheduleService.getTeacherRequests(email));
+        return ResponseData.success("Thành công", rescheduleService.getTeacherRequests(email));
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -509,7 +578,7 @@ public class TeacherViewController {
     public ResponseData<Map<String, Object>> dashboardStats(Principal principal) {
         Integer teacherId = getTeacherId(principal);
         if (teacherId == null)
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         List<ClassSession> sessions = classSessionRepository.findByTeacherAndDateRange(
                 teacherId,

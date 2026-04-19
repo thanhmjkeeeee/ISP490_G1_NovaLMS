@@ -299,7 +299,7 @@ async function uploadRecording() {
     try {
         const resp = await fetch('/api/v1/upload/audio', { method: 'POST', body: formData });
         const data = await resp.json();
-        if (!data.url) throw new Error('No URL returned');
+        if (!data.url) throw new Error('Máy chủ không trả về URL tải lên');
 
         currentRecordingUrl = data.url;
 

@@ -113,10 +113,7 @@
                 <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle p-2" title="Đang trực tuyến"></span>
               </div>
               <h5 id="teacherName" class="fw-bold mb-1 text-dark">Đang cập nhật</h5>
-              <p class="text-primary small fw-bold mb-3">Chuyên gia đào tạo</p>
-              <button class="btn btn-light rounded-pill w-100 text-primary fw-bold shadow-sm transition-all hover-primary">
-                <i class="bi bi-chat-dots-fill me-2"></i>Nhắn tin trao đổi
-              </button>
+              <p class="text-primary small fw-bold mb-0">Chuyên gia đào tạo</p>
             </div>
           </div>
         </div>
@@ -140,7 +137,7 @@
 
       try {
           const response = await fetch(`/api/v1/learning/course/${courseId}`);
-          if (!response.ok) throw new Error('Network response was not ok');
+          if (!response.ok) throw new Error('Phản hồi từ máy chủ không hợp lệ');
 
           const result = await response.json();
 

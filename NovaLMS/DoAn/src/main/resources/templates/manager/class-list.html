@@ -61,7 +61,7 @@
                             <option value="">-- Tất cả giảng viên --</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="filterStatus" class="form-select input-custom">
                             <option value="">Tất cả</option>
@@ -69,13 +69,6 @@
                             <option value="Open">Mở</option>
                             <option value="Closed">Đóng</option>
                         </select>
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" onclick="loadClassData(0)"
-                                class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm"
-                                style="background-color: #3b82f6;">
-                            <i class="bi bi-filter"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -170,6 +163,9 @@
     document.addEventListener("DOMContentLoaded", async () => {
         await initFilters();
         loadClassData(0);
+        ['filterClassName', 'filterCourseName', 'filterTeacherName', 'filterStatus'].forEach(function (id) {
+            document.getElementById(id).addEventListener('change', function () { loadClassData(0); });
+        });
     });
 
     async function loadClassData(pageNo) {

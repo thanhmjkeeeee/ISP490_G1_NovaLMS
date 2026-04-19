@@ -57,14 +57,14 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional(readOnly = true)
     public QuizTakingDTO getQuizForTaking(Integer quizId, String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         if (!"PUBLISHED".equals(quiz.getStatus())) {
             throw new RuntimeException("Quiz chưa được xuất bản");
         }
 
-        // Tìm classId và sessionId để redirect đúng
+        // Tìm clas sId và sessionId để redirect đúng
         // Ưu tiên lấy từ session_quiz (buổi học N:N) — luôn đúng cho quiz gắn buổi học
         // Fallback sang quiz.getClazz() cho quiz gắn class trực tiếp
         Integer classId = null;
@@ -130,7 +130,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                         user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
             }
             if (!enrolled)
-                throw new RuntimeException("User is not enrolled in this course");
+                throw new RuntimeException("Bạn chưa đăng ký khóa học này");
         }
 
         if ("COURSE_QUIZ".equals(quiz.getQuizCategory())) {
@@ -146,7 +146,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                         user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
             }
             if (!enrolled)
-                throw new RuntimeException("User is not enrolled in this course");
+                throw new RuntimeException("Bạn chưa đăng ký khóa học này");
         }
 
         // Kiểm tra xem có attempt nào đang in progress/locked không
@@ -256,8 +256,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public Integer submitQuiz(Integer quizId, String email, Map<Integer, Object> answers) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         // Kiểm tra số lần đã làm so với giới hạn cho phép
         long attemptCount = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(),
@@ -450,7 +450,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional(readOnly = true)
     public QuizResultDetailDTO getQuizResult(Integer resultId, String email) {
         QuizResult qr = quizResultRepository.findById(resultId)
-                .orElseThrow(() -> new RuntimeException("Result not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         boolean isStudent = qr.getUser().getEmail().equals(email);
 
         // Teacher có quyền xem nếu: tạo quiz HOẶC được gán lớp quiz HOẶC phụ trách
@@ -473,7 +473,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         boolean isTeacher = isCreator || isAssignedTeacher || isCourseTeacher;
 
         if (!isStudent && !isTeacher) {
-            throw new RuntimeException("Unauthorized");
+            throw new RuntimeException("Không được phép thực hiện.");
         }
 
         List<QuizAnswer> answers = qr.getQuizAnswers();
@@ -815,7 +815,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional
     public void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email) {
         QuizResult qr = quizResultRepository.findById(resultId)
-                .orElseThrow(() -> new RuntimeException("Result not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         Quiz quiz = qr.getQuiz();
 
         // Cho phép teacher đã tạo quiz HOẶC teacher được phân công lớp HOẶC teacher phụ
@@ -835,7 +835,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
         if (!isCreator && !isAssignedTeacher && !isCourseTeacher) {
-            throw new RuntimeException("Unauthorized: Bạn không có quyền chấm bài Quiz này");
+            throw new RuntimeException("Bạn không có quyền chấm bài kiểm tra này.");
         }
 
         if (qr.getPassed() != null) {
@@ -952,7 +952,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Transactional
     public void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email) {
         QuizResult qr = quizResultRepository.findById(resultId)
-                .orElseThrow(() -> new RuntimeException("Result not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         Quiz quiz = qr.getQuiz();
 
         // Authorization check (same as legacy method)
@@ -971,7 +971,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
         if (!isCreator && !isAssignedTeacher && !isCourseTeacher) {
-            throw new RuntimeException("Unauthorized: Bạn không có quyền chấm bài Quiz này");
+            throw new RuntimeException("Bạn không có quyền chấm bài kiểm tra này.");
         }
 
         List<QuestionGradingRequestDTO> gradingItems = request.getGradingItems();
@@ -1091,8 +1091,8 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public Map<String, Object> handleViolation(Integer quizId, String email, String reason) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
-        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Quiz not found"));
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+        Quiz quiz = quizRepository.findById(quizId).orElseThrow(() -> new RuntimeException("Không tìm thấy bài kiểm tra"));
 
         QuizResult qr = quizResultRepository.findByQuizQuizIdAndUser_EmailAndStatus(quizId, email, "IN_PROGRESS")
                 .orElseGet(() -> {
@@ -1160,7 +1160,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public void unlockQuiz(Integer resultId) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Not found"));
+        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         if ("LOCKED".equals(qr.getStatus())) {
             quizResultRepository.delete(qr);
         }
@@ -1169,9 +1169,9 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional
     public void requestUnlock(Integer resultId, String email, String reason) {
-        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Not found"));
+        QuizResult qr = quizResultRepository.findById(resultId).orElseThrow(() -> new RuntimeException("Không tìm thấy"));
         if (!qr.getUser().getEmail().equals(email))
-            throw new RuntimeException("Unauthorized");
+            throw new RuntimeException("Không được phép thực hiện.");
         if (!"LOCKED".equals(qr.getStatus()))
             throw new RuntimeException("Bài thi không bị khóa");
 

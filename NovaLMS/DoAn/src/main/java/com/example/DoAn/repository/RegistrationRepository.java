@@ -122,6 +122,22 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("status") String status
     );
 
+    /**
+     * Cùng một khóa học không được tham gia hai lớp song song: còn đăng ký hiệu lực ở lớp khác.
+     * (Approved / chờ thanh toán Submitted / chờ PayOS PENDING — không tính Cancelled, Rejected)
+     */
+    @Query("""
+            SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r
+            WHERE r.user.userId = :userId
+              AND r.course.courseId = :courseId
+              AND r.clazz.classId <> :classId
+              AND r.status IN ('Approved', 'Submitted', 'PENDING')
+            """)
+    boolean existsActiveRegistrationForSameCourseOtherClass(
+            @Param("userId") Integer userId,
+            @Param("courseId") Integer courseId,
+            @Param("classId") Integer classId);
+
     // Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
     @Query("SELECT r FROM Registration r WHERE r.course.courseId = :courseId")
     List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
