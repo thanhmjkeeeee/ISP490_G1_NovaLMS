@@ -38,6 +38,7 @@ public class TeacherQuizService {
     private final EmailService emailService;
     private final INotificationService notificationService;
     private final QuestionGroupRepository questionGroupRepository;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -45,14 +46,13 @@ public class TeacherQuizService {
     private static final Set<String> NO_OPTIONS_TYPES = Set.of("WRITING", "SPEAKING");
     private static final Set<String> VALID_QUESTION_TYPES = Set.of(
             "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK",
-            "MATCHING", "WRITING", "SPEAKING"
-    );
+            "MATCHING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_SKILLS = Set.of("LISTENING", "READING", "WRITING", "SPEAKING");
     private static final Set<String> VALID_CEFR = Set.of("A1", "A2", "B1", "B2", "C1", "C2");
     private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  QUIZ MANAGEMENT
+    // QUIZ MANAGEMENT
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
@@ -79,8 +79,21 @@ public class TeacherQuizService {
                     .maxAttempts(request.getMaxAttempts())
                     .numberOfQuestions(request.getNumberOfQuestions())
                     .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
-                    .showAnswerAfterSubmit(request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
+                    .showAnswerAfterSubmit(
+                            request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
                     .user(teacher)
+                    .isSequential(Boolean.TRUE.equals(request.getIsSequential()))
+                    .skillOrder(
+                            request.getSkillOrder() != null ? objectMapper.writeValueAsString(request.getSkillOrder())
+                                    : null)
+                    .timeLimitPerSkill(request.getTimeLimitPerSkill() != null
+                            ? objectMapper.writeValueAsString(request.getTimeLimitPerSkill())
+                            : null)
+                    .deadline(request.getDeadline())
+                    .openAt(request.getOpenAt())
+                    .closeAt(request.getCloseAt())
+                    .allowExternalSubmission(Boolean.TRUE.equals(request.getAllowExternalSubmission()))
+                    .externalSubmissionInstruction(request.getExternalSubmissionInstruction())
                     .build();
 
             // LESSON_QUIZ — attach to lesson
@@ -113,7 +126,8 @@ public class TeacherQuizService {
             // Override with explicit courseId if provided
             if (request.getCourseId() != null) {
                 Course course = courseRepository.findById(request.getCourseId()).orElse(null);
-                if (course != null) quiz.setCourse(course);
+                if (course != null)
+                    quiz.setCourse(course);
             }
 
             quizRepository.save(quiz);
@@ -130,22 +144,50 @@ public class TeacherQuizService {
     public ResponseData<TeacherQuizDTO> updateQuiz(Integer quizId, QuizRequestDTO request, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             boolean hasAttempts = quizResultRepository.countByQuizQuizId(quizId) > 0;
             if (hasAttempts && !"DRAFT".equals(quiz.getStatus())) {
                 return ResponseData.error(400, "Không thể cập nhật quiz đã có học viên làm bài");
             }
 
-            if (request.getTitle() != null) quiz.setTitle(request.getTitle());
-            if (request.getDescription() != null) quiz.setDescription(request.getDescription());
-            if (request.getTimeLimitMinutes() != null) quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
-            if (request.getPassScore() != null) quiz.setPassScore(request.getPassScore());
-            if (request.getMaxAttempts() != null) quiz.setMaxAttempts(request.getMaxAttempts());
-            if (request.getNumberOfQuestions() != null) quiz.setNumberOfQuestions(request.getNumberOfQuestions());
-            if (request.getQuestionOrder() != null) quiz.setQuestionOrder(request.getQuestionOrder());
-            if (request.getShowAnswerAfterSubmit() != null) quiz.setShowAnswerAfterSubmit(request.getShowAnswerAfterSubmit());
-            if (request.getStatus() != null) quiz.setStatus(request.getStatus());
+            if (request.getTitle() != null)
+                quiz.setTitle(request.getTitle());
+            if (request.getDescription() != null)
+                quiz.setDescription(request.getDescription());
+            if (request.getTimeLimitMinutes() != null)
+                quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
+            if (request.getPassScore() != null)
+                quiz.setPassScore(request.getPassScore());
+            if (request.getMaxAttempts() != null)
+                quiz.setMaxAttempts(request.getMaxAttempts());
+            if (request.getNumberOfQuestions() != null)
+                quiz.setNumberOfQuestions(request.getNumberOfQuestions());
+            if (request.getQuestionOrder() != null)
+                quiz.setQuestionOrder(request.getQuestionOrder());
+            if (request.getShowAnswerAfterSubmit() != null)
+                quiz.setShowAnswerAfterSubmit(request.getShowAnswerAfterSubmit());
+            if (request.getStatus() != null)
+                quiz.setStatus(request.getStatus());
+
+            if (request.getIsSequential() != null)
+                quiz.setIsSequential(request.getIsSequential());
+            if (request.getSkillOrder() != null)
+                quiz.setSkillOrder(objectMapper.writeValueAsString(request.getSkillOrder()));
+            if (request.getTimeLimitPerSkill() != null)
+                quiz.setTimeLimitPerSkill(objectMapper.writeValueAsString(request.getTimeLimitPerSkill()));
+            if (request.getDeadline() != null)
+                quiz.setDeadline(request.getDeadline());
+            if (request.getOpenAt() != null)
+                quiz.setOpenAt(request.getOpenAt());
+            if (request.getCloseAt() != null)
+                quiz.setCloseAt(request.getCloseAt());
+
+            if (request.getAllowExternalSubmission() != null)
+                quiz.setAllowExternalSubmission(request.getAllowExternalSubmission());
+            if (request.getExternalSubmissionInstruction() != null)
+                quiz.setExternalSubmissionInstruction(request.getExternalSubmissionInstruction());
 
             quizRepository.save(quiz);
             return ResponseData.success("Cập nhật thành công", toTeacherQuizDTO(quiz));
@@ -161,7 +203,8 @@ public class TeacherQuizService {
     public ResponseData<TeacherQuizDTO> publishQuiz(Integer quizId, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             if ("PUBLISHED".equals(quiz.getStatus())) {
                 return ResponseData.error(400, "Quiz đã được publish rồi");
@@ -190,13 +233,15 @@ public class TeacherQuizService {
 
     /**
      * Mở/đóng quiz cho học sinh làm (toggle isOpen).
-     * Teacher có thể mở/đóng quiz bất kỳ lúc nào mà không cần đổi status DRAFT/PUBLISHED.
+     * Teacher có thể mở/đóng quiz bất kỳ lúc nào mà không cần đổi status
+     * DRAFT/PUBLISHED.
      */
     @Transactional
     public ResponseData<TeacherQuizDTO> toggleQuizOpen(Integer quizId, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             // Toggle: false -> true (mở), true -> false (đóng)
             Boolean current = quiz.getIsOpen();
@@ -219,7 +264,8 @@ public class TeacherQuizService {
     public ResponseData<Void> deleteQuiz(Integer quizId, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             if (quizResultRepository.countByQuizQuizId(quizId) > 0) {
                 return ResponseData.error(400, "Không thể xóa quiz đã có học viên làm bài");
@@ -239,7 +285,8 @@ public class TeacherQuizService {
     public ResponseData<TeacherQuizDTO> getQuizById(Integer quizId) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
             return ResponseData.success("Chi tiết quiz", toTeacherQuizDTO(quiz));
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
@@ -275,11 +322,12 @@ public class TeacherQuizService {
                 return ResponseData.error(403, "Bạn không phải giáo viên của lớp này");
             }
 
-            // 4. Lấy quiz của course mà lớp này thuộc về
+            // 4. Lấy quiz của course mà lớp này thuộc về (bao gồm cả bài của expert đã publish)
             List<Quiz> quizzes = List.of();
             if (targetClass.getCourse() != null) {
-                quizzes = quizRepository.findAllByCourseCourseIdIn(
-                        List.of(targetClass.getCourse().getCourseId()));
+                quizzes = quizRepository.findAllVisibleForTeacher(
+                        List.of(targetClass.getCourse().getCourseId()), 
+                        teacher.getUserId());
             }
 
             List<TeacherQuizDTO> dtos = quizzes.stream()
@@ -292,7 +340,7 @@ public class TeacherQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  QUESTION MANAGEMENT (TEACHER PRIVATE)
+    // QUESTION MANAGEMENT (TEACHER PRIVATE)
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
@@ -351,29 +399,26 @@ public class TeacherQuizService {
                 }
             }
 
-            return ResponseData.success("Tạo câu hỏi thành công (chờ duyệt để thêm vào bank)", toTeacherQuestionDTO(question));
+            return ResponseData.success("Tạo câu hỏi thành công (chờ duyệt để thêm vào bank)",
+                    toTeacherQuestionDTO(question));
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
     }
-
-    /**
-     * Thêm câu hỏi (từ bank đã PUBLISHED hoặc từ private đã tạo) vào quiz.
-     * @param quizId quiz cần thêm câu hỏi
-     * @param questionId câu hỏi cần thêm (từ bank đã publish hoặc private đã tạo)
-     * @param request metadata (orderIndex, points) - nullable
-     */
     @Transactional
     public ResponseData<TeacherQuizDTO> addQuestionToQuiz(Integer quizId, Integer questionId,
-            Integer orderIndex, BigDecimal points, String email) {
+            Integer orderIndex, BigDecimal points, String skill, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             Question question = questionRepository.findById(questionId).orElse(null);
-            if (question == null) return ResponseData.error(404, "Không tìm thấy câu hỏi");
+            if (question == null)
+                return ResponseData.error(404, "Không tìm thấy câu hỏi");
 
-            // Chỉ cho phép thêm: PUBLISHED (từ bank) hoặc PENDING_REVIEW (private của chính teacher)
+            // Chỉ cho phép thêm: PUBLISHED (từ bank) hoặc PENDING_REVIEW (private của chính
+            // teacher)
             String allowed = question.getStatus();
             boolean canAdd = "PUBLISHED".equals(allowed) || "PENDING_REVIEW".equals(allowed);
             if (!canAdd) {
@@ -391,6 +436,7 @@ public class TeacherQuizService {
                     .question(question)
                     .orderIndex(orderIndex != null ? orderIndex : currentCount + 1)
                     .points(points != null ? points : BigDecimal.ONE)
+                    .skill(skill)
                     .build();
 
             quizQuestionRepository.save(qq);
@@ -407,7 +453,8 @@ public class TeacherQuizService {
     public ResponseData<TeacherQuizDTO> removeQuestionFromQuiz(Integer quizId, Integer questionId, String email) {
         try {
             Quiz quiz = quizRepository.findById(quizId).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
+            if (quiz == null)
+                return ResponseData.error(404, "Không tìm thấy quiz");
 
             if (!quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quizId, questionId)) {
                 return ResponseData.error(404, "Câu hỏi không tồn tại trong quiz này");
@@ -421,14 +468,16 @@ public class TeacherQuizService {
     }
 
     /**
-     * Gửi câu hỏi lên expert để duyệt (chuyển từ PENDING_REVIEW -> submitted for review).
+     * Gửi câu hỏi lên expert để duyệt (chuyển từ PENDING_REVIEW -> submitted for
+     * review).
      * Thực chất đã ở PENDING_REVIEW khi tạo, action này có thể dùng để resubmit.
      */
     @Transactional
     public ResponseData<TeacherQuestionDTO> submitQuestionForReview(Integer questionId, String email) {
         try {
             Question question = questionRepository.findById(questionId).orElse(null);
-            if (question == null) return ResponseData.error(404, "Không tìm thấy câu hỏi");
+            if (question == null)
+                return ResponseData.error(404, "Không tìm thấy câu hỏi");
 
             // Verify ownership
             if (question.getUser() == null || !question.getUser().getEmail().equals(email)) {
@@ -481,22 +530,25 @@ public class TeacherQuizService {
             List<Question> questions = questionRepository.findAll().stream()
                     .filter(q -> "PUBLISHED".equals(q.getStatus()))
                     .filter(q -> skill == null || skill.isBlank() || skill.equalsIgnoreCase(q.getSkill()))
-                    .filter(q -> cefrLevel == null || cefrLevel.isBlank() || cefrLevel.equalsIgnoreCase(q.getCefrLevel()))
-                    .filter(q -> questionType == null || questionType.isBlank() || questionType.equalsIgnoreCase(q.getQuestionType()))
+                    .filter(q -> cefrLevel == null || cefrLevel.isBlank()
+                            || cefrLevel.equalsIgnoreCase(q.getCefrLevel()))
+                    .filter(q -> questionType == null || questionType.isBlank()
+                            || questionType.equalsIgnoreCase(q.getQuestionType()))
                     .filter(q -> keyword == null || keyword.isBlank() ||
                             (q.getContent() != null && q.getContent().toLowerCase().contains(keyword.toLowerCase())))
                     .collect(Collectors.toList());
 
-            List<QuestionBankSimpleDTO> dtos = questions.stream().map(q -> {
+            List<QuestionBankSimpleDTO> dtos = questions.stream().<QuestionBankSimpleDTO>map(q -> {
                 List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(q.getQuestionId());
-                List<QuestionBankSimpleDTO.AnswerOptionSimpleDTO> optDTOs = opts.stream()
-                        .map(o -> QuestionBankSimpleDTO.AnswerOptionSimpleDTO.builder()
-                                .answerOptionId(o.getAnswerOptionId())
-                                .title(o.getTitle())
-                                .correctAnswer(o.getCorrectAnswer())
-                                .orderIndex(o.getOrderIndex())
-                                .matchTarget(o.getMatchTarget())
-                                .build())
+                List<QuestionBankSimpleDTO.AnswerOptionSimpleDTO> optDTOs = opts
+                        .stream().<QuestionBankSimpleDTO.AnswerOptionSimpleDTO>map(
+                                o -> QuestionBankSimpleDTO.AnswerOptionSimpleDTO.builder()
+                                        .answerOptionId(o.getAnswerOptionId())
+                                        .title(o.getTitle())
+                                        .correctAnswer(o.getCorrectAnswer())
+                                        .orderIndex(o.getOrderIndex())
+                                        .matchTarget(o.getMatchTarget())
+                                        .build())
                         .collect(Collectors.toList());
 
                 Integer groupId = q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupId() : null;
@@ -523,7 +575,8 @@ public class TeacherQuizService {
     }
 
     /**
-     * Lấy skill summary cho quiz: số câu hỏi đã publish / đang chờ duyệt theo từng kỹ năng.
+     * Lấy skill summary cho quiz: số câu hỏi đã publish / đang chờ duyệt theo từng
+     * kỹ năng.
      */
     @Transactional(readOnly = true)
     public List<QuizSkillSummaryDTO> getSkillSummary(Integer quizId) {
@@ -551,12 +604,13 @@ public class TeacherQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
+    // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
     private void validateAnswerOptions(QuestionBankRequestDTO request) {
         String type = request.getQuestionType();
-        if (NO_OPTIONS_TYPES.contains(type)) return;
+        if (NO_OPTIONS_TYPES.contains(type))
+            return;
 
         if (request.getOptions() == null || request.getOptions().isEmpty()) {
             throw new RuntimeException("Câu hỏi loại " + type + " phải có ít nhất 2 đáp án");
@@ -594,20 +648,22 @@ public class TeacherQuizService {
     }
 
     private TeacherQuizDTO toTeacherQuizDTO(Quiz quiz) {
-        List<QuizQuestion> quizQuestions = quizQuestionRepository.findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
+        List<QuizQuestion> quizQuestions = quizQuestionRepository
+                .findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
         boolean hasAttempts = quizResultRepository.countByQuizQuizId(quiz.getQuizId()) > 0;
 
-        List<TeacherQuizDTO.QuizQuestionSimpleDTO> questionDTOs = quizQuestions.stream()
-                .map(qq -> {
+        List<TeacherQuizDTO.QuizQuestionSimpleDTO> questionDTOs = quizQuestions
+                .stream().<TeacherQuizDTO.QuizQuestionSimpleDTO>map(qq -> {
                     Question q = qq.getQuestion();
                     List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(q.getQuestionId());
-                    List<TeacherQuizDTO.AnswerOptionSimpleDTO> optDTOs = opts.stream()
-                            .map(o -> TeacherQuizDTO.AnswerOptionSimpleDTO.builder()
-                                    .answerOptionId(o.getAnswerOptionId())
-                                    .title(o.getTitle())
-                                    .correctAnswer(o.getCorrectAnswer())
-                                    .orderIndex(o.getOrderIndex())
-                                    .build())
+                    List<TeacherQuizDTO.AnswerOptionSimpleDTO> optDTOs = opts
+                            .stream().<TeacherQuizDTO.AnswerOptionSimpleDTO>map(
+                                    o -> TeacherQuizDTO.AnswerOptionSimpleDTO.builder()
+                                            .answerOptionId(o.getAnswerOptionId())
+                                            .title(o.getTitle())
+                                            .correctAnswer(o.getCorrectAnswer())
+                                            .orderIndex(o.getOrderIndex())
+                                            .build())
                             .collect(Collectors.toList());
 
                     return TeacherQuizDTO.QuizQuestionSimpleDTO.builder()
@@ -683,7 +739,7 @@ public class TeacherQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  DTOs
+    // DTOs
     // ═══════════════════════════════════════════════════════════════════════
 
     @lombok.Data
@@ -758,8 +814,8 @@ public class TeacherQuizService {
         private String explanation;
         private String audioUrl;
         private String imageUrl;
-        private String status;   // PENDING_REVIEW, PUBLISHED, ARCHIVED
-        private String source;    // TEACHER_PRIVATE
+        private String status; // PENDING_REVIEW, PUBLISHED, ARCHIVED
+        private String source; // TEACHER_PRIVATE
         private String createdByName;
         private java.time.LocalDateTime createdAt;
         private List<AnswerOptionSimpleDTO> options;
@@ -807,7 +863,7 @@ public class TeacherQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  AI IMPORT (Teacher)
+    // AI IMPORT (Teacher)
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
@@ -817,15 +873,12 @@ public class TeacherQuizService {
     @Transactional
     public ResponseData<AIImportResultDTO> importAIQuestions(AIImportRequestDTO request, String email) {
         try {
-            if (request.getQuizId() == null) {
-                return ResponseData.error(400, "quizId không được để trống");
+            Quiz quiz = null;
+            if (request.getQuizId() != null) {
+                quiz = quizRepository.findById(request.getQuizId()).orElse(null);
+                if (quiz == null)
+                    return ResponseData.error(404, "Không tìm thấy quiz");
             }
-            if (request.getQuestions() == null || request.getQuestions().isEmpty()) {
-                return ResponseData.error(400, "Danh sách câu hỏi trống");
-            }
-
-            Quiz quiz = quizRepository.findById(request.getQuizId()).orElse(null);
-            if (quiz == null) return ResponseData.error(404, "Không tìm thấy quiz");
 
             User teacher = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
@@ -851,14 +904,19 @@ public class TeacherQuizService {
 
             for (AIImportRequestDTO.AIQuestionDTO q : request.getQuestions()) {
                 // Validate
-                if (q.getContent() == null || q.getContent().isBlank()) continue;
-                if (q.getQuestionType() == null || !VALID_QUESTION_TYPES.contains(q.getQuestionType())) continue;
-                if (q.getSkill() == null || !VALID_SKILLS.contains(q.getSkill())) continue;
-                if (q.getCefrLevel() == null || !VALID_CEFR.contains(q.getCefrLevel())) continue;
+                if (q.getContent() == null || q.getContent().isBlank())
+                    continue;
+                if (q.getQuestionType() == null || !VALID_QUESTION_TYPES.contains(q.getQuestionType()))
+                    continue;
+                if (q.getSkill() == null || !VALID_SKILLS.contains(q.getSkill()))
+                    continue;
+                if (q.getCefrLevel() == null || !VALID_CEFR.contains(q.getCefrLevel()))
+                    continue;
 
                 // Validate options for choice types
                 boolean isNoOptions = NO_OPTIONS_TYPES.contains(q.getQuestionType());
-                if (!isNoOptions && (q.getOptions() == null || q.getOptions().isEmpty())) continue;
+                if (!isNoOptions && (q.getOptions() == null || q.getOptions().isEmpty()))
+                    continue;
 
                 // Create question
                 Question question = Question.builder()
@@ -882,7 +940,8 @@ public class TeacherQuizService {
                 if (q.getOptions() != null) {
                     for (int i = 0; i < q.getOptions().size(); i++) {
                         AIImportRequestDTO.AIOptionDTO optDto = q.getOptions().get(i);
-                        if (optDto.getTitle() == null || optDto.getTitle().isBlank()) continue;
+                        if (optDto.getTitle() == null || optDto.getTitle().isBlank())
+                            continue;
 
                         // For FILL_IN_BLANK, single correct answer
                         if ("FILL_IN_BLANK".equals(q.getQuestionType())) {
@@ -900,11 +959,13 @@ public class TeacherQuizService {
                             String matchTarget = null;
                             if (q.getCorrectPairs() != null && q.getMatchRight() != null && q.getMatchLeft() != null) {
                                 for (int pairIdx = 0; pairIdx < q.getCorrectPairs().size(); pairIdx++) {
-                                    // According to prompt: matchLeft[pairIdx] matches matchRight[correctPairs[pairIdx] - 1]
+                                    // According to prompt: matchLeft[pairIdx] matches
+                                    // matchRight[correctPairs[pairIdx] - 1]
                                     int leftIdx = pairIdx;
                                     int rightIdx = q.getCorrectPairs().get(pairIdx) - 1;
 
-                                    if (leftIdx < q.getMatchLeft().size() && optDto.getTitle().equals(q.getMatchLeft().get(leftIdx))) {
+                                    if (leftIdx < q.getMatchLeft().size()
+                                            && optDto.getTitle().equals(q.getMatchLeft().get(leftIdx))) {
                                         if (rightIdx >= 0 && rightIdx < q.getMatchRight().size()) {
                                             matchTarget = q.getMatchRight().get(rightIdx);
                                         }
@@ -949,33 +1010,57 @@ public class TeacherQuizService {
                     questionRepository.save(question); // Re-save with group
                 }
 
-                // Add to quiz (if question was saved successfully)
-                if (!quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), question.getQuestionId())) {
-                    int currentCount = quizQuestionRepository.countByQuizQuizId(quiz.getQuizId());
-                    QuizQuestion qq = QuizQuestion.builder()
-                            .quiz(quiz)
-                            .question(question)
-                            .orderIndex(currentCount + 1)
-                            .points(BigDecimal.ONE)
-                            .build();
-                    quizQuestionRepository.save(qq);
+                // Add to quiz (if quizId provided)
+                if (quiz != null) {
+                    if (!quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(),
+                            question.getQuestionId())) {
+                        int currentCount = quizQuestionRepository.countByQuizQuizId(quiz.getQuizId());
+                        QuizQuestion qq = QuizQuestion.builder()
+                                .quiz(quiz)
+                                .question(question)
+                                .orderIndex(currentCount + 1)
+                                .points(BigDecimal.ONE)
+                                .build();
+                        quizQuestionRepository.save(qq);
+                        addedCount++;
+                    }
+                } else {
                     addedCount++;
                 }
             }
 
+            List<com.example.DoAn.dto.response.QuizQuestionPayloadDTO> importedPayloads = importedIds.stream()
+                    .<Question>map(id -> questionRepository.findById(id).orElse(null))
+                    .filter(java.util.Objects::nonNull).<com.example.DoAn.dto.response.QuizQuestionPayloadDTO>map(
+                            q -> com.example.DoAn.dto.response.QuizQuestionPayloadDTO.builder()
+                                    .questionId(q.getQuestionId())
+                                    .content(q.getContent())
+                                    .questionType(q.getQuestionType())
+                                    .skill(q.getSkill())
+                                    .cefrLevel(q.getCefrLevel())
+                                    .passage(q.getQuestionGroup() != null ? q.getQuestionGroup().getGroupContent()
+                                            : null)
+                                    .audioUrl(q.getAudioUrl())
+                                    .groupAudioUrl(
+                                            q.getQuestionGroup() != null ? q.getQuestionGroup().getAudioUrl()
+                                                    : null)
+                                    .build())
+                    .collect(java.util.stream.Collectors.toList());
+
             AIImportResultDTO result = AIImportResultDTO.builder()
                     .imported(addedCount)
                     .questionIds(importedIds)
+                    .importedQuestions(importedPayloads)
                     .build();
 
-            return ResponseData.success("Đã tạo " + addedCount + " câu hỏi và thêm vào quiz", result);
+            return ResponseData.success("Đã tạo " + addedCount + " câu hỏi", result);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  REQUEST / RESPONSE DTOs
+    // REQUEST / RESPONSE DTOs
     // ═══════════════════════════════════════════════════════════════════════
 
     @lombok.Data
@@ -1024,10 +1109,11 @@ public class TeacherQuizService {
     public static class AIImportResultDTO {
         private int imported;
         private List<Integer> questionIds;
+        private List<com.example.DoAn.dto.response.QuizQuestionPayloadDTO> importedQuestions;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  NOTIFICATION HELPERS
+    // NOTIFICATION HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
@@ -1035,7 +1121,8 @@ public class TeacherQuizService {
      * Package-private so QuizAutoPublishScheduler can also call this.
      */
     void notifyStudentsQuizPublished(Quiz quiz, Boolean opened, String action) {
-        if (quiz == null) return;
+        if (quiz == null)
+            return;
         String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
         String className = "";
         String deadline = "";
@@ -1046,10 +1133,12 @@ public class TeacherQuizService {
 
         if (quiz.getClazz() != null) {
             className = quiz.getClazz().getClassName() != null ? quiz.getClazz().getClassName() : "";
-            List<Registration> regs = registrationRepository.findByClazz_ClassIdAndStatus(quiz.getClazz().getClassId(), "Approved");
+            List<Registration> regs = registrationRepository.findByClazz_ClassIdAndStatus(quiz.getClazz().getClassId(),
+                    "Approved");
             for (Registration reg : regs) {
                 User student = reg.getUser();
-                if (student == null) continue;
+                if (student == null)
+                    continue;
                 String studentName = student.getFullName() != null ? student.getFullName() : "";
                 String email = student.getEmail();
 

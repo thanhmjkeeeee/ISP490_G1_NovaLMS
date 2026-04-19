@@ -141,6 +141,26 @@ public class StudentAssignmentApiController {
     }
 
     /**
+     * PATCH /api/v1/student/assignment/session/{sessionId}/external-submission
+     * Save external link (Google Drive, etc.).
+     */
+    @PatchMapping("/session/{sessionId}/external-submission")
+    public ResponseEntity<ResponseData<Boolean>> saveExternal(
+            @PathVariable Long sessionId,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        try {
+            String link = body.get("link");
+            String note = body.get("note");
+            assignmentService.saveExternalSubmission(sessionId, link, note, auth.getName());
+            return ResponseEntity.ok(ResponseData.success(true));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(ResponseData.error(400, e.getMessage()));
+        }
+    }
+
+    /**
      * POST /api/v1/student/assignment/session/{sessionId}/auto-submit
      * Timer expired — force submit all remaining sections.
      */

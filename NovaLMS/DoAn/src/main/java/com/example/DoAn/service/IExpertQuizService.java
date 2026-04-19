@@ -46,4 +46,6 @@ public interface IExpertQuizService {
     QuizResponseDTO publishAssignment(Integer quizId);
 
     AssignmentPreviewDTO getAssignmentPreview(Integer quizId);
+
+    QuizResponseDTO importAIQuestions(Integer quizId, List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions, String passage, String email);
 }

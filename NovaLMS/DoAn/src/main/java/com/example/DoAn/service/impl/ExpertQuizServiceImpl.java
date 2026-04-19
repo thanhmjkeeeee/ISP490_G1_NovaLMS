@@ -48,11 +48,11 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final RegistrationRepository registrationRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final AnswerOptionRepository answerOptionRepository;
 
     private static final Set<String> VALID_CATEGORIES = Set.of(
             "ENTRY_TEST", "COURSE_QUIZ", "MODULE_QUIZ", "LESSON_QUIZ",
-            "COURSE_ASSIGNMENT", "MODULE_ASSIGNMENT"
-    );
+            "COURSE_ASSIGNMENT", "MODULE_ASSIGNMENT");
     private static final Set<String> VALID_STATUSES = Set.of("DRAFT", "PUBLISHED", "ARCHIVED");
     private static final Set<String> VALID_ORDERS = Set.of("FIXED", "RANDOM");
 
@@ -74,7 +74,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .maxAttempts(request.getMaxAttempts())
                 .numberOfQuestions(request.getNumberOfQuestions())
                 .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
-                .showAnswerAfterSubmit(request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
+                .showAnswerAfterSubmit(
+                        request.getShowAnswerAfterSubmit() != null ? request.getShowAnswerAfterSubmit() : false)
                 .isHybridEnabled(request.getIsHybridEnabled() != null ? request.getIsHybridEnabled() : false)
                 .targetSkill(request.getTargetSkill())
                 .user(expert)
@@ -97,7 +98,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (("COURSE_QUIZ".equals(request.getQuizCategory()) || "COURSE_ASSIGNMENT".equals(request.getQuizCategory()))
                 && request.getCourseId() != null) {
             Course course = courseRepository.findById(request.getCourseId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + request.getCourseId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy khóa học với ID: " + request.getCourseId()));
             quiz.setCourse(course);
         }
 
@@ -105,7 +107,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (("MODULE_QUIZ".equals(request.getQuizCategory()) || "MODULE_ASSIGNMENT".equals(request.getQuizCategory()))
                 && request.getModuleId() != null) {
             Module module = moduleRepository.findById(request.getModuleId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chương với ID: " + request.getModuleId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy chương với ID: " + request.getModuleId()));
             quiz.setModule(module);
             if (quiz.getCourse() == null && module.getCourse() != null) {
                 quiz.setCourse(module.getCourse());
@@ -115,7 +118,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         // Gắn class nếu teacher tạo quiz từ class-sessions
         if (request.getClassId() != null) {
             Clazz clazz = clazzRepository.findById(request.getClassId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lớp với ID: " + request.getClassId()));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Không tìm thấy lớp với ID: " + request.getClassId()));
             quiz.setClazz(clazz);
             // Tự động lấy course từ lớp nếu chưa có
             if (quiz.getCourse() == null && clazz.getCourse() != null) {
@@ -126,7 +130,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         // Gắn lesson nếu là LESSON_QUIZ
         if ("LESSON_QUIZ".equals(request.getQuizCategory()) && request.getLessonId() != null) {
             Lesson lesson = lessonRepository.findById(request.getLessonId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học với ID: " + request.getLessonId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy bài học với ID: " + request.getLessonId()));
             quiz.setLesson(lesson);
             if (lesson.getModule() != null && lesson.getModule().getCourse() != null && quiz.getCourse() == null) {
                 quiz.setCourse(lesson.getModule().getCourse());
@@ -165,7 +170,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         // Kiểm tra đã có học viên làm chưa
         // Cho phép cập nhật nếu quiz đang ở Draft HOẶC đang chuyển về Draft
         if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus()) && !"DRAFT".equals(request.getStatus())) {
-            throw new InvalidDataException("Không thể cập nhật cấu hình quiz đã có học viên làm bài. Hãy chuyển trạng thái về Draft trước.");
+            throw new InvalidDataException(
+                    "Không thể cập nhật cấu hình quiz đã có học viên làm bài. Hãy chuyển trạng thái về Draft trước.");
         }
 
         // Lấy lại danh mục và courseId nếu update không gửi lên
@@ -211,10 +217,11 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         // Cập nhật course nếu thay đổi
-        if (("COURSE_QUIZ".equals(request.getQuizCategory()) || "COURSE_ASSIGNMENT".equals(request.getQuizCategory())) 
+        if (("COURSE_QUIZ".equals(request.getQuizCategory()) || "COURSE_ASSIGNMENT".equals(request.getQuizCategory()))
                 && request.getCourseId() != null) {
             Course course = courseRepository.findById(request.getCourseId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khóa học với ID: " + request.getCourseId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy khóa học với ID: " + request.getCourseId()));
             quiz.setCourse(course);
         }
 
@@ -222,7 +229,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         quiz.setOpenAt(request.getOpenAt());
         quiz.setCloseAt(request.getCloseAt());
         quiz.setDeadline(request.getDeadline());
-        
+
         if (request.getIsSequential() != null) {
             quiz.setIsSequential(request.getIsSequential());
         }
@@ -299,15 +306,13 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         String currentStatus = quiz.getStatus();
-        boolean validTransition =
-                ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
-                        ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
-                        ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));
+        boolean validTransition = ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
+                ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
+                ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));
 
         if (!validTransition) {
             throw new InvalidDataException(
-                    "Không thể chuyển trạng thái từ " + currentStatus + " sang " + newStatus
-            );
+                    "Không thể chuyển trạng thái từ " + currentStatus + " sang " + newStatus);
         }
 
         // Publish cần ít nhất 1 câu hỏi và đủ số lượng câu hỏi
@@ -317,7 +322,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 throw new InvalidDataException("Không thể xuất bản quiz chưa có câu hỏi nào.");
             }
             if (quiz.getNumberOfQuestions() != null && questionCount < quiz.getNumberOfQuestions()) {
-                throw new InvalidDataException("Số lượng câu hỏi chưa đủ (" + questionCount + "/" + quiz.getNumberOfQuestions() + "). Chờ thêm câu hỏi để xuất bản.");
+                throw new InvalidDataException("Số lượng câu hỏi chưa đủ (" + questionCount + "/"
+                        + quiz.getNumberOfQuestions() + "). Chờ thêm câu hỏi để xuất bản.");
             }
         }
 
@@ -341,11 +347,13 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         // Ưu tiên sử dụng itemType nếu có gửi từ Frontend
         if ("GROUP".equalsIgnoreCase(request.getItemType())) {
             QuestionGroup group = questionGroupRepository.findById(request.getQuestionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi với ID: " + request.getQuestionId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy bộ câu hỏi với ID: " + request.getQuestionId()));
             return addGroupToQuiz(quiz, group, request);
         } else if ("SINGLE".equalsIgnoreCase(request.getItemType())) {
             Question question = questionRepository.findById(request.getQuestionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy câu hỏi với ID: " + request.getQuestionId()));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy câu hỏi với ID: " + request.getQuestionId()));
             return addSingleQuestionToQuiz(quiz, question, request);
         }
 
@@ -370,7 +378,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
         validateQuestionForQuiz(quiz, question);
 
-        if (quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), question.getQuestionId())) {
+        if (quizQuestionRepository.existsByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(),
+                question.getQuestionId())) {
             throw new InvalidDataException("Câu hỏi này đã có trong quiz.");
         }
 
@@ -423,13 +432,15 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             if (!("MULTIPLE_CHOICE_SINGLE".equals(qType) ||
                     "MULTIPLE_CHOICE_MULTI".equals(qType) ||
                     "MATCHING".equals(qType))) {
-                throw new InvalidDataException("ENTRY_TEST chỉ cấu hình được những câu hỏi là multiple choices, matching.");
+                throw new InvalidDataException(
+                        "ENTRY_TEST chỉ cấu hình được những câu hỏi là multiple choices, matching.");
             }
         }
 
         if (Boolean.TRUE.equals(quiz.getIsHybridEnabled()) && quiz.getTargetSkill() != null) {
             if (!quiz.getTargetSkill().equals(question.getSkill())) {
-                throw new InvalidDataException("Quiz kỹ năng [" + quiz.getTargetSkill() + "] không khớp với câu hỏi [" + question.getSkill() + "].");
+                throw new InvalidDataException("Quiz kỹ năng [" + quiz.getTargetSkill() + "] không khớp với câu hỏi ["
+                        + question.getSkill() + "].");
             }
         }
     }
@@ -483,7 +494,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
+    // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
     private User findExpert(String email) {
@@ -512,7 +523,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 throw new InvalidDataException("Bài tập lớn (Assignment) bắt buộc phải có Deadline nộp bài.");
             }
             if (request.getTimeLimitPerSkill() == null || request.getTimeLimitPerSkill().isEmpty()) {
-                throw new InvalidDataException("Bài tập lớn (Assignment) bắt buộc phải thiết lập thời gian cho từng kỹ năng (Listening, Reading, Speaking, Writing).");
+                throw new InvalidDataException(
+                        "Bài tập lớn (Assignment) bắt buộc phải thiết lập thời gian cho từng kỹ năng (Listening, Reading, Speaking, Writing).");
             }
         }
 
@@ -534,7 +546,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     private QuizResponseDTO toResponseDTO(Quiz quiz) {
-        List<QuizQuestion> quizQuestions = quizQuestionRepository.findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
+        List<QuizQuestion> quizQuestions = quizQuestionRepository
+                .findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
         boolean hasAttempts = hasStudentAttempts(quiz.getQuizId());
 
         List<QuizResponseDTO.QuizQuestionResponseDTO> questionDTOs = quizQuestions.stream()
@@ -544,7 +557,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                             .quizQuestionId(qq.getQuizQuestionId())
                             .questionId(q.getQuestionId())
                             .groupId(qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupId() : null)
-                            .groupContent(qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupContent() : null)
+                            .groupContent(
+                                    qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupContent() : null)
                             .questionContent(q.getContent())
                             .questionType(q.getQuestionType())
                             .skill(q.getSkill())
@@ -580,14 +594,21 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .createdAt(quiz.getCreatedAt())
                 .updatedAt(quiz.getUpdatedAt())
                 .totalQuestions((int) (quizQuestions.stream()
-                        .map(qq -> qq.getQuestionGroup() != null ? "G" + qq.getQuestionGroup().getGroupId() : "Q" + qq.getQuestion().getQuestionId())
+                        .map(qq -> qq.getQuestionGroup() != null ? "G" + qq.getQuestionGroup().getGroupId()
+                                : "Q" + qq.getQuestion().getQuestionId())
                         .distinct()
                         .count()))
                 .hasAttempts(hasAttempts)
                 .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
-                .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
-                .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
-                .deadline(quiz.getDeadline() != null ? quiz.getDeadline().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")) : null)
+                .openAt(quiz.getOpenAt() != null
+                        ? quiz.getOpenAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                        : null)
+                .closeAt(quiz.getCloseAt() != null
+                        ? quiz.getCloseAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                        : null)
+                .deadline(quiz.getDeadline() != null
+                        ? quiz.getDeadline().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+                        : null)
                 .isSequential(quiz.getIsSequential())
                 .skillOrder(quiz.getSkillOrder())
                 .questions(questionDTOs)
@@ -595,7 +616,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  ASSIGNMENT OPERATIONS (4-skill sequential)
+    // ASSIGNMENT OPERATIONS (4-skill sequential)
     // ═══════════════════════════════════════════════════════════════════════
 
     @Override
@@ -627,10 +648,12 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
         List<QuizQuestion> existing = quizQuestionRepository.findByQuizQuizIdAndSkill(quizId, skill);
         Set<Integer> existingIds = new java.util.HashSet<>();
-        for (QuizQuestion qq : existing) existingIds.add(qq.getQuestion().getQuestionId());
+        for (QuizQuestion qq : existing)
+            existingIds.add(qq.getQuestion().getQuestionId());
         int nextOrder = existing.size() + 1;
         for (Integer questionId : dto.getQuestionIds()) {
-            if (existingIds.contains(questionId)) continue;
+            if (existingIds.contains(questionId))
+                continue;
             Question question = questionRepository.findById(questionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found: " + questionId));
             QuizQuestion qq = QuizQuestion.builder()
@@ -660,7 +683,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if ("COURSE_QUIZ".equals(cat) || "COURSE_ASSIGNMENT".equals(cat)) {
             // COURSE_ASSIGNMENT: vẫn kiểm tra per-skill time set nếu cần thiết
             if ("COURSE_ASSIGNMENT".equals(cat)) {
-                if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty() || "{}".equals(quiz.getTimeLimitPerSkill().trim())) {
+                if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty()
+                        || "{}".equals(quiz.getTimeLimitPerSkill().trim())) {
                     throw new InvalidDataException("COURSE_ASSIGNMENT requires per-skill time limits to be set.");
                 }
             }
@@ -678,11 +702,13 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     // ── Notification helper ────────────────────────────────────────────────────
 
     private void notifyOnPublish(Quiz quiz) {
-        if (quiz == null) return;
+        if (quiz == null)
+            return;
 
         String quizTitle = quiz.getTitle() != null ? quiz.getTitle() : "";
         String courseName = quiz.getCourse() != null && quiz.getCourse().getCourseName() != null
-                ? quiz.getCourse().getCourseName() : "";
+                ? quiz.getCourse().getCourseName()
+                : "";
         String className = quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
         String deadline = quiz.getDeadline() != null ? quiz.getDeadline().toString() : "";
 
@@ -691,7 +717,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             List<Registration> regs = registrationRepository.findApprovedByClassId(quiz.getClazz().getClassId());
             for (Registration reg : regs) {
                 User student = reg.getUser();
-                if (student == null) continue;
+                if (student == null)
+                    continue;
                 String studentName = student.getFullName() != null ? student.getFullName() : "";
                 String email = student.getEmail();
 
@@ -707,7 +734,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 }
                 if (student.getUserId() != null) {
                     if (isAssignment) {
-                        notificationService.sendAssignmentPublished(Long.valueOf(student.getUserId()), quizTitle, className);
+                        notificationService.sendAssignmentPublished(Long.valueOf(student.getUserId()), quizTitle,
+                                className);
                     } else {
                         notificationService.sendQuizPublished(Long.valueOf(student.getUserId()), quizTitle, className);
                     }
@@ -742,5 +770,73 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 timeLimits, quiz.getPassScore(), quiz.getMaxAttempts(),
                 quiz.getShowAnswerAfterSubmit(), missing, missing.isEmpty()
         );
+    }
+
+    @Override
+    @Transactional
+    public QuizResponseDTO importAIQuestions(Integer quizId,
+            List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions, String passage,
+            String email) {
+        User expert = findExpert(email);
+        Quiz quiz = findQuiz(quizId);
+
+        QuestionGroup sharedGroup = null;
+        if (passage != null && !passage.isBlank()) {
+            com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO first = questions.get(0);
+            sharedGroup = QuestionGroup.builder()
+                    .groupContent(passage)
+                    .skill(first.getSkill())
+                    .cefrLevel(first.getCefrLevel())
+                    .topic(first.getTopic())
+                    .status("PUBLISHED")
+                    .user(expert)
+                    .build();
+            questionGroupRepository.save(sharedGroup);
+        }
+
+        int currentCount = quizQuestionRepository.countByQuizQuizId(quizId);
+        for (com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO q : questions) {
+            Question question = Question.builder()
+                    .content(q.getContent())
+                    .questionType(q.getQuestionType())
+                    .skill(q.getSkill())
+                    .cefrLevel(q.getCefrLevel())
+                    .topic(q.getTopic())
+                    .explanation(q.getExplanation())
+                    .audioUrl(q.getAudioUrl())
+                    .imageUrl(q.getImageUrl())
+                    .status("PUBLISHED")
+                    .source("AI_GENERATED")
+                    .user(expert)
+                    .questionGroup(sharedGroup)
+                    .build();
+            questionRepository.save(question);
+
+            // Options
+            if (q.getOptions() != null) {
+                for (int i = 0; i < q.getOptions().size(); i++) {
+                    com.example.DoAn.dto.response.AIGenerateResponseDTO.OptionDTO optDTO = q.getOptions().get(i);
+                    AnswerOption opt = AnswerOption.builder()
+                            .question(question)
+                            .title(optDTO.getTitle())
+                            .correctAnswer(Boolean.TRUE.equals(optDTO.getCorrect()))
+                            .orderIndex(i + 1)
+                            .build();
+                    answerOptionRepository.save(opt);
+                }
+            }
+
+            // Add to Quiz
+            QuizQuestion qq = QuizQuestion.builder()
+                    .quiz(quiz)
+                    .question(question)
+                    .questionGroup(sharedGroup)
+                    .orderIndex(++currentCount)
+                    .points(BigDecimal.ONE)
+                    .build();
+            quizQuestionRepository.save(qq);
+        }
+
+        return toResponseDTO(quiz);
     }
 }

@@ -37,13 +37,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final ObjectMapper objectMapper;
 
     @Value("${groq.api.key:}")
-    private String groqApiKey;
+    private String aiApiKey;
 
-    @Value("${groq.model:llama-3.3-70b-versatile}")
-    private String groqModel;
+    @Value("${groq.model:qwen-2.5-72b-instruct}")
+    private String aiModel;
 
-    // Groq uses OpenAI-compatible endpoint
-    private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+    @Value("${groq.api.url:https://kymaapi.com/v1}")
+    private String aiApiUrlBase;
 
     // OkHttpClient — uses OS DNS resolver, works on all environments
     private static final OkHttpClient httpClient = new OkHttpClient.Builder()
@@ -92,10 +92,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             prompt = buildPrompt(request);
         }
 
-        log.info("[AI_GENERATE] Sending prompt to Groq (mode={}):\n{}", mode, prompt);
+        log.info("[AI_GENERATE] Sending prompt to AI (mode={}):\n{}", mode, prompt);
 
-        String rawJson = callGroq(prompt);
-        log.info("[AI_GENERATE] Received raw JSON from Groq (mode={}):\n{}", mode, rawJson);
+        String rawJson = callAI(prompt);
+        log.info("[AI_GENERATE] Received raw JSON from AI (mode={}):\n{}", mode, rawJson);
 
         List<QuestionDTO> questions = parseQuestions(rawJson, request.getQuantity());
 
@@ -133,10 +133,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             prompt = promptBuilder.buildGroupPrompt(topic, skill, cefr, qty, request.getQuestionTypes(), request.getAdvancedOptions());
         }
         
-        log.info("[AI_GENERATE_GROUP] Sending prompt to Groq:\n{}", prompt);
+        log.info("[AI_GENERATE_GROUP] Sending prompt to AI:\n{}", prompt);
 
-        String rawJson = callGroq(prompt);
-        log.info("[AI_GENERATE_GROUP] Received raw JSON from Groq:\n{}", rawJson);
+        String rawJson = callAI(prompt);
+        log.info("[AI_GENERATE_GROUP] Received raw JSON from AI:\n{}", rawJson);
 
         AIGenerateGroupResponseDTO.AIGenerateGroupResponseDTOBuilder builder = AIGenerateGroupResponseDTO.builder()
                 .skill(skill)
@@ -242,11 +242,11 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         return sb.toString();
     }
 
-    private String callGroq(String prompt) {
+    private String callAI(String prompt) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", groqModel);
+        body.put("model", aiModel);
         body.put("temperature", 0.7);
-        body.put("max_tokens", 6000);
+        body.put("max_tokens", 4000);
 
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "user", "content", prompt)
@@ -257,11 +257,12 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 String jsonBody = objectMapper.writeValueAsString(body);
+                String fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
                 Request request = new Request.Builder()
-                        .url(GROQ_URL)
+                        .url(fullUrl)
                         .post(okhttp3.RequestBody.create(jsonBody,
                                 okhttp3.MediaType.parse("application/json; charset=utf-8")))
-                        .addHeader("Authorization", "Bearer " + groqApiKey)
+                        .addHeader("Authorization", "Bearer " + aiApiKey)
                         .addHeader("Content-Type", "application/json")
                         .build();
 
@@ -272,22 +273,25 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     // Retry on 429 (rate limit) or 5xx server errors
                     if ((code == 429 || code >= 500) && attempt < maxRetries - 1) {
                         long waitMs = (long) Math.pow(2, attempt) * 1000;
-                        log.warn("Groq HTTP {}, retrying in {}ms (attempt {}/{})",
+                        log.warn("AI HTTP {}, retrying in {}ms (attempt {}/{})",
                                 code, waitMs, attempt + 1, maxRetries);
                         Thread.sleep(waitMs);
                         continue;
                     }
 
-                    if (code == 413 || code == 429) {
-                        throw new AIException("Số lượng câu hỏi yêu cầu quá lớn hoặc quá nhanh so với giới hạn tài khoản Groq của bạn. Vui lòng giảm số câu hỏi hoặc thử lại sau.", null);
+                    if (code == 413) {
+                        throw new AIException("Yêu cầu quá lớn. Vui lòng giảm số lượng câu hỏi hoặc độ dài bài đọc.", null);
+                    }
+                    if (code == 429) {
+                        throw new AIException("Bạn đang yêu cầu quá nhanh. Vui lòng đợi một lát rồi thử lại (Giới hạn tài khoản AI).", null);
                     }
 
                     if (!resp.isSuccessful()) {
-                        throw new AIException("Groq API error: HTTP " + code + " — " + respBody, null);
+                        throw new AIException("AI API error: HTTP " + code + " — " + respBody, null);
                     }
 
                     if (respBody == null || respBody.isBlank()) {
-                        throw new AIException("Groq trả về response trống.", null);
+                        throw new AIException("AI trả về response trống.", null);
                     }
 
                     return extractContent(respBody);
@@ -301,7 +305,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 }
             } catch (Exception e) {
                 if (attempt == maxRetries - 1) {
-                    throw new AIException("Groq request failed: " + e.getMessage(), e);
+                    throw new AIException("AI request failed: " + e.getMessage(), e);
                 }
                 try { Thread.sleep((long) Math.pow(2, attempt) * 1000); }
                 catch (InterruptedException ie) {
@@ -311,7 +315,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             }
         }
 
-        throw new AIException("Groq: unexpected exit from retry loop.", null);
+        throw new AIException("AI: unexpected exit from retry loop.", null);
     }
 
     // Parse OpenAI-compatible response: { choices: [{ message: { content: "..." } }] }
@@ -327,10 +331,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             return (String) message.get("content");
         } catch (ClassCastException | NullPointerException e) {
             String preview = (response != null && response.length() > 500) ? response.substring(0, 500) : response;
-            log.error("Failed to parse Groq response: {}. Error: {}", preview, e.getMessage());
-            throw new AIException("Không parse được response từ Groq. Định dạng không mong đợi.", e);
+            log.error("Failed to parse AI response: {}. Error: {}", preview, e.getMessage());
+            throw new AIException("Không parse được response từ AI. Định dạng không mong đợi.", e);
         } catch (JsonProcessingException e) {
-            throw new AIException("Không parse được response từ Groq.", e);
+            throw new AIException("Không parse được response từ AI.", e);
         }
     }
 

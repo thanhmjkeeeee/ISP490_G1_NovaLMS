@@ -187,7 +187,8 @@ public class TeacherQuizApiController {
         if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return teacherQuizService.addQuestionToQuiz(
                 quizId, request.getQuestionIdForQuiz(),
-                request.getOrderIndex(), request.getPoints(), email);
+                request.getOrderIndex(), request.getPoints(), 
+                request.getSkillForQuiz(), email);
     }
 
     /**

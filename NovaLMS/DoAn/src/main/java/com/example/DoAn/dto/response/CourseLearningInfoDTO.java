@@ -25,6 +25,7 @@ public class CourseLearningInfoDTO {
     private String className;
     private String schedule;
     private String liveMeetingLink;
+    private String liveMeetingLabel;
 
     private List<ModuleDTO> modules;
 
