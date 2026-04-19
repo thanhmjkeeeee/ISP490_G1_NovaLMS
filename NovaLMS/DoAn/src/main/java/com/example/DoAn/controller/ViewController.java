@@ -41,6 +41,9 @@ public class ViewController {
         return "public/404";
     }
 
-
+    @GetMapping({"/403.html", "/403"})
+    public String forbidden() {
+        return "error/403";
+    }
 
 }

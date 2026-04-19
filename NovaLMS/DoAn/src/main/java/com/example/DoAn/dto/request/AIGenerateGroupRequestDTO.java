@@ -15,9 +15,9 @@ public class AIGenerateGroupRequestDTO {
 
     private Integer moduleId;
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
-    @Max(value = 20, message = "Quantity cannot exceed 20")
+    @NotNull(message = "Số lượng câu hỏi là bắt buộc")
+    @Min(value = 1, message = "Số lượng tối thiểu là 1")
+    @Max(value = 20, message = "Số lượng không được vượt quá 20")
     private Integer quantity;
 
     private String skill;

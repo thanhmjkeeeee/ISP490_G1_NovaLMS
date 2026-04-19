@@ -44,7 +44,7 @@ public class RescheduleService {
         User user = userRepository.findByEmail(userEmail).orElse(null);
         if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
 
-        ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
+        ClassSession session = classSessionRepository.findByIdForUpdate(sessionId).orElse(null);
         if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
 
         // Check ownership

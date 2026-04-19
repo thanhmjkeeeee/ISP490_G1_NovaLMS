@@ -41,49 +41,49 @@ public class WizardValidationService {
         if ("PASSAGE_BASED".equals(step1.getMode())) {
             if (step1.getPassageContent() == null || step1.getPassageContent().isBlank()) {
                 groupErrors.add(error(-1, "passageContent", "PASSAGE_REQUIRED",
-                        "Passage content is required for passage-based groups."));
+                        "Bài đọc/nghe là bắt buộc với nhóm theo passage."));
             } else if (step1.getPassageContent().length() < 10) {
                 groupErrors.add(error(-1, "passageContent", "PASSAGE_TOO_SHORT",
-                        "Passage must be at least 10 characters."));
+                        "Nội dung passage phải có ít nhất 10 ký tự."));
             } else if (step1.getPassageContent().length() > 5000) {
                 groupErrors.add(error(-1, "passageContent", "PASSAGE_TOO_LONG",
-                        "Passage must not exceed 5000 characters."));
+                        "Nội dung passage không được vượt quá 5000 ký tự."));
             }
         }
 
         if (!VALID_SKILLS.contains(step1.getSkill())) {
             groupErrors.add(error(-1, "skill", "INVALID_SKILL",
-                    "Invalid skill value: " + step1.getSkill()));
+                    "Kỹ năng không hợp lệ: " + step1.getSkill()));
         }
 
         if (!VALID_CEFR.contains(step1.getCefrLevel())) {
             groupErrors.add(error(-1, "cefrLevel", "INVALID_CEFR",
-                    "Invalid CEFR level: " + step1.getCefrLevel()));
+                    "Cấp độ CEFR không hợp lệ: " + step1.getCefrLevel()));
         }
 
         if (step1.getTags() != null && step1.getTags().size() > 10) {
             groupErrors.add(error(-1, "tags", "TOO_MANY_TAGS",
-                    "Maximum 10 tags allowed."));
+                    "Tối đa 10 thẻ (tags)."));
         }
 
         if (step1.getAudioUrl() != null && !step1.getAudioUrl().isBlank()
                 && !AUDIO_PATTERN.matcher(step1.getAudioUrl()).matches()) {
             groupErrors.add(error(-1, "audioUrl", "INVALID_AUDIO_URL",
-                    "Audio URL must end with .mp3, .wav, .ogg, or .m4a"));
+                    "URL âm thanh phải kết thúc bằng .mp3, .wav, .ogg hoặc .m4a"));
         }
 
         if (step1.getImageUrl() != null && !step1.getImageUrl().isBlank()
                 && !IMAGE_PATTERN.matcher(step1.getImageUrl()).matches()) {
             groupErrors.add(error(-1, "imageUrl", "INVALID_IMAGE_URL",
-                    "Image URL must end with .jpg, .jpeg, .png, or .webp"));
+                    "URL hình ảnh phải kết thúc bằng .jpg, .jpeg, .png hoặc .webp"));
         }
 
         if (questions == null || questions.isEmpty()) {
             groupErrors.add(error(-1, "questions", "NO_QUESTIONS",
-                    "At least one question is required."));
+                    "Cần ít nhất một câu hỏi."));
         } else if (questions.size() > 100) {
             groupErrors.add(error(-1, "questions", "TOO_MANY_QUESTIONS",
-                    "Maximum 100 questions allowed per group."));
+                    "Tối đa 100 câu hỏi mỗi nhóm."));
         }
 
         // ─── Per-question validation ───
@@ -124,36 +124,36 @@ public class WizardValidationService {
         // Skill mismatch
         if (q.getSkill() != null && !step1.getSkill().equalsIgnoreCase(q.getSkill())) {
             errors.add(error(idx, "skill", "SKILL_MISMATCH",
-                    "Question skill '" + q.getSkill() + "' does not match group skill '" + step1.getSkill() + "'"));
+                    "Kỹ năng câu hỏi '" + q.getSkill() + "' không khớp kỹ năng nhóm '" + step1.getSkill() + "'"));
         }
 
         // CEFR mismatch
         if (q.getCefrLevel() != null && !step1.getCefrLevel().equalsIgnoreCase(q.getCefrLevel())) {
             errors.add(error(idx, "cefrLevel", "CEFR_MISMATCH",
-                    "Question CEFR '" + q.getCefrLevel() + "' does not match group CEFR '" + step1.getCefrLevel() + "'"));
+                    "CEFR câu hỏi '" + q.getCefrLevel() + "' không khớp CEFR nhóm '" + step1.getCefrLevel() + "'"));
         }
 
         // Invalid type for skill
         Set<String> allowedTypes = SKILL_TYPE_MAP.getOrDefault(step1.getSkill().toUpperCase(), Set.of());
         if (!allowedTypes.contains(q.getQuestionType())) {
             errors.add(error(idx, "questionType", "INVALID_TYPE_FOR_SKILL",
-                    "Question type '" + q.getQuestionType() + "' is not allowed for skill '" + step1.getSkill() + "'"));
+                    "Loại câu '" + q.getQuestionType() + "' không được phép với kỹ năng '" + step1.getSkill() + "'"));
         }
 
         // Content length
         String content = q.getContent() != null ? q.getContent().trim() : "";
         if (content.isEmpty() || content.length() < 10) {
             errors.add(error(idx, "content", "CONTENT_TOO_SHORT",
-                    "Question content must be at least 10 characters."));
+                    "Nội dung câu hỏi phải có ít nhất 10 ký tự."));
         } else if (content.length() > 2000) {
             errors.add(error(idx, "content", "CONTENT_TOO_LONG",
-                    "Question content must not exceed 2000 characters."));
+                    "Nội dung câu hỏi không được vượt quá 2000 ký tự."));
         }
 
         // Explanation missing — WARNING only
         if (q.getExplanation() == null || q.getExplanation().isBlank()) {
             warnings.add(error(idx, "explanation", "EXPLANATION_MISSING",
-                    "Explanation is recommended for better learner feedback."));
+                    "Nên có giải thích để học viên hiểu bài hơn."));
         }
 
         // MC / FILL / MATCHING — validate options
@@ -161,7 +161,7 @@ public class WizardValidationService {
         if (qt != null && !"WRITING".equals(qt) && !"SPEAKING".equals(qt)) {
             if (q.getOptions() == null || q.getOptions().isEmpty()) {
                 errors.add(error(idx, "options", "NO_OPTIONS",
-                        "Options are required for this question type."));
+                        "Loại câu này bắt buộc có các phương án trả lời."));
             } else {
                 validateOptions(q, errors, warnings, idx);
             }
@@ -170,7 +170,7 @@ public class WizardValidationService {
         // Tags missing — WARNING only
         if (q.getTags() == null || q.getTags().isEmpty()) {
             warnings.add(error(idx, "tags", "TAGS_MISSING",
-                    "Adding tags is recommended for organization."));
+                    "Nên thêm thẻ (tags) để phân loại câu hỏi."));
         }
 
         return ValidatedQuestionDTO.builder()
@@ -201,34 +201,34 @@ public class WizardValidationService {
 
             if (lefts.size() != rights.size()) {
                 errors.add(error(idx, "options", "MATCHING_COUNT_MISMATCH",
-                        "Matching left and right items must have the same count."));
+                        "Ghép nối: số mục trái và phải phải bằng nhau."));
             }
             for (OptionDTO o : lefts) {
                 if (o.getTitle() == null || o.getTitle().length() > 300) {
                     errors.add(error(idx, "options", "LEFT_ITEM_TOO_LONG",
-                            "Left item exceeds 300 characters."));
+                            "Mục bên trái vượt quá 300 ký tự."));
                 }
             }
             for (OptionDTO o : rights) {
                 if (o.getTitle() == null || o.getTitle().length() > 300) {
                     errors.add(error(idx, "options", "RIGHT_ITEM_TOO_LONG",
-                            "Right item exceeds 300 characters."));
+                            "Mục bên phải vượt quá 300 ký tự."));
                 }
             }
         } else {
             if (opts.size() < 2) {
                 errors.add(error(idx, "options", "TOO_FEW_OPTIONS",
-                        "At least 2 options are required."));
+                        "Cần ít nhất 2 phương án."));
             }
 
             long correctCount = opts.stream().filter(o -> Boolean.TRUE.equals(o.getCorrect())).count();
             if (correctCount == 0) {
                 errors.add(error(idx, "options", "NO_CORRECT_ANSWER",
-                        "At least one correct answer is required."));
+                        "Cần ít nhất một đáp án đúng."));
             }
             if ("MULTIPLE_CHOICE_MULTI".equals(q.getQuestionType()) && correctCount == opts.size()) {
                 errors.add(error(idx, "options", "ALL_OPTIONS_CORRECT",
-                        "Not all options can be correct for multi-select questions."));
+                        "Câu chọn nhiều không được đánh dấu tất cả phương án đều đúng."));
             }
 
             Set<String> titles = new HashSet<>();
@@ -236,14 +236,14 @@ public class WizardValidationService {
                 String t = o.getTitle() != null ? o.getTitle().trim() : "";
                 if (t.isEmpty()) {
                     errors.add(error(idx, "options", "OPTION_EMPTY",
-                            "Option title cannot be empty."));
+                            "Nội dung phương án không được để trống."));
                 } else if (t.length() > 500) {
                     errors.add(error(idx, "options", "OPTION_TOO_LONG",
-                            "Option title exceeds 500 characters."));
+                            "Nội dung phương án vượt quá 500 ký tự."));
                 }
                 if (!titles.add(t.toLowerCase())) {
                     errors.add(error(idx, "options", "OPTION_DUPLICATE",
-                            "Duplicate option title: '" + t + "'"));
+                            "Trùng nội dung phương án: '" + t + "'"));
                 }
             }
         }

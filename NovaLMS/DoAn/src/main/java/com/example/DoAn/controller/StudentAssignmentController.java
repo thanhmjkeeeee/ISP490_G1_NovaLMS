@@ -44,7 +44,7 @@ public class StudentAssignmentController {
             return "redirect:/student/assignment/session/" + info.getSessionId() + "/section/" + skill;
 
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
+            model.addAttribute("detailMessage", e.getMessage());
             return "error/403";
         }
     }

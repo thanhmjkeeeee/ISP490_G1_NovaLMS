@@ -10,7 +10,7 @@
      Gọi: th:replace="~{fragments/sidebar :: dash-sidebar(activePage='dashboard')}"
 
      activePage values:
-       STUDENT : dashboard | my-courses | my-enrollments | quiz | progress | profile
+       STUDENT : dashboard | my-courses | my-enrollments | quiz | profile
        TEACHER : dashboard | my-classes | schedule | students | quiz-bank | profile
        ADMIN   : dashboard | users | courses | classes | registrations | settings | profile
        MANAGER : dashboard | courses | staff | reports | profile
@@ -36,9 +36,6 @@
             </a>
             <a th:href="@{/student/quiz}" th:classappend="${activePage == 'quiz'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-patch-question"></i><span>Bài kiểm tra</span>
-            </a>
-            <a th:href="@{/student/progress}" th:classappend="${activePage == 'progress'} ? ' active'" class="dash-nav-item">
-                <i class="bi bi-bar-chart-line"></i><span>Tiến độ học tập</span>
             </a>
         </div>
 

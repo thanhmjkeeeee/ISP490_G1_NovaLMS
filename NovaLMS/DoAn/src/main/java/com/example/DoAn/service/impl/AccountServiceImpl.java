@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,6 +76,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional
     public void updateAccount(Integer id, AccountRequestDTO request) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         String oldRoleName = user.getRole() != null ? user.getRole().getName() : "N/A";

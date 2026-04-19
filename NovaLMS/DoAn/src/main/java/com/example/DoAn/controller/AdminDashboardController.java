@@ -146,7 +146,7 @@ public class AdminDashboardController {
     @GetMapping("/settings/categories")
     @ResponseBody
     public ResponseEntity<ResponseData<?>> getCourseCategories() {
-        return ResponseEntity.ok(new ResponseData<>(HttpStatus.OK.value(), "Success", settingService.getCourseCategories()));
+        return ResponseEntity.ok(new ResponseData<>(HttpStatus.OK.value(), "Thành công", settingService.getCourseCategories()));
     }
 
     // API thêm mới Category cho khóa học

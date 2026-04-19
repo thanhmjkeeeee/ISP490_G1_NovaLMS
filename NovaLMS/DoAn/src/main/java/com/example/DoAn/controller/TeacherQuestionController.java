@@ -40,7 +40,7 @@ public class TeacherQuestionController {
 
         Integer teacherId = getTeacherId(auth);
         if (teacherId == null) {
-            return ResponseData.error(401, "Unauthorized");
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
         }
 
         // Count total

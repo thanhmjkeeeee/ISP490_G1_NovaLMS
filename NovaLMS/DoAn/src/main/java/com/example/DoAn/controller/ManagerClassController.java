@@ -36,7 +36,7 @@ public class ManagerClassController {
     public ResponseData<Integer> addClass(@Valid @RequestBody ClassRequestDTO request) {
         try {
             Integer classId = classService.saveClass(request);
-            return new ResponseData<>(HttpStatus.CREATED.value(), "Success", classId);
+            return new ResponseData<>(HttpStatus.CREATED.value(), "Thành công", classId);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -63,7 +63,7 @@ public class ManagerClassController {
             @RequestParam(required = false) String teacherName,
             @RequestParam(required = false) String status) {
         try {
-            return new ResponseData<>(HttpStatus.OK.value(), "Success",
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công",
                     classService.getAllClasses(pageNo, pageSize, className, courseName, teacherName, status));
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
@@ -75,7 +75,7 @@ public class ManagerClassController {
     public ResponseData<ClassDetailResponse> getClassById(@PathVariable Integer id) {
         try {
             ClassDetailResponse response = classService.getClassById(id);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -86,7 +86,7 @@ public class ManagerClassController {
     public ResponseData<ClassDetailResponse> getClassDetailById(@PathVariable Integer id) {
         try {
             ClassDetailResponse response = classService.getClassById(id);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -100,7 +100,7 @@ public class ManagerClassController {
             @RequestParam(required = false) Integer excludeClassId) {
         try {
             java.util.List<String> slots = classService.getAvailableSlotTimes(teacherId, schedule, excludeClassId);
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", slots);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", slots);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -123,7 +123,7 @@ public class ManagerClassController {
                             .email(u.getEmail())
                             .build())
                     .toList();
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
@@ -167,7 +167,7 @@ public class ManagerClassController {
                     .items(items)
                     .build();
 
-            return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+            return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }

@@ -125,10 +125,10 @@ public class ClassServiceImpl implements IClassService {
         }
 
         try {
-            LocalDateTime startDate = parseDateTime(startDateStr, "Invalid start date");
+            LocalDateTime startDate = parseDateTime(startDateStr, "Ngày bắt đầu không hợp lệ");
             LocalDateTime endDate;
             if (endDateStr != null && !endDateStr.isBlank()) {
-                endDate = parseDateTime(endDateStr, "Invalid end date");
+                endDate = parseDateTime(endDateStr, "Ngày kết thúc không hợp lệ");
             } else {
                 // Approximate end date if not provided (assume 6 months range for overlap check)
                 endDate = startDate.plusMonths(6);

@@ -31,21 +31,21 @@ public class TeacherClassSessionApiController {
     @GetMapping("/{classId}")
     public ResponseData<List<Map<String, Object>>> getSessions(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getSessionsByClass(email, classId);
     }
 
     @GetMapping("/{classId}/detail")
     public ResponseData<Map<String, Object>> getClassDetail(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getClassSessionsDetail(email, classId);
     }
 
     @GetMapping("/{classId}/quizzes")
     public ResponseData<List<Map<String, Object>>> getQuizzes(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getAvailableQuizzes(email, classId);
     }
 
@@ -61,7 +61,7 @@ public class TeacherClassSessionApiController {
             @RequestParam(required = false) Integer quizId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.createSession(email, classId, sessionNumber, sessionDate, startTime, endTime, topic, notes, quizId);
     }
 
@@ -77,14 +77,14 @@ public class TeacherClassSessionApiController {
             @RequestParam(required = false) Integer quizId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.updateSession(email, sessionId, sessionNumber, sessionDate, startTime, endTime, topic, notes, quizId);
     }
 
     @DeleteMapping("/{sessionId}")
     public ResponseData<Void> deleteSession(@PathVariable Integer sessionId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.deleteSession(email, sessionId);
     }
 
@@ -103,9 +103,9 @@ public class TeacherClassSessionApiController {
             @RequestBody Map<String, Integer> body,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         Integer quizId = body.get("quizId");
-        if (quizId == null) return ResponseData.error(400, "quizId is required");
+        if (quizId == null) return ResponseData.error(400, "Thiếu mã quiz (quizId)");
         return sessionService.addQuizToSession(email, sessionId, quizId);
     }
 
@@ -119,7 +119,7 @@ public class TeacherClassSessionApiController {
             @PathVariable Integer quizId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.removeQuizFromSession(email, sessionId, quizId);
     }
 
@@ -134,7 +134,7 @@ public class TeacherClassSessionApiController {
             @RequestParam(required = false) Integer timeLimitMinutes,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.toggleQuizOpenInSession(email, sessionId, quizId, timeLimitMinutes);
     }
 
@@ -145,7 +145,7 @@ public class TeacherClassSessionApiController {
             @RequestParam Integer timeLimitMinutes,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.toggleQuizOpenInSession(email, sessionId, quizId, timeLimitMinutes);
     }
 
@@ -158,7 +158,7 @@ public class TeacherClassSessionApiController {
             @PathVariable Integer sessionId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.openAllQuizzesInSession(email, sessionId);
     }
 
@@ -171,7 +171,7 @@ public class TeacherClassSessionApiController {
             @PathVariable Integer sessionId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.closeAllQuizzesInSession(email, sessionId);
     }
 
@@ -189,7 +189,7 @@ public class TeacherClassSessionApiController {
             @RequestParam("files") List<MultipartFile> files,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.uploadMaterials(email, sessionId, files);
     }
 
@@ -203,7 +203,7 @@ public class TeacherClassSessionApiController {
             @PathVariable String filename,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.deleteMaterial(email, sessionId, filename);
     }
 
@@ -214,14 +214,14 @@ public class TeacherClassSessionApiController {
     @GetMapping("/{classId}/students")
     public ResponseData<?> getStudentsByClass(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getStudentsByClass(email, classId);
     }
 
     @GetMapping("/{classId}/course-content")
     public ResponseData<?> getCourseContentForMapping(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getCourseContentForMapping(email, classId);
     }
 
@@ -231,7 +231,7 @@ public class TeacherClassSessionApiController {
             @RequestBody List<Map<String, Integer>> mappings,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.saveMapping(email, classId, mappings);
     }
 
@@ -250,7 +250,7 @@ public class TeacherClassSessionApiController {
             @RequestBody Map<String, String> body,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         String meetLink = body.get("meetLink");
         return sessionService.updateMeetLink(email, sessionId, meetLink);
     }
@@ -265,7 +265,7 @@ public class TeacherClassSessionApiController {
     @GetMapping("/{classId}/assignments")
     public ResponseData<?> getAssignments(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getAssignmentsByClass(email, classId);
     }
 
@@ -275,7 +275,7 @@ public class TeacherClassSessionApiController {
     @GetMapping("/{classId}/expert-assignments")
     public ResponseData<?> getExpertAssignments(@PathVariable Integer classId, Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.getExpertAssignmentsByClass(email, classId);
     }
 
@@ -288,7 +288,7 @@ public class TeacherClassSessionApiController {
             @RequestBody AssignmentScheduleRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.updateAssignmentSchedule(email, sessionQuizId, request);
     }
 
@@ -301,7 +301,7 @@ public class TeacherClassSessionApiController {
             @PathVariable Long studentId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return sessionService.resetStudentAttempt(email, quizId, studentId);
     }
 }

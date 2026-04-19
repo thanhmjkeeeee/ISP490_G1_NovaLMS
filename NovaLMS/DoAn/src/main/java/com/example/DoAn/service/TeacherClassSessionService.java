@@ -41,6 +41,7 @@ public class TeacherClassSessionService {
     private final INotificationService notificationService;
     private final EmailService emailService;
     private final TeacherScheduleConflictService teacherScheduleConflictService;
+    private final TeacherQuizService teacherQuizService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -107,7 +108,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -165,7 +166,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -200,7 +201,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -248,7 +249,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
             if (session == null)
@@ -306,7 +307,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
             if (session == null)
@@ -406,7 +407,18 @@ public class TeacherClassSessionService {
                 return ResponseData.error(404, "Quiz không tồn tại trong buổi học này");
 
             Boolean current = sq.getIsOpen();
-            Boolean updated = (current == null || !current);
+            // Cùng logic nút workspace: wsToggleQuizOpen(..., newOpen) — API chỉ toggle; khi chuyển sang MỞ thì xuất bản nếu còn nháp
+            boolean willOpen = current == null || !Boolean.TRUE.equals(current);
+            if (willOpen) {
+                Quiz quiz = sq.getQuiz();
+                if (quiz != null && "DRAFT".equals(quiz.getStatus())) {
+                    var pub = teacherQuizService.publishQuiz(quizId, email);
+                    if (pub.getStatus() != 200) {
+                        return ResponseData.error(pub.getStatus(), pub.getMessage());
+                    }
+                }
+            }
+            Boolean updated = willOpen;
             sq.setIsOpen(updated);
             sessionQuizRepository.save(sq);
 
@@ -590,7 +602,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -656,7 +668,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -697,7 +709,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -747,7 +759,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -833,7 +845,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -875,7 +887,7 @@ public class TeacherClassSessionService {
                 return m;
             }).toList();
 
-            return ResponseData.success("Danh sách Expert Assignments", result);
+            return ResponseData.success("Danh sách bài tập chuyên gia", result);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -886,7 +898,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
             if (!isTeacherOfClass(teacherId, classId))
                 return ResponseData.error(403, "Không có quyền");
 
@@ -930,7 +942,7 @@ public class TeacherClassSessionService {
                 return m;
             }).toList();
 
-            return ResponseData.success("Danh sách Assignment", result);
+            return ResponseData.success("Danh sách bài tập", result);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -942,7 +954,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             SessionQuiz sq = sessionQuizRepository.findById(sessionQuizId).orElse(null);
             if (sq == null)
@@ -983,7 +995,7 @@ public class TeacherClassSessionService {
         try {
             Integer teacherId = getTeacherId(email);
             if (teacherId == null)
-                return ResponseData.error(401, "Unauthorized");
+                return ResponseData.error(401, "Vui lòng đăng nhập.");
 
             AssignmentSession session = assignmentSessionRepository.findByQuizQuizIdAndUserUserId(quizId, studentId)
                     .orElse(null);
@@ -1029,7 +1041,7 @@ public class TeacherClassSessionService {
                         session.getMeetLink());
             }
         } catch (Exception e) {
-            System.err.println("Error notifying session creation: " + e.getMessage());
+            System.err.println("Lỗi gửi thông báo tạo buổi học: " + e.getMessage());
         }
     }
 
@@ -1066,7 +1078,7 @@ public class TeacherClassSessionService {
                         "Giảng viên đã cập nhật lịch học buổi " + session.getSessionNumber());
             }
         } catch (Exception e) {
-            System.err.println("Error notifying session reschedule: " + e.getMessage());
+            System.err.println("Lỗi gửi thông báo đổi lịch buổi học: " + e.getMessage());
         }
     }
 
@@ -1099,7 +1111,7 @@ public class TeacherClassSessionService {
                         "Buổi học số " + session.getSessionNumber() + " đã bị hủy.");
             }
         } catch (Exception e) {
-            System.err.println("Error notifying session cancellation: " + e.getMessage());
+            System.err.println("Lỗi gửi thông báo hủy buổi học: " + e.getMessage());
         }
     }
 }

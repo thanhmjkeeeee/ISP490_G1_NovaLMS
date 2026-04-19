@@ -33,11 +33,11 @@ public class StudentQuizApiController {
             @RequestParam(required = false) String keyword,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
             PageResponse<QuizResultHistoryDTO> res = quizResultService.getStudentQuizHistory(email, page, size, category, keyword);
-            return ResponseData.success("Success", res);
+            return ResponseData.success("Thành công", res);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

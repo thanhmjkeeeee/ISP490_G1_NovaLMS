@@ -10,10 +10,10 @@ import lombok.*;
 @Builder
 public class ModuleRequestDTO {
 
-    @NotNull(message = "courseId is required")
+    @NotNull(message = "Mã khóa học là bắt buộc")
     private Integer courseId;
 
-    @NotBlank(message = "moduleName is required")
+    @NotBlank(message = "Tên chương là bắt buộc")
     private String moduleName;
 
     private Integer orderIndex;

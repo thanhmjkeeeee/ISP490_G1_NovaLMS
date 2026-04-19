@@ -15,7 +15,7 @@ public class AIGenerateRequestDTO {
 
     private Integer moduleId;
 
-    @NotNull(message = "Quantity is required")
+    @NotNull(message = "Số lượng câu hỏi là bắt buộc")
     @Max(value = 25, message = "Số lượng câu hỏi không được vượt quá 25 mỗi lần sinh để đảm bảo ổn định")
     private Integer quantity;
 

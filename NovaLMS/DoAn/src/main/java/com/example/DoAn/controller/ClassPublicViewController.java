@@ -3,8 +3,8 @@ package com.example.DoAn.controller;
 import com.example.DoAn.dto.response.ClassDetailResponse;
 import com.example.DoAn.service.IClassService;
 import com.example.DoAn.service.SettingService;
-import com.example.DoAn.service.impl.ClassServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +27,13 @@ public class ClassPublicViewController {
     }
 
     @GetMapping("/enroll/{classId}")
-    public String enrollPage(@PathVariable Integer classId, Model model) {
+    public String enrollPage(@PathVariable Integer classId, Model model, Authentication authentication) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream().noneMatch(a -> "ROLE_ANONYMOUS".equals(a.getAuthority()))
+                && authentication.getAuthorities().stream().noneMatch(a -> "ROLE_STUDENT".equals(a.getAuthority()))) {
+            return "redirect:/classes";
+        }
         ClassDetailResponse classInfo = classService.getClassById(classId);
         model.addAttribute("classInfo", classInfo);
         return "public/enroll-class";

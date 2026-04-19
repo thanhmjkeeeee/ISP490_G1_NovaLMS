@@ -483,9 +483,30 @@ function updatePreview(type, url) {
     else { wrap.classList.add('d-none'); }
 }
 
+const _AUDIO_EXT_EDIT = new Set(['mp3','wav','ogg','m4a','aac','opus','flac','webm']);
+const _IMAGE_EXT_EDIT = new Set(['jpg','jpeg','png','gif','webp','bmp','svg']);
+function _fileExtEdit(name) {
+    if (!name || !name.includes('.')) return '';
+    return name.slice(name.lastIndexOf('.') + 1).toLowerCase();
+}
 async function uploadFile(input, type, targetId) {
     const file = input.files[0];
     if(!file) return;
+    const mime = (file.type || '').toLowerCase();
+    const ext = _fileExtEdit(file.name);
+    if (type === 'audio') {
+        if (!mime.startsWith('audio/') && !_AUDIO_EXT_EDIT.has(ext)) {
+            alert('Vui lòng chọn file âm thanh (mp3, wav, m4a, ...).');
+            input.value = '';
+            return;
+        }
+    } else if (type === 'image') {
+        if (!mime.startsWith('image/') && !_IMAGE_EXT_EDIT.has(ext)) {
+            alert('Vui lòng chọn file ảnh (jpg, png, gif, ...).');
+            input.value = '';
+            return;
+        }
+    }
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -495,8 +516,11 @@ async function uploadFile(input, type, targetId) {
             document.getElementById(targetId || (type + 'Url')).value = result.data;
             updatePreview(type, result.data);
             alert('Tải lên thành công!');
+        } else {
+            alert(result.message || 'Tải lên thất bại.');
+            input.value = '';
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error(e); input.value = ''; }
 }
 
 (async function initQuestionEdit() {

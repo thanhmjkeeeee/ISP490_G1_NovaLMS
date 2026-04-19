@@ -67,14 +67,14 @@ public class TeacherLessonQuizController {
             @RequestBody QuizRequestDTO request,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         var lesson = lessonRepository.findById(lessonId).orElse(null);
         if (lesson == null) return ResponseData.error(404, "Không tìm thấy bài học");
 
         // Validate teacher owns a class containing this lesson
         User teacher = userRepository.findByEmail(email).orElse(null);
-        if (teacher == null) return ResponseData.error(401, "Unauthorized");
+        if (teacher == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         boolean ownsClass = clazzRepository.findAllByTeacher_UserId(teacher.getUserId()).stream()
                 .anyMatch(c -> c.getCourse() != null
@@ -122,7 +122,7 @@ public class TeacherLessonQuizController {
             @PathVariable Integer quizId,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         lessonQuizService.detachQuizFromLesson(lessonId, quizId, email);
         return ResponseData.success("Đã gỡ quiz khỏi bài học");

@@ -30,7 +30,7 @@ public class ExpertReviewController {
     @GetMapping("/pending")
     public ResponseData<List<ExpertReviewService.PendingQuestionDTO>> getPendingQuestions(Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return expertReviewService.getPendingQuestions();
     }
 
@@ -45,7 +45,7 @@ public class ExpertReviewController {
             @RequestBody(required = false) java.util.Map<String, String> body,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         String reviewNote = (body != null) ? body.get("reviewNote") : null;
         return expertReviewService.approveQuestion(questionId, email, reviewNote);
     }
@@ -61,7 +61,7 @@ public class ExpertReviewController {
             @RequestBody(required = false) java.util.Map<String, Object> body,
             Principal principal) {
         String email = getEmail(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         String reviewNote = (body != null && body.get("reviewNote") != null)
                 ? String.valueOf(body.get("reviewNote")) : null;
         boolean delete = (body != null && body.get("delete") != null)

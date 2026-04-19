@@ -28,7 +28,7 @@ public class LearningLessonQuizController {
     public ResponseData<List<LessonQuizResponseDTO>> getLessonQuizzes(
             @PathVariable Integer lessonId, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         return ResponseData.success("Danh sách quiz",
                 lessonQuizService.getLessonQuizzesForStudent(lessonId, email));
     }
@@ -40,7 +40,7 @@ public class LearningLessonQuizController {
             @PathVariable Integer quizId,
             Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseData.error(401, "Unauthorized");
+        if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
         lessonQuizService.validateQuizAvailableForStudent(lessonId, quizId, email);
         return ResponseData.success("Quiz sẵn sàng để làm");
     }

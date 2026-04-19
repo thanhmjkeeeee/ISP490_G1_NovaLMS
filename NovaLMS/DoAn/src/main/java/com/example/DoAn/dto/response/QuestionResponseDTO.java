@@ -16,6 +16,8 @@ public class QuestionResponseDTO {
     private String skill;
     private String cefrLevel;
     private String status;
+    private String audioUrl;
+    private String imageUrl;
     private int optionCount;
     private int correctOptionCount;
     private List<AnswerOptionResponseDTO> options;

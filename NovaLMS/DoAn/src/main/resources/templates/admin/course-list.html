@@ -61,7 +61,7 @@
         <div class="card mb-4 border-0 shadow-sm filter-section">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-7">
                         <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
                         <div class="input-group">
                             <span class="input-group-text border-end-0 text-muted">
@@ -72,21 +72,13 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="statusFilter" class="form-select bg-light">
                             <option value="">Tất cả trạng thái</option>
                             <option value="active">Đang hoạt động</option>
                             <option value="draft">Bản nháp</option>
                         </select>
-                    </div>
-
-                    <div class="col-md-3">
-                        <button type="button" onclick="loadCourseData(0)"
-                            class="btn btn-primary w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center"
-                            style="background-color: #3b82f6; border: none;">
-                            <i class="bi bi-filter me-2"></i> Lọc dữ liệu
-                        </button>
                     </div>
                 </div>
             </div>
@@ -126,8 +118,14 @@
     <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
     <script>
+        let courseListFilterDebounce;
         document.addEventListener("DOMContentLoaded", function () {
             loadCourseData(0);
+            document.getElementById('searchInput').addEventListener('input', function () {
+                clearTimeout(courseListFilterDebounce);
+                courseListFilterDebounce = setTimeout(function () { loadCourseData(0); }, 400);
+            });
+            document.getElementById('statusFilter').addEventListener('change', function () { loadCourseData(0); });
         });
 
         // Hàm load dữ liệu chính
@@ -145,7 +143,7 @@
             if (status) url += `&status=${encodeURIComponent(status)}`;
 
             const tbody = document.getElementById('courseDataBody');
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
 
             fetch(url)
                 .then(response => response.json())
@@ -154,21 +152,32 @@
                         renderTable(res.data.items);
                         renderPagination(res.data.pageNo, res.data.totalPages);
                     } else {
-                        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${res.message}</td></tr>`;
                     }
                 })
                 .catch(err => {
                     console.error("API Error:", err);
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Không thể kết nối với máy chủ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Không thể kết nối với máy chủ</td></tr>`;
                 });
         }
 
-        // Thêm sự kiện nhấn "Enter" ở ô search để kích hoạt tìm kiếm luôn
-        document.getElementById('searchInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadCourseData(0);
+        /** Cùng logic hiển thị giá / giảm giá với trang chi tiết admin (course-details-admin). */
+        function formatCoursePriceCell(course) {
+            const originalPrice = Number(course.price) || 0;
+            const sale = Number(course.sale) || 0;
+            if (originalPrice <= 0 && sale <= 0) {
+                return '<div class="fw-bold text-success small">Miễn phí</div>';
             }
-        });
+            if (sale > 0) {
+                const finalPrice = Math.max(0, originalPrice - sale);
+                return `<div class="small lh-sm">
+                    <div class="text-muted text-decoration-line-through">${originalPrice.toLocaleString('vi-VN')} VND</div>
+                    <div class="fw-bold text-danger">${finalPrice.toLocaleString('vi-VN')} VND</div>
+                    <span class="badge bg-danger mt-1" style="font-size:9px;">Giảm ${sale.toLocaleString('vi-VN')} VND</span>
+                </div>`;
+            }
+            return `<div class="fw-bold text-dark">${originalPrice.toLocaleString('vi-VN')} VND</div>`;
+        }
 
         // Hàm vẽ bảng
         function renderTable(courses) {
@@ -215,7 +224,7 @@
                         ? `<span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1" style="font-size:10px;">${course.expertName}</span>`
                         : '<span class="text-muted small">—</span>'}
                 </td>
-                <td><div class="fw-bold text-dark">${(course.price || 0).toLocaleString('vi-VN')} VND</div></td>
+                <td>${formatCoursePriceCell(course)}</td>
                 <td>
                     <span class="badge px-2 py-1 fw-bold text-uppercase ${badgeClass}" style="font-size: 10px;">
                         ${statusLabel}

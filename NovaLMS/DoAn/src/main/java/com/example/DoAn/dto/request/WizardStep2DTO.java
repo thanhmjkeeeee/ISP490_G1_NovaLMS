@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Builder
 public class WizardStep2DTO {
 
-    @NotBlank(message = "Source type is required")
+    @NotBlank(message = "Loại nguồn là bắt buộc")
     private String sourceType; // "AI_GENERATE", "EXCEL_IMPORT", "MANUAL"
 
     // AI_GENERATE fields

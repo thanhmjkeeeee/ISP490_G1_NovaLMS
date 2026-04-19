@@ -58,16 +58,16 @@ public class GlobalExceptionHandler {
             int start = message.lastIndexOf("[") + 1;
             int end = message.lastIndexOf("]") - 1;
             message = message.substring(start, end);
-            errorResponse.setError("Invalid Payload");
+            errorResponse.setError("Dữ liệu gửi lên không hợp lệ");
             errorResponse.setMessage(message);
         } else if (e instanceof MissingServletRequestParameterException) {
-            errorResponse.setError("Invalid Parameter");
+            errorResponse.setError("Tham số không hợp lệ");
             errorResponse.setMessage(message);
         } else if (e instanceof ConstraintViolationException) {
-            errorResponse.setError("Invalid Parameter");
+            errorResponse.setError("Tham số không hợp lệ");
             errorResponse.setMessage(message.substring(message.indexOf(" ") + 1));
         } else {
-            errorResponse.setError("Invalid Data");
+            errorResponse.setError("Dữ liệu không hợp lệ");
             errorResponse.setMessage(message);
         }
 
@@ -106,7 +106,7 @@ public class GlobalExceptionHandler {
         errorResponse.setTimestamp(new Date());
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
         errorResponse.setStatus(NOT_FOUND.value());
-        errorResponse.setError(NOT_FOUND.getReasonPhrase());
+        errorResponse.setError("Không tìm thấy");
         errorResponse.setMessage(e.getMessage());
 
         return errorResponse;
@@ -143,7 +143,7 @@ public class GlobalExceptionHandler {
         errorResponse.setTimestamp(new Date());
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
         errorResponse.setStatus(CONFLICT.value());
-        errorResponse.setError(CONFLICT.getReasonPhrase());
+        errorResponse.setError("Xung đột dữ liệu");
         errorResponse.setMessage(e.getMessage());
 
         return errorResponse;
@@ -180,7 +180,7 @@ public class GlobalExceptionHandler {
         errorResponse.setTimestamp(new Date());
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
         errorResponse.setStatus(INTERNAL_SERVER_ERROR.value());
-        errorResponse.setError(INTERNAL_SERVER_ERROR.getReasonPhrase());
+        errorResponse.setError("Lỗi máy chủ nội bộ");
         errorResponse.setMessage(e.getMessage());
 
         return errorResponse;
@@ -197,7 +197,7 @@ public class GlobalExceptionHandler {
         errorResponse.setTimestamp(new Date());
         errorResponse.setStatus(UNAUTHORIZED.value());
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
-        errorResponse.setError("Unauthorized");
+        errorResponse.setError("Không được xác thực");
         errorResponse.setMessage("Email hoặc mật khẩu không chính xác.");
         return errorResponse;
     }
@@ -212,7 +212,7 @@ public class GlobalExceptionHandler {
         errorResponse.setTimestamp(new Date());
         errorResponse.setStatus(FORBIDDEN.value());
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
-        errorResponse.setError("Forbidden");
+        errorResponse.setError("Không có quyền");
         errorResponse.setMessage("Bạn không có quyền truy cập vào chức năng này.");
         return errorResponse;
     }

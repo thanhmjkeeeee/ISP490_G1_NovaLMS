@@ -45,22 +45,20 @@
     <div class="card mb-4 border-0 shadow-sm filter-section">
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-5">
                     <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                         <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Tên, Email...">
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label small fw-bold text-secondary">Vai trò</label>
                     <select id="roleFilter" class="form-select bg-light">
                         <option value="">Tất cả vai trò</option>
-                        <option value="201">Quản trị viên</option>
-                        <option value="202">Quản lý</option>
-                        <option value="203">Chuyên gia</option>
-                        <option value="204">Giảng viên</option>
-                        <option value="205">Học viên</option>
+                        <option th:each="r : ${roleSettings}"
+                                th:value="${r.settingId}"
+                                th:text="${#strings.isEmpty(r.name) ? (#strings.isEmpty(r.value) ? ('Vai trò #' + r.settingId) : r.value) : r.name}">—</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -70,11 +68,6 @@
                         <option value="Active">Đang hoạt động</option>
                         <option value="Inactive">Bị khóa</option>
                     </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" onclick="loadAccountData(0)" class="btn btn-primary w-100 fw-bold shadow-sm justify-content-center" style="background-color: #3b82f6; border: none;">
-                        <i class="bi bi-filter me-2"></i> Lọc dữ liệu
-                    </button>
                 </div>
             </div>
         </div>
@@ -113,8 +106,15 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 
 <script>
+    let accountListFilterDebounce;
     document.addEventListener("DOMContentLoaded", function() {
         loadAccountData(0);
+        document.getElementById('searchInput').addEventListener('input', function () {
+            clearTimeout(accountListFilterDebounce);
+            accountListFilterDebounce = setTimeout(function () { loadAccountData(0); }, 400);
+        });
+        document.getElementById('roleFilter').addEventListener('change', function () { loadAccountData(0); });
+        document.getElementById('statusFilter').addEventListener('change', function () { loadAccountData(0); });
     });
 
     // Hàm load dữ liệu chính
@@ -137,7 +137,7 @@
             .then(res => {
                 if (res.status === 200) {
                     renderTable(res.data.items);
-                    renderPagination(res.data.pageNo, res.data.totalPage);
+                    renderPagination(res.data.pageNo, res.data.totalPages);
                 } else {
                     tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">${res.message}</td></tr>`;
                 }
@@ -147,11 +147,6 @@
                 tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Không thể kết nối máy chủ</td></tr>`;
             });
     }
-
-    // Enter key search
-    document.getElementById('searchInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') loadAccountData(0);
-    });
 
     // Hàm vẽ bảng
     function renderTable(users) {

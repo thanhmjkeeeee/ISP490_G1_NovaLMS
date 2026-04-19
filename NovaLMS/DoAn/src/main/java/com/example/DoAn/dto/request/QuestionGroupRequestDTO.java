@@ -12,16 +12,16 @@ import java.util.List;
 @Builder
 public class QuestionGroupRequestDTO {
 
-    @NotBlank(message = "Group content is required")
+    @NotBlank(message = "Nội dung nhóm câu hỏi là bắt buộc")
     private String groupContent;
 
     private String audioUrl;
     private String imageUrl;
 
-    @NotBlank(message = "Skill is required")
+    @NotBlank(message = "Kỹ năng là bắt buộc")
     private String skill;
 
-    @NotBlank(message = "CEFR level is required")
+    @NotBlank(message = "Cấp độ CEFR là bắt buộc")
     private String cefrLevel;
 
     private String topic;

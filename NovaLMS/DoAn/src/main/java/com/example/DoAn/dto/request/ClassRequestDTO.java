@@ -9,15 +9,15 @@ import java.io.Serializable;
 @Getter
 @Setter
 public class ClassRequestDTO implements Serializable {
-    @NotBlank(message = "Class name must not be blank")
+    @NotBlank(message = "Tên lớp không được để trống")
     private String className;
 
-    @NotNull(message = "Course ID must not be null")
+    @NotNull(message = "Mã khóa học là bắt buộc")
     private Integer courseId;
 
     private Integer teacherId;
 
-    @NotBlank(message = "Start date is required")
+    @NotBlank(message = "Ngày bắt đầu là bắt buộc")
     private String startDate;
 
     private String endDate;

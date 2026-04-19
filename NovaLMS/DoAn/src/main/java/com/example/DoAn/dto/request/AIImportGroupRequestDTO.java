@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 public class AIImportGroupRequestDTO {
 
-    @NotNull(message = "Passage content is required")
+    @NotNull(message = "Nội dung passage là bắt buộc")
     private String passage;
 
     private String audioUrl;
@@ -24,6 +24,6 @@ public class AIImportGroupRequestDTO {
     @Builder.Default
     private String status = "DRAFT";
 
-    @NotNull(message = "Questions list is required")
+    @NotNull(message = "Danh sách câu hỏi là bắt buộc")
     private List<AIGenerateResponseDTO.QuestionDTO> questions;
 }

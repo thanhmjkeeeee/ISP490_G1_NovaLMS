@@ -25,6 +25,6 @@ public class ClassPublicManagementController {
             @RequestParam(required = false) String keyword) {
 
         var response = classPublicService.getOpenClassesWithFilter(pageNo, pageSize, categoryId, keyword);
-        return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+        return new ResponseData<>(HttpStatus.OK.value(), "Thành công", response);
     }
 }
