@@ -201,16 +201,16 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                         if (!m2.containsKey("cefrLevel") || m2.get("cefrLevel") == null) m2.put("cefrLevel", cefr);
                         if (!m2.containsKey("topic") || m2.get("topic") == null) m2.put("topic", topic);
                         AIGenerateResponseDTO.QuestionDTO dto = toQuestionDTO(m2);
-                        log.warn("[GROUP] content={}, type={}, options={}, valid={}, rejection={}",
-                                dto != null ? dto.getContent() : null,
-                                dto != null ? dto.getQuestionType() : null,
-                                dto != null && dto.getOptions() != null ? dto.getOptions().size() : null,
-                                dto != null ? isValid(dto) : false,
-                                dto != null ? getGroupRejectionReason(m2, dto) : "dto=null");
                         if (dto != null && isValid(dto)) {
                             if (dto.getSkill() == null) dto.setSkill(skill);
                             if (dto.getCefrLevel() == null) dto.setCefrLevel(cefr);
                             if (dto.getTopic() == null) dto.setTopic(topic);
+                            
+                            // Generate individual audio for Listening question if not present
+                            if ("LISTENING".equalsIgnoreCase(skill) && (dto.getAudioUrl() == null || dto.getAudioUrl().isBlank())) {
+                                generateAudioForQuestion(dto);
+                            }
+                            
                             questions.add(dto);
                         }
                     }

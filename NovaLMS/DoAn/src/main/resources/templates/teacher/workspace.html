@@ -1118,6 +1118,17 @@
                             <label class="form-label fw-bold small text-uppercase text-primary">Tùy chọn nâng
                                 cao</label>
 
+                            <div id="field-layout-mode" class="mb-3" style="display:none;">
+                                <label class="form-label small fw-bold">Dạng bài</label>
+                                <div class="d-flex gap-2">
+                                    <input type="radio" class="btn-check" name="adv-layout" id="layout-grouped" value="GROUPED" checked>
+                                    <label class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-normal" for="layout-grouped">Theo đoạn văn/bài nghe</label>
+
+                                    <input type="radio" class="btn-check" name="adv-layout" id="layout-standalone" value="STANDALONE">
+                                    <label class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-normal" for="layout-standalone">Câu hỏi độc lập</label>
+                                </div>
+                            </div>
+
                             <!-- Listening Options -->
                             <div id="field-listening" class="mb-3">
                                 <label class="form-label small fw-bold">Loại kịch bản nghe (Listening
@@ -3356,6 +3367,9 @@
             document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
             document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
             document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
+            
+            const layoutField = document.getElementById('field-layout-mode');
+            if (layoutField) layoutField.style.display = (skill === 'READING' || skill === 'LISTENING' ? 'block' : 'none');
         };
 
         window.runAdvancedAiGeneration = async function () {
@@ -3395,7 +3409,8 @@
             if (btn) btn.disabled = true;
             if (spinner) spinner.style.display = 'inline-block';
 
-            const isGroupSkill = (skill === 'READING' || skill === 'LISTENING');
+            const layout = document.querySelector('input[name="adv-layout"]:checked')?.value || 'GROUPED';
+            const isGroupSkill = (skill === 'READING' || skill === 'LISTENING') && (layout === 'GROUPED');
             const aiEndpoint = isGroupSkill ? '/api/v1/teacher/quizzes/ai/generate-group' : '/api/v1/teacher/quizzes/ai/generate';
 
             try {
