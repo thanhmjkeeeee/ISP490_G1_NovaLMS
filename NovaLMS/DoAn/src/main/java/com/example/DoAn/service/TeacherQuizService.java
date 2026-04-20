@@ -907,6 +907,7 @@ public class TeacherQuizService {
                         .skill(first.getSkill())
                         .cefrLevel(first.getCefrLevel())
                         .topic(first.getTopic())
+                        .audioUrl(request.getGroupAudioUrl())
                         .status("PENDING_REVIEW")
                         .user(teacher)
                         .build();
@@ -1069,6 +1070,7 @@ public class TeacherQuizService {
     public static class AIImportRequestDTO {
         private Integer quizId;
         private String passage; // Shared passage for the group
+        private String groupAudioUrl;
         private List<AIQuestionDTO> questions;
 
         @lombok.Data

@@ -1730,11 +1730,13 @@
 
             let finalQuestions = [];
             let passage = null;
+            let audioUrl = null;
 
             selected.forEach(q => {
                 if (q.type === 'GROUP' || q.questions) {
                     // Đây là bộ câu hỏi có passage/audio transcript
                     passage = q.passage || q.content;
+                    audioUrl = q.audioUrl;
                     if (q.questions && q.questions.length > 0) {
                         q.questions.forEach(sub => {
                             // Đảm bảo sub-question có đủ metadata từ group nếu thiếu
@@ -1755,9 +1757,10 @@
 
             try {
                 let url = `/api/v1/expert/quizzes/${_quizId}/ai/import`;
-                if (passage) {
-                    url += `?passage=${encodeURIComponent(passage)}`;
-                }
+                let params = [];
+                if (passage) params.push(`passage=${encodeURIComponent(passage)}`);
+                if (audioUrl) params.push(`audioUrl=${encodeURIComponent(audioUrl)}`);
+                if (params.length > 0) url += `?${params.join('&')}`;
 
                 const res = await fetch(url, {
                     method: 'POST',

@@ -850,15 +850,16 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     @Transactional
     public QuizResponseDTO importAIQuestions(Integer quizId,
             List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions, String passage,
-            String email) {
+            String audioUrl, String email) {
         User expert = findExpert(email);
         Quiz quiz = findQuiz(quizId);
-
+ 
         QuestionGroup sharedGroup = null;
         if (passage != null && !passage.isBlank()) {
             com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO first = questions.get(0);
             sharedGroup = QuestionGroup.builder()
                     .groupContent(passage)
+                    .audioUrl(audioUrl)
                     .skill(first.getSkill())
                     .cefrLevel(first.getCefrLevel())
                     .topic(first.getTopic())

@@ -640,13 +640,24 @@
         });
     }
 
+    // --- DATE UTILS ---
+    function formatDateDM(date) {
+        const d = date.getDate();
+        const m = date.getMonth() + 1;
+        return `${d < 10 ? '0' + d : d}/${m < 10 ? '0' + m : m}`;
+    }
+
+    function wsEscape(str) {
+        if (!str) return '';
+        return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
     // --- RENDER UTILS ---
     function renderBanner(data) {
         const statusClass = data.status === 'Closed' ? 'bi-slash-circle' : 'bi-play-circle-fill';
         const progress = data.progressPercent || 0;
         const bannerContainer = document.getElementById('classBannerContainer');
 
-        // Tạo banner HTML mới thay vì thay thế toàn bộ container để giữ nguyên cấu trúc loading nếu cần
         const bannerHtml = `
             <div class="course-banner bg-primary bg-gradient rounded-4 p-4 p-md-5 mb-4 shadow-sm text-white position-relative overflow-hidden">
                 <div class="position-absolute top-0 end-0 opacity-25" style="transform: translate(20%, -30%);">
@@ -683,8 +694,7 @@
                 </div>
             </div>`;
 
-        // Thay thế banner loading bằng banner chính
-        bannerContainer.insertAdjacentHTML('afterend', bannerHtml);
+        bannerContainer.innerHTML = bannerHtml;
     }
 
     function renderInfoAndTeacher(data) {
@@ -790,8 +800,10 @@
                                     <i class="bi bi-play-fill"></i> ${q.latestResultId ? 'Làm lại bài' : 'Bắt đầu làm'}
                                 </a>
                             ` : `
-                                <button class="btn btn-sm btn-secondary rounded-pill px-3 flex-grow-1" disabled>
-                                    <i class="bi bi-lock-fill"></i> ${isLocked ? 'Chưa mở' : 'Hết lượt làm'}
+                                <button class="btn btn-sm btn-secondary rounded-pill px-3 flex-grow-1" 
+                                        onclick="${!isLocked && !canRetake ? 'Swal.fire(\'Thông báo\', \'Bạn đã hết lượt làm bài tập này!\', \'info\')' : ''}"
+                                        ${isLocked ? 'disabled' : ''}>
+                                    <i class="bi ${isLocked ? 'bi-lock-fill' : 'bi-x-circle'}"></i> ${isLocked ? 'Chưa mở' : 'Hết lượt làm'}
                                 </button>
                             `}
                             ${q.latestResultId ? `
@@ -824,20 +836,6 @@
         if (dow <= 4) ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
         else ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
         return ISOweekStart;
-    }
-
-    function formatDateDM(date) {
-        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
-    }
-
-    function wsEscape(s) {
-        if (!s) return "";
-        return s.toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
 </script>
 

@@ -306,7 +306,7 @@
 
               let btnHtml = '';
               if (outOfAttempts) {
-                  btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-x-circle me-2"></i>Hết lượt</button>`;
+                  btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" onclick="Swal.fire('Thông báo', 'Bạn đã hết lượt làm bài tập này!', 'info')"><i class="bi bi-x-circle me-2"></i>Hết lượt</button>`;
               } else if (!isOpen) {
                   btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-lock-fill me-2"></i>Chưa mở</button>`;
               } else {
@@ -347,6 +347,9 @@
           assignContent.innerHTML = assignments.map(q => {
               const isOpen = q.isOpen === true;
               const attemptCount = q.attemptCount || 0;
+              const maxAttempts = q.maxAttempts;
+              const outOfAttempts = maxAttempts != null && attemptCount >= maxAttempts;
+
               const now = new Date();
               const deadline = q.deadline ? new Date(q.deadline) : null;
               const isExpired = deadline ? now > deadline : false;
@@ -387,11 +390,14 @@
               let btnHtml = '';
               if (isExpired) {
                   btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-x-circle me-2"></i>Đã hết hạn</button>`;
+              } else if (outOfAttempts) {
+                  btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" onclick="Swal.fire('Thông báo', 'Bạn đã hết lượt làm bài tập này!', 'info')"><i class="bi bi-x-circle me-2"></i>Hết lượt làm</button>`;
               } else if (!effectiveOpen) {
                   btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-lock-fill me-2"></i>Chưa mở</button>`;
               } else {
                   const btnLabel = attemptCount > 0 ? 'Làm lại bài' : 'Bắt đầu làm bài';
-                  btnHtml = `<a href="/student/quiz/take/${q.quizId}" class="btn btn-warning rounded-pill fw-bold px-4 shadow-sm text-dark"><i class="bi bi-play-circle-fill me-2"></i>${btnLabel}</a>`;
+                  const url = q.isAssignment ? `/student/assignment/${q.quizId}` : `/student/quiz/take/${q.quizId}`;
+                  btnHtml = `<a href="${url}" class="btn btn-warning rounded-pill fw-bold px-4 shadow-sm text-dark"><i class="bi bi-play-circle-fill me-2"></i>${btnLabel}</a>`;
               }
 
               return `
@@ -406,7 +412,7 @@
                               <div class="d-flex flex-wrap gap-2 small">
                                   ${statusHtml}
                                   ${deadlineHtml}
-                                  <span class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Đã làm: ${attemptCount} lần</span>
+                                  <span class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>Đã làm: ${maxAttempts != null ? attemptCount + '/' + maxAttempts : attemptCount + ' lần'}</span>
                               </div>
                           </div>
                       </div>

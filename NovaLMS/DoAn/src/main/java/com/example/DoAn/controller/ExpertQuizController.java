@@ -218,8 +218,9 @@ public class ExpertQuizController {
             @PathVariable Integer quizId,
             @RequestBody List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions,
             @RequestParam(required = false) String passage,
+            @RequestParam(required = false) String audioUrl,
             Principal principal) {
         return ResponseData.success("Questions imported",
-                quizService.importAIQuestions(quizId, questions, passage, getEmail(principal)));
+                quizService.importAIQuestions(quizId, questions, passage, audioUrl, getEmail(principal)));
     }
 }
