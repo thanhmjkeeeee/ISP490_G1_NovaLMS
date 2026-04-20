@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="G1-ISP492" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="DoAn" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.example.DoAn.DoAnApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
