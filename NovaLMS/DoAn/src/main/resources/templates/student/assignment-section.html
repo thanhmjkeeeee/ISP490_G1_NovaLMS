@@ -121,24 +121,62 @@ let isWriting = skill === 'WRITING';
 let isSpeaking = skill === 'SPEAKING';
 const SEQUENTIAL_SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
 
-window.wsSpeak = function (text) {
-    if (!text) return;
+window._wsCurrentAudio = null;
+window._wsCurrentBtn = null;
+
+window.wsToggleAudio = function(btn, audioUrl, text) {
+    if (window._wsCurrentBtn === btn) {
+        if (window._wsCurrentAudio) { window._wsCurrentAudio.pause(); window._wsCurrentAudio = null; }
+        if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); }
+        wsResetAudioBtn(btn);
+        window._wsCurrentBtn = null;
+        return;
+    }
+
+    if (window._wsCurrentBtn) {
+        if (window._wsCurrentAudio) { window._wsCurrentAudio.pause(); window._wsCurrentAudio = null; }
+        if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); }
+        wsResetAudioBtn(window._wsCurrentBtn);
+    }
+
+    window._wsCurrentBtn = btn;
+    btn.innerHTML = '<i class="bi bi-stop-fill"></i> DỪNG';
+    btn.classList.replace('btn-outline-primary', 'btn-danger');
+
+    if (audioUrl && audioUrl !== 'null' && audioUrl !== '') {
+        window._wsCurrentAudio = new Audio(audioUrl);
+        window._wsCurrentAudio.onended = () => { wsResetAudioBtn(btn); window._wsCurrentBtn = null; window._wsCurrentAudio = null; };
+        window._wsCurrentAudio.onerror = () => { wsResetAudioBtn(btn); window._wsCurrentBtn = null; window._wsCurrentAudio = null; };
+        window._wsCurrentAudio.play().catch(e => {
+            console.error("Audio play failed:", e);
+            wsSpeak(text, () => { wsResetAudioBtn(btn); window._wsCurrentBtn = null; });
+        });
+    } else {
+        wsSpeak(text, () => { wsResetAudioBtn(btn); window._wsCurrentBtn = null; });
+    }
+};
+
+function wsResetAudioBtn(btn) {
+    if (!btn) return;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i> NGHE';
+    btn.classList.replace('btn-danger', 'btn-outline-primary');
+}
+
+window.wsSpeak = function (text, onComplete) {
+    if (!text) { if(onComplete) onComplete(); return; }
     if (!('speechSynthesis' in window)) {
         alert('Trình duyệt của bạn không hỗ trợ Text-to-Speech.');
+        if(onComplete) onComplete();
         return;
     }
 
     if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
-        if (window._wsLastText === text) {
-            window._wsLastText = null;
-            return;
-        }
     }
     window._wsLastText = text;
 
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    if (lines.length === 0) return;
+    if (lines.length === 0) { if(onComplete) onComplete(); return; }
 
     const allVoices = window.speechSynthesis.getVoices();
     const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
@@ -159,7 +197,10 @@ window.wsSpeak = function (text) {
     const speakerVoiceMap = {};
 
     const playNextLine = (index) => {
-        if (index >= lines.length || window._wsLastText !== text) return;
+        if (index >= lines.length || window._wsLastText !== text) {
+            if (onComplete) onComplete();
+            return;
+        }
 
         const line = lines[index];
         const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
@@ -194,6 +235,7 @@ window.wsSpeak = function (text) {
 
         utterance.onerror = (err) => {
             console.error('SpeechSynthesis error:', err);
+            if (onComplete) onComplete();
         };
 
         window.speechSynthesis.speak(utterance);
@@ -293,10 +335,18 @@ function renderQuestions(questions) {
         container.innerHTML = '<div class="alert alert-info">Không có câu hỏi cho phần này.</div>';
         return;
     }
-    container.innerHTML = questions.map((q, i) => buildQuestionHTML(q, i)).join('');
+    const renderedGroups = new Set();
+    container.innerHTML = questions.map((q, i) => {
+        let showPassage = false;
+        if (q.groupId && !renderedGroups.has(q.groupId)) {
+            showPassage = true;
+            renderedGroups.add(q.groupId);
+        }
+        return buildQuestionHTML(q, i, showPassage);
+    }).join('');
 }
 
-function buildQuestionHTML(q, index) {
+function buildQuestionHTML(q, index, showPassage) {
     const qNum = index + 1;
     const saved = currentAnswers[q.questionId];
 
@@ -360,31 +410,28 @@ function buildQuestionHTML(q, index) {
             <div class="fw-bold text-primary mb-2 small uppercase d-flex justify-content-between align-items-center">
                 <span><i class="bi ${isL ? 'bi-headphones' : 'bi-journal-text'} me-1"></i> 
                 ${isL ? 'Phần Nghe' : 'Đoạn văn / Ngữ cảnh'}</span>
-                ${(isL && q.passage) ? `
-                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" onclick="wsSpeak(this.parentElement.nextElementSibling.innerText)">
-                    <i class="bi bi-play-fill"></i> NGHE (TTS)
+                ${isL ? `
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2 shadow-sm" style="font-size:0.65rem;" 
+                          onclick="wsToggleAudio(this, '${esc(q.groupAudioUrl || '')}', this.closest('.q-passage').querySelector('.ws-passage-text').innerText)">
+                    <i class="bi bi-play-fill"></i> NGHE
                   </button>
                 ` : ''}
             </div>
-            <div style="display:none">${q.passage || ''}</div>
+            <div class="ws-passage-text" style="display:none">${q.passage || ''}</div>
             ${isL ? `
                 <div class="alert alert-info border-0 py-2 mb-2 small">
                     <i class="bi bi-info-circle-fill me-1"></i> Hãy nghe đoạn hội thoại/bài nói sau và trả lời các câu hỏi liên quan.
                 </div>
             ` : `<div style="white-space: pre-line;">${wsFormatTranscript(q.passage)}</div>`}
-            ${q.groupAudioUrl ? `
-                <div class="mt-2">
-                    <audio controls class="w-100 shadow-sm" style="height:40px">
-                        <source src="${q.groupAudioUrl}" type="audio/mpeg">
-                    </audio>
-                </div>
-            ` : ''}
         </div>` : '';
 
-    const audioHTML = q.audioUrl
-        ? `<div class="mb-3"><audio controls class="w-100" style="height:44px">
-             <source src="${q.audioUrl}" type="audio/mpeg">
-           </audio></div>` : '';
+    const audioHTML = (q.audioUrl && !q.groupId)
+        ? `<div class="mb-3">
+             <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" 
+                     onclick="wsToggleAudio(this, '${esc(q.audioUrl)}', '')">
+               <i class="bi bi-play-fill"></i> NGHE
+             </button>
+           </div>` : '';
     const imageHTML = q.imageUrl
         ? `<div class="mb-3"><img src="${q.imageUrl}" alt="question image"
              style="max-width:100%;max-height:280px;border-radius:8px"></div>` : '';
@@ -397,7 +444,7 @@ function buildQuestionHTML(q, index) {
                     <span class="text-muted fw-normal">/ ${q.points || 1} điểm</span>
                 </h5>
             </div>
-            ${passageHTML}
+            ${showPassage ? passageHTML : ''}
             ${imageHTML}
             <p class="fs-5 mb-3" style="line-height:1.6">${q.content}</p>
             ${audioHTML}
