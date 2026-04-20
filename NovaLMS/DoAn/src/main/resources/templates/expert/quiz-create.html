@@ -351,6 +351,7 @@
                                 <!-- Filters for Bank -->
                                 <div class="row g-2">
                                     <div class="col-md-4">
+                                        <label class="small fw-bold text-muted mb-1">Kỹ năng</label>
                                         <select id="modalSkill" class="form-select form-select-sm"
                                             onchange="loadBankQuestions(0)">
                                             <option value="">-- Tất cả Kỹ năng --</option>
@@ -361,6 +362,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="small fw-bold text-muted mb-1">Trình độ</label>
                                         <select id="modalCefr" class="form-select form-select-sm"
                                             onchange="loadBankQuestions(0)">
                                             <option value="">-- Trình độ IELTS --</option>
@@ -378,11 +380,13 @@
                                         </select>
                                     </div>
                                     <div class="col-md-4">
+                                        <label class="small fw-bold text-muted mb-1">Tìm kiếm</label>
                                         <input type="text" id="modalKeyword" class="form-control form-control-sm"
                                             placeholder="Tìm kiếm..."
                                             onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
                                     </div>
                                     <div class="col-md-1">
+                                        <label class="small d-block mb-1">&nbsp;</label>
                                         <button class="btn btn-sm btn-primary w-100" onclick="loadBankQuestions(0)"><i
                                                 class="bi bi-search"></i></button>
                                     </div>
@@ -597,7 +601,7 @@
                                         <input type="hidden" id="adv-cefr" value="5.0">
                                     </div>
                                 </div>
-                                <div class="mb-3">
+                                <div class="mb-3" id="adv-type-section">
                                     <label class="form-label small fw-bold">Loại câu hỏi (Chọn nhiều)</label>
                                     <div class="d-flex flex-wrap gap-2" id="adv-types">
                                         <input type="checkbox" class="btn-check" id="type-mc-s"
@@ -622,6 +626,11 @@
                                         <label
                                             class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                             for="type-match">Nối cặp</label>
+                                    </div>
+                                </div>
+                                <div id="adv-skill-info-msg" class="mb-3" style="display:none;">
+                                    <div class="alert alert-info border-0 shadow-sm small py-2 mb-0">
+                                        <i class="bi bi-info-circle me-1"></i> Kỹ năng <strong>Tự luận</strong> sẽ được AI tạo câu hỏi mặc định.
                                     </div>
                                 </div>
                                 <div class="mb-0">
@@ -833,11 +842,12 @@
                 deadlineSection.style.display = 'none';
             }
 
-            if (cat === 'COURSE_ASSIGNMENT') {
+            if (cat && (cat.includes('ASSIGNMENT') || cat === 'COURSE_QUIZ')) {
                 perSkillSection.style.display = 'block';
                 timeLimitInput.readOnly = true; 
                 timeLimitInput.style.backgroundColor = '#e9ecef';
                 timeLimitInput.placeholder = 'Tự động tính';
+                calculateTotalTime();
             } else {
                 perSkillSection.style.display = 'none';
                 timeLimitInput.readOnly = false;
@@ -879,12 +889,17 @@
                 return;
             }
 
+            console.log("[onCourseChange] Loading modules for course:", courseId);
             moduleSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
             try {
                 const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
                 const result = await res.json();
+                console.log("[onCourseChange] Result:", result);
                 if (result.status === 200 && result.data) {
                     moduleSelect.innerHTML = '<option value="">-- Chọn chương (Không bắt buộc) --</option>';
+                    if (result.data.length === 0) {
+                        moduleSelect.innerHTML = '<option value="">-- Khóa học chưa có chương nào --</option>';
+                    }
                     result.data.forEach(m => {
                         moduleSelect.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
                     });
@@ -892,6 +907,7 @@
                     moduleSelect.innerHTML = '<option value="">-- Không có chương nào --</option>';
                 }
             } catch (e) {
+                console.error("[onCourseChange] Exception:", e);
                 moduleSelect.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
             }
         }
@@ -1457,10 +1473,14 @@
         function toggleAiAdvancedFields() {
             const skill = document.getElementById('adv-skill').value;
             const isMatching = document.getElementById('type-match').checked;
+            const isProductive = (skill === 'WRITING' || skill === 'SPEAKING');
+
+            document.getElementById('adv-type-section').style.display = isProductive ? 'none' : 'block';
+            document.getElementById('adv-skill-info-msg').style.display = isProductive ? 'block' : 'none';
 
             document.getElementById('field-listening').style.display = skill === 'LISTENING' ? 'block' : 'none';
             document.getElementById('field-reading').style.display = skill === 'READING' ? 'block' : 'none';
-            document.getElementById('field-matching').style.display = isMatching ? 'block' : 'none';
+            document.getElementById('field-matching').style.display = (!isProductive && isMatching) ? 'block' : 'none';
         }
 
         async function runExpertAiGeneration() {
@@ -1472,10 +1492,14 @@
             if (!topic) { Swal.fire('Thông báo', 'Vui lòng nhập chủ đề.', 'info'); return; }
 
             const types = [];
-            if (document.getElementById('type-mc-s').checked) types.push('MULTIPLE_CHOICE_SINGLE');
-            if (document.getElementById('type-mc-m').checked) types.push('MULTIPLE_CHOICE_MULTI');
-            if (document.getElementById('type-fib').checked) types.push('FILL_IN_BLANK');
-            if (document.getElementById('type-match').checked) types.push('MATCHING');
+            if (skill === 'WRITING' || skill === 'SPEAKING') {
+                types.push(skill);
+            } else {
+                if (document.getElementById('type-mc-s').checked) types.push('MULTIPLE_CHOICE_SINGLE');
+                if (document.getElementById('type-mc-m').checked) types.push('MULTIPLE_CHOICE_MULTI');
+                if (document.getElementById('type-fib').checked) types.push('FILL_IN_BLANK');
+                if (document.getElementById('type-match').checked) types.push('MATCHING');
+            }
 
             if (types.length === 0) { Swal.fire('Thông báo', 'Vui lòng chọn ít nhất 1 loại câu hỏi.', 'info'); return; }
 
@@ -1534,6 +1558,7 @@
             if (q.audioUrl) {
                 // Step 1: Real Audio URL from Google TTS
                 currentAudio = new Audio(q.audioUrl);
+                const progress = document.getElementById('tts-progress-' + idx);
                 if (progress) {
                     progress.style.width = '0%';
                     progress.parentElement.style.display = 'flex';
@@ -1547,36 +1572,101 @@
                 currentAudio.onended = () => wsStop(idx);
                 currentAudio.onerror = () => wsStop(idx);
                 currentAudio.play();
+
+                const btnPlay = document.getElementById('btn-play-' + idx);
+                const btnStop = document.getElementById('btn-stop-' + idx);
+                if (btnPlay) btnPlay.style.display = 'none';
+                if (btnStop) btnStop.style.display = 'inline-block';
             } else {
-                // Step 2: Fallback to Browser Speech Synthesis
+                // Step 2: Fallback to Browser Speech Synthesis (Enhanced for multi-character)
                 const textToSpeak = q.passage || q.groupContent || q.content;
                 if (!textToSpeak) { wsStop(idx); return; }
 
-                currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-                currentUtterance.lang = 'en-US';
-                currentUtterance.rate = 0.9;
-
-                const voices = window.speechSynthesis.getVoices();
-                if (voices.length > 0) {
-                    const enVoices = voices.filter(v => v.lang.startsWith('en'));
-                    if (enVoices.length > 0) currentUtterance.voice = enVoices[Math.floor(Math.random() * enVoices.length)];
+                if (!('speechSynthesis' in window)) {
+                    Swal.fire('Lỗi', 'Trình duyệt không hỗ trợ TTS.', 'error');
+                    return;
                 }
 
-                let startMs = Date.now();
-                const estDurationMs = (textToSpeak.length / 15) * 1000;
+                const btnPlay = document.getElementById('btn-play-' + idx);
+                const btnStop = document.getElementById('btn-stop-' + idx);
+                const progressBar = document.getElementById('tts-progress-' + idx);
 
-                ttsInterval = setInterval(() => {
-                    if (progress) {
-                        let elapsed = Date.now() - startMs;
-                        let pct = Math.min((elapsed / estDurationMs) * 100, 99);
-                        progress.style.width = pct + '%';
+                if (btnPlay) btnPlay.style.display = 'none';
+                if (btnStop) btnStop.style.display = 'inline-block';
+                if (progressBar && progressBar.parentElement) progressBar.parentElement.style.display = 'flex';
+
+                const lines = textToSpeak.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                const allVoices = window.speechSynthesis.getVoices();
+                const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+
+                const maleKeywords = ['male', 'david', 'mark', 'james', 'guy', 'andrew', 'google us english', 'english (united states)', 'natural'];
+                const femaleKeywords = ['female', 'zira', 'linda', 'hazel', 'susan', 'catherine', 'google uk english female', 'microsoft'];
+
+                const maleVoices = enVoices.filter(v => maleKeywords.some(k => v.name.toLowerCase().includes(k)));
+                const femaleVoices = enVoices.filter(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
+
+                const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry', 'peter', 'alex', 'sam', 'ben', 'chris']);
+                const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle', 'lucy', 'jane', 'claire', 'amy']);
+
+                const speakerVoiceMap = {};
+                let currentIdx = 0;
+
+                const speakLine = (idx_line) => {
+                    if (idx_line >= lines.length) { wsStop(idx); return; }
+
+                    const line = lines[idx_line];
+                    const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
+
+                    let speakerName = "Default";
+                    let gender = "female";
+                    let content = line;
+
+                    if (match) {
+                        speakerName = match[1].trim();
+                        const explicitGender = match[2];
+                        content = match[3].trim();
+                        if (explicitGender) gender = explicitGender.toLowerCase();
+                        else {
+                            const lowName = speakerName.toLowerCase();
+                            if (maleNames.has(lowName)) gender = 'male';
+                            else if (femaleNames.has(lowName)) gender = 'female';
+                        }
                     }
-                }, 100);
 
-                currentUtterance.onend = () => wsStop(idx);
-                currentUtterance.onerror = () => wsStop(idx);
-                window.speechSynthesis.speak(currentUtterance);
+                    const utt = new SpeechSynthesisUtterance(content);
+                    utt.lang = 'en-US';
+                    utt.rate = 0.9;
+
+                    if (!speakerVoiceMap[speakerName]) {
+                        const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
+                        let hash = 0;
+                        for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
+                        speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
+                    }
+                    if (speakerVoiceMap[speakerName]) utt.voice = speakerVoiceMap[speakerName];
+
+                    if (progressBar) {
+                        let pct = ((idx_line + 1) / lines.length) * 100;
+                        progressBar.style.width = pct + '%';
+                    }
+
+                    utt.onend = () => setTimeout(() => speakLine(idx_line + 1), 400);
+                    utt.onerror = () => wsStop(idx);
+                    window.speechSynthesis.speak(utt);
+                };
+
+                if (allVoices.length === 0) {
+                    window.speechSynthesis.onvoiceschanged = () => speakLine(0);
+                } else {
+                    speakLine(0);
+                }
             }
+        }
+
+        function wsFormatTranscript(text) {
+            if (!text) return '—';
+            let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-primary">$1</strong>');
         }
 
         function wsStop(idx) {
@@ -1634,8 +1724,8 @@
                                   <div id="tts-progress-${idx}" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
                                 </div>
 
-                                <div class="p-3 bg-light rounded-3 mb-3 text-dark fw-medium" style="max-height: 200px; overflow-y:auto; line-height:1.6;">
-                                    ${q.passage || q.content || '—'}
+                                <div id="passage-content-${idx}" class="p-3 bg-light rounded-3 mb-3 text-dark fw-medium" style="max-height: 300px; overflow-y:auto; line-height:1.6; white-space: pre-wrap;">
+                                    ${wsFormatTranscript(q.passage || q.groupContent || q.content)}
                                 </div>
                                 <h6 class="fw-bold mb-3 border-bottom pb-2">Danh sách câu hỏi con:</h6>
                                 <div class="d-flex flex-column gap-2 ps-3">
@@ -1682,17 +1772,24 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="badge bg-light text-dark border">${typeName(q.questionType)}</span>
-                                    ${q.skill === 'LISTENING' ? `
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <span class="badge bg-light text-dark border"><i class="bi bi-question-circle me-1"></i> ${typeName(q.questionType)}</span>
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">${q.skill || ''}</span>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">${q.cefrLevel || ''}</span>
+                                        ${q.topic ? `<span class="badge bg-light text-muted border">${q.topic}</span>` : ''}
+                                    </div>
+                                    ${(q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
                                         <div>
                                             <button id="btn-play-${idx}" class="btn btn-xs btn-outline-primary rounded-pill px-2" onclick="wsSpeak(${idx})"><i class="bi bi-play-fill"></i> Nghe</button>
                                             <button id="btn-stop-${idx}" class="btn btn-xs btn-danger rounded-pill px-2" style="display:none;" onclick="wsStop(${idx})"><i class="bi bi-stop-fill"></i></button>
                                         </div>
-                                        <div class="progress mt-2" style="height: 4px; display: none; width: 100px;">
-                                            <div id="tts-progress-${idx}" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
-                                        </div>
                                     ` : ''}
                                 </div>
+                                ${(q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
+                                    <div class="progress mb-2" style="height: 4px; display: none; width: 100px;">
+                                        <div id="tts-progress-${idx}" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                ` : ''}
                                 <div class="text-dark fw-medium mb-2">${q.content || q.questionContent}</div>
                                 ${ansHtml}
                             </div>

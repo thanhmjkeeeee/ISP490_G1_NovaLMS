@@ -242,14 +242,14 @@
                   <div class="row g-2">
                       <div th:each="opt : ${question.options}" class="col-12">
                           <div class="p-3 rounded-4 border d-flex align-items-center gap-3 transition-all"
-                               th:classappend="${opt.isSelected ? (opt.isCorrect == true ? 'bg-success bg-opacity-10 border-success' : 'bg-danger bg-opacity-10 border-danger shadow-sm') : (opt.isCorrect == true ? 'bg-success bg-opacity-5 border-success border-dashed' : 'bg-white border-light-subtle')}">
+                               th:classappend="${opt.isSelected ? (opt.isCorrect == true || (opt.isSelected && question.isCorrect == true) ? 'bg-success bg-opacity-10 border-success' : (opt.isCorrect == false || (opt.isSelected && question.isCorrect == false) ? 'bg-danger bg-opacity-10 border-danger shadow-sm' : 'bg-white border-light-subtle')) : (opt.isCorrect == true ? 'bg-success bg-opacity-5 border-success border-dashed' : 'bg-white border-light-subtle')}">
                               
                               <!-- Icon status -->
                               <div class="rounded-circle d-flex align-items-center justify-content-center" 
                                    style="width: 24px; height: 24px; min-width: 24px;"
-                                   th:classappend="${opt.isSelected ? (opt.isCorrect == true ? 'bg-success text-white' : 'bg-danger text-white') : (opt.isCorrect == true ? 'bg-success text-white' : 'bg-light text-muted border')}">
-                                  <i th:if="${opt.isSelected and opt.isCorrect == true}" class="bi bi-check-lg small"></i>
-                                  <i th:if="${opt.isSelected and opt.isCorrect == false}" class="bi bi-x-lg small"></i>
+                                   th:classappend="${opt.isSelected ? (opt.isCorrect == true || (opt.isSelected && question.isCorrect == true) ? 'bg-success text-white' : (opt.isCorrect == false || (opt.isSelected && question.isCorrect == false) ? 'bg-danger text-white' : 'bg-light border')) : (opt.isCorrect == true ? 'bg-success text-white' : 'bg-light text-muted border')}">
+                                  <i th:if="${opt.isSelected and (opt.isCorrect == true or question.isCorrect == true)}" class="bi bi-check-lg small"></i>
+                                  <i th:if="${opt.isSelected and (opt.isCorrect == false or (opt.isSelected and question.isCorrect == false))}" class="bi bi-x-lg small"></i>
                                   <i th:if="${!opt.isSelected and opt.isCorrect == true}" class="bi bi-check-lg small"></i>
                                   <i th:if="${!opt.isSelected and (opt.isCorrect == null or opt.isCorrect == false)}" class="bi bi-circle small"></i>
                               </div>
@@ -273,7 +273,12 @@
                    <i class="bi bi-person-circle me-1"></i> Câu trả lời của bạn:
                  </p>
                  <div th:if="${question.userAnswerDisplay != null and question.userAnswerDisplay != ''}">
-                    <p class="mb-0 text-dark" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}"></p>
+                    <div th:if="${question.questionType == 'SPEAKING' and #strings.contains(question.userAnswerDisplay, 'http')}">
+                       <audio controls th:src="${#strings.replace(question.userAnswerDisplay, '&quot;', '')}" 
+                              class="w-100 rounded-pill shadow-sm bg-white"></audio>
+                    </div>
+                    <p th:unless="${question.questionType == 'SPEAKING' and #strings.contains(question.userAnswerDisplay, 'http')}" 
+                       class="mb-0 text-dark" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}"></p>
                  </div>
                  <div th:if="${question.userAnswerDisplay == null or question.userAnswerDisplay == ''}">
                     <p class="mb-0 text-muted fst-italic">Không có câu trả lời.</p>

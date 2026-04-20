@@ -338,29 +338,48 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
             dto.setTimerSeconds(Math.max(0, remaining));
         }
 
-        // Per-skill timer for SPEAKING/WRITING
+        // Per-skill timer for ALL skills
         if (session.getQuiz().getTimeLimitPerSkill() != null) {
             try {
                 Map<String, Integer> limits = objectMapper.readValue(
                         session.getQuiz().getTimeLimitPerSkill(),
                         new TypeReference<Map<String, Integer>>() {});
-                if ("SPEAKING".equals(skill)) {
-                    Integer speakingMins = limits.get("SPEAKING");
-                    if (speakingMins != null) {
-                        dto.setSpeakingTimerSeconds(speakingMins * 60L);
-                        dto.setSpeakingExpiry(
-                                LocalDateTime.now().plusMinutes(speakingMins).toString());
+                Integer sectionMins = limits.get(skill);
+                if (sectionMins != null) {
+                    // Check if we already have an expiry for this section
+                    Map<String, String> expiries = new HashMap<>();
+                    if (session.getSectionExpiry() != null) {
+                        expiries = objectMapper.readValue(session.getSectionExpiry(), new TypeReference<Map<String, String>>() {});
+                    }
+                    
+                    String skillExpiryStr = expiries.get(skill);
+                    LocalDateTime skillExpiry;
+                    if (skillExpiryStr == null) {
+                        // First time entering this section, set expiry
+                        skillExpiry = LocalDateTime.now().plusMinutes(sectionMins);
+                        expiries.put(skill, skillExpiry.toString());
+                        session.setSectionExpiry(objectMapper.writeValueAsString(expiries));
+                        sessionRepository.save(session);
+                    } else {
+                        skillExpiry = LocalDateTime.parse(skillExpiryStr);
+                    }
+                    
+                    long remainingSecs = java.time.Duration.between(LocalDateTime.now(), skillExpiry).getSeconds();
+                    dto.setSectionTimerSeconds(Math.max(0, remainingSecs));
+                    dto.setSectionExpiry(skillExpiry.toString());
+
+                    // Legacy fields for backward compatibility
+                    if ("SPEAKING".equals(skill)) {
+                        dto.setSpeakingTimerSeconds(dto.getSectionTimerSeconds());
+                        dto.setSpeakingExpiry(dto.getSectionExpiry());
+                    } else if ("WRITING".equals(skill)) {
+                        dto.setWritingTimerSeconds(dto.getSectionTimerSeconds());
+                        dto.setWritingExpiry(dto.getSectionExpiry());
                     }
                 }
-                if ("WRITING".equals(skill)) {
-                    Integer writingMins = limits.get("WRITING");
-                    if (writingMins != null) {
-                        dto.setWritingTimerSeconds(writingMins * 60L);
-                        dto.setWritingExpiry(
-                                LocalDateTime.now().plusMinutes(writingMins).toString());
-                    }
-                }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.error("Error calculating section timer", e);
+            }
         }
 
         return dto;

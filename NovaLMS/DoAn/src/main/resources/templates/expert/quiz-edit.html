@@ -369,11 +369,24 @@
                                 <h5 class="fw-bold mb-0">Ngân hàng câu hỏi</h5>
                                 <button class="btn btn-primary btn-sm rounded-pill" onclick="openExpertAiModal()">AI Sinh câu hỏi</button>
                             </div>
-                            <div class="p-4 border-bottom">
+                            <div class="p-4 border-bottom bg-light bg-opacity-25">
                                 <div class="row g-2">
-                                    <div class="col-md-4"><select id="modalSkill" class="form-select" onchange="loadBankQuestions(0)"></select></div>
-                                    <div class="col-md-4"><select id="modalCefr" class="form-select" onchange="loadBankQuestions(0)"></select></div>
-                                    <div class="col-md-4"><input type="text" id="modalKeyword" class="form-control" placeholder="Tìm kiếm..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)"></div>
+                                    <div class="col-md-4">
+                                        <label class="small fw-bold text-muted mb-1">Kỹ năng</label>
+                                        <select id="modalSkill" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
+                                            <option value="">-- Tất cả kỹ năng --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small fw-bold text-muted mb-1">Trình độ</label>
+                                        <select id="modalCefr" class="form-select form-select-sm" onchange="loadBankQuestions(0)">
+                                            <option value="">-- Tất cả trình độ --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="small fw-bold text-muted mb-1">Tìm kiếm</label>
+                                        <input type="text" id="modalKeyword" class="form-control form-control-sm" placeholder="Nhập từ khóa..." onkeyup="if(event.key==='Enter') loadBankQuestions(0)">
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex-grow-1 overflow-auto">
@@ -530,8 +543,9 @@
                 if (q.courseId) {
                     await loadCourses();
                     document.getElementById('courseIdSelect').value = q.courseId;
+                    // Luôn load modules nếu có courseId để expert có thể chọn
+                    await loadModules(q.courseId);
                     if (q.moduleId) {
-                        await loadModules(q.courseId);
                         document.getElementById('moduleIdSelect').value = q.moduleId;
                     }
                 } else if (q.quizCategory !== 'ENTRY_TEST') {
@@ -553,6 +567,7 @@
                     document.getElementById('timeLimitMinutes').readOnly = true;
                     const times = typeof q.timeLimitPerSkill === 'string' ? JSON.parse(q.timeLimitPerSkill || '{}') : (q.timeLimitPerSkill || {});
                     Object.entries(times).forEach(([s, m]) => { if(document.getElementById('timeLimit_'+s)) document.getElementById('timeLimit_'+s).value = m; });
+                    validateSkillTimes(); // Sync total time on load
                 }
                 await loadQuizQuestions();
             } catch (e) { console.error(e); }
@@ -584,17 +599,28 @@
         async function loadModules(courseId) {
             const select = document.getElementById('moduleIdSelect');
             if (!select) return;
+            console.log("[loadModules] Fetching modules for course:", courseId);
             select.innerHTML = '<option value="">-- Đang tải... --</option>';
             try {
                 const res = await fetch(`/api/v1/expert/modules?courseId=${courseId}`);
                 const result = await res.json();
+                console.log("[loadModules] Result:", result);
                 if (result.status === 200 && result.data) {
                     select.innerHTML = '<option value="">-- Chọn chương (Không bắt buộc) --</option>';
+                    if (result.data.length === 0) {
+                        select.innerHTML = '<option value="">-- Khóa học này chưa có chương nào --</option>';
+                    }
                     result.data.forEach(m => {
                         select.innerHTML += `<option value="${m.moduleId}">${m.moduleName}</option>`;
                     });
+                } else {
+                    console.error("[loadModules] Failed:", result);
+                    select.innerHTML = '<option value="">-- Lỗi tải chương --</option>';
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("[loadModules] Exception:", e); 
+                select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
+            }
         }
 
 
@@ -638,11 +664,15 @@
                         </div>
                         <div class="skill-group-content">
                             ${questions.map(q => `
-                                <div class="card mb-2 p-3 shadow-none border-start border-4 border-primary" style="border-radius: 8px;">
+                                <div class="card mb-2 p-3 shadow-none border-start border-4 border-primary bg-light bg-opacity-10" style="border-radius: 8px;">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="small pe-3" style="line-height: 1.4;">
-                                            ${q.groupContent ? `<div class="fw-bold text-muted extra-small mb-1">[Đoạn văn]</div>` : ''}
-                                            ${q.questionContent}
+                                            ${q.groupContent ? `
+                                                <div class="context-box mb-2 p-2 bg-white border rounded small text-muted" style="max-height: 80px; overflow: hidden; font-style: italic;">
+                                                    <i class="bi bi-quote me-1"></i>${q.groupContent.substring(0, 150)}${q.groupContent.length > 150 ? '...' : ''}
+                                                </div>
+                                            ` : ''}
+                                            <div class="fw-bold mb-1">${q.questionContent}</div>
                                         </div>
                                         <button class="btn btn-sm text-danger p-0" onclick="removeQuestion(${q.questionId})" title="Gỡ bỏ">
                                             <i class="bi bi-trash"></i>
@@ -670,12 +700,15 @@
             if (r.status === 200 && r.data.items.length > 0) {
                 tbody.innerHTML = r.data.items.map(q => `
                     <tr>
-                        <td class="ps-3">
-                            <div class="small fw-medium mb-1">${q.content}</div>
-                            <div class="d-flex gap-2">
+                        <td class="ps-3 py-3">
+                            ${q.type === 'GROUP' ? `<div class="badge bg-soft-info text-info mb-1"><i class="bi bi-journal-text me-1"></i>Bộ câu hỏi (Passage)</div>` : ''}
+                            <div class="small fw-medium mb-1 text-dark" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                ${q.content}
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
                                 <span class="badge bg-light text-primary border extra-small">${q.skill}</span>
                                 <span class="badge bg-light text-secondary border extra-small">${q.cefrLevel}</span>
-                                <span class="badge bg-light text-dark border extra-small">${q.type}</span>
+                                <span class="badge bg-light text-dark border extra-small">${q.type === 'GROUP' ? q.subQuestionCount + ' câu con' : q.questionType}</span>
                             </div>
                         </td>
                         <td class="text-end pe-3">
@@ -824,7 +857,14 @@
         async function doSaveDraft() {
             const b = buildUpdateBody();
             const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b) });
-            if(res.ok) Toast.fire({ icon: 'success', title: 'Đã lưu nháp' });
+            if(res.ok) {
+                const status = document.getElementById('status').value;
+                const msg = status === 'PUBLISHED' ? 'Đã cập nhật và xuất bản thành công' : 'Đã lưu nháp thành công';
+                Toast.fire({ icon: 'success', title: msg });
+            } else {
+                const err = await res.json();
+                Swal.fire('Lỗi', err.message || 'Không thể lưu thay đổi', 'error');
+            }
         }
 
         async function publishQuiz() {
@@ -852,9 +892,18 @@
         function validateSkillTimes() {
             let total = 0;
             ['LISTENING','READING','SPEAKING','WRITING'].forEach(s => {
-                total += parseInt(document.getElementById('timeLimit_'+s)?.value || 0);
+                let val = parseInt(document.getElementById('timeLimit_'+s)?.value || 0);
+                if (val < 0) val = 0;
+                total += val;
             });
-            document.getElementById('timeLimitMinutes').value = total;
+            const totalInput = document.getElementById('timeLimitMinutes');
+            if (totalInput) {
+                totalInput.value = total;
+                if (_currentCategory && (_currentCategory.includes('ASSIGNMENT') || _currentCategory === 'COURSE_QUIZ')) {
+                    totalInput.readOnly = true;
+                    totalInput.style.backgroundColor = '#e9ecef';
+                }
+            }
         }
 
         // --- AI GENERATION ---

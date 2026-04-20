@@ -208,11 +208,21 @@ function renderQuestion(q, qi, isAutoGraded) {
     }
 
     if (q.studentAnswer) {
-        answerBlock += `
-        <div class="answer-block">
-            <div class="small fw-bold text-muted mb-1">Câu trả lời của bạn:</div>
-            <div class="text-dark">${q.studentAnswer}</div>
-        </div>`;
+        const isAudioUrl = q.questionType === 'SPEAKING' && (q.studentAnswer.includes('http') || q.studentAnswer.includes('cloudinary'));
+        if (isAudioUrl) {
+            const cleanUrl = q.studentAnswer.replace(/['"]/g, '');
+            answerBlock += `
+            <div class="mb-2">
+                <label class="form-label small fw-bold text-muted"><i class="bi bi-mic-fill me-1"></i>File ghi âm của bạn:</label>
+                <audio controls src="${cleanUrl}" class="w-100 rounded-pill"></audio>
+            </div>`;
+        } else {
+            answerBlock += `
+            <div class="answer-block">
+                <div class="small fw-bold text-muted mb-1">Câu trả lời của bạn:</div>
+                <div class="text-dark">${q.studentAnswer}</div>
+            </div>`;
+        }
     }
 
     let scoreBadge = '';

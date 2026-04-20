@@ -26,6 +26,8 @@ public interface IExpertQuizService {
         String keyword, int page, int size);
 
     QuizResponseDTO changeStatus(Integer quizId, String newStatus, String email);
+    
+    QuizResponseDTO updateMaxAttempts(Integer quizId, Integer maxAttempts, String email);
 
     // Quản lý câu hỏi trong Quiz
     QuizResponseDTO addQuestionToQuiz(Integer quizId, QuizQuestionRequestDTO request, String email);

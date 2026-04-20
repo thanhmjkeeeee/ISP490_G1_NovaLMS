@@ -23,7 +23,10 @@
                             (${skill == 'READING'} ? '📖 Reading' :
                             (${skill == 'WRITING'} ? '✍️ Writing' : ${skill}))">SKILL</span>
         </div>
-        <div class="text-danger fw-bold fs-5" id="quizTimer">--:--</div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="small text-muted" id="timerLabel">Thời gian còn lại</div>
+            <div class="text-danger fw-bold fs-5" id="quizTimer">--:--</div>
+        </div>
     </div>
 
     <!-- Section progress steps -->
@@ -297,8 +300,11 @@ async function loadSection() {
         }
 
         // Start quiz-level timer
-        if (section.timerSeconds && section.timerSeconds > 0 && !isPreview) {
-            startQuizTimer(section.timerSeconds);
+        // Section-specific timer takes priority for sequential assignments
+        if (section.sectionTimerSeconds && section.sectionTimerSeconds > 0 && !isPreview) {
+            startQuizTimer(section.sectionTimerSeconds, true);
+        } else if (section.timerSeconds && section.timerSeconds > 0 && !isPreview) {
+            startQuizTimer(section.timerSeconds, false);
         }
 
         // Auto-save every 30s
@@ -551,8 +557,10 @@ async function submitSection() {
     }
 }
 
-function startQuizTimer(seconds) {
+let isSectionTimer = false;
+function startQuizTimer(seconds, sectionMode = false) {
     quizSeconds = seconds;
+    isSectionTimer = sectionMode;
     updateTimerDisplay();
     quizTimerInterval = setInterval(() => {
         quizSeconds--;
@@ -560,9 +568,15 @@ function startQuizTimer(seconds) {
         if (quizSeconds <= 0) {
             clearInterval(quizTimerInterval);
             clearInterval(autoSaveTimer);
-            // Auto-submit
-            fetch(`/api/v1/student/assignment/session/${sessionId}/auto-submit`, { method: 'POST' });
-            window.location.href = `/student/assignment/complete/${sessionId}`;
+            
+            if (isSectionTimer) {
+                // Auto-submit section and move next
+                submitSection();
+            } else {
+                // Auto-submit entire quiz
+                fetch(`/api/v1/student/assignment/session/${sessionId}/auto-submit`, { method: 'POST' });
+                window.location.href = `/student/assignment/complete/${sessionId}`;
+            }
         }
     }, 1000);
 }
@@ -570,6 +584,11 @@ function startQuizTimer(seconds) {
 function updateTimerDisplay() {
     const el = document.getElementById('quizTimer');
     if (!el) return;
+    const label = document.getElementById('timerLabel');
+    if (label) {
+        label.textContent = isSectionTimer ? 'Thời gian phần này' : 'Thời gian còn lại';
+    }
+
     const h = Math.floor(quizSeconds / 3600);
     const m = Math.floor((quizSeconds % 3600) / 60);
     const s = quizSeconds % 60;
@@ -577,6 +596,7 @@ function updateTimerDisplay() {
         ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
         : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     if (quizSeconds <= 60) el.classList.add('text-danger');
+    else el.classList.remove('text-danger');
 }
 </script>
 

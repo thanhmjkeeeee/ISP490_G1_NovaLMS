@@ -543,6 +543,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                             }
                         }
                         userAnswerDisplay = String.join(" | ", matchDisplays);
+                    } else if ("SPEAKING".equals(qType) || "WRITING".equals(qType)) {
+                        userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
                     } else {
                         userAnswerDisplay = rawJson;
                     }
@@ -677,7 +679,7 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size) {
+        public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<QuizResult> resultPage = quizResultRepository.findPendingGradingForTeacher(email, classId, pageable);
 

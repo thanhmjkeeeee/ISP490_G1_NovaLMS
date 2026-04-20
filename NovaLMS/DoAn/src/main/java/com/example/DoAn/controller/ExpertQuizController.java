@@ -103,6 +103,17 @@ public class ExpertQuizController {
                 quizService.changeStatus(quizId, newStatus, getEmail(principal)));
     }
 
+    @Operation(summary = "Cập nhật nhanh số lần làm bài")
+    @PatchMapping("/{quizId}/max-attempts")
+    public ResponseData<QuizResponseDTO> updateMaxAttempts(
+            @PathVariable Integer quizId,
+            @RequestBody Map<String, Integer> body,
+            Principal principal) {
+        Integer maxAttempts = body.get("maxAttempts");
+        return ResponseData.success("Số lần làm bài đã được cập nhật.",
+                quizService.updateMaxAttempts(quizId, maxAttempts, getEmail(principal)));
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     //  QUESTION MANAGEMENT WITHIN QUIZ
     // ═══════════════════════════════════════════════════════════════════════

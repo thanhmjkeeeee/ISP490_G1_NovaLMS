@@ -8,7 +8,8 @@ import java.util.List;
 @Repository
 public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Integer> {
 
-    List<QuizQuestion> findByQuizQuizIdOrderByOrderIndexAsc(Integer quizId);
+    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question WHERE qq.quiz.quizId = :quizId ORDER BY qq.orderIndex ASC")
+    List<QuizQuestion> findByQuizQuizIdOrderByOrderIndexAsc(@org.springframework.data.repository.query.Param("quizId") Integer quizId);
 
     List<QuizQuestion> findByQuizQuizId(Integer quizId);
 
@@ -28,7 +29,8 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(qq) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
     long countByQuestion_QuestionId(@org.springframework.data.repository.query.Param("questionId") Integer questionId);
 
-    List<QuizQuestion> findByQuizQuizIdAndSkill(Integer quizId, String skill);
+    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question WHERE qq.quiz.quizId = :quizId AND qq.skill = :skill")
+    List<QuizQuestion> findByQuizQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT q.question.questionId) FROM QuizQuestion q WHERE q.quiz.quizId = :quizId AND q.question.skill = :skill")
     long countByQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);

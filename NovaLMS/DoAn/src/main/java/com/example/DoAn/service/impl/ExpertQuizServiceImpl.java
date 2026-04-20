@@ -29,6 +29,9 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExpertQuizServiceImpl implements IExpertQuizService {
@@ -92,6 +95,11 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
         if (request.getTimeLimitPerSkill() != null) {
             quiz.setTimeLimitPerSkill(objectMapper.writeValueAsString(request.getTimeLimitPerSkill()));
+            // Sync total time for sequential quizzes
+            int calculatedTotal = request.getTimeLimitPerSkill().values().stream().mapToInt(Integer::intValue).sum();
+            if (calculatedTotal > 0) {
+                quiz.setTimeLimitMinutes(calculatedTotal);
+            }
         }
 
         // Gắn course nếu là COURSE_QUIZ hoặc COURSE_ASSIGNMENT
@@ -187,9 +195,11 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
         // Kiểm tra đã có học viên làm chưa
         // Cho phép cập nhật nếu quiz đang ở Draft HOẶC đang chuyển về Draft
-        if (hasStudentAttempts(quizId) && !"DRAFT".equals(quiz.getStatus()) && !"DRAFT".equals(request.getStatus())) {
-            throw new InvalidDataException(
-                    "Không thể cập nhật cấu hình quiz đã có học viên làm bài. Hãy chuyển trạng thái về Draft trước.");
+        // Cho phép cập nhật cấu hình ngay cả khi đã có học viên làm bài (để giáo viên
+        // có thể mở thêm lượt làm hoặc gia hạn deadline)
+        // Tuy nhiên sẽ log cảnh báo nếu có thay đổi cấu trúc quan trọng.
+        if (hasStudentAttempts(quizId)) {
+            log.info("[expert_quiz_update] Quiz {} already has attempts. Expert is updating settings.", quizId);
         }
 
         // Lấy lại danh mục và courseId nếu update không gửi lên
@@ -222,13 +232,31 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             quiz.setIsHybridEnabled(request.getIsHybridEnabled());
         }
         quiz.setTargetSkill(request.getTargetSkill());
+        
+        // Preserve current status if not provided in request
+        if (request.getStatus() == null || request.getStatus().isBlank()) {
+            request.setStatus(quiz.getStatus());
+        }
+
         if (request.getStatus() != null) {
+            if ("PUBLISHED".equals(request.getStatus()) && !"PUBLISHED".equals(quiz.getStatus())) {
+                validateCanPublish(quiz);
+            }
+            log.info("[expert_quiz_update] Quiz {} status transition: {} -> {}", quizId, quiz.getStatus(), request.getStatus());
             quiz.setStatus(request.getStatus());
+            if ("PUBLISHED".equals(request.getStatus())) {
+                quiz.setIsOpen(true);
+            }
         }
 
         if (request.getTimeLimitPerSkill() != null) {
             try {
                 quiz.setTimeLimitPerSkill(objectMapper.writeValueAsString(request.getTimeLimitPerSkill()));
+                // Sync total time for sequential quizzes
+                int calculatedTotal = request.getTimeLimitPerSkill().values().stream().mapToInt(Integer::intValue).sum();
+                if (calculatedTotal > 0) {
+                    quiz.setTimeLimitMinutes(calculatedTotal);
+                }
             } catch (JsonProcessingException e) {
                 throw new InvalidDataException("Lỗi định dạng timeLimitPerSkill");
             }
@@ -354,34 +382,13 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
         // Publish cần ít nhất 1 câu hỏi và đủ số lượng câu hỏi
         if ("PUBLISHED".equals(newStatus)) {
-            int questionCount = quizQuestionRepository.countByQuizQuizId(quizId);
-            if (questionCount == 0) {
-                throw new InvalidDataException("Không thể xuất bản quiz chưa có câu hỏi nào.");
-            }
-            if (quiz.getNumberOfQuestions() != null && questionCount < quiz.getNumberOfQuestions()) {
-                throw new InvalidDataException("Số lượng câu hỏi chưa đủ (" + questionCount + "/"
-                        + quiz.getNumberOfQuestions() + "). Chờ thêm câu hỏi để xuất bản.");
-            }
-
-            // COURSE_ASSIGNMENT: bắt buộc phải có đủ 4 kỹ năng
-            if ("COURSE_ASSIGNMENT".equals(quiz.getQuizCategory())) {
-                List<String> requiredSkills = Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING");
-                List<String> missingSkills = new java.util.ArrayList<>();
-                for (String skill : requiredSkills) {
-                    long count = quizQuestionRepository.countByQuizIdAndSkill(quizId, skill);
-                    if (count == 0) {
-                        missingSkills.add(skill);
-                    }
-                }
-                if (!missingSkills.isEmpty()) {
-                    throw new InvalidDataException(
-                        "Assignment phải có đủ 4 kỹ năng (Listening, Reading, Speaking, Writing) mới được xuất bản. "
-                        + "Còn thiếu: " + String.join(", ", missingSkills));
-                }
-            }
+            validateCanPublish(quiz);
         }
 
         quiz.setStatus(newStatus);
+        if ("PUBLISHED".equals(newStatus)) {
+            quiz.setIsOpen(true);
+        }
         quizRepository.save(quiz);
 
         // ── Notify on publish ─────────────────────────────────────────────────
@@ -389,6 +396,19 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             notifyOnPublish(quiz);
         }
 
+        return toResponseDTO(quiz);
+    }
+
+    @Override
+    @Transactional
+    public QuizResponseDTO updateMaxAttempts(Integer quizId, Integer maxAttempts, String email) {
+        findExpert(email);
+        Quiz quiz = findQuiz(quizId);
+        if (maxAttempts != null && maxAttempts < 1) {
+            throw new InvalidDataException("Số lần làm bài tối thiểu là 1.");
+        }
+        log.info("[expert_quiz_update_attempts] Quiz {}: {} -> {}", quizId, quiz.getMaxAttempts(), maxAttempts);
+        quiz.setMaxAttempts(maxAttempts);
         return toResponseDTO(quiz);
     }
 
@@ -701,6 +721,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (!Boolean.TRUE.equals(quiz.getIsSequential())) {
             throw new InvalidDataException("This quiz does not support section-based question addition");
         }
+        if (hasStudentAttempts(quizId)) {
+            throw new InvalidDataException(
+                    "Không thể thêm câu hỏi vào quiz/assignment đã có học sinh làm bài để bảo toàn dữ liệu điểm.");
+        }
         String skill = dto.getSkill();
         List<String> validSkills = Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING");
         if (!validSkills.contains(skill)) {
@@ -726,6 +750,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
     @Override
     public void removeQuestion(Integer quizId, Integer questionId) {
+        if (hasStudentAttempts(quizId)) {
+            throw new InvalidDataException("Không thể gỡ câu hỏi khỏi quiz/assignment đã có học sinh làm bài.");
+        }
         quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quizId, questionId)
                 .ifPresent(quizQuestionRepository::delete);
     }
@@ -733,43 +760,65 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     @Override
     public QuizResponseDTO publishAssignment(Integer quizId) {
         Quiz quiz = findQuiz(quizId);
+        if ("PUBLISHED".equals(quiz.getStatus())) {
+            // Đảm bảo quiz luôn được mở khi đã ở trạng thái PUBLISHED
+            if (quiz.getIsOpen() == null || !quiz.getIsOpen()) {
+                quiz.setIsOpen(true);
+                quizRepository.save(quiz);
+            }
+            return toResponseDTO(quiz);
+        }
         if (!"DRAFT".equals(quiz.getStatus())) {
-            throw new InvalidDataException("Only DRAFT quizzes can be published");
+            throw new InvalidDataException("Chỉ có thể xuất bản quiz đang ở trạng thái Draft.");
         }
 
         String cat = quiz.getQuizCategory();
 
         // COURSE_ASSIGNMENT: bắt buộc phải có đủ 4 kỹ năng mới cho xuất bản
-        if ("COURSE_ASSIGNMENT".equals(cat)) {
+        validateCanPublish(quiz);
+
+        // ENTRY_TEST: chỉ cần ≥1 câu (đã có check ở changeStatus, không cần thêm)
+
+        quiz.setStatus("PUBLISHED");
+        quiz.setIsOpen(true);
+        quizRepository.save(quiz);
+        notifyOnPublish(quiz);
+        return toResponseDTO(quiz);
+    }
+
+    private void validateCanPublish(Quiz quiz) {
+        int questionCount = quizQuestionRepository.countByQuizQuizId(quiz.getQuizId());
+        if (questionCount == 0) {
+            throw new InvalidDataException("Không thể xuất bản quiz chưa có câu hỏi nào.");
+        }
+        if (quiz.getNumberOfQuestions() != null && questionCount < quiz.getNumberOfQuestions()) {
+            throw new InvalidDataException("Số lượng câu hỏi chưa đủ (" + questionCount + "/"
+                    + quiz.getNumberOfQuestions() + "). Chờ thêm câu hỏi để xuất bản.");
+        }
+
+        // COURSE_ASSIGNMENT / MODULE_ASSIGNMENT: bắt buộc phải có đủ 4 kỹ năng
+        String cat = quiz.getQuizCategory();
+        if ("COURSE_ASSIGNMENT".equals(cat) || "MODULE_ASSIGNMENT".equals(cat)) {
             // Kiểm tra per-skill time limits
             if (quiz.getTimeLimitPerSkill() == null || quiz.getTimeLimitPerSkill().trim().isEmpty()
                     || "{}".equals(quiz.getTimeLimitPerSkill().trim())) {
-                throw new InvalidDataException("COURSE_ASSIGNMENT requires per-skill time limits to be set.");
+                throw new InvalidDataException("Assignment yêu cầu phải thiết lập thời gian cho từng kỹ năng.");
             }
 
-            // Kiểm tra đủ 4 kỹ năng
             List<String> requiredSkills = Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING");
             List<String> missingSkills = new java.util.ArrayList<>();
             for (String skill : requiredSkills) {
-                long count = quizQuestionRepository.countByQuizIdAndSkill(quizId, skill);
+                long count = quizQuestionRepository.countByQuizIdAndSkill(quiz.getQuizId(), skill);
                 if (count == 0) {
                     missingSkills.add(skill);
                 }
             }
             if (!missingSkills.isEmpty()) {
                 throw new InvalidDataException(
-                    "Assignment phải có đủ 4 kỹ năng (Listening, Reading, Speaking, Writing) mới được xuất bản. "
-                    + "Còn thiếu: " + String.join(", ", missingSkills));
+                        "Assignment phải có đủ 4 kỹ năng (Listening, Reading, Speaking, Writing) mới được xuất bản. "
+                                + "Còn thiếu: " + String.join(", ", missingSkills));
             }
         }
-
-        // ENTRY_TEST: chỉ cần ≥1 câu (đã có check ở changeStatus, không cần thêm)
-
-        quiz.setStatus("PUBLISHED");
-        quiz.setIsOpen(false);
-        quizRepository.save(quiz);
-        notifyOnPublish(quiz);
-        return toResponseDTO(quiz);
     }
 
     // ── Notification helper ────────────────────────────────────────────────────
@@ -825,7 +874,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         List<String> missing = new java.util.ArrayList<>();
         long total = 0;
         for (SkillSectionSummaryDTO s : summaries.values()) {
-            if (s.getQuestionCount() == 0) missing.add(s.getSkill());
+            if (s.getQuestionCount() == 0)
+                missing.add(s.getSkill());
             total += s.getQuestionCount();
         }
         Map<String, Integer> timeLimits = null;
@@ -842,8 +892,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 new java.util.ArrayList<>(summaries.values()), total,
                 quiz.getPassScore() != null ? quiz.getPassScore() : BigDecimal.ZERO,
                 timeLimits, quiz.getPassScore(), quiz.getMaxAttempts(),
-                quiz.getShowAnswerAfterSubmit(), missing, missing.isEmpty()
-        );
+                quiz.getShowAnswerAfterSubmit(), missing, missing.isEmpty());
     }
 
     @Override
@@ -853,7 +902,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             String audioUrl, String email) {
         User expert = findExpert(email);
         Quiz quiz = findQuiz(quizId);
- 
+
         QuestionGroup sharedGroup = null;
         if (passage != null && !passage.isBlank()) {
             com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO first = questions.get(0);

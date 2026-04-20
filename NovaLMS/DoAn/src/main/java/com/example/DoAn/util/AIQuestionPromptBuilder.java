@@ -22,7 +22,7 @@ public class AIQuestionPromptBuilder {
             "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0");
 
     public String buildQuickPrompt(String topic, int quantity, List<String> questionTypes, String skill,
-            Map<String, Object> advancedOptions) {
+            String cefr, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String constraints = buildAdvancedConstraints(advancedOptions);
         String skillConstraint = (skill != null && !skill.equalsIgnoreCase("MIXED"))
@@ -39,8 +39,8 @@ public class AIQuestionPromptBuilder {
 
                 Requirements:
                 - Question types: %s
-                - IELTS Bands: mix from 3.0 to 9.0. DO NOT use CEFR like A1, B2, C1.
-                %s
+                - IELTS Band: EXACTLY %s. DO NOT use any other level.
+                - STRICTNESS: The complexity of vocabulary, grammar, and sentence structure MUST be strictly appropriate for IELTS Band %s. DO NOT use advanced language from higher bands.
                 %s
                 - Every question must have: content, questionType, skill, cefrLevel (store the IELTS Band here, e.g., "5.5"), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
@@ -74,11 +74,11 @@ public class AIQuestionPromptBuilder {
                   }
                 ]
                 """
-                .formatted(quantity, topic, quantity, types, skillConstraint, constraints, topic);
-    }
+                .formatted(quantity, topic, quantity, types, cefr, cefr, skillConstraint, topic);
+}
 
     public String buildContextPrompt(String moduleName, String lessonSummary,
-            int quantity, List<String> questionTypes, String skill, Map<String, Object> advancedOptions) {
+            int quantity, List<String> questionTypes, String skill, String cefr, Map<String, Object> advancedOptions) {
         String types = buildTypesClause(questionTypes);
         String constraints = buildAdvancedConstraints(advancedOptions);
         String skillConstraint = (skill != null && !skill.equalsIgnoreCase("MIXED"))
@@ -99,8 +99,8 @@ public class AIQuestionPromptBuilder {
 
                 Requirements:
                 - Question types: %s
-                - IELTS Bands: mix from 3.0 to 9.0. DO NOT use CEFR like A1, B2, C1.
-                %s
+                - IELTS Band: EXACTLY %s. DO NOT use any other level.
+                - STRICTNESS: The complexity of vocabulary, grammar, and sentence structure MUST be strictly appropriate for IELTS Band %s. DO NOT use advanced language from higher bands.
                 %s
                 - Every question must have: content, questionType, skill, cefrLevel (store the IELTS Band here, e.g. "6.0"), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
@@ -134,7 +134,7 @@ public class AIQuestionPromptBuilder {
                   }
                 ]
                 """
-                .formatted(moduleName, truncated, quantity, quantity, types, skillConstraint, constraints, moduleName);
+                .formatted(moduleName, truncated, quantity, quantity, types, cefr, cefr, skillConstraint, constraints, moduleName);
     }
 
     /**
@@ -176,20 +176,26 @@ public class AIQuestionPromptBuilder {
 
         // Xác định nhãn nội dung dựa trên skill
         String contentLabel = "LISTENING".equalsIgnoreCase(skillVal) ? "Transcript bài nghe" : "Đoạn văn đọc (Passage)";
+        String listenType = (advancedOptions != null) ? (String) advancedOptions.get("listeningType") : null;
+        boolean isDialogue = listenType == null || "Dialogue".equalsIgnoreCase(listenType);
+
         String taskInstruction = "LISTENING".equalsIgnoreCase(skillVal)
                 ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. " +
-                  "YÊU CẦU BẮT BUỘC: Đây PHẢI là một đoạn hội thoại (dialogue) giữa ít nhất một nhân vật NAM [Male] và một nhân vật NỮ [Female]. " +
-                  "KHÔNG được viết như một đoạn văn xuôi hay độc thoại. " +
-                  "Hãy sử dụng ĐA DẠNG các tên nhân vật tiếng Anh (không dùng John/Samantha). " +
-                  "Mỗi lời thoại PHẢI bắt đầu bằng dòng mới, ví dụ: 'Robert [Male]: Hello Sarah!\\nSarah [Female]: Hi Robert, how are you?'."
-                        + scenarioConstraint
+                  (isDialogue 
+                    ? "YÊU CẦU BẮT BUỘC: Đây PHẢI là một đoạn hội thoại (dialogue) giữa ít nhất một nhân vật NAM [Male] và một nhân vật NỮ [Female]. " +
+                      "KHÔNG được viết như một đoạn văn xuôi hay độc thoại. " +
+                      "Mỗi lời thoại PHẢI bắt đầu bằng dòng mới, ví dụ: 'Robert [Male]: Hello Sarah!\\nSarah [Female]: Hi Robert, how are you?'."
+                    : "YÊU CẦU: Đây PHẢI là một bản " + listenType + " (monologue/announcement). " +
+                      "Hãy sử dụng nhãn nhân vật ở đầu, ví dụ: 'Speaker [Male]: ...' hoặc 'Lecturer [Female]: ...'.") +
+                  " Hãy sử dụng ĐA DẠNG các tên nhân vật tiếng Anh."
                 : "Đoạn văn này dùng cho bài đọc hiểu.";
 
         StringBuilder sb = new StringBuilder();
         sb.append("You are an expert English language test designer.\n\n");
         sb.append("Generate a ").append(skillVal).append(" question group in JSON format.\n");
         sb.append("Requirement: ").append(taskInstruction).append("\n");
-        sb.append("The content must be in English and appropriate for IELTS Band ").append(cefr).append(".\n\n");
+        sb.append("The content must be in English and EXCLUSIVELY appropriate for IELTS Band ").append(cefr).append(".\n");
+        sb.append("STRICTNESS: Do NOT use advanced vocabulary or complex grammar that belongs to higher IELTS bands. Keep it strictly at Band ").append(cefr).append(" level.\n\n");
         sb.append("Return ONLY a valid JSON object with this exact structure:\n");
         sb.append("{\n");
         sb.append("  \"passage\": \"<").append(contentLabel).append(" text, ").append(passageConstraint).append(">\",\n");
@@ -473,9 +479,16 @@ public class AIQuestionPromptBuilder {
         String writingConstraint = String.valueOf(cfg.getOrDefault("writing_constraint", "80-150 words"));
         String speakingConstraint = String.valueOf(cfg.getOrDefault("speaking_constraint", "4-8 sentences"));
 
+        String listenType = (advancedOptions != null) ? (String) advancedOptions.get("listeningType") : null;
+        boolean isDialogue = listenType == null || "Dialogue".equalsIgnoreCase(listenType);
+
         String taskTypeInstruction = isGroup
                 ? ("LISTENING".equalsIgnoreCase(targetSkill)
-                        ? "Generate a LISTENING task. The 'passage' field must contain the FULL transcript. MANDATORY: This MUST be a dialogue between at least one MALE [Male] and one FEMALE [Female] speaker. DO NOT write as a continuous text block or monologue. Every line MUST start on a new line with speaker labels and gender in brackets, e.g., 'David [Male]: ...' or 'Sarah [Female]: ...'. Use diverse English names."
+                        ? "Generate a LISTENING task. The 'passage' field must contain the FULL transcript. " +
+                          (isDialogue
+                            ? "MANDATORY: This MUST be a dialogue between at least one MALE [Male] and one FEMALE [Female] speaker. DO NOT write as a continuous text block or monologue. Every line MUST start on a new line with speaker labels and gender in brackets, e.g., 'David [Male]: ...' or 'Sarah [Female]: ...'."
+                            : "MANDATORY: This MUST be a " + listenType + " (monologue/announcement). Use a speaker label at the start, e.g., 'Speaker [Male]: ...' or 'Lecturer [Female]: ...'.") +
+                          " Use diverse English names."
                         : "Generate a READING task. The 'passage' field must contain the reading text.")
                 : "Generate independent advanced English questions.";
 
@@ -525,7 +538,8 @@ public class AIQuestionPromptBuilder {
                 """.formatted(cefrLevel, topic);
 
         return """
-                You are a professional English teacher specializing in advanced question design for IELTS Band %s.
+                You are a professional English teacher specializing in advanced question design.
+                TARGET LEVEL: You MUST generate content strictly for IELTS Band %s.
                 %s
                 Topic: "%s"
 
@@ -565,7 +579,8 @@ public class AIQuestionPromptBuilder {
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
                 Do NOT generate questions that only test recall or simple comprehension. Focus on analysis, evaluation, or creation.
                 
-                CRITICAL: The field "cefrLevel" MUST be exactly "%s". DO NOT use CEFR letters like "A2", "B1".
+                CRITICAL: The complexity of ALL generated content (passage, questions, options) MUST NOT exceed IELTS Band %s.
+                CRITICAL: The field "cefrLevel" MUST be exactly "%s". DO NOT use any other value.
                 
                 %s
                 
@@ -583,6 +598,7 @@ public class AIQuestionPromptBuilder {
                         constraints,
                         writingConstraint,
                         speakingConstraint,
+                        cefrLevel,
                         cefrLevel,
                         jsonStructure);
     }

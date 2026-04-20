@@ -15,9 +15,11 @@ public class AssignmentSectionDTO {
     private Integer sectionIndex;      // 0-3
     private Integer currentSkillIndex;
     private Long timerSeconds;         // quiz-level remaining seconds
-    private Long speakingTimerSeconds;  // per-skill timer (only for SPEAKING)
-    private String speakingExpiry;      // ISO datetime string
-    private Long writingTimerSeconds;   // per-skill timer (only for WRITING)
+    private Long sectionTimerSeconds;  // current section remaining seconds
+    private String sectionExpiry;      // ISO datetime string for current section
+    private Long speakingTimerSeconds;  // per-skill timer (legacy, keep for compat)
+    private String speakingExpiry;      
+    private Long writingTimerSeconds;   
     private String writingExpiry;
     private List<QuizQuestionPayloadDTO> questions;
     private Map<Integer, Object> savedAnswers;

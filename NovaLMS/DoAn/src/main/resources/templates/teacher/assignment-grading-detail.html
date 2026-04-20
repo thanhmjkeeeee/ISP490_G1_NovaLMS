@@ -244,11 +244,24 @@ function renderQuestion(q, qi, isAutoGraded) {
 
     // Student answer text
     if (q.studentAnswer) {
-        answerBlock += `
-        <div class="alert alert-light mb-0">
-            <strong>📝 Câu trả lời:</strong>
-            <span class="text-dark">${q.studentAnswer}</span>
-        </div>`;
+        const isAudioUrl = q.questionType === 'SPEAKING' && (q.studentAnswer.includes('http') || q.studentAnswer.includes('cloudinary'));
+        if (isAudioUrl) {
+            // Already handled or needs audio player if q.audioUrl was missing
+            if (!q.audioUrl) {
+                const cleanUrl = q.studentAnswer.replace(/['"]/g, '');
+                answerBlock += `
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold text-muted">🎤 File ghi âm:</label>
+                    <audio controls src="${cleanUrl}" class="w-100"></audio>
+                </div>`;
+            }
+        } else {
+            answerBlock += `
+            <div class="alert alert-light mb-0">
+                <strong>📝 Câu trả lời:</strong>
+                <span class="text-dark">${q.studentAnswer}</span>
+            </div>`;
+        }
     }
 
     // Input fields

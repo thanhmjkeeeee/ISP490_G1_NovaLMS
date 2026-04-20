@@ -246,6 +246,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     request.getQuantity().intValue(),
                     request.getQuestionTypes(),
                     request.getSkill(),
+                    request.getCefrLevel(),
                     request.getAdvancedOptions());
         } else {
             return promptBuilder.buildQuickPrompt(
@@ -253,6 +254,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     request.getQuantity().intValue(),
                     request.getQuestionTypes(),
                     request.getSkill(),
+                    request.getCefrLevel(),
                     request.getAdvancedOptions());
         }
     }

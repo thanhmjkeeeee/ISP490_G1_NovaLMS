@@ -1078,7 +1078,7 @@
                                     <input type="hidden" id="adv-cefr" value="6.0">
                                 </div>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-3" id="adv-type-section">
                                 <label class="form-label small fw-bold">Loại câu hỏi (Chọn nhiều)</label>
                                 <div class="d-flex flex-wrap gap-2" id="adv-types">
                                     <input type="checkbox" class="btn-check" id="type-mc-s"
@@ -1103,6 +1103,11 @@
                                     <label
                                         class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                         for="type-match">Nối cặp</label>
+                                </div>
+                            </div>
+                            <div id="adv-skill-info-msg" class="mb-3" style="display:none;">
+                                <div class="alert alert-info border-0 shadow-sm small py-2 mb-0">
+                                    <i class="bi bi-info-circle me-1"></i> Kỹ năng <strong>Tự luận</strong> sẽ được AI tạo câu hỏi mặc định.
                                 </div>
                             </div>
                             <div class="mb-0">
@@ -3363,10 +3368,14 @@
         window.toggleAiAdvancedFields = function () {
             const skill = document.getElementById('adv-skill').value;
             const isMatchingChecked = document.getElementById('type-match').checked;
+            const isProductive = (skill === 'WRITING' || skill === 'SPEAKING');
+
+            document.getElementById('adv-type-section').style.display = isProductive ? 'none' : 'block';
+            document.getElementById('adv-skill-info-msg').style.display = isProductive ? 'block' : 'none';
 
             document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
             document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
-            document.getElementById('field-matching').style.display = isMatchingChecked ? 'block' : 'none';
+            document.getElementById('field-matching').style.display = (!isProductive && isMatchingChecked) ? 'block' : 'none';
             
             const layoutField = document.getElementById('field-layout-mode');
             if (layoutField) layoutField.style.display = (skill === 'READING' || skill === 'LISTENING' ? 'block' : 'none');
@@ -3380,7 +3389,13 @@
 
             if (!topic) { Swal.fire('Thiếu thông tin', 'Vui lòng nhập chủ đề câu hỏi.', 'warning'); return; }
 
-            const types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
+            let types = [];
+            if (skill === 'WRITING' || skill === 'SPEAKING') {
+                types.push(skill);
+            } else {
+                types = Array.from(document.querySelectorAll('#adv-types input:checked')).map(cb => cb.value);
+            }
+            
             if (types.length === 0) { Swal.fire('Thiếu thông tin', 'Vui lòng chọn ít nhất 1 loại câu hỏi.', 'warning'); return; }
 
             // Advanced Options Map
@@ -3456,7 +3471,7 @@
             openAdvancedAiModal();
         };
 
-        window.wsSpeak = function (text) {
+        window.wsSpeak = function (text, btnId = 'wsAiTtsBtn') {
             if (!text) return;
             if (!('speechSynthesis' in window)) {
                 Swal.fire('Lỗi', 'Trình duyệt của bạn không hỗ trợ Text-to-Speech.', 'error');
@@ -3491,7 +3506,9 @@
                 v.name.toLowerCase().includes('james') ||
                 v.name.toLowerCase().includes('guy') ||
                 v.name.toLowerCase().includes('andrew') ||
-                v.name.toLowerCase().includes('google us english')
+                v.name.toLowerCase().includes('google us english') ||
+                v.name.toLowerCase().includes('english (united states)') ||
+                v.name.toLowerCase().includes('natural')
             );
             const femaleVoices = enVoices.filter(v =>
                 v.name.toLowerCase().includes('female') ||
@@ -3500,11 +3517,12 @@
                 v.name.toLowerCase().includes('hazel') ||
                 v.name.toLowerCase().includes('susan') ||
                 v.name.toLowerCase().includes('catherine') ||
-                v.name.toLowerCase().includes('google uk english female')
+                v.name.toLowerCase().includes('google uk english female') ||
+                v.name.toLowerCase().includes('microsoft')
             );
 
-            const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'robert', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry']);
-            const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle']);
+            const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry', 'peter', 'alex', 'sam', 'ben', 'chris']);
+            const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle', 'lucy', 'jane', 'claire', 'amy']);
 
             const speakerVoiceMap = {};
 
@@ -3549,24 +3567,28 @@
 
                 utterance.onend = () => {
                     if (index >= lines.length - 1) {
-                        const btn = document.getElementById('wsAiTtsBtn');
+                        const btn = document.getElementById(btnId);
                         if (btn) {
-                            btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)';
-                            btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                            btn.innerHTML = btnId === 'wsAiTtsBtn' ? '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)' : '<i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi';
+                            if (btnId === 'wsAiTtsBtn') {
+                                btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                            }
                             btn.classList.remove('btn-danger');
-                            btn.classList.add('btn-primary');
+                            btn.classList.add('btn-primary', 'btn-outline-primary');
                         }
                     } else {
                         setTimeout(() => playNextLine(index + 1), 500);
                     }
                 };
                 utterance.onerror = () => {
-                    const btn = document.getElementById('wsAiTtsBtn');
+                    const btn = document.getElementById(btnId);
                     if (btn) {
-                        btn.innerHTML = '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)';
-                        btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                        btn.innerHTML = btnId === 'wsAiTtsBtn' ? '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)' : '<i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi';
+                        if (btnId === 'wsAiTtsBtn') {
+                            btn.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                        }
                         btn.classList.remove('btn-danger');
-                        btn.classList.add('btn-primary');
+                        btn.classList.add('btn-primary', 'btn-outline-primary');
                     }
                 };
 
@@ -3574,10 +3596,10 @@
             };
 
             const startPlaying = () => {
-                const btn = document.getElementById('wsAiTtsBtn');
+                const btn = document.getElementById(btnId);
                 if (btn) {
                     btn.innerHTML = '<i class="bi bi-stop-circle-fill me-1"></i> Dừng nghe';
-                    btn.classList.remove('btn-primary');
+                    btn.classList.remove('btn-primary', 'btn-outline-primary');
                     btn.classList.add('btn-danger');
                     btn.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
                 }
@@ -3599,6 +3621,48 @@
             // Bold speaker names
             return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-dark">$1</strong>');
         };
+        
+        let wsCurrentAudio = null;
+        let wsCurrentAudioBtnId = null;
+
+        window.wsPlayAudio = function (url, btnId) {
+            if (!url) return;
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            if (wsCurrentAudio && !wsCurrentAudio.paused && wsCurrentAudio.src === url) {
+                wsCurrentAudio.pause();
+                return;
+            }
+
+            if (wsCurrentAudio) {
+                wsCurrentAudio.pause();
+                if (wsCurrentAudioBtnId) {
+                    const oldBtn = document.getElementById(wsCurrentAudioBtnId);
+                    if (oldBtn) {
+                        const isPrimary = oldBtn.getAttribute('data-is-primary') === 'true';
+                        oldBtn.innerHTML = (isPrimary ? '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio' : '<i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi');
+                        oldBtn.className = isPrimary ? 'btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all' : 'btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold';
+                    }
+                }
+            }
+
+            wsCurrentAudio = new Audio(url);
+            wsCurrentAudioBtnId = btnId;
+            const isPrimary = btn.getAttribute('data-is-primary') === 'true';
+
+            wsCurrentAudio.onplay = () => {
+                btn.innerHTML = '<i class="bi bi-stop-circle-fill me-1"></i> Dừng phát';
+                btn.className = isPrimary ? 'btn btn-warning btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all' : 'btn btn-warning btn-sm rounded-pill px-3 fw-bold';
+            };
+            wsCurrentAudio.onpause = wsCurrentAudio.onended = () => {
+                btn.innerHTML = (isPrimary ? '<i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio' : '<i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi');
+                btn.className = isPrimary ? 'btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all' : 'btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold';
+            };
+
+            wsCurrentAudio.play().catch(e => console.error("Audio play error", e));
+        };
+
 
         const wsRenderAIQuestions = () => {
             const container = document.getElementById('wsAiList');
@@ -3642,13 +3706,21 @@
                                 </div>
                                 <span class="fw-bold text-primary">${title}:</span>
                             </div>
-                            ${isListening ? `
-                                <button id="wsAiTtsBtn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all" 
-                                    style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);"
-                                    onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText)">
+                            <div class="d-flex gap-2">
+                                ${wsAiAudioUrl ? `
+                                    <button id="wsAiMainAudioBtn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all" 
+                                        style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);"
+                                        data-is-primary="true"
+                                        onclick="wsPlayAudio('${wsAiAudioUrl}', 'wsAiMainAudioBtn')">
+                                        <i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio
+                                    </button>
+                                ` : ''}
+                                <button id="wsAiTtsBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold transition-all" 
+                                    data-is-primary="false"
+                                    onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText, 'wsAiTtsBtn')">
                                     <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
                                 </button>
-                            ` : ''}
+                            </div>
                         </div>
                         ${isListening ? `
                             <div class="alert alert-info border-0 rounded-4 mb-3 small d-flex align-items-center gap-2">
@@ -3696,6 +3768,20 @@
                                     <span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25">${q.skill || ''}</span>
                                     <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">${q.cefrLevel || ''}</span>
                                     ${q.topic ? `<span class="badge rounded-pill bg-light text-muted border">${wsEscape(q.topic)}</span>` : ''}
+                                    ${q.audioUrl ? `
+                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2" 
+                                            style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
+                                            data-is-primary="false"
+                                            onclick="wsPlayAudio('${q.audioUrl}', 'wsAiPlayQ${i}')">
+                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi
+                                        </button>
+                                    ` : (q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
+                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2" 
+                                            style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
+                                            onclick="wsSpeak('${wsEscape(q.content || '')}', 'wsAiPlayQ${i}')">
+                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi
+                                        </button>
+                                    ` : ''}
                                 </div>
                                 <h6 class="mb-2 fw-bold text-dark" style="font-size: 0.95rem;">${wsEscape(q.content || '')}</h6>
                                 

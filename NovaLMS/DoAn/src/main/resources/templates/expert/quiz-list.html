@@ -77,6 +77,7 @@
                         <th>Ngày tạo</th>
                         <th>Phạm vi</th>
                         <th>Câu hỏi</th>
+                        <th>Số lần làm</th>
                         <th>Trạng thái</th>
                         <th class="text-end px-4">Hành động</th>
                     </tr>
@@ -173,6 +174,14 @@ async function loadQuizzes(page = 0) {
                     </td>
                     <td><span class="small text-muted">${q.moduleName || q.lessonName || '—'}</span></td>
                     <td><span class="badge bg-light text-dark">${q.totalQuestions} câu</span></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">${q.maxAttempts || '∞'}</span>
+                            <button class="btn btn-xs btn-outline-secondary p-0 px-1" onclick="quickEditAttempts(${q.quizId}, ${q.maxAttempts || 0})" title="Sửa số lần làm">
+                                <i class="bi bi-pencil-square small"></i>
+                            </button>
+                        </div>
+                    </td>
                     <td>${statusBadge(q.status)}</td>
                     <td class="text-end px-4">
                         <a href="/expert/quiz-management/${q.quizId}/questions" class="btn btn-sm btn-outline-info me-1" title="Quản lý câu hỏi"><i class="bi bi-list-check"></i></a>
@@ -201,6 +210,39 @@ async function deleteQuiz(id) {
         if (res.ok) loadQuizzes(currentPage);
         else alert(result.message || 'Không thể xóa.');
     } catch (e) { alert('Lỗi: ' + e.message); }
+}
+
+async function quickEditAttempts(id, current) {
+    const { value: newVal } = await Swal.fire({
+        title: 'Cập nhật số lần làm bài',
+        input: 'number',
+        inputLabel: 'Số lần tối đa (0 = không giới hạn)',
+        inputValue: current || 0,
+        showCancelButton: true,
+        confirmButtonText: 'Lưu',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (value && value < 0) return 'Số lần làm không được âm';
+        }
+    });
+
+    if (newVal !== undefined && newVal !== null) {
+        try {
+            const val = parseInt(newVal);
+            const res = await fetch(`/api/v1/expert/quizzes/${id}/max-attempts`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maxAttempts: val > 0 ? val : null })
+            });
+            const result = await res.json();
+            if (res.ok) {
+                // Swal.fire('Thành công', 'Đã cập nhật số lần làm bài.', 'success');
+                loadQuizzes(currentPage);
+            } else {
+                Swal.fire('Lỗi', result.message || 'Không thể cập nhật', 'error');
+            }
+        } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
+    }
 }
 
 </script>

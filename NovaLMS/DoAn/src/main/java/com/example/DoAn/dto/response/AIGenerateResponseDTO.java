@@ -18,6 +18,7 @@ public class AIGenerateResponseDTO {
     @Builder
     public static class QuestionDTO {
         private String content;
+        private String transcript; // For Listening scripts
         private String questionType;
         private String skill;
         private String cefrLevel;
