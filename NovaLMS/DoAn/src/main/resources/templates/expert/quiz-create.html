@@ -765,12 +765,15 @@
     </main>
 
     <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
     <script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
     <script th:inline="javascript">
+        window.MODULE_ID = /*[[${moduleId}]]*/ null;
+    </script>
+
+    <script>
         (function () {
-            const moduleId = /*[[${moduleId}]]*/ null;
+            const moduleId = window.MODULE_ID;
             if (moduleId) {
                 // Ẩn dropdown loại quiz vì đang tạo quiz cho module
                 document.getElementById('quizCategoryCol').style.display = 'none';
@@ -958,7 +961,7 @@
         });
 
         async function submitQuiz(status) {
-            const moduleId = /*[[${moduleId}]]*/ null;
+            const moduleId = window.MODULE_ID;
             let cat = document.getElementById('quizCategory').value;
 
             if (moduleId) cat = 'MODULE_QUIZ';
@@ -1579,7 +1582,7 @@
                 if (btnStop) btnStop.style.display = 'inline-block';
             } else {
                 // Step 2: Fallback to Browser Speech Synthesis (Enhanced for multi-character)
-                const textToSpeak = q.passage || q.groupContent || q.content;
+                const textToSpeak = q.transcript || q.passage || q.groupContent || q.content;
                 if (!textToSpeak) { wsStop(idx); return; }
 
                 if (!('speechSynthesis' in window)) {
@@ -1788,6 +1791,12 @@
                                 ${(q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
                                     <div class="progress mb-2" style="height: 4px; display: none; width: 100px;">
                                         <div id="tts-progress-${idx}" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                ` : ''}
+                                ${q.transcript ? `
+                                    <div class="mb-3 p-3 bg-light rounded-3 border-start border-4 border-primary small text-dark fw-medium" style="max-height: 150px; overflow-y:auto; line-height:1.5; white-space: pre-wrap;">
+                                        <div class="text-primary mb-1 fw-bold small text-uppercase letter-spacing-1">Transcript:</div>
+                                        ${wsFormatTranscript(q.transcript)}
                                     </div>
                                 ` : ''}
                                 <div class="text-dark fw-medium mb-2">${q.content || q.questionContent}</div>

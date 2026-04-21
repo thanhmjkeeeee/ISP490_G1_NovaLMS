@@ -62,6 +62,9 @@ public class Question {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "transcript", columnDefinition = "TEXT")
+    private String transcript;
+
     // DRAFT | PUBLISHED | ARCHIVED | PENDING_REVIEW
     @Column(name = "status", length = 20)
     private String status;

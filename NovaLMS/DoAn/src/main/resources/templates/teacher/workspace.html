@@ -3692,7 +3692,7 @@
             // Render passage if exists
             if (wsAiPassage) {
                 const firstQ = wsAiQuestions[0];
-                const isListening = firstQ && firstQ.skill === 'LISTENING';
+                const isListening = firstQ && firstQ.skill && firstQ.skill.toUpperCase() === 'LISTENING';
                 const title = isListening ? 'Nội dung Audio / Transcript' : 'Nội dung Passage / Transcript';
                 const icon = isListening ? 'bi-volume-up-fill' : 'bi-file-text';
 
@@ -3714,12 +3714,13 @@
                                         onclick="wsPlayAudio('${wsAiAudioUrl}', 'wsAiMainAudioBtn')">
                                         <i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio
                                     </button>
-                                ` : ''}
-                                <button id="wsAiTtsBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold transition-all" 
-                                    data-is-primary="false"
-                                    onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText, 'wsAiTtsBtn')">
-                                    <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
-                                </button>
+                                ` : `
+                                    <button id="wsAiTtsBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold transition-all" 
+                                        data-is-primary="false"
+                                        onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText, 'wsAiTtsBtn')">
+                                        <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
+                                    </button>
+                                `}
                             </div>
                         </div>
                         ${isListening ? `
@@ -3773,16 +3774,22 @@
                                             style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
                                             data-is-primary="false"
                                             onclick="wsPlayAudio('${q.audioUrl}', 'wsAiPlayQ${i}')">
-                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi
+                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe nội dung
                                         </button>
                                     ` : (q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
                                         <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2" 
                                             style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
-                                            onclick="wsSpeak('${wsEscape(q.content || '')}', 'wsAiPlayQ${i}')">
-                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe câu hỏi
+                                            onclick="wsSpeak('${wsEscape(q.transcript || q.content || '')}', 'wsAiPlayQ${i}')">
+                                            <i class="bi bi-play-circle-fill me-1"></i> Nghe nội dung
                                         </button>
                                     ` : ''}
                                 </div>
+                                ${q.transcript ? `
+                                    <div class="mb-3 p-3 bg-light rounded-3 border-start border-4 border-primary small text-dark fw-medium" style="max-height: 150px; overflow-y:auto; line-height:1.5; white-space: pre-wrap;">
+                                        <div class="text-primary mb-1 fw-bold small text-uppercase">Transcript:</div>
+                                        ${wsFormatTranscript(q.transcript)}
+                                    </div>
+                                ` : ''}
                                 <h6 class="mb-2 fw-bold text-dark" style="font-size: 0.95rem;">${wsEscape(q.content || '')}</h6>
                                 
                                 ${q.options && q.options.length > 0 ? `
@@ -5631,10 +5638,7 @@
                             <div class="extra-small">Chọn câu hỏi</div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
 
     <!-- Step 1: Info -->
@@ -5813,6 +5817,56 @@
     </div>
     </div>
     </div>
+    </div>
+    </div>
+
+    <!-- MODAL: AI PROCESSING (Loading) -->
+    <div class="modal fade" id="wsAiProcessingModal" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+                <div class="modal-body text-center p-5">
+                    <div class="mb-4">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Đang xử lý với AI...</h5>
+                    <p class="text-muted mb-0">NovaLMS đang phân tích và tạo câu hỏi cho bạn. Vui lòng đợi trong giây lát.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: AI RESULTS PREVIEW -->
+    <div class="modal fade" id="wsAiResultsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+                <div class="modal-header border-0 p-4 pb-0">
+                    <div>
+                        <h5 class="fw-bold mb-1"><i class="bi bi-stars text-primary me-2"></i>Kết quả sinh từ AI</h5>
+                        <p class="text-muted small mb-0">Xem lại và chọn các câu hỏi bạn muốn nhập vào Quiz.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="wsAiResultsContent" class="pe-2">
+                        <!-- AI Questions Injected Here -->
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <div class="me-auto">
+                        <span class="badge bg-light text-dark border p-2 px-3 rounded-pill">
+                            <i class="bi bi-check2-circle text-success me-1"></i> Đã chọn: <span id="wsAiSelectedCount" class="fw-bold">0</span> câu hỏi
+                        </span>
+                    </div>
+                    <button class="btn btn-light rounded-pill px-4 fw-bold" onclick="wsToggleAllAI()">Chọn tất cả</button>
+                    <button id="wsBtnImportAi" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="wsImportSelectedAi()">
+                        <span id="wsImportAiSpinner" class="spinner-border spinner-border-sm me-2" style="display:none;"></span>
+                        Nhập các câu đã chọn
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- SUB-MODAL: QUESTION BANK PICKER FOR ASSIGNMENT -->

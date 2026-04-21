@@ -481,6 +481,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             String ca = (String) raw.get("correctAnswer");
             return QuestionDTO.builder()
                     .content((String) raw.get("content"))
+                    .transcript((String) raw.get("transcript"))
                     .questionType((String) raw.get("questionType"))
                     .skill((String) raw.get("skill"))
                     .cefrLevel((String) raw.get("cefrLevel"))
@@ -547,17 +548,45 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     @SuppressWarnings("unchecked")
     private List<Integer> parseIntegerList(Object obj) {
         if (obj == null) return null;
-        if (obj instanceof List<?>) {
-            List<?> raw = (List<?>) obj;
-            List<Integer> result = new ArrayList<>();
-            for (Object o : raw) {
-                if (o != null) {
-                    result.add(o instanceof Number n ? n.intValue() : Integer.parseInt(o.toString()));
+        List<Integer> result = new ArrayList<>();
+        try {
+            if (obj instanceof List<?>) {
+                List<?> raw = (List<?>) obj;
+                for (Object o : raw) {
+                    if (o == null) continue;
+                    if (o instanceof Number n) {
+                        result.add(n.intValue());
+                    } else {
+                        String s = o.toString().trim();
+                        // Handle "1-3" or "3"
+                        if (s.contains("-")) {
+                            String[] parts = s.split("-");
+                            result.add(Integer.parseInt(parts[parts.length - 1].trim()));
+                        } else {
+                            result.add(Integer.parseInt(s));
+                        }
+                    }
+                }
+            } else if (obj instanceof String s) {
+                // Handle "1, 3, 2" or "[1, 3, 2]"
+                String clean = s.replace("[", "").replace("]", "").trim();
+                if (!clean.isEmpty()) {
+                    String[] parts = clean.split(",");
+                    for (String p : parts) {
+                        String item = p.trim();
+                        if (item.contains("-")) {
+                            String[] subParts = item.split("-");
+                            result.add(Integer.parseInt(subParts[subParts.length - 1].trim()));
+                        } else {
+                            result.add(Integer.parseInt(item));
+                        }
+                    }
                 }
             }
-            return result.isEmpty() ? null : result;
+        } catch (Exception e) {
+            log.warn("Extensive parseIntegerList failure for object: {}. Error: {}", obj, e.getMessage());
         }
-        return null;
+        return result.isEmpty() ? null : result;
     }
 
     private boolean isValid(QuestionDTO dto) {
@@ -593,8 +622,11 @@ public class AIQuestionServiceImpl implements AIQuestionService {
 
     private void generateAudioForQuestion(QuestionDTO q) {
         try {
-            if (q.getContent() == null || q.getContent().isBlank()) return;
-            byte[] audioBytes = ttsService.synthesizeDialogue(q.getContent());
+            String textToSpeak = (q.getTranscript() != null && !q.getTranscript().isBlank()) 
+                    ? q.getTranscript() : q.getContent();
+            if (textToSpeak == null || textToSpeak.isBlank()) return;
+            
+            byte[] audioBytes = ttsService.synthesizeDialogue(textToSpeak);
             if (audioBytes != null) {
                 String audioUrl = fileUploadService.uploadBytes(audioBytes, "ai_q_listening", "video");
                 q.setAudioUrl(audioUrl);

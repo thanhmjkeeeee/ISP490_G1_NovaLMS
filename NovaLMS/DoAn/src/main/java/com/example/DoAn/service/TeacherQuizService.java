@@ -568,6 +568,7 @@ public class TeacherQuizService {
                         .skill(q.getSkill())
                         .cefrLevel(q.getCefrLevel())
                         .topic(q.getTopic())
+                        .transcript(q.getTranscript())
                         .status(q.getStatus())
                         .groupId(groupId)
                         .groupContent(groupContent)
@@ -680,6 +681,7 @@ public class TeacherQuizService {
                             .questionType(q.getQuestionType())
                             .skill(q.getSkill())
                             .cefrLevel(q.getCefrLevel())
+                            .transcript(q.getTranscript())
                             .status(q.getStatus())
                             .source(q.getSource())
                             .orderIndex(qq.getOrderIndex())
@@ -739,6 +741,7 @@ public class TeacherQuizService {
                 .explanation(question.getExplanation())
                 .audioUrl(question.getAudioUrl())
                 .imageUrl(question.getImageUrl())
+                .transcript(question.getTranscript())
                 .status(question.getStatus())
                 .source(question.getSource())
                 .createdByName(question.getUser() != null ? question.getUser().getFullName() : null)
@@ -789,6 +792,7 @@ public class TeacherQuizService {
             private String questionType;
             private String skill;
             private String cefrLevel;
+            private String transcript;
             private String status;
             private String source;
             private Integer orderIndex;
@@ -825,6 +829,7 @@ public class TeacherQuizService {
         private String explanation;
         private String audioUrl;
         private String imageUrl;
+        private String transcript;
         private String status; // PENDING_REVIEW, PUBLISHED, ARCHIVED
         private String source; // TEACHER_PRIVATE
         private String createdByName;
@@ -855,6 +860,7 @@ public class TeacherQuizService {
         private String skill;
         private String cefrLevel;
         private String topic;
+        private String transcript;
         private String status;
         private Integer groupId;
         private String groupContent;
@@ -940,6 +946,7 @@ public class TeacherQuizService {
                         .explanation(q.getExplanation())
                         .audioUrl(q.getAudioUrl())
                         .imageUrl(q.getImageUrl())
+                        .transcript(q.getTranscript())
                         .questionGroup(sharedGroup) // Link to shared passage if any
                         .status("PENDING_REVIEW")
                         .source("TEACHER_PRIVATE")
@@ -1086,6 +1093,7 @@ public class TeacherQuizService {
             private String explanation;
             private String audioUrl;
             private String imageUrl;
+            private String transcript;
             private List<AIOptionDTO> options;
             private String correctAnswer;
             private List<String> matchLeft;
