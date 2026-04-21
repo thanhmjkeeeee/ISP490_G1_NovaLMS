@@ -59,7 +59,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
-            return "SPEAKING".equalsIgnoreCase(q.getSkill())
+            return ("SPEAKING".equalsIgnoreCase(q.getSkill()) || "SPEAKING".equalsIgnoreCase(q.getQuestionType()))
                     && a.getPointsAwarded() == null;
         });
     }
@@ -68,7 +68,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
-            return "WRITING".equalsIgnoreCase(q.getSkill())
+            return ("WRITING".equalsIgnoreCase(q.getSkill()) || "WRITING".equalsIgnoreCase(q.getQuestionType()))
                     && a.getPointsAwarded() == null;
         });
     }
@@ -137,7 +137,11 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             Integer quizId, List<QuizAnswer> answers, String skill) {
 
         List<QuizAnswer> sectionAnswers = answers.stream()
-                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                .filter(a -> {
+                    String s = a.getQuestion().getSkill();
+                    String t = a.getQuestion().getQuestionType();
+                    return skill.equalsIgnoreCase(s) || skill.equalsIgnoreCase(t);
+                })
                 .toList();
 
         if (sectionAnswers.isEmpty())
@@ -253,8 +257,14 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         Map<String, List<QuizAnswer>> bySkill = new LinkedHashMap<>();
         for (QuizAnswer a : answers) {
             Question q = a.getQuestion();
-            String skill = q.getSkill() != null ? q.getSkill() : "OTHER";
-            bySkill.computeIfAbsent(skill, k -> new ArrayList<>()).add(a);
+            String skill = q.getSkill();
+            if (skill == null || skill.isBlank() || "GENERAL".equalsIgnoreCase(skill)) {
+                if ("WRITING".equalsIgnoreCase(q.getQuestionType()) || "SPEAKING".equalsIgnoreCase(q.getQuestionType())) {
+                    skill = q.getQuestionType().toUpperCase();
+                }
+            }
+            if (skill == null) skill = "OTHER";
+            bySkill.computeIfAbsent(skill.toUpperCase(), k -> new ArrayList<>()).add(a);
         }
 
         AssignmentGradingDetailDTO dto = new AssignmentGradingDetailDTO();

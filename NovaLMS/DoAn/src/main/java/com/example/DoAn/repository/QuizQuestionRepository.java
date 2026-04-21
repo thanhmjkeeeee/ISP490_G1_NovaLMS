@@ -30,9 +30,9 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(qq) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
     long countByQuestion_QuestionId(@org.springframework.data.repository.query.Param("questionId") Integer questionId);
 
-    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question WHERE qq.quiz.quizId = :quizId AND qq.skill = :skill")
+    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question q WHERE qq.quiz.quizId = :quizId AND (q.skill = :skill OR q.questionType = :skill)")
     List<QuizQuestion> findByQuizQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);
 
-    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT q.question.questionId) FROM QuizQuestion q WHERE q.quiz.quizId = :quizId AND q.question.skill = :skill")
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT q.question.questionId) FROM QuizQuestion q WHERE q.quiz.quizId = :quizId AND (q.question.skill = :skill OR q.question.questionType = :skill)")
     long countByQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);
 }

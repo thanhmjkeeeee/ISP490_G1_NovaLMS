@@ -1370,7 +1370,9 @@ public class QuizResultServiceImpl implements QuizResultService {
             boolean hasManual = quiz.getQuizQuestions().stream()
                     .anyMatch(qq -> {
                         String skill = qq.getQuestion().getSkill();
-                        return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill);
+                        String qType = qq.getQuestion().getQuestionType();
+                        return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)
+                                || "WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType);
                     });
 
             if (!"LOCKED".equals(result.getStatus())) {
