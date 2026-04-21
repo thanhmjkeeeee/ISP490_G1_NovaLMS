@@ -40,13 +40,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final ITextToSpeechService ttsService;
     private final FileUploadService fileUploadService;
 
-    @Value("${groq.api.key:}")
+    @Value("${ai.api.key:}")
     private String aiApiKey;
 
-    @Value("${groq.model:qwen-2.5-72b-instruct}")
+    @Value("${ai.model:apilms}")
     private String aiModel;
 
-    @Value("${groq.api.url:https://kymaapi.com/v1}")
+    @Value("${ai.api.url:http://localhost:20128/v1/chat/completions}")
     private String aiApiUrlBase;
 
     // OkHttpClient — uses OS DNS resolver, works on all environments
@@ -288,11 +288,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + aiModel + ":generateContent?key=" + aiApiKey;
             body.put("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))));
         } else {
-            // OpenAI Compatible Format (Kyma, Groq, etc.)
-            fullUrl = aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
+            // OpenAI Compatible Format (Kyma, Groq, 9Router, etc.)
+            fullUrl = aiApiUrlBase.endsWith("/chat/completions") ? aiApiUrlBase 
+                    : aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
             body.put("model", aiModel);
             body.put("temperature", 0.7);
             body.put("max_tokens", 4000);
+            body.put("stream", false);
             body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
             requestBuilder.addHeader("Authorization", "Bearer " + aiApiKey);
         }
@@ -359,10 +361,10 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         throw new AIException("AI: unexpected exit from retry loop.", null);
     }
 
-    // Parse OpenAI-compatible response: { choices: [{ message: { content: "..." } }] }
     private String extractContent(String response) {
         try {
-            Map<String, Object> respMap = objectMapper.readValue(response, new TypeReference<>() {});
+            String trimmed = response != null ? response.trim() : "";
+            Map<String, Object> respMap = objectMapper.readValue(trimmed, new TypeReference<>() {});
             
             // Check for Gemini format
             if (respMap.containsKey("candidates")) {
@@ -391,12 +393,24 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 }
             }
             
+            // Fallback: Nếu không có format OpenAI nhưng là JSON hợp lệ, trả thẳng
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                return trimmed;
+            }
+
             throw new AIException("AI trả về danh sách rỗng hoặc định dạng không nhận dạng được.", null);
         } catch (ClassCastException | NullPointerException e) {
             String preview = (response != null && response.length() > 500) ? response.substring(0, 500) : response;
             log.error("Failed to parse AI response: {}. Error: {}", preview, e.getMessage());
             throw new AIException("Không parse được response từ AI. Định dạng không mong đợi.", e);
         } catch (JsonProcessingException e) {
+            log.error("Lỗi parse OpenAI Format. Raw response từ API: \n{}", response);
+            
+            // Fallback (Chữa cháy): Nếu bắt đầu bằng { hoặc [ thì trả về luôn
+            String trimmed = response != null ? response.trim() : "";
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                return trimmed;
+            }
             throw new AIException("Không parse được response từ AI.", e);
         }
     }

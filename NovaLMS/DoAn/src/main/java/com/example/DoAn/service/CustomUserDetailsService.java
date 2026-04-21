@@ -32,7 +32,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // Get role from user association
         if (user.getRole() != null && user.getRole().getValue() != null) {
-            roleName = user.getRole().getValue();
+            String val = user.getRole().getValue();
+            roleName = val.startsWith("ROLE_") ? val : "ROLE_" + val;
         }
 
         log.info("Loaded user: {}, roleName: {}", email, roleName);

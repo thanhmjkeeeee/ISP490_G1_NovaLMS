@@ -24,85 +24,82 @@ public class GroqClient {
 
     private final WebClient webClient;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final String apiKey;
+    private final String aiModel;
+
+    @Value("${groq.api.key:}")
+    private String groqApiKey;
 
     public GroqClient(
-            @NonNull @Value("${groq.api.key}") String apiKey,
-            @Value("${groq.api.url:https://api.groq.com/openai/v1}") String apiUrl,
+            @NonNull @Value("${ai.api.key}") String apiKey,
+            @Value("${ai.api.url:http://localhost:20128/v1}") String apiUrl,
+            @Value("${ai.model:apilms}") String aiModel,
             WebClient.Builder webClientBuilder) {
+        this.apiKey = apiKey;
+        this.aiModel = aiModel;
+        // Ensure baseUrl doesn't include specific endpoints so .uri() works correctly
+        String baseUrl = apiUrl.endsWith("/chat/completions") ? apiUrl.substring(0, apiUrl.length() - "/chat/completions".length()) : apiUrl;
+        if (baseUrl.endsWith("/")) baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        
         this.webClient = webClientBuilder
-                .baseUrl(apiUrl)
+                .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
     }
 
     /**
      * Transcribe audio via Whisper Large V3.
-     * Groq's Whisper API only accepts a binary audio file (multipart/form-data, field name "file").
-     * This method downloads the audio from audioUrl, then sends it to Groq.
+     * Sử dụng RestTemplate thay vì WebClient để cô lập API Key thật của Groq,
+     * tránh việc bị ghi đè/nhồi thêm header của Local Gateway gây lỗi 401.
      */
     public String transcribe(String audioUrl) {
+        // 1. Kiểm tra Key
+        if (groqApiKey == null || groqApiKey.isBlank()) {
+            throw new RuntimeException("Missing Groq API Key in properties.");
+        }
+        String cleanKey = groqApiKey.trim().replace("\"", "").replace("'", "");
+
         try {
-            // Strip surrounding quotes if present (some frontends store URL with quotes)
-            if (audioUrl != null && audioUrl.startsWith("\"")) {
-                audioUrl = audioUrl.substring(1);
-            }
-            if (audioUrl != null && audioUrl.endsWith("\"")) {
-                audioUrl = audioUrl.substring(0, audioUrl.length() - 1);
-            }
-            log.info("Downloading audio from {} for transcription", audioUrl);
+            // 2. Download file từ Cloudinary
+            log.info("Downloading audio from {}...", audioUrl);
+            RestTemplate downloader = new RestTemplate();
+            byte[] audioBytes = downloader.getForObject(URI.create(audioUrl.replace("\"", "")), byte[].class);
 
-            // Download audio from Cloudinary (or wherever it's hosted)
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<byte[]> audioResponse = restTemplate.getForEntity(
-                    URI.create(audioUrl), byte[].class);
+            if (audioBytes == null) throw new RuntimeException("Empty audio file.");
 
-            if (audioResponse.getStatusCode() != HttpStatus.OK || audioResponse.getBody() == null) {
-                throw new RuntimeException("Failed to download audio: HTTP " + audioResponse.getStatusCode());
-            }
-            byte[] audioBytes = audioResponse.getBody();
+            // 3. Gọi Groq bằng OkHttp (Cực kỳ an toàn cho Auth Header)
+            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
 
-            // Determine content type from Content-Type header (default to audio/mpeg)
-            MediaType mediaType = audioResponse.getHeaders().getContentType();
-            String mimeType = (mediaType != null) ? mediaType.toString() : "audio/mpeg";
+            okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
+                    audioBytes,
+                    okhttp3.MediaType.parse("audio/webm")
+            );
 
-            // Determine file extension from mime type
-            String ext = mimeType.contains("wav") ? "wav"
-                    : mimeType.contains("webm") ? "webm"
-                    : mimeType.contains("m4a") ? "m4a"
-                    : "mp3";
+            okhttp3.RequestBody requestBody = new okhttp3.MultipartBody.Builder()
+                    .setType(okhttp3.MultipartBody.FORM)
+                    .addFormDataPart("model", "whisper-large-v3")
+                    .addFormDataPart("file", "recording.webm", fileBody)
+                    .build();
 
-            log.info("Sending {} bytes (type={}) to Groq Whisper", audioBytes.length, mimeType);
+            okhttp3.Request request = new okhttp3.Request.Builder()
+                    .url("https://api.groq.com/openai/v1/audio/transcriptions")
+                    .post(requestBody)
+                    .header("Authorization", "Bearer " + cleanKey) // Ép cứng Key thật của Groq ở đây
+                    .build();
 
-            // Build multipart body: model (text) + file (binary)
-            MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
-            formData.add("model", "whisper-large-v3");
-            formData.add("file", new org.springframework.core.io.ByteArrayResource(audioBytes) {
-                @Override
-                public String getFilename() {
-                    return "audio." + ext;
+            try (okhttp3.Response response = client.newCall(request).execute()) {
+                String respBody = response.body() != null ? response.body().string() : "";
+                if (!response.isSuccessful()) {
+                    log.error("Groq Whisper Error: {} - {}", response.code(), respBody);
+                    throw new RuntimeException("Groq API returned " + response.code());
                 }
-            });
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(formData, headers);
-
-            String responseBody = webClient.post()
-                    .uri("/audio/transcriptions")
-                    .headers(h -> h.putAll(headers))
-                    .bodyValue(formData)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .block();
-
-            log.info("[GROQ] Whisper transcription response: {}", responseBody);
-            JsonNode node = mapper.readTree(responseBody);
-            return node.path("text").asText("");
-
+                JsonNode node = mapper.readTree(respBody);
+                return node.path("text").asText("");
+            }
         } catch (Exception e) {
-            log.error("Groq Whisper transcription failed for url={}: {}", audioUrl, e.getMessage());
-            throw new RuntimeException("Transcription failed: " + e.getMessage(), e);
+            log.error("Transcription failed: {}", e.getMessage());
+            throw new RuntimeException("Transcription failed: " + e.getMessage());
         }
     }
 
@@ -128,10 +125,11 @@ public class GroqClient {
                 Map.of("role", "user", "content", userPrompt)
             );
             Map<String, Object> body = Map.of(
-                "model", "llama-3.3-70b-versatile",
+                "model", aiModel,
                 "messages", messages,
                 "temperature", 0.3,
-                "max_tokens", 1024
+                "max_tokens", 2048, // Tăng lên để tránh bị cắt cụt JSON (Unexpected end-of-input)
+                "stream", false
             );
 
             JsonNode response = webClient.post()
@@ -139,13 +137,23 @@ public class GroqClient {
                     .bodyValue(body)
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .timeout(Duration.ofSeconds(60))
+                    .timeout(Duration.ofSeconds(3000))
                     .block();
 
             log.info("[GROQ] LLaMA grading response: {}", response);
             String content = response.path("choices").get(0)
                     .path("message").path("content").asText();
+            
+            // Xử lý làm sạch content
             content = content.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
+            
+            // TỰ ĐỘNG VÁ JSON (Nếu bị cắt cụt do max_tokens)
+            if (content.contains("\"rubric\":") && !content.endsWith("}")) {
+                log.warn("[AI-FIX] JSON bị cắt cụt, đang cố gắng đóng ngoặc...");
+                if (!content.endsWith("}")) content += "}";
+                if (!content.endsWith("}}")) content += "}";
+            }
+            
             return mapper.readValue(content, GradingResponse.class);
 
         } catch (Exception e) {
@@ -299,7 +307,8 @@ public class GroqClient {
             %s
 
             Hãy đọc câu trả lời và CHẤM theo rubric trên.
-            Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
+            YÊU CẦU QUAN TRỌNG: Trả về ĐÚNG ĐỊNH DẠNG JSON bên dưới. Không giải thích thêm.
+            Đảm bảo chuỗi JSON hoàn chỉnh, không bị cắt ngắn ở giữa.
             {
               "overallBand": <(task_achievement + lexical_resource + grammatical_range + coherence_cohesion) / 4>,
               "displayScore": <overallBand>,

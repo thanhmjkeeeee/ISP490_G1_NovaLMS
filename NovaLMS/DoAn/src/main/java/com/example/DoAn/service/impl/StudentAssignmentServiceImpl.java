@@ -48,7 +48,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     // ─── getAssignmentInfo ───────────────────────────────────────────────
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AssignmentInfoDTO getAssignmentInfo(Integer quizId, String userEmail) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài kiểm tra"));
@@ -106,20 +106,27 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
                     + effectiveDeadline.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
         }
 
-        // Validate enrollment — accept EITHER direct class link OR session-based enrollment
-        if (quiz.getClazz() == null && sessionQuiz == null) {
-            throw new InvalidDataException("Bài tập chưa được gắn với lớp học. Vui lòng liên hệ giáo viên.");
-        }
+        // Validate enrollment — support Class, Course, Module, or Session-based enrollment
+        boolean enrolled = false;
         if (quiz.getClazz() != null) {
-            boolean enrolled = registrationRepository
-                    .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
-                            user.getUserId(), quiz.getClazz().getClassId());
-            if (!enrolled) {
-                throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
-            }
+            enrolled = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                    user.getUserId(), quiz.getClazz().getClassId());
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+        } else if (quiz.getCourse() != null) {
+            enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), quiz.getCourse().getCourseId(), "Approved");
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký khóa học này");
+        } else if (quiz.getModule() != null && quiz.getModule().getCourse() != null) {
+            enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), quiz.getModule().getCourse().getCourseId(), "Approved");
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký khóa học này");
+        } else if (sessionQuiz != null) {
+            // Student is enrolled in a class that has this quiz in a session 
+            // Already validated at lines 74-82
+            enrolled = true;
+        } else {
+            throw new InvalidDataException("Bài tập chưa được gắn với lớp học hoặc khóa học. Vui lòng liên hệ giáo viên.");
         }
-        // If quiz.getClazz() == null but sessionQuiz != null: student is enrolled
-        // in a class that has this quiz in a session — already validated above (lines 74-82)
 
         // Check attempts using QuizResult (submitted ones)
         long attemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
