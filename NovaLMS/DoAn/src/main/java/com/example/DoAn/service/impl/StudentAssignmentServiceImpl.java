@@ -46,7 +46,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     // ─── getAssignmentInfo ───────────────────────────────────────────────
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AssignmentInfoDTO getAssignmentInfo(Integer quizId, String userEmail) {
         Quiz quiz = quizRepository.findById(quizId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài kiểm tra"));
@@ -105,14 +105,21 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         }
 
         // Validate enrollment
-        if (quiz.getClazz() == null) {
-            throw new InvalidDataException("Bài tập chưa được gắn với lớp học");
-        }
-        boolean enrolled = registrationRepository
-                .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
-                        user.getUserId(), quiz.getClazz().getClassId());
-        if (!enrolled) {
-            throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+        boolean enrolled = false;
+        if (quiz.getClazz() != null) {
+            enrolled = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                    user.getUserId(), quiz.getClazz().getClassId());
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+        } else if (quiz.getCourse() != null) {
+            enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), quiz.getCourse().getCourseId(), "APPROVED");
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký khóa học này");
+        } else if (quiz.getModule() != null && quiz.getModule().getCourse() != null) {
+            enrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), quiz.getModule().getCourse().getCourseId(), "APPROVED");
+            if (!enrolled) throw new InvalidDataException("Bạn chưa đăng ký khóa học này");
+        } else {
+            throw new InvalidDataException("Bài tập chưa được gắn với lớp học hoặc khóa học");
         }
 
         // Check attempts using QuizResult (submitted ones)

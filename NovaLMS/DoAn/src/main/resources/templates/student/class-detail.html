@@ -583,7 +583,7 @@
                     lockedState = 'opacity: 0.6; cursor: not-allowed;';
                     onclick = `onclick="Swal.fire('Thông báo', 'Bạn đã hết lượt làm bài tập này!', 'info')"` ;
                 } else if (qId) {
-                    url = q.isSequential ? `/student/assignment/${qId}` : `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
+                    url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
                     onclick = `onclick="confirmStartQuiz('${url}', '${wsEscape(title)}'); return false;"`;
                 } else {
                     onclick = `onclick="Swal.fire('Lỗi', 'Chưa có ID bài tập!', 'error')"`;
@@ -779,7 +779,7 @@
                 statusHtml = '<span class="badge bg-info">Chưa làm</span>';
             }
 
-            const url = isLocked || !canRetake ? 'javascript:void(0)' : (isSequential ? `/student/assignment/${q.quizId}` : `/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${q.sessionId}`);
+            const url = isLocked || !canRetake ? 'javascript:void(0)' : `/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${q.sessionId}`;
 
             html += `
             <div class="col-md-6 mb-3">
