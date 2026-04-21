@@ -4927,7 +4927,7 @@
                 }
                 mergedItems.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
-                const pageSize = 20;
+                const pageSize = 10;
                 const totalPages = Math.ceil(mergedItems.length / pageSize);
                 const pageRows = mergedItems.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -4941,6 +4941,7 @@
                     <table class="table table-custom align-middle">
                         <thead>
                             <tr>
+                                <th width="60" class="text-center">STT</th>
                                 <th>Loại</th>
                                 <th>Học viên</th>
                                 <th>Bài thi / Bài tập</th>
@@ -4949,8 +4950,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${pageRows.map(item => `
+                            ${pageRows.map((item, idx) => `
                                 <tr>
+                                    <td class="text-center fw-bold text-muted small">${(page * pageSize) + idx + 1}</td>
                                     <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-', 'text-')} border small px-3 py-2">${item.type}</span></td>
                                     <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
                                     <td><span class="fw-bold text-dark">${item.quizTitle}</span>
@@ -5038,7 +5040,7 @@
                 }
                 mergedItems.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
-                const pageSize = 20;
+                const pageSize = 10;
                 const totalPages = Math.ceil(mergedItems.length / pageSize);
                 const pageRows = mergedItems.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -5052,6 +5054,7 @@
                     <table class="table table-custom align-middle">
                         <thead>
                             <tr>
+                                <th width="60" class="text-center">STT</th>
                                 <th>Loại</th>
                                 <th>Học viên</th>
                                 <th>Bài thi / Bài tập</th>
@@ -5061,8 +5064,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${pageRows.map(item => `
+                            ${pageRows.map((item, idx) => `
                                 <tr>
+                                    <td class="text-center fw-bold text-muted small">${(page * pageSize) + idx + 1}</td>
                                     <td><span class="badge ${item.badgeClass} bg-opacity-10 ${item.badgeClass.replace('bg-', 'text-')} border small px-3 py-2">${item.type}</span></td>
                                     <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
                                     <td><span class="fw-bold text-dark">${item.quizTitle}</span></td>

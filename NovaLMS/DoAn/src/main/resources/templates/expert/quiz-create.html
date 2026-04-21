@@ -106,6 +106,89 @@
             color: #f59e0b;
         }
     </style>
+    <script>
+        // ─── CRITICAL FUNCTIONS (loaded early to prevent ReferenceError on partial renders) ───
+        function calculateTotalTime(input) {
+            if (input && input.value) {
+                input.value = input.value.replace(/[^0-9]/g, '');
+                if (parseInt(input.value) > 100) input.value = '100';
+            }
+            let total = 0;
+            ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(skill => {
+                const checkbox = document.getElementById('enable_' + skill);
+                if (checkbox && checkbox.checked) {
+                    let val = parseInt(document.getElementById('timeLimit_' + skill).value) || 0;
+                    total += val;
+                }
+            });
+            const totalInput = document.getElementById('timeLimitMinutes');
+            if (totalInput) totalInput.value = total > 0 ? total : '';
+        }
+
+        function toggleSkillInput(skill) {
+            const enabled = document.getElementById('enable_' + skill).checked;
+            const input = document.getElementById('timeLimit_' + skill);
+            input.disabled = !enabled;
+            if (!enabled) input.value = '';
+            calculateTotalTime(input);
+        }
+
+        function onCategoryChange() {
+            const cat = document.getElementById('quizCategory').value;
+            const courseSection = document.getElementById('courseSection');
+            const perSkillSection = document.getElementById('perSkillTimeSection');
+            const timeLimitInput = document.getElementById('timeLimitMinutes');
+            const deadlineSection = document.getElementById('deadlineSection');
+
+            if (courseSection) {
+                const isCourseLevel = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT');
+                courseSection.style.display = isCourseLevel ? 'block' : 'none';
+                const moduleSection = document.getElementById('moduleSection');
+                if (moduleSection) moduleSection.style.display = isCourseLevel ? 'block' : 'none';
+            }
+
+            if (deadlineSection) deadlineSection.style.display = 'none';
+
+            if (cat && (cat.includes('ASSIGNMENT') || cat === 'COURSE_QUIZ')) {
+                if (perSkillSection) perSkillSection.style.display = 'block';
+                if (timeLimitInput) {
+                    timeLimitInput.readOnly = true;
+                    timeLimitInput.style.backgroundColor = '#e9ecef';
+                    timeLimitInput.placeholder = 'Tự động tính';
+                    calculateTotalTime();
+                }
+            } else {
+                if (perSkillSection) perSkillSection.style.display = 'none';
+                if (timeLimitInput) {
+                    timeLimitInput.readOnly = false;
+                    timeLimitInput.style.backgroundColor = '';
+                    if (cat === 'ENTRY_TEST') {
+                        timeLimitInput.value = 20;
+                        const passScore = document.getElementById('passScore');
+                        const maxAttempts = document.getElementById('maxAttempts');
+                        if (passScore) passScore.value = 40;
+                        if (maxAttempts) maxAttempts.value = 1;
+                    } else {
+                        timeLimitInput.value = '';
+                        timeLimitInput.placeholder = 'Không giới hạn';
+                    }
+                }
+            }
+
+            const entryTestWarning = document.getElementById('entryTestWarning');
+            if (entryTestWarning) entryTestWarning.style.display = (cat === 'ENTRY_TEST') ? 'block' : 'none';
+
+            if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
+                const btnNext = document.getElementById('btnNextStep');
+                if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
+                if (cat !== 'ENTRY_TEST') {
+                    if (typeof loadCourses === 'function') loadCourses();
+                } else {
+                    if (courseSection) courseSection.style.display = 'none';
+                }
+            }
+        }
+    </script>
 </head>
 
 <body class="dashboard-body">
@@ -771,7 +854,7 @@
         window.MODULE_ID = /*[[${moduleId}]]*/ null;
     </script>
 
-    <script>
+    <script th:inline="none">
         (function () {
             const moduleId = window.MODULE_ID;
             if (moduleId) {
