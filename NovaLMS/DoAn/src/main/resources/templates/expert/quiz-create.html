@@ -1637,13 +1637,15 @@
         let currentAudio = null;
 
         function wsSpeak(idx) {
-            wsStop(idx); // stop any playing
+            wsStop(idx); // Dừng các âm thanh cũ trước khi phát
             const q = _generatedAiQuestions[idx];
             if (!q) return;
 
-            if (q.audioUrl) {
-                // Step 1: Real Audio URL from Google TTS
-                currentAudio = new Audio(q.audioUrl);
+            if (q.audioUrl && q.audioUrl !== 'null' && q.audioUrl.trim() !== '') {
+                console.log("[Audio URL Mode] Đang chuẩn bị phát Audio từ Server.");
+                let url = q.audioUrl.replace(/^"|"$/g, ''); // Xóa ngoặc kép thừa nếu có
+
+                currentAudio = new Audio(url);
                 const progress = document.getElementById('tts-progress-' + idx);
                 if (progress) {
                     progress.style.width = '0%';
@@ -1656,101 +1658,137 @@
                     };
                 }
                 currentAudio.onended = () => wsStop(idx);
-                currentAudio.onerror = () => wsStop(idx);
-                currentAudio.play();
+                currentAudio.onerror = () => {
+                    console.error("Audio Load/Play Error");
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'URL Audio bị lỗi hoặc không tồn tại.', showConfirmButton: false, timer: 3000 });
+                    wsStop(idx);
+                };
+
+                currentAudio.play().catch(e => {
+                    console.error("Audio Play Error:", e);
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Trình duyệt chặn phát âm thanh.', showConfirmButton: false, timer: 3000 });
+                    wsStop(idx);
+                });
 
                 const btnPlay = document.getElementById('btn-play-' + idx);
                 const btnStop = document.getElementById('btn-stop-' + idx);
                 if (btnPlay) btnPlay.style.display = 'none';
                 if (btnStop) btnStop.style.display = 'inline-block';
             } else {
-                // Step 2: Fallback to Browser Speech Synthesis (Enhanced for multi-character)
-                const textToSpeak = q.transcript || q.passage || q.groupContent || q.content;
-                if (!textToSpeak) { wsStop(idx); return; }
+                console.log("[Browser TTS Mode] Kích hoạt chế độ đọc văn bản của trình duyệt.");
+                try {
+                    let textToSpeak = q.transcript || q.passage || q.groupContent || q.content;
+                    if (!textToSpeak) { wsStop(idx); return; }
 
-                if (!('speechSynthesis' in window)) {
-                    Swal.fire('Lỗi', 'Trình duyệt không hỗ trợ TTS.', 'error');
-                    return;
-                }
-
-                const btnPlay = document.getElementById('btn-play-' + idx);
-                const btnStop = document.getElementById('btn-stop-' + idx);
-                const progressBar = document.getElementById('tts-progress-' + idx);
-
-                if (btnPlay) btnPlay.style.display = 'none';
-                if (btnStop) btnStop.style.display = 'inline-block';
-                if (progressBar && progressBar.parentElement) progressBar.parentElement.style.display = 'flex';
-
-                const lines = textToSpeak.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                const allVoices = window.speechSynthesis.getVoices();
-                const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
-
-                const maleKeywords = ['male', 'david', 'mark', 'james', 'guy', 'andrew', 'google us english', 'english (united states)', 'natural'];
-                const femaleKeywords = ['female', 'zira', 'linda', 'hazel', 'susan', 'catherine', 'google uk english female', 'microsoft'];
-
-                const maleVoices = enVoices.filter(v => maleKeywords.some(k => v.name.toLowerCase().includes(k)));
-                const femaleVoices = enVoices.filter(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
-
-                const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry', 'peter', 'alex', 'sam', 'ben', 'chris']);
-                const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle', 'lucy', 'jane', 'claire', 'amy']);
-
-                const speakerVoiceMap = {};
-                let currentIdx = 0;
-
-                const speakLine = (idx_line) => {
-                    if (idx_line >= lines.length) { wsStop(idx); return; }
-
-                    const line = lines[idx_line];
-                    const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
-
-                    let speakerName = "Default";
-                    let gender = "female";
-                    let content = line;
-
-                    if (match) {
-                        speakerName = match[1].trim();
-                        const explicitGender = match[2];
-                        content = match[3].trim();
-                        if (explicitGender) gender = explicitGender.toLowerCase();
-                        else {
-                            const lowName = speakerName.toLowerCase();
-                            if (maleNames.has(lowName)) gender = 'male';
-                            else if (femaleNames.has(lowName)) gender = 'female';
+                    // [CRITICAL FIX]: Ép Object thành Chuỗi hội thoại để JS không bị Crash
+                    if (typeof textToSpeak === 'object') {
+                        if (textToSpeak.dialogue && Array.isArray(textToSpeak.dialogue)) {
+                            textToSpeak = textToSpeak.dialogue.map(d => `${d.speaker}: ${d.line}`).join('\n');
+                        } else {
+                            textToSpeak = textToSpeak.question || JSON.stringify(textToSpeak);
                         }
                     }
 
-                    const utt = new SpeechSynthesisUtterance(content);
-                    utt.lang = 'en-US';
-                    utt.rate = 0.9;
-
-                    if (!speakerVoiceMap[speakerName]) {
-                        const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
-                        let hash = 0;
-                        for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
-                        speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
-                    }
-                    if (speakerVoiceMap[speakerName]) utt.voice = speakerVoiceMap[speakerName];
-
-                    if (progressBar) {
-                        let pct = ((idx_line + 1) / lines.length) * 100;
-                        progressBar.style.width = pct + '%';
+                    if (!('speechSynthesis' in window)) {
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Trình duyệt không hỗ trợ TTS.', showConfirmButton: false, timer: 3000 });
+                        return;
                     }
 
-                    utt.onend = () => setTimeout(() => speakLine(idx_line + 1), 400);
-                    utt.onerror = () => wsStop(idx);
-                    window.speechSynthesis.speak(utt);
-                };
+                    const btnPlay = document.getElementById('btn-play-' + idx);
+                    const btnStop = document.getElementById('btn-stop-' + idx);
+                    const progressBar = document.getElementById('tts-progress-' + idx);
 
-                if (allVoices.length === 0) {
-                    window.speechSynthesis.onvoiceschanged = () => speakLine(0);
-                } else {
-                    speakLine(0);
+                    if (btnPlay) btnPlay.style.display = 'none';
+                    if (btnStop) btnStop.style.display = 'inline-block';
+                    if (progressBar && progressBar.parentElement) progressBar.parentElement.style.display = 'flex';
+
+                    const lines = textToSpeak.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                    const allVoices = window.speechSynthesis.getVoices();
+                    const enVoices = allVoices.filter(v => v.lang.startsWith('en'));
+
+                    const maleKeywords = ['male', 'david', 'mark', 'james', 'guy', 'andrew', 'google us english', 'english (united states)', 'natural'];
+                    const femaleKeywords = ['female', 'zira', 'linda', 'hazel', 'susan', 'catherine', 'google uk english female', 'microsoft'];
+
+                    const maleVoices = enVoices.filter(v => maleKeywords.some(k => v.name.toLowerCase().includes(k)));
+                    const femaleVoices = enVoices.filter(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
+
+                    const maleNames = new Set(['mark', 'david', 'john', 'robert', 'paul', 'james', 'michael', 'richard', 'william', 'thomas', 'george', 'kevin', 'steven', 'brian', 'peter', 'andrew', 'steve', 'jack', 'tom', 'mike', 'charles', 'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'joshua', 'henry', 'peter', 'alex', 'sam', 'ben', 'chris']);
+                    const femaleNames = new Set(['sarah', 'mary', 'linda', 'susan', 'karen', 'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'jessica', 'dorothy', 'alice', 'helen', 'elizabeth', 'anna', 'emma', 'olivia', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'emily', 'michelle', 'lucy', 'jane', 'claire', 'amy']);
+
+                    const speakerVoiceMap = {};
+                    let currentIdx = 0;
+
+                    const speakLine = (idx_line) => {
+                        if (idx_line >= lines.length) { wsStop(idx); return; }
+
+                        const line = lines[idx_line];
+                        const match = line.match(/^([^:\[\n]+)(?:\s*\[(Male|Female)\])?\s*:\s*(.*)$/i);
+
+                        let speakerName = "Default";
+                        let gender = "female";
+                        let content = line;
+
+                        if (match) {
+                            speakerName = match[1].trim();
+                            const explicitGender = match[2];
+                            content = match[3].trim();
+                            if (explicitGender) gender = explicitGender.toLowerCase();
+                            else {
+                                const lowName = speakerName.toLowerCase();
+                                if (maleNames.has(lowName)) gender = 'male';
+                                else if (femaleNames.has(lowName)) gender = 'female';
+                            }
+                        }
+
+                        const utt = new SpeechSynthesisUtterance(content);
+                        utt.lang = 'en-US';
+                        utt.rate = 0.9;
+
+                        if (!speakerVoiceMap[speakerName]) {
+                            const pool = (gender === 'male') ? (maleVoices.length ? maleVoices : enVoices) : (femaleVoices.length ? femaleVoices : enVoices);
+                            let hash = 0;
+                            for (let i = 0; i < speakerName.length; i++) hash += speakerName.charCodeAt(i);
+                            speakerVoiceMap[speakerName] = pool[hash % (pool.length || 1)];
+                        }
+                        if (speakerVoiceMap[speakerName]) utt.voice = speakerVoiceMap[speakerName];
+
+                        if (progressBar) {
+                            let pct = ((idx_line + 1) / lines.length) * 100;
+                            progressBar.style.width = pct + '%';
+                        }
+
+                        utt.onend = () => setTimeout(() => speakLine(idx_line + 1), 400);
+                        utt.onerror = () => wsStop(idx);
+                        window.speechSynthesis.speak(utt);
+                    };
+
+                    if (allVoices.length === 0) {
+                        window.speechSynthesis.onvoiceschanged = () => speakLine(0);
+                    } else {
+                        speakLine(0);
+                    }
+                } catch (e) {
+                    console.error("Browser TTS Error:", e);
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Lỗi đọc văn bản: ' + e.message, showConfirmButton: false, timer: 3000 });
+                    wsStop(idx);
                 }
             }
         }
 
         function wsFormatTranscript(text) {
             if (!text) return '—';
+
+            // [CRITICAL FIX]: Chống sập nếu text là Object từ AI
+            if (typeof text === 'object') {
+                if (text.dialogue && Array.isArray(text.dialogue)) {
+                    text = text.dialogue.map(d => `${d.speaker}: ${d.line}`).join('\n');
+                } else if (text.question) {
+                    text = text.question;
+                } else {
+                    text = JSON.stringify(text);
+                }
+            }
+
             let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-primary">$1</strong>');
         }
@@ -1761,7 +1799,11 @@
                 currentAudio.pause();
                 currentAudio = null;
             }
-            if (ttsInterval) clearInterval(ttsInterval);
+
+            // [CRITICAL FIX]: Bắt lỗi undefiend biến ttsInterval gây Crash
+            if (typeof ttsInterval !== 'undefined' && ttsInterval) {
+                clearInterval(ttsInterval);
+            }
             
             const btnPlay = document.getElementById('btn-play-' + idx);
             const btnStop = document.getElementById('btn-stop-' + idx);

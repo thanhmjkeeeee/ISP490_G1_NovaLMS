@@ -396,7 +396,12 @@
                   btnHtml = `<button class="btn btn-light text-muted rounded-pill fw-bold px-4 border" disabled><i class="bi bi-lock-fill me-2"></i>Chưa mở</button>`;
               } else {
                   const btnLabel = attemptCount > 0 ? 'Làm lại bài' : 'Bắt đầu làm bài';
-                  const url = q.isAssignment ? `/student/assignment/${q.quizId}` : `/student/quiz/take/${q.quizId}`;
+                  let url = '/student/quiz/take/' + q.quizId;
+                  const params = [];
+                  if (course.classId) params.push('classId=' + course.classId);
+                  if (course.sessionId) params.push('sessionId=' + course.sessionId);
+                  if (params.length > 0) url += '?' + params.join('&');
+
                   btnHtml = `<a href="${url}" class="btn btn-warning rounded-pill fw-bold px-4 shadow-sm text-dark"><i class="bi bi-play-circle-fill me-2"></i>${btnLabel}</a>`;
               }
 
