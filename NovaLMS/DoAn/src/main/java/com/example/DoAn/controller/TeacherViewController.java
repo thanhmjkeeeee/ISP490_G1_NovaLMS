@@ -85,7 +85,7 @@ public class TeacherViewController {
 
     @GetMapping("/quiz-bank")
     public String quizBankPage() {
-        return "redirect:/teacher/workspace";
+        return "teacher/quiz-bank";
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ public class TeacherViewController {
 
     @GetMapping("/sessions")
     public String classSessionsPage(@RequestParam Integer classId) {
-        return "redirect:/teacher/workspace";
+        return "teacher/class-sessions";
     }
 
     @GetMapping("/api/my-classes")

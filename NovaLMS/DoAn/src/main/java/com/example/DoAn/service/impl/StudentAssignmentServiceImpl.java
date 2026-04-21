@@ -497,6 +497,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     // ─── autoSubmit ─────────────────────────────────────────────────────
 
     @Override
+    @Transactional
     public void autoSubmit(Long sessionId, String userEmail) {
         AssignmentSession session = getSessionForUser(sessionId, userEmail);
         if (!"IN_PROGRESS".equals(session.getStatus())) return;
@@ -527,6 +528,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     }
 
     @Override
+    @Transactional
     public void autoSubmitAllExpired() {
         log.info("[AutoSubmit] Checking for expired assignment sessions...");
         List<AssignmentSession> expired = sessionRepository.findExpiredSessions(LocalDateTime.now());
@@ -562,7 +564,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         if (quiz == null) throw new ResourceNotFoundException("Quiz không tìm thấy");
 
         // Fetch all answers eagerly
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(resultId);
 
         // Group answers by skill
         Map<String, List<QuizAnswer>> bySkill = new LinkedHashMap<>();
@@ -905,8 +907,8 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
     private BigDecimal getQuestionMaxPoints(Question q) {
         // Try QuizQuestion for explicit points, else default to 1
-        return quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
-                        q.getQuestionId(), q.getQuestionId())
+        return quizQuestionRepository.findByQuestion_QuestionId(
+                        q.getQuestionId())
                 .filter(qq -> qq.getPoints() != null)
                 .map(QuizQuestion::getPoints)
                 .orElse(BigDecimal.ONE);

@@ -16,6 +16,7 @@
                     <tbody id="studentsBody"><tr><td colspan="6" class="text-center py-4">Đang tải...</td></tr></tbody>
                 </table>
             </div>
+            <div id="studentsPagination"></div>
         </div>
     </div>
 </main>
@@ -23,15 +24,23 @@
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 <script>
-async function loadStudents() {
+async function loadStudents(page = 0) {
     const res = await fetch('/teacher/api/students');
     const json = await res.json();
     const tbody = document.getElementById('studentsBody');
+    const pag = document.getElementById('studentsPagination');
+    
     if (json.status !== 200 || !json.data || json.data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Chưa có học viên.</td></tr>';
+        pag.innerHTML = '';
         return;
     }
-    tbody.innerHTML = json.data.map(i => `
+    
+    const pageSize = 20;
+    const totalPages = Math.ceil(json.data.length / pageSize);
+    const pagedItems = json.data.slice(page * pageSize, (page + 1) * pageSize);
+    
+    tbody.innerHTML = pagedItems.map((i, idx) => `
       <tr>
         <td>${i.studentName || ''}</td>
         <td>${i.email || ''}</td>
@@ -41,8 +50,21 @@ async function loadStudents() {
         <td>${i.registrationStatus || ''}</td>
       </tr>
     `).join('');
+    
+    if (totalPages > 1) {
+        let html = `<nav class="mt-4"><ul class="pagination pagination-sm justify-content-center">`;
+        html += `<li class="page-item ${page === 0 ? 'disabled' : ''}"><button class="page-link" onclick="loadStudents(${page - 1})">Trước</button></li>`;
+        for (let i = 0; i < totalPages; i++) {
+            html += `<li class="page-item ${i === page ? 'active' : ''}"><button class="page-link" onclick="loadStudents(${i})">${i + 1}</button></li>`;
+        }
+        html += `<li class="page-item ${page === totalPages - 1 ? 'disabled' : ''}"><button class="page-link" onclick="loadStudents(${page + 1})">Sau</button></li>`;
+        html += `</ul></nav>`;
+        pag.innerHTML = html;
+    } else {
+        pag.innerHTML = '';
+    }
 }
-document.addEventListener('DOMContentLoaded', loadStudents);
+document.addEventListener('DOMContentLoaded', () => loadStudents(0));
 </script>
 </body>
 </html>

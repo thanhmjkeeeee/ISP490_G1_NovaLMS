@@ -1443,8 +1443,27 @@
             initTimeSelectors();
             await fetchAllClasses();
 
-            // Initial load default
-            refreshActiveTab();
+            // Initial load default: check URL param 'tab' to auto-switch
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            const classIdParam = urlParams.get('classId');
+
+            if (classIdParam) {
+                state.selectedClassId = classIdParam;
+                const globalFilter = document.getElementById('globalClassFilter');
+                if (globalFilter) globalFilter.value = classIdParam;
+            }
+            if (tabParam) {
+                const tabBtn = document.getElementById(`tab-${tabParam}-btn`);
+                if (tabBtn) {
+                    const bsTab = new bootstrap.Tab(tabBtn);
+                    bsTab.show();
+                } else {
+                    refreshActiveTab();
+                }
+            } else {
+                refreshActiveTab();
+            }
 
             document.getElementById('res-newDate').addEventListener('change', refreshRescheduleBusySlots);
         });
@@ -4605,7 +4624,7 @@
         };
 
         // --- TAB 4: ASSIGNMENT MANAGEMENT (NEW) ---
-        async function loadAssignments() {
+        async function loadAssignments(page = 0) {
             const classId = state.selectedClassId;
             const container = document.getElementById('assignment-content-area');
             const backBtn = document.getElementById('btn-back-to-classes');
@@ -4657,9 +4676,13 @@
                     return;
                 }
 
-                tbody.innerHTML = filteredData.map((a, i) => `
+                const pageSize = 10;
+                const totalPages = Math.ceil(filteredData.length / pageSize);
+                const pagedItems = filteredData.slice(page * pageSize, (page + 1) * pageSize);
+
+                tbody.innerHTML = pagedItems.map((a, i) => `
             <tr>
-                <td>${i + 1}</td>
+                <td>${(page * pageSize) + i + 1}</td>
                 <td>
                     <div class="fw-bold text-dark">
                         ${wsEscape(a.title)}
@@ -4703,6 +4726,15 @@
                     </button>
                 </td>
             </tr>`).join('');
+
+                const pagHtml = renderWsPagination({
+                    number: page,
+                    totalPages: totalPages,
+                    first: page === 0,
+                    last: page === totalPages - 1
+                }, 'loadAssignments');
+                if (pagHtml) container.innerHTML += pagHtml;
+
             } catch (err) {
                 console.error("loadAssignments error:", err);
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-danger">Lỗi tải danh sách Assignment</td></tr>';
@@ -4840,24 +4872,20 @@
             const container = document.getElementById('gradingQueueArea');
             if (!container) return;
 
-            if (classId === 'ALL') {
-                renderClassSelectionTable(container, 'Chấm bài lớp này <i class="bi bi-chevron-right ms-1"></i>');
-                return;
-            }
+            // Đảm bảo ẩn màn hình chi tiết và hiện màn hình danh sách
+            container.style.display = 'block';
+            const detailArea = document.getElementById('gradingDetailArea');
+            if (detailArea) detailArea.style.display = 'none';
+
+            // Allow loading for ALL classes if needed, or if allClasses is empty
+            const classFilterStr = (classId === 'ALL' || !classId) ? '' : `&classId=${classId}`;
 
             // Fetch Assignments
-            let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=${page}&size=50`;
-
+            let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=0&size=500${classFilterStr}`;
             // Fetch Quizzes
-            let quizUrl = `/api/v1/teacher/quiz-results/pending?page=0&size=100`;
+            let quizUrl = `/api/v1/teacher/quiz-results/grading?page=0&size=500${classFilterStr}`;
 
             const query = (document.getElementById('gradingSearch')?.value || '').toLowerCase();
-
-            // ĐÃ FIX: Bắt buộc truyền classId cho CẢ 2 API để không bị lọt bài của lớp khác
-            if (classId !== 'ALL') {
-                assUrl += `&classId=${classId}`;
-                quizUrl += `&classId=${classId}`;
-            }
 
             try {
                 const [assRes, quizRes] = await Promise.all([
@@ -4865,25 +4893,16 @@
                     fetch(quizUrl).then(r => r.json())
                 ]);
 
-                // ĐÃ FIX: Dùng Map để khử trùng lặp (Deduplicate). Mỗi resultId chỉ được tồn tại 1 lần!
                 const uniqueMap = new Map();
 
-                // Ưu tiên 1: Đưa Assignment vào Map trước (Để giữ lại loại ASSIGNMENT và nút popup AI)
                 if (assRes.status === 200 && assRes.data && assRes.data.content) {
                     assRes.data.content.forEach(i => {
-                        uniqueMap.set(i.resultId, {
-                            ...i,
-                            type: 'ASSIGNMENT',
-                            badgeClass: 'bg-info'
-                        });
+                        uniqueMap.set(i.resultId, { ...i, type: 'ASSIGNMENT', badgeClass: 'bg-info' });
                     });
                 }
 
-                // Ưu tiên 2: Đưa Quiz vào (Chỉ lấy những bài chưa có trong Map để tránh bị lặp)
                 if (quizRes.status === 200 && quizRes.data && quizRes.data.items) {
-                    let pQuizzes = quizRes.data.items.filter(i => i.status !== 'LOCKED');
-
-                    pQuizzes.forEach(i => {
+                    quizRes.data.items.filter(i => i.status !== 'LOCKED').forEach(i => {
                         if (!uniqueMap.has(i.resultId)) {
                             uniqueMap.set(i.resultId, {
                                 resultId: i.resultId,
@@ -4900,16 +4919,12 @@
                 }
 
                 let mergedItems = Array.from(uniqueMap.values());
-
-                // Filter locally by query
                 if (query) {
                     mergedItems = mergedItems.filter(i => 
                         (i.studentName || '').toLowerCase().includes(query) || 
                         (i.quizTitle || '').toLowerCase().includes(query)
                     );
                 }
-
-                // Sort theo ngày mới nhất
                 mergedItems.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
                 const pageSize = 20;
@@ -4941,29 +4956,22 @@
                                     <td><span class="fw-bold text-dark">${item.quizTitle}</span>
                                         ${item.overallStatus === 'AI_FAILED' ? `
                                             <div class="mt-1">
-                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger" style="font-size: 0.65rem;">
-                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>AI Lỗi - Cần chấm tay
-                                                </span>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger" style="font-size: 0.65rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i>AI Lỗi - Cần chấm tay</span>
                                             </div>
                                         ` : ''}
                                     </td>
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
                                     <td class="text-end">
-                                        <a href="${item.type === 'ASSIGNMENT' ? '/teacher/assignment/grading/' : '/teacher/quiz/grading/'}${item.resultId}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                                        <button onclick="wsOpenGradingDetail(${item.resultId}, '${item.type}', 'QUEUE')" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
                                             Chấm định tính <i class="bi bi-arrow-right ms-1"></i>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>`;
 
-                const pagHtml = renderWsPagination({
-                    number: page,
-                    totalPages: totalPages,
-                    first: page === 0,
-                    last: page === totalPages - 1
-                }, 'loadGradingQueue');
+                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, 'loadGradingQueue');
                 if (pagHtml) container.innerHTML += pagHtml;
             } catch (err) {
                 console.error(err);
@@ -4975,39 +4983,33 @@
             state.gradedPage = page;
             const classId = state.selectedClassId;
             const container = document.getElementById('gradedContentContainer');
+            if (!container) return;
 
-            if (classId === 'ALL') {
-                renderClassSelectionTable(container, 'Xem kết quả <i class="bi bi-chevron-right ms-1"></i>');
-                return;
-            }
+            // Đảm bảo hiện màn hình danh sách và ẩn chi tiết
+            container.style.display = 'block';
+            const detailArea = document.getElementById('gradingDetailArea');
+            if (detailArea) detailArea.style.display = 'none';
 
-            // Fetch Both Assignments and Quizzes
-            let assUrl = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=${page}&size=50&classId=${classId}`;
-            let quizUrl = `/api/v1/teacher/quiz-results/graded?page=${page}&size=50&classId=${classId}`;
+            const classFilterStr = (classId === 'ALL' || !classId) ? '' : `&classId=${classId}`;
+
+            let assUrl = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=0&size=500${classFilterStr}`;
+            let quizUrl = `/api/v1/teacher/quiz-results/graded?page=0&size=500${classFilterStr}`;
 
             try {
-                console.log("Loading graded results for class:", classId);
                 const [assRes, quizRes] = await Promise.all([
                     fetch(assUrl).then(r => r.json()),
                     fetch(quizUrl).then(r => r.json())
                 ]);
-                console.log("Graded API Response:", { assRes, quizRes });
 
                 const uniqueMap = new Map();
 
-                // Assignments
                 if (assRes.status === 200 && assRes.data && (assRes.data.content || assRes.data)) {
                     const list = assRes.data.content || (Array.isArray(assRes.data) ? assRes.data : []);
                     list.forEach(i => {
-                        uniqueMap.set(i.resultId, {
-                            ...i,
-                            type: 'ASSIGNMENT',
-                            badgeClass: 'bg-info'
-                        });
+                        uniqueMap.set(i.resultId, { ...i, type: 'ASSIGNMENT', badgeClass: 'bg-info' });
                     });
                 }
 
-                // Quizzes
                 if (quizRes.status === 200 && quizRes.data && (quizRes.data.items || quizRes.data)) {
                     const list = quizRes.data.items || (Array.isArray(quizRes.data) ? quizRes.data : []);
                     list.forEach(i => {
@@ -5067,21 +5069,16 @@
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
                                     <td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary border px-3">${item.totalScore ?? 0}</span></td>
                                     <td class="text-end">
-                                        <a href="${item.type === 'ASSIGNMENT' ? '/teacher/assignment/grading/' : '/teacher/quiz/grading/'}${item.resultId}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
+                                        <button onclick="wsOpenGradingDetail(${item.resultId}, '${item.type}', 'GRADED')" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
                                             Xem lại <i class="bi bi-chevron-right ms-1"></i>
-                                        </a>
+                                        </button>
                                     </td>
                                 </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>`;
 
-                const pagHtml = renderWsPagination({
-                    number: page,
-                    totalPages: totalPages,
-                    first: page === 0,
-                    last: page === totalPages - 1
-                }, 'loadGradedResults');
+                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, 'loadGradedResults');
                 if (pagHtml) container.innerHTML += pagHtml;
             } catch (err) {
                 console.error(err);
@@ -5292,9 +5289,10 @@
         let wsCurrentResultId = null;
         let currentGradingSource = 'QUEUE';
 
-        window.wsOpenGradingDetail = async function (resultId, source) {
+        window.wsOpenGradingDetail = async function (resultId, type, source) {
             currentGradingSource = source || 'QUEUE';
             wsCurrentResultId = resultId;
+            const itemType = type || 'ASSIGNMENT';
 
             const detailArea = document.getElementById('gradingDetailArea');
 
@@ -5314,11 +5312,13 @@
             document.getElementById('ws-gd-tabContent').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
 
             try {
-                const resp = await fetch(`/api/v1/teacher/assignment-results/${resultId}`);
+                const url = itemType === 'ASSIGNMENT' ? `/api/v1/teacher/assignment-results/${resultId}` : `/api/v1/teacher/quiz-results/${resultId}/detail`;
+                const resp = await fetch(url);
                 const json = await resp.json();
                 if (json.status !== 200) throw new Error(json.message);
 
                 wsGradingData = json.data;
+                wsGradingData.type = itemType; // Inject type for rendering logic
                 renderWsGradingDetail(wsGradingData);
             } catch (e) {
                 Swal.fire('Lỗi', e.message, 'error');
@@ -5343,68 +5343,93 @@
             document.getElementById('ws-gd-quizTitle').textContent = d.quizTitle || 'N/A';
             document.getElementById('ws-gd-className').textContent = d.className || '—';
             document.getElementById('ws-gd-submittedAt').textContent = d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('vi-VN') : '—';
-            document.getElementById('ws-gd-autoScore').textContent = d.autoScore ?? 0;
-            document.getElementById('ws-gd-totalScore').textContent = d.totalScore || '—';
+            document.getElementById('ws-gd-autoScore').textContent = d.autoScore ?? d.score ?? 0;
+            document.getElementById('ws-gd-totalScore').textContent = d.totalScore || d.totalPoints || '—';
 
             const SKILL_ICONS = { LISTENING: '🎧', READING: '📖', SPEAKING: '🎤', WRITING: '✍️' };
+            const skills = d.sections ? d.sections.map(s => s.skill) : (d.skillsPresent || []);
 
             // Tabs
-            document.getElementById('ws-gd-skillTabs').innerHTML = d.sections.map((s, i) => `
+            document.getElementById('ws-gd-skillTabs').innerHTML = skills.map((skill, i) => `
             <li class="nav-item">
-                <button class="nav-link ${i === 0 ? 'active' : ''} small py-2" data-bs-toggle="tab" data-bs-target="#ws-gd-skill-${s.skill}">
-                    ${SKILL_ICONS[s.skill] || '📝'} ${s.skill}
+                <button class="nav-link ${i === 0 ? 'active' : ''} small py-2" data-bs-toggle="tab" data-bs-target="#ws-gd-skill-${skill}">
+                    ${SKILL_ICONS[skill] || '📝'} ${skill}
                 </button>
             </li>`).join('');
 
-            const isReadonly = d.isGraded || currentGradingSource === 'GRADED';
+            const isReadonly = d.status === 'GRADED' || currentGradingSource === 'GRADED';
 
             // Tab Content
-            document.getElementById('ws-gd-tabContent').innerHTML = d.sections.map((s, i) => `
-            <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" id="ws-gd-skill-${s.skill}">
-                <div class="card border-0 shadow-sm rounded-4 mt-3">
-                    <div class="card-body p-4">
-                        <div class="d-flex flex-column gap-3">
-                            ${s.questions.map((q, qi) => `
-                                <div class="border rounded-3 p-3 bg-white">
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <h6 class="mb-0 small fw-bold">Câu ${qi + 1} <span class="badge bg-light text-dark border ms-1">${q.maxPoints}đ</span></h6>
-                                        ${q.isCorrect ? '<span class="badge bg-success bg-opacity-10 text-success">Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger bg-opacity-10 text-danger">Sai</span>' : '')}
-                                    </div>
-                                    <p class="mb-2 small border-bottom pb-2">${q.content || '—'}</p>
-                                    ${q.audioUrl ? `<div class="mb-2"><audio controls src="${q.audioUrl}" class="w-100" style="height:35px;"></audio></div>` : ''}
-                                    ${q.studentAnswer ? `<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ${wsEscape(q.studentAnswer)}</div>` : ''}
+            document.getElementById('ws-gd-tabContent').innerHTML = skills.map((skill, i) => {
+                const skillQs = d.sections ? d.sections.find(s => s.skill === skill)?.questions : d.questions?.filter(q => q.skill === skill);
+                if (!skillQs) return '';
+                
+                return `
+                <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" id="ws-gd-skill-${skill}">
+                    <div class="card border-0 shadow-sm rounded-4 mt-3">
+                        <div class="card-body p-4">
+                            <div class="d-flex flex-column gap-3">
+                                ${skillQs.map((q, qi) => {
+                                    const scoreVal = (q.teacherScore !== undefined) ? q.teacherScore : (q.pointsAwarded ?? 0);
+                                    const maxVal = q.maxPoints || q.points || 0;
+                                    const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
                                     
-                                    ${(s.gradingStatus === 'AUTO' || isReadonly) ? `
-                                        <div class="row g-2">
-                                            <div class="col-12 text-end">
-                                                <div class="fw-bold text-primary small">Điểm: ${q.teacherScore ?? 0} / ${q.maxPoints}</div>
-                                                ${q.teacherNote ? `<div class="small text-muted mt-1 fst-italic">"${q.teacherNote}"</div>` : ''}
-                                            </div>
+                                    return `
+                                    <div class="border rounded-3 p-3 bg-white">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <h6 class="mb-0 small fw-bold">Câu ${qi + 1} <span class="badge bg-light text-dark border ms-1">${maxVal}đ</span></h6>
+                                            ${q.isCorrect ? '<span class="badge bg-success bg-opacity-10 text-success">Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger bg-opacity-10 text-danger">Sai</span>' : '')}
                                         </div>
-                                    ` : `
-                                        <div class="row g-2 align-items-end">
-                                            <div class="col-md-3">
-                                                <label class="form-label extra-small fw-bold">Điểm</label>
-                                                <input type="number" step="0.5" min="0" max="${q.maxPoints}" class="form-control form-control-sm ws-gd-score-input" data-qid="${q.questionId}" value="${q.teacherScore ?? 0}">
+                                        <p class="mb-2 small border-bottom pb-2">${q.content || '—'}</p>
+                                        ${(q.audioUrl || q.studentAudioUrl) ? `<div class="mb-2"><audio controls src="${q.audioUrl || q.studentAudioUrl}" class="w-100" style="height:35px;"></audio></div>` : ''}
+                                        ${(q.studentAnswer || q.userAnswerDisplay) ? (() => {
+                                            const ans = q.studentAnswer || q.userAnswerDisplay;
+                                            const isAudioUrl = q.questionType === 'SPEAKING' && (ans.includes('http') || ans.includes('cloudinary'));
+                                            if (isAudioUrl && !(q.audioUrl || q.studentAudioUrl)) {
+                                                return `<div class="mb-2"><audio controls src="${ans.trim()}" class="w-100" style="height:35px;"></audio></div>`;
+                                            }
+                                            return `<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ${wsEscape(ans)}</div>`;
+                                        })() : ''}
+                                        
+                                        ${q.aiScore ? `
+                                            <div class="bg-primary bg-opacity-10 p-2 rounded-3 mb-2">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="small fw-bold text-primary">🤖 AI Score: ${q.aiScore}</span>
+                                                    <span class="badge bg-primary" style="font-size:0.6rem;">IELTS</span>
+                                                </div>
+                                                ${q.aiFeedback ? `<div class="extra-small text-muted fst-italic">"${q.aiFeedback}"</div>` : ''}
                                             </div>
-                                            <div class="col-md-9">
-                                                <label class="form-label extra-small fw-bold">Nhận xét</label>
-                                                <input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="${q.questionId}" value="${q.teacherNote || ''}" placeholder="Ghi chú...">
+                                        ` : ''}
+
+                                        ${(!isManual || isReadonly) ? `
+                                            <div class="row g-2">
+                                                <div class="col-12 text-end">
+                                                    <div class="fw-bold text-primary small">Điểm: ${scoreVal} / ${maxVal}</div>
+                                                    ${q.teacherNote ? `<div class="small text-muted mt-1 fst-italic">"${q.teacherNote}"</div>` : ''}
+                                                </div>
                                             </div>
-                                        </div>
-                                    `}
-                                </div>
-                            `).join('')}
+                                        ` : `
+                                            <div class="row g-2 align-items-end">
+                                                <div class="col-md-3">
+                                                    <label class="form-label extra-small fw-bold">Điểm</label>
+                                                    <input type="number" step="0.5" min="0" max="${maxVal}" class="form-control form-control-sm ws-gd-score-input" data-qid="${q.questionId}" value="${scoreVal}">
+                                                </div>
+                                                <div class="col-md-9">
+                                                    <label class="form-label extra-small fw-bold">Nhận xét</label>
+                                                    <input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="${q.questionId}" value="${q.teacherNote || ''}" placeholder="Ghi chú...">
+                                                </div>
+                                            </div>
+                                        `}
+                                    </div>`;
+                                }).join('')}
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>`).join('');
+                </div>`;
+            }).join('');
 
-            // Hide/Show action buttons based on status
             const actionArea = document.querySelector('#gradingDetailArea .card-body.p-4 .d-flex.justify-content-between.align-items-center')?.parentElement?.parentElement;
-            if (actionArea) {
-                actionArea.style.display = isReadonly ? 'none' : 'block';
-            }
+            if (actionArea) actionArea.style.display = isReadonly ? 'none' : 'block';
         }
 
         window.wsSubmitGrade = async function (isFinal) {
@@ -5421,35 +5446,45 @@
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
+            const isQuiz = wsGradingData && wsGradingData.type === 'QUIZ';
+            const url = isQuiz 
+                ? `/api/v1/teacher/quiz-results/${wsCurrentResultId}/grade-extended`
+                : `/api/v1/teacher/assignment-results/${wsCurrentResultId}/grade`;
+            
+            const payload = isQuiz 
+                ? { gradingItems: items, skillScores: null, overallNote: '' }
+                : { gradingItems: items, isFinal: isFinal };
+
             try {
-                const res = await fetch(`/api/v1/teacher/assignment-results/${wsCurrentResultId}/grade`, {
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gradingItems: items, isFinal: isFinal })
+                    body: JSON.stringify(payload)
                 });
                 const json = await res.json();
                 if (json.status === 200) {
-
-                    if (isFinal) {
+                    if (isFinal || isQuiz) { // Quizzes don't have draft state currently
                         alert('Đã hoàn tất chấm điểm!');
-
-                        // 1. Ẩn màn hình chi tiết chấm bài đi
                         document.getElementById('gradingDetailArea').style.display = 'none';
-
-                        // 2. Khôi phục lại UI danh sách cho Tab Chấm bài (Phòng hờ lần sau quay lại bị kẹt)
-                        document.getElementById('gradingQueueArea').style.display = 'block';
-
-                        // 3. Tự động kích hoạt chuyển sang Tab "Kết quả đã chấm"
-                        const gradedTabBtn = document.getElementById('tab-graded-btn');
-                        const tab = new bootstrap.Tab(gradedTabBtn);
-                        tab.show();
-                        // (Lưu ý: lệnh tab.show() của Bootstrap sẽ tự động gọi hàm loadGradedResults() luôn)
-
+                        
+                        if (currentGradingSource === 'QUEUE') {
+                            document.getElementById('gradingQueueArea').style.display = 'block';
+                            const gradedTabBtn = document.getElementById('tab-graded-btn');
+                            if (gradedTabBtn) {
+                                const tab = new bootstrap.Tab(gradedTabBtn);
+                                tab.show();
+                                loadGradedResults(); // Force immediate refresh
+                            } else {
+                                loadGradingQueue();
+                            }
+                        } else {
+                            document.getElementById('gradedContentContainer').style.display = 'block';
+                            loadGradedResults();
+                        }
                     } else {
                         alert('Đã lưu bản nháp thành công.');
-                        wsOpenGradingDetail(wsCurrentResultId, currentGradingSource); // Refresh lại điểm nháp
+                        wsOpenGradingDetail(wsCurrentResultId, 'ASSIGNMENT', currentGradingSource);
                     }
-
                 } else {
                     alert('Lỗi: ' + json.message);
                 }
@@ -5519,6 +5554,17 @@
                     resForm.dataset.submitting = '0';
                 }
             });
+        }
+
+        // Handle tab activation from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        if (activeTab) {
+            const tabBtn = document.getElementById(`tab-${activeTab}-btn`);
+            if (tabBtn) {
+                const tab = new bootstrap.Tab(tabBtn);
+                tab.show();
+            }
         }
 
         fetchAllClasses();

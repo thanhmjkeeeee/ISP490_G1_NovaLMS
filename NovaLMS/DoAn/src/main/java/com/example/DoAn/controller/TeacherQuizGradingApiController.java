@@ -100,8 +100,8 @@ public class TeacherQuizGradingApiController {
             return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
-            quizResultService.gradeQuizResult(resultId, gradingItems, email);
-            return ResponseData.success("Đã lưu điểm thành công!");
+            Double score = quizResultService.gradeQuizResult(resultId, gradingItems, email);
+            return ResponseData.success("Đã lưu điểm thành công! Tổng điểm: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -121,8 +121,8 @@ public class TeacherQuizGradingApiController {
             return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
-            quizResultService.gradeQuizResult(resultId, request, email);
-            return ResponseData.success("Đã lưu điểm chấm thành công!");
+            Double score = quizResultService.gradeQuizResult(resultId, request, email);
+            return ResponseData.success("Đã lưu điểm chấm thành công! Tổng điểm: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -162,16 +162,8 @@ public class TeacherQuizGradingApiController {
             return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
-            QuizAnswer answer = quizAnswerRepository.findById(answerId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy câu trả lời."));
-            answer.setTeacherOverrideScore(score);
-            answer.setAiGradingStatus("REVIEWED");
-            quizAnswerRepository.save(answer);
-
-            // Tự động tính lại điểm IELTS cho cả bài
-            quizResultService.recalculateQuizResult(answer.getQuizResult().getResultId());
-
-            return ResponseData.success("Đã cập nhật điểm override!");
+            Double totalScore = quizResultService.overrideScore(answerId, score, email);
+            return ResponseData.success("Đã cập nhật điểm override! Tổng điểm mới: " + totalScore);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

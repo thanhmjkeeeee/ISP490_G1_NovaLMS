@@ -61,7 +61,7 @@ public class DatabaseSeederService {
     @Transactional
     public Map<String, Long> seed() {
         log.info("Starting database wipe and seeding...");
-        
+
         // 1. WIPE EVERYTHING
         wipeDatabase();
 
@@ -82,7 +82,7 @@ public class DatabaseSeederService {
         // 5. SEED MODULES & LESSONS
         List<Module> modules = seedModules(courses);
         summary.put("Modules", (long) modules.size());
-        
+
         List<Lesson> lessons = seedLessons(modules);
         summary.put("Lessons", (long) lessons.size());
 
@@ -113,7 +113,7 @@ public class DatabaseSeederService {
         log.info("Starting SQL file seeding: {}", fileName);
         try {
             ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
-            
+
             // Try both local filesystem and classpath
             File file = new File(fileName);
             if (file.exists()) {
@@ -121,7 +121,7 @@ public class DatabaseSeederService {
             } else {
                 populator.addScript(new ClassPathResource(fileName));
             }
-            
+
             populator.setContinueOnError(true); // Skip errors if any table already truncated/dropped
             populator.setSqlScriptEncoding("UTF-8");
             populator.execute(dataSource);
@@ -137,12 +137,12 @@ public class DatabaseSeederService {
         entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
 
         String[] tables = {
-            "quiz_answer", "quiz_result", "quiz_question", "answer_option", 
-            "question", "question_group", "quiz_assignment", "assignment_session", 
-            "notification", "session_lesson", "session_quiz", "class_session", 
-            "payment", "registration", "user_lesson", "user_learning_log", 
-            "lesson_quiz_progress", "password_reset_token", "email_verification",
-            "class", "lesson", "module", "quiz", "course", "user", "setting"
+                "quiz_answer", "quiz_result", "quiz_question", "answer_option",
+                "question", "question_group", "quiz_assignment", "assignment_session",
+                "notification", "session_lesson", "session_quiz", "class_session",
+                "payment", "registration", "user_lesson", "user_learning_log",
+                "lesson_quiz_progress", "password_reset_token", "email_verification",
+                "class", "lesson", "module", "quiz", "course", "user", "setting"
         };
 
         for (String table : tables) {
@@ -155,29 +155,29 @@ public class DatabaseSeederService {
 
     private List<Setting> seedSettings() {
         List<Setting> settings = new ArrayList<>();
-        
+
         // Roles
-        String[] roles = {"ROLE_ADMIN", "ROLE_TEACHER", "ROLE_EXPERT", "ROLE_STUDENT"};
+        String[] roles = { "ROLE_ADMIN", "ROLE_TEACHER", "ROLE_EXPERT", "ROLE_STUDENT" };
         for (int i = 0; i < roles.length; i++) {
-               settings.add(settingRepository.save(Setting.builder()
-                .name(roles[i].replace("ROLE_", ""))
-                .value(roles[i])
-                .settingType("USER_ROLE")
-                .status("Active")
-                .orderIndex(i + 1)
-                .build()));
+            settings.add(settingRepository.save(Setting.builder()
+                    .name(roles[i].replace("ROLE_", ""))
+                    .value(roles[i])
+                    .settingType("USER_ROLE")
+                    .status("Active")
+                    .orderIndex(i + 1)
+                    .build()));
         }
 
         // Categories
-        String[] cats = {"IELTS Academic", "IELTS General", "TOEIC", "SAT Prep", "Grammar Master"};
+        String[] cats = { "IELTS Academic", "IELTS General", "TOEIC", "SAT Prep", "Grammar Master" };
         for (int i = 0; i < cats.length; i++) {
             settings.add(settingRepository.save(Setting.builder()
-                .name(cats[i])
-                .value("CAT_" + cats[i].toUpperCase().replace(" ", "_"))
-                .settingType("COURSE_CATEGORY")
-                .status("Active")
-                .orderIndex(i + 1)
-                .build()));
+                    .name(cats[i])
+                    .value("CAT_" + cats[i].toUpperCase().replace(" ", "_"))
+                    .settingType("COURSE_CATEGORY")
+                    .status("Active")
+                    .orderIndex(i + 1)
+                    .build()));
         }
 
         return settings;
@@ -193,22 +193,29 @@ public class DatabaseSeederService {
         Setting studentRole = settings.stream().filter(s -> s.getValue().equals("ROLE_STUDENT")).findFirst().get();
 
         // 2 Admins
-        users.add(userRepository.save(User.builder().fullName("Admin Boss").email("admin@novalms.com").password(encodedPassword).role(adminRole).status("Active").build()));
-        users.add(userRepository.save(User.builder().fullName("System Admin").email("sysadmin@novalms.com").password(encodedPassword).role(adminRole).status("Active").build()));
+        users.add(userRepository.save(User.builder().fullName("Admin Boss").email("admin@novalms.com")
+                .password(encodedPassword).role(adminRole).status("Active").build()));
+        users.add(userRepository.save(User.builder().fullName("System Admin").email("sysadmin@novalms.com")
+                .password(encodedPassword).role(adminRole).status("Active").build()));
 
         // 5 Experts
         for (int i = 1; i <= 5; i++) {
-            users.add(userRepository.save(User.builder().fullName("Expert " + i).email("expert" + i + "@novalms.com").password(encodedPassword).role(expertRole).status("Active").build()));
+            users.add(userRepository.save(User.builder().fullName("Expert " + i).email("expert" + i + "@novalms.com")
+                    .password(encodedPassword).role(expertRole).status("Active").build()));
         }
 
         // 5 Teachers
         for (int i = 1; i <= 5; i++) {
-            users.add(userRepository.save(User.builder().fullName("Teacher Hero " + i).email("teacher" + i + "@novalms.com").password(encodedPassword).role(teacherRole).status("Active").build()));
+            users.add(userRepository
+                    .save(User.builder().fullName("Teacher Hero " + i).email("teacher" + i + "@novalms.com")
+                            .password(encodedPassword).role(teacherRole).status("Active").build()));
         }
 
         // 20 Students
         for (int i = 1; i <= 20; i++) {
-            users.add(userRepository.save(User.builder().fullName("IELTS Learner " + i).email("student" + i + "@novalms.com").password(encodedPassword).role(studentRole).status("Active").city("Hanoi").gender(i % 2 == 0 ? "Male" : "Female").build()));
+            users.add(userRepository.save(User.builder().fullName("IELTS Learner " + i)
+                    .email("student" + i + "@novalms.com").password(encodedPassword).role(studentRole).status("Active")
+                    .city("Hanoi").gender(i % 2 == 0 ? "Male" : "Female").build()));
         }
 
         return users;
@@ -217,34 +224,35 @@ public class DatabaseSeederService {
     private List<Course> seedCourses(List<User> users, List<Setting> settings) {
         List<Course> courses = new ArrayList<>();
         User expert = users.stream().filter(u -> u.getRole().getValue().equals("ROLE_EXPERT")).findFirst().get();
-        Setting category = settings.stream().filter(s -> s.getSettingType().equals("COURSE_CATEGORY")).findFirst().get();
+        Setting category = settings.stream().filter(s -> s.getSettingType().equals("COURSE_CATEGORY")).findFirst()
+                .get();
 
-        String[] levels = {"A1", "A2", "B1", "B2", "C1", "C2"};
+        String[] levels = { "A1", "A2", "B1", "B2", "C1", "C2" };
         String[] titles = {
-            "Complete IELTS Academic 6.5+", 
-            "TOEIC Bridge for Beginners", 
-            "SAT Digital Foundations", 
-            "Business English for Professional",
-            "Advanced Grammar and Writing",
-            "IELTS Speaking Simulation Pack",
-            "Vocabulary for Academic Purposes",
-            "Listening Strategy: From Zero to Hero",
-            "Critical Thinking in Reading",
-            "The Art of English Communication"
+                "Complete IELTS Academic 6.5+",
+                "TOEIC Bridge for Beginners",
+                "SAT Digital Foundations",
+                "Business English for Professional",
+                "Advanced Grammar and Writing",
+                "IELTS Speaking Simulation Pack",
+                "Vocabulary for Academic Purposes",
+                "Listening Strategy: From Zero to Hero",
+                "Critical Thinking in Reading",
+                "The Art of English Communication"
         };
 
         for (int i = 0; i < titles.length; i++) {
             courses.add(courseRepository.save(Course.builder()
-                .title(titles[i])
-                .courseName(titles[i])
-                .expert(expert)
-                .category(category)
-                .levelTag(levels[i % levels.length])
-                .price(1000000.0 + (i * 200000))
-                .status("Active")
-                .description("Comprehensive course for mastering " + titles[i])
-                .numberOfSessions(20)
-                .build()));
+                    .title(titles[i])
+                    .courseName(titles[i])
+                    .expert(expert)
+                    .category(category)
+                    .levelTag(levels[i % levels.length])
+                    .price(1000000.0 + (i * 200000))
+                    .status("Active")
+                    .description("Comprehensive course for mastering " + titles[i])
+                    .numberOfSessions(20)
+                    .build()));
         }
         return courses;
     }
@@ -254,11 +262,11 @@ public class DatabaseSeederService {
         for (Course c : courses) {
             for (int i = 1; i <= 3; i++) {
                 modules.add(moduleRepository.save(Module.builder()
-                    .moduleName("Chapter " + i + ": Foundations of " + c.getTitle())
-                    .course(c)
-                    .orderIndex(i)
-                    .cefrLevel(c.getLevelTag())
-                    .build()));
+                        .moduleName("Chapter " + i + ": Foundations of " + c.getTitle())
+                        .course(c)
+                        .orderIndex(i)
+                        .cefrLevel(c.getLevelTag())
+                        .build()));
             }
         }
         return modules;
@@ -269,14 +277,14 @@ public class DatabaseSeederService {
         for (Module m : modules) {
             for (int i = 1; i <= 3; i++) {
                 lessons.add(lessonRepository.save(Lesson.builder()
-                    .lessonName("Lesson " + i + ": Deep Dive Level " + i)
-                    .module(m)
-                    .orderIndex(i)
-                    .type("VIDEO")
-                    .videoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-                    .duration("15:00")
-                    .allowDownload(true)
-                    .build()));
+                        .lessonName("Lesson " + i + ": Deep Dive Level " + i)
+                        .module(m)
+                        .orderIndex(i)
+                        .type("VIDEO")
+                        .videoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+                        .duration("15:00")
+                        .allowDownload(true)
+                        .build()));
             }
         }
         return lessons;
@@ -289,16 +297,16 @@ public class DatabaseSeederService {
         for (int i = 0; i < courses.size(); i++) {
             Course c = courses.get(i);
             classes.add(clazzRepository.save(Clazz.builder()
-                .className(c.getTitle().split(" ")[0] + "-Group" + (i+1))
-                .course(c)
-                .teacher(teacher)
-                .status("Open")
-                .startDate(LocalDateTime.now().plusDays(i))
-                .endDate(LocalDateTime.now().plusMonths(3))
-                .schedule("Mon-Wed-Fri")
-                .slotTime("18:00 - 20:00")
-                .numberOfSessions(24)
-                .build()));
+                    .className(c.getTitle().split(" ")[0] + "-Group" + (i + 1))
+                    .course(c)
+                    .teacher(teacher)
+                    .status("Open")
+                    .startDate(LocalDateTime.now().plusDays(i))
+                    .endDate(LocalDateTime.now().plusMonths(3))
+                    .schedule("Mon-Wed-Fri")
+                    .slotTime("18:00 - 20:00")
+                    .numberOfSessions(24)
+                    .build()));
         }
         return classes;
     }
@@ -308,39 +316,40 @@ public class DatabaseSeederService {
         for (int i = 0; i < students.size(); i++) {
             Clazz targetClass = classes.get(i % classes.size());
             Registration reg = registrationRepository.save(Registration.builder()
-                .user(students.get(i))
-                .clazz(targetClass)
-                .course(targetClass.getCourse())
-                .registrationPrice(BigDecimal.valueOf(targetClass.getCourse().getPrice()))
-                .status("Approved")
-                .registrationTime(LocalDateTime.now().minusDays(i))
-                .build());
-            
+                    .user(students.get(i))
+                    .clazz(targetClass)
+                    .course(targetClass.getCourse())
+                    .registrationPrice(BigDecimal.valueOf(targetClass.getCourse().getPrice()))
+                    .status("Approved")
+                    .registrationTime(LocalDateTime.now().minusDays(i))
+                    .build());
+
             paymentRepository.save(Payment.builder()
-                .registrationId(reg.getRegistrationId())
-                .amount(reg.getRegistrationPrice())
-                .payosOrderCode(System.currentTimeMillis() + i)
-                .status("PAID")
-                .description("Seed Payment Student " + i)
-                .paidAt(LocalDateTime.now())
-                .build());
+                    .registrationId(reg.getRegistrationId())
+                    .amount(reg.getRegistrationPrice())
+                    .payosOrderCode(System.currentTimeMillis() + i)
+                    .status("PAID")
+                    .description("Seed Payment Student " + i)
+                    .paidAt(LocalDateTime.now())
+                    .build());
         }
     }
 
     private List<QuestionGroup> seedQuestionGroups(List<User> users) {
         List<QuestionGroup> groups = new ArrayList<>();
         User expert = users.stream().filter(u -> u.getRole().getValue().equals("ROLE_EXPERT")).findFirst().get();
-        
-        String[] topics = {"Global Warming", "Urbanization", "Artificial Intelligence", "Healthy Lifestyle", "Remote Work"};
+
+        String[] topics = { "Global Warming", "Urbanization", "Artificial Intelligence", "Healthy Lifestyle",
+                "Remote Work" };
         for (int i = 0; i < topics.length; i++) {
             groups.add(questionGroupRepository.save(QuestionGroup.builder()
-                .groupContent("Read the paragraph about " + topics[i] + " and answer following questions.")
-                .skill("READING")
-                .cefrLevel("B2")
-                .topic(topics[i])
-                .status("PUBLISHED")
-                .user(expert)
-                .build()));
+                    .groupContent("Read the paragraph about " + topics[i] + " and answer following questions.")
+                    .skill("READING")
+                    .cefrLevel("B2")
+                    .topic(topics[i])
+                    .status("PUBLISHED")
+                    .user(expert)
+                    .build()));
         }
         return groups;
     }
@@ -348,26 +357,26 @@ public class DatabaseSeederService {
     private List<Question> seedQuestions(List<User> users, List<Module> modules, List<QuestionGroup> groups) {
         List<Question> questions = new ArrayList<>();
         User expert = users.stream().filter(u -> u.getRole().getValue().equals("ROLE_EXPERT")).findFirst().get();
-        
-        String[] skills = {"READING", "LISTENING", "SPEAKING", "WRITING"};
-        String[] types = {"MULTIPLE_CHOICE_SINGLE", "FILL_IN_BLANK", "WRITING", "SPEAKING"};
+
+        String[] skills = { "READING", "LISTENING", "SPEAKING", "WRITING" };
+        String[] types = { "MULTIPLE_CHOICE_SINGLE", "FILL_IN_BLANK", "WRITING", "SPEAKING" };
 
         for (int i = 1; i <= 20; i++) {
-            QuestionGroup group = (i <= 5) ? groups.get(i-1) : null;
+            QuestionGroup group = (i <= 5) ? groups.get(i - 1) : null;
             String skill = (group != null) ? group.getSkill() : skills[i % skills.length];
             String type = (skill.equals("WRITING") || skill.equals("SPEAKING")) ? skill : types[i % 2];
 
             questions.add(questionRepository.save(Question.builder()
-                .content("Mock Question " + i + " content relating to " + skill)
-                .questionType(type)
-                .skill(skill)
-                .cefrLevel("B1")
-                .status("PUBLISHED")
-                .source("EXPERT_BANK")
-                .user(expert)
-                .questionGroup(group)
-                .module(modules.get(i % modules.size()))
-                .build()));
+                    .content("Mock Question " + i + " content relating to " + skill)
+                    .questionType(type)
+                    .skill(skill)
+                    .cefrLevel("B1")
+                    .status("PUBLISHED")
+                    .source("EXPERT_BANK")
+                    .user(expert)
+                    .questionGroup(group)
+                    .module(modules.get(i % modules.size()))
+                    .build()));
         }
         return questions;
     }
@@ -377,40 +386,41 @@ public class DatabaseSeederService {
             if (q.getQuestionType().contains("MULTIPLE_CHOICE")) {
                 for (int i = 1; i <= 4; i++) {
                     answerOptionRepository.save(AnswerOption.builder()
-                        .question(q)
-                        .title("Option " + i)
-                        .correctAnswer(i == 1)
-                        .orderIndex(i)
-                        .build());
+                            .question(q)
+                            .title("Option " + i)
+                            .correctAnswer(i == 1)
+                            .orderIndex(i)
+                            .build());
                 }
             }
         }
     }
 
-    private void seedQuizzes(List<Course> courses, List<Module> modules, List<Lesson> lessons, List<User> users, List<Question> questions) {
+    private void seedQuizzes(List<Course> courses, List<Module> modules, List<Lesson> lessons, List<User> users,
+            List<Question> questions) {
         User expert = users.stream().filter(u -> u.getRole().getValue().equals("ROLE_EXPERT")).findFirst().get();
         for (int i = 0; i < 10; i++) {
             Quiz q = quizRepository.save(Quiz.builder()
-                .title("Practice Test " + (i + 1))
-                .quizCategory("COURSE_QUIZ")
-                .status("PUBLISHED")
-                .course(courses.get(i % courses.size()))
-                .module(modules.get(i % modules.size()))
-                .user(expert)
-                .timeLimitMinutes(30)
-                .passScore(BigDecimal.valueOf(70.0))
-                .maxAttempts(3)
-                .isOpen(true)
-                .build());
+                    .title("Practice Test " + (i + 1))
+                    .quizCategory("COURSE_QUIZ")
+                    .status("PUBLISHED")
+                    .course(courses.get(i % courses.size()))
+                    .module(modules.get(i % modules.size()))
+                    .user(expert)
+                    .timeLimitMinutes(30)
+                    .passScore(BigDecimal.valueOf(70.0))
+                    .maxAttempts(3)
+                    .isOpen(true)
+                    .build());
 
             // Assign some questions to quiz
             for (int k = 0; k < 5; k++) {
                 quizQuestionRepository.save(QuizQuestion.builder()
-                    .quiz(q)
-                    .question(questions.get((i * 2 + k) % questions.size()))
-                    .orderIndex(k + 1)
-                    .points(BigDecimal.valueOf(2.0))
-                    .build());
+                        .quiz(q)
+                        .question(questions.get((i * 2 + k) % questions.size()))
+                        .orderIndex(k + 1)
+                        .points(BigDecimal.valueOf(2.0))
+                        .build());
             }
         }
     }

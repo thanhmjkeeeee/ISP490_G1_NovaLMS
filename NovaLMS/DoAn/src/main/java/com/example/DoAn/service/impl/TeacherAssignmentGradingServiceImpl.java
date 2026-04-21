@@ -32,6 +32,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final RegistrationRepository registrationRepository;
     private final com.example.DoAn.service.QuizResultService quizResultService;
 
     // ─── Grading Queue ────────────────────────────────────────────────────────
@@ -41,7 +42,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     public Page<AssignmentGradingQueueDTO> getGradingQueue(
             String teacherEmail, Integer quizId, Integer classId, List<String> status, Pageable pageable) {
 
-        // Use the new repository method that handles ALL filtering (including status) at the DB level
+        // Use the new repository method that handles ALL filtering (including status)
+        // at the DB level
         // to ensure correct pagination.
         Page<QuizResult> results = quizResultRepository.findAssignmentResultsForTeacherV2(
                 classId, status, pageable);
@@ -54,7 +56,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     }
 
     private boolean hasPendingSpeaking(QuizResult r) {
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(r.getResultId());
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
             return "SPEAKING".equalsIgnoreCase(q.getSkill())
@@ -63,7 +65,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     }
 
     private boolean hasPendingWriting(QuizResult r) {
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(r.getResultId());
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
             return "WRITING".equalsIgnoreCase(q.getSkill())
@@ -81,14 +83,27 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         dto.setQuizTitle(r.getQuiz() != null ? r.getQuiz().getTitle() : null);
 
         Quiz quiz = r.getQuiz();
-        if (quiz != null && quiz.getClazz() != null) {
-            dto.setClassId(Long.valueOf(quiz.getClazz().getClassId()));
-            dto.setClassName(quiz.getClazz().getClassName());
+        if (quiz != null) {
+            if (quiz.getClazz() != null) {
+                dto.setClassId(Long.valueOf(quiz.getClazz().getClassId()));
+                dto.setClassName(quiz.getClazz().getClassName());
+            } else if (quiz.getCourse() != null && r.getUser() != null) {
+                // Fallback: find class from registration
+                registrationRepository
+                        .findByUser_UserIdAndCourse_CourseIdAndStatus(r.getUser().getUserId(),
+                                quiz.getCourse().getCourseId(), "Approved")
+                        .ifPresent(reg -> {
+                            if (reg.getClazz() != null) {
+                                dto.setClassId(Long.valueOf(reg.getClazz().getClassId()));
+                                dto.setClassName(reg.getClazz().getClassName());
+                            }
+                        });
+            }
         }
 
         dto.setSubmittedAt(r.getSubmittedAt());
 
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(r.getResultId());
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         dto.setListening(buildSectionStatus(r.getQuiz().getQuizId(), answers, "LISTENING"));
         dto.setReading(buildSectionStatus(r.getQuiz().getQuizId(), answers, "READING"));
         dto.setSpeaking(buildSectionStatus(r.getQuiz().getQuizId(), answers, "SPEAKING"));
@@ -125,7 +140,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
                 .toList();
 
-        if (sectionAnswers.isEmpty()) return null;
+        if (sectionAnswers.isEmpty())
+            return null;
 
         BigDecimal totalScore = BigDecimal.ZERO;
         BigDecimal maxScore = BigDecimal.ZERO;
@@ -155,8 +171,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 } else if (a.getAiScore() != null) {
                     gradingStatus = "AI_READY";
                     totalScore = totalScore.add(pts != null ? pts : BigDecimal.ZERO);
-                    if (aiScore == null) aiScore = a.getAiScore();
-                    if (aiFeedback == null) aiFeedback = a.getAiFeedback();
+                    if (aiScore == null)
+                        aiScore = a.getAiScore();
+                    if (aiFeedback == null)
+                        aiFeedback = a.getAiFeedback();
                 } else {
                     gradingStatus = "AI_PENDING";
                 }
@@ -191,7 +209,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private BigDecimal getQuestionMaxPoints(Integer quizId, Question q) {
         // Try QuizQuestion for explicit points, else default to 1
         return quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
-                        quizId, q.getQuestionId())
+                quizId, q.getQuestionId())
                 .filter(qq -> qq.getPoints() != null)
                 .map(QuizQuestion::getPoints)
                 .orElse(BigDecimal.ONE);
@@ -201,14 +219,18 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         boolean spkNeeded = (dto.getSpeaking() != null);
         boolean wrtNeeded = (dto.getWriting() != null);
 
-        if (spkNeeded && "AI_FAILED".equals(dto.getSpeaking().getGradingStatus())) return "AI_FAILED";
-        if (wrtNeeded && "AI_FAILED".equals(dto.getWriting().getGradingStatus())) return "AI_FAILED";
+        if (spkNeeded && "AI_FAILED".equals(dto.getSpeaking().getGradingStatus()))
+            return "AI_FAILED";
+        if (wrtNeeded && "AI_FAILED".equals(dto.getWriting().getGradingStatus()))
+            return "AI_FAILED";
 
         boolean spkGraded = !spkNeeded || "GRADED".equals(dto.getSpeaking().getGradingStatus());
         boolean wrtGraded = !wrtNeeded || "GRADED".equals(dto.getWriting().getGradingStatus());
 
-        if (spkGraded && wrtGraded) return "ALL_GRADED";
-        if (!spkGraded && !wrtGraded) return "PENDING_BOTH";
+        if (spkGraded && wrtGraded)
+            return "ALL_GRADED";
+        if (!spkGraded && !wrtGraded)
+            return "PENDING_BOTH";
         return spkGraded ? "PENDING_WRITING" : "PENDING_SPEAKING";
     }
 
@@ -221,10 +243,11 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả không tìm thấy: " + resultId));
 
         Quiz quiz = result.getQuiz();
-        if (quiz == null) throw new ResourceNotFoundException("Quiz không tìm thấy");
+        if (quiz == null)
+            throw new ResourceNotFoundException("Quiz không tìm thấy");
 
         // Fetch all answers eagerly
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(resultId);
 
         // Group answers by skill
         Map<String, List<QuizAnswer>> bySkill = new LinkedHashMap<>();
@@ -242,18 +265,31 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         dto.setQuizTitle(quiz.getTitle());
         if (quiz.getClazz() != null) {
             dto.setClassName(quiz.getClazz().getClassName());
+        } else if (quiz.getCourse() != null && result.getUser() != null) {
+            registrationRepository
+                    .findByUser_UserIdAndCourse_CourseIdAndStatus(result.getUser().getUserId(),
+                            quiz.getCourse().getCourseId(), "Approved")
+                    .ifPresent(reg -> {
+                        if (reg.getClazz() != null) {
+                            dto.setClassName(reg.getClazz().getClassName());
+                        }
+                    });
         }
+        if (dto.getClassName() == null)
+            dto.setClassName("Lớp học đã đăng ký");
         dto.setSubmittedAt(result.getSubmittedAt());
 
         List<AssignmentGradingDetailDTO.SkillSectionDetail> sections = new ArrayList<>();
         BigDecimal autoScore = BigDecimal.ZERO;
+        BigDecimal runningTotal = BigDecimal.ZERO;
+        BigDecimal totalMaxPoints = BigDecimal.ZERO;
 
         for (String skill : Arrays.asList("LISTENING", "READING", "SPEAKING", "WRITING")) {
             List<QuizAnswer> skillAnswers = bySkill.getOrDefault(skill, Collections.emptyList());
-            if (skillAnswers.isEmpty()) continue;
+            if (skillAnswers.isEmpty())
+                continue;
 
-            AssignmentGradingDetailDTO.SkillSectionDetail section =
-                    new AssignmentGradingDetailDTO.SkillSectionDetail();
+            AssignmentGradingDetailDTO.SkillSectionDetail section = new AssignmentGradingDetailDTO.SkillSectionDetail();
             section.setSkill(skill);
 
             BigDecimal sectionMax = BigDecimal.ZERO;
@@ -265,8 +301,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), q);
                 sectionMax = sectionMax.add(maxPts);
 
-                AssignmentGradingDetailDTO.QuestionGradeItem item =
-                        new AssignmentGradingDetailDTO.QuestionGradeItem();
+                AssignmentGradingDetailDTO.QuestionGradeItem item = new AssignmentGradingDetailDTO.QuestionGradeItem();
                 item.setQuestionId(q.getQuestionId());
                 item.setQuestionType(q.getQuestionType());
                 item.setContent(q.getContent());
@@ -279,6 +314,47 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 item.setTeacherScore(a.getPointsAwarded());
                 item.setTeacherNote(a.getTeacherNote());
 
+                // Resolve student answer ID to text for Multiple Choice
+                String studentAns = a.getAnsweredOptions();
+                if (studentAns != null && q.getQuestionType() != null &&
+                        (q.getQuestionType().equals("MULTIPLE_CHOICE_SINGLE")
+                                || q.getQuestionType().equals("MULTIPLE_CHOICE_MULTI"))) {
+                    try {
+                        if (q.getQuestionType().equals("MULTIPLE_CHOICE_SINGLE")) {
+                            Integer selectedId = objectMapper.readValue(studentAns, Integer.class);
+                            studentAns = q.getAnswerOptions().stream()
+                                    .filter(o -> o.getAnswerOptionId().equals(selectedId))
+                                    .findFirst().map(AnswerOption::getTitle).orElse(studentAns);
+                        } else {
+                            List<Integer> selectedIds = objectMapper.readValue(studentAns,
+                                    new TypeReference<List<Integer>>() {
+                                    });
+                            List<String> titles = q.getAnswerOptions().stream()
+                                    .filter(o -> selectedIds.contains(o.getAnswerOptionId()))
+                                    .map(AnswerOption::getTitle)
+                                    .toList();
+                            studentAns = String.join(", ", titles);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+                // Also clean up simple string JSON quotes
+                if (studentAns != null && studentAns.startsWith("\"") && studentAns.endsWith("\"")) {
+                    try {
+                        studentAns = objectMapper.readValue(studentAns, String.class);
+                    } catch (Exception ignored) {
+                    }
+                }
+                item.setStudentAnswer(studentAns);
+
+                // Set options to resolve IDs on frontend
+                if (q.getAnswerOptions() != null) {
+                    item.setOptions(q.getAnswerOptions().stream()
+                            .map(opt -> new AssignmentGradingDetailDTO.QuestionGradeItem.OptionDTO(
+                                    opt.getAnswerOptionId(), opt.getTitle()))
+                            .toList());
+                }
+
                 // Accumulate teacher score for this section
                 if (a.getPointsAwarded() != null) {
                     sectionTeacherScore = sectionTeacherScore.add(a.getPointsAwarded());
@@ -290,7 +366,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             section.setQuestions(items);
             section.setMaxScore(sectionMax);
             section.setTeacherScore(sectionTeacherScore.compareTo(BigDecimal.ZERO) > 0
-                    ? sectionTeacherScore : null);
+                    ? sectionTeacherScore
+                    : null);
 
             // AI summary (first answer with AI score)
             QuizAnswer aiAnswer = skillAnswers.stream()
@@ -312,6 +389,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             }
 
             sections.add(section);
+            totalMaxPoints = totalMaxPoints.add(sectionMax);
+            if (sectionTeacherScore != null) {
+                runningTotal = runningTotal.add(sectionTeacherScore);
+            }
         }
 
         dto.setSections(sections);
@@ -324,21 +405,25 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             try {
                 dto.setSectionScores(objectMapper.readValue(
                         result.getSectionScores(),
-                        new TypeReference<Map<String, BigDecimal>>() {}));
-            } catch (Exception ignored) { /* leave null */ }
+                        new TypeReference<Map<String, BigDecimal>>() {
+                        }));
+            } catch (Exception ignored) {
+                /* leave null */ }
         }
 
         if (result.getScore() != null) {
             dto.setTotalScore(BigDecimal.valueOf(result.getScore()));
+        } else {
+            dto.setTotalScore(runningTotal);
         }
-
+        dto.setTotalMaxScore(totalMaxPoints);
         return dto;
     }
 
     // ─── Submit Grading ───────────────────────────────────────────────────────
 
     @Override
-    public void gradeAssignment(Integer resultId, AssignmentGradingRequestDTO request, String teacherEmail) {
+    public Double gradeAssignment(Integer resultId, AssignmentGradingRequestDTO request, String teacherEmail) {
         QuizResult result = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kết quả không tìm thấy: " + resultId));
 
@@ -347,19 +432,23 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         // 1. Save per-question scores
         if (request.getGradingItems() != null) {
             for (AssignmentGradingRequestDTO.QuestionGradingItem item : request.getGradingItems()) {
-                QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId, item.getQuestionId());
+                QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId,
+                        item.getQuestionId());
                 if (answer != null) {
                     answer.setPointsAwarded(item.getPointsAwarded());
                     answer.setTeacherNote(item.getTeacherNote());
-                    answer.setIsCorrect(item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
-                    
+                    answer.setIsCorrect(
+                            item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+
                     // Set override score for recalculateQuizResult logic
                     if (item.getPointsAwarded() != null) {
                         answer.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                        answer.setPendingAiReview(false);
+                        answer.setAiGradingStatus("COMPLETED");
                     } else {
                         answer.setTeacherOverrideScore(null);
                     }
-                    
+
                     quizAnswerRepository.save(answer);
                 }
             }
@@ -376,9 +465,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         }
         quizResultRepository.save(result);
 
-        // 4. Recalculate everything using the shared logic (updates overallBand, correctRate, etc.)
+        // 4. Recalculate everything using the shared logic (updates overallBand,
+        // correctRate, etc.)
         quizResultService.recalculateQuizResult(resultId);
-        
+
         // Refresh result after recalculation
         result = quizResultRepository.findById(resultId).orElse(result);
 
@@ -390,9 +480,10 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
             String assignmentTitle = quiz != null ? quiz.getTitle() : "";
             String className = quiz != null && quiz.getClazz() != null ? quiz.getClazz().getClassName() : "";
-            
+
             // Re-fetch totals for notification
-            BigDecimal totalScoreSum = result.getScore() != null ? BigDecimal.valueOf(result.getScore()) : BigDecimal.ZERO;
+            BigDecimal totalScoreSum = result.getScore() != null ? BigDecimal.valueOf(result.getScore())
+                    : BigDecimal.ZERO;
             BigDecimal totalMax = BigDecimal.ZERO;
             if (quiz != null) {
                 totalMax = quizQuestionRepository.findByQuizQuizId(quiz.getQuizId()).stream()
@@ -414,5 +505,6 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         assignmentTitle, className, scoreStr, passedStatus);
             }
         }
+        return (result.getScore() != null) ? result.getScore().doubleValue() : 0.0;
     }
 }

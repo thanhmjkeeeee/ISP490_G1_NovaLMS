@@ -180,7 +180,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 String passage = (String) parsed.get("passage");
                 if (passage != null && !passage.isBlank()) {
                     byte[] audioBytes = ttsService.synthesizeDialogue(passage);
-                    if (audioBytes != null) {
+                    if (audioBytes != null && audioBytes.length > 0) {
                         String audioUrl = fileUploadService.uploadBytes(audioBytes, "ai_listening", "video");
                         builder.audioUrl(audioUrl);
                     }
@@ -627,7 +627,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
             if (textToSpeak == null || textToSpeak.isBlank()) return;
             
             byte[] audioBytes = ttsService.synthesizeDialogue(textToSpeak);
-            if (audioBytes != null) {
+            if (audioBytes != null && audioBytes.length > 0) {
                 String audioUrl = fileUploadService.uploadBytes(audioBytes, "ai_q_listening", "video");
                 q.setAudioUrl(audioUrl);
             }

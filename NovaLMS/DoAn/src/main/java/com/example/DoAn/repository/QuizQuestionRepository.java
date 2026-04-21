@@ -20,6 +20,7 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
     int countByQuizQuizId(Integer quizId);
 
     java.util.Optional<QuizQuestion> findByQuizQuizIdAndQuestionQuestionId(Integer quizId, Integer questionId);
+    java.util.Optional<QuizQuestion> findByQuestion_QuestionId(Integer questionId);
 
     void deleteByQuizQuizIdAndQuestionGroupGroupId(Integer quizId, Integer groupId);
 

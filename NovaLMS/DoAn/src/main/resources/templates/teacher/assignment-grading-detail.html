@@ -10,6 +10,8 @@
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
+    <div class="container-fluid px-4 py-3">
+
     <!-- ── Student / Quiz Info Header ─────────────────────────────────── -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
@@ -24,8 +26,9 @@
                         <span>Ngày nộp: <strong id="submittedAt">—</strong></span>
                     </div>
                 </div>
-                <a href="/teacher/assignment/grading" class="btn btn-outline-secondary rounded-pill">
-                    <i class="bi bi-arrow-left"></i> Quay lại danh sách
+                <a th:href="${detail.status == 'GRADED' ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}" 
+                   class="btn btn-outline-secondary rounded-pill">
+                    <i class="bi bi-arrow-left"></i> Quay lại
                 </a>
             </div>
 
@@ -84,6 +87,7 @@
                     </div>
                 </div>
             </div>
+    </div>
 </main>
 
 <script th:inline="javascript">
@@ -96,7 +100,7 @@ async function loadDetail() {
         const resp = await fetch(`/api/v1/teacher/assignment-results/${resultId}`);
         const json = await resp.json();
         if (json.status !== 200) {
-            alert('Lỗi: ' + json.message);
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: json.message });
             return;
         }
         gradingData = json.data;
@@ -104,7 +108,7 @@ async function loadDetail() {
         renderTabs(gradingData.sections);
         renderTabContent(gradingData.sections);
     } catch (e) {
-        alert('Không thể tải chi tiết bài nộp.');
+        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải chi tiết bài nộp.' });
     }
 }
 
@@ -116,7 +120,7 @@ function populateHeader(d) {
         ? new Date(d.submittedAt).toLocaleDateString('vi-VN')
         : '—';
     document.getElementById('autoScore').textContent    = d.autoScore ?? 0;
-    document.getElementById('totalScore').textContent   = d.totalScore   || '—';
+    document.getElementById('totalScore').textContent   = (d.totalScore != null) ? (d.totalScore + ' / ' + (d.totalMaxScore || 0)) : '—';
 
     // External sub
     if (d.allowExternalSubmission) {
@@ -349,18 +353,38 @@ function submitGrade() {
         body: JSON.stringify({
             sectionScores,
             gradingItems,
-            overallNote: ''
+            overallNote: '',
+            isFinal: true
         })
     }).then(r => r.json()).then(data => {
         if (data.status === 200) {
-            alert('Đã lưu điểm chấm thành công!');
-            window.location.href = '/teacher/assignment/grading';
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công!',
+                text: data.message, // Shows: Đã lưu điểm thành công! Tổng điểm: X
+                confirmButtonText: 'Đóng',
+                confirmButtonColor: '#0d6efd'
+            }).then(() => {
+                const targetUrl = gradingData && gradingData.classId 
+                    ? `/teacher/workspace?tab=graded&classId=${gradingData.classId}` 
+                    : '/teacher/workspace?tab=graded';
+                window.location.href = targetUrl;
+            });
         } else {
-            alert('Lỗi: ' + (data.message || 'Không rõ nguyên nhân.'));
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: data.message || 'Không rõ nguyên nhân.'
+            });
             document.getElementById('submitGradeBtn').disabled = false;
         }
-    }).catch(() => {
-        alert('Lỗi kết nối. Vui lòng thử lại.');
+    }).catch(err => {
+        console.error(err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Lỗi kết nối',
+            text: 'Vui lòng thử lại sau.'
+        });
         document.getElementById('submitGradeBtn').disabled = false;
     });
 }
@@ -368,5 +392,8 @@ function submitGrade() {
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadDetail();
 </script>
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
 </body>
 </html>

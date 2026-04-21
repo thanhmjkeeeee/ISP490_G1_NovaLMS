@@ -32,9 +32,11 @@ public interface IStudentAssignmentService {
     Integer completeAssignment(Long sessionId, String userEmail);
 
     /** Auto-submit on timer expiry */
+    @org.springframework.transaction.annotation.Transactional
     void autoSubmit(Long sessionId, String userEmail);
 
     /** Process all expired sessions in background */
+    @org.springframework.transaction.annotation.Transactional
     void autoSubmitAllExpired();
 
     /** Get detailed result for student */

@@ -11,6 +11,8 @@ public class QuizResultDetailDTO {
     private Integer resultId;
     private Integer quizId;
     private String quizTitle;
+    private String studentName;
+    private String className;
     private String courseName;
     private LocalDateTime submittedAt;
     private Double score;

@@ -18,7 +18,11 @@ import java.nio.charset.StandardCharsets;
 public class FreeTTSServiceImpl implements ITextToSpeechService {
 
     private static final String TTS_URL = "https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=";
-    private static final OkHttpClient httpClient = new OkHttpClient();
+    private static final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .build();
 
     @Override
     public byte[] synthesize(String text) {
@@ -42,10 +46,11 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
         java.util.Map<String, String> characterVoiceMap = new java.util.HashMap<>();
         int maleIdx = 0, femaleIdx = 0;
 
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try {
             String[] lines = transcript.split("\\r?\\n");
-            // Pattern to match "Name [Gender]: Text" or just "[Gender]: Text"
             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^(.*?)\\[(Male|Female)\\]\\s*:\\s*(.*)$", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+            java.util.List<java.util.concurrent.CompletableFuture<byte[]>> futures = new java.util.ArrayList<>();
 
             for (String line : lines) {
                 line = line.trim();
@@ -67,15 +72,11 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
                     int colonIdx = line.indexOf(":");
                     charName = line.substring(0, colonIdx).trim();
                     textToSpeak = line.substring(colonIdx + 1).trim();
-                    
                     String lowName = charName.toLowerCase();
-                    // Expanded lists for smarter detection
                     String[] maleKeywords = {"male", "man", "mr", "boy", "john", "robert", "david", "paul", "mark", "kevin", "james", "michael", "william", "richard", "thomas", "charles", "christopher", "dan", "bob", "sam"};
-                    
                     isMale = java.util.Arrays.stream(maleKeywords).anyMatch(lowName::contains);
                 }
 
-                // Assign voice if not already assigned to this character
                 if (!characterVoiceMap.containsKey(charName)) {
                     if (isMale) {
                         voice = maleVoices[maleIdx % maleVoices.length];
@@ -89,56 +90,37 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
                     voice = characterVoiceMap.get(charName);
                 }
 
-                log.info("[TTS] Character: '{}' -> Voice: '{}', Text: '{}'", charName, voice, textToSpeak);
-                byte[] audio = synthesizeWithVoice(textToSpeak, voice);
-                if (audio != null) {
-                    outputStream.write(audio);
-                }
+                final String finalVoice = voice;
+                final String finalText = textToSpeak;
+                final String finalChar = charName;
+                
+                futures.add(java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    log.info("[TTS-PARA] Starting: '{}'", finalChar);
+                    return synthesizeWithVoice(finalText, finalVoice);
+                }));
             }
-            return outputStream.toByteArray();
+
+            // Wait for all to complete and combine in order
+            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0])).join();
+
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                for (java.util.concurrent.CompletableFuture<byte[]> future : futures) {
+                    byte[] audio = future.get();
+                    if (audio != null) {
+                        outputStream.write(audio);
+                    }
+                }
+                return outputStream.toByteArray();
+            }
         } catch (Exception e) {
-            log.error("Error synthesizing dialogue: {}", e.getMessage());
+            log.error("Error synthesizing dialogue in parallel: {}", e.getMessage());
             return null;
         }
     }
 
     private byte[] synthesizeWithVoice(String text, String voice) {
         if (text == null || text.isBlank()) return null;
-        
-        // List of proxies to try sequentially
-        String[] proxies = {
-            "TIKLYDOWN", "SHARNIT", "VERCEL", "COUNTIK", "WEILBYTE"
-        };
-        
-        for (String proxy : proxies) {
-            byte[] result = null;
-            try {
-                switch (proxy) {
-                    case "TIKLYDOWN":
-                        result = tryTiklyDown(text, voice);
-                        break;
-                    case "SHARNIT":
-                        result = trySharnit(text, voice);
-                        break;
-                    case "VERCEL":
-                        result = tryVercel(text, voice);
-                        break;
-                    case "COUNTIK":
-                        result = tryCountik(text, voice);
-                        break;
-                    case "WEILBYTE":
-                        result = tryWeilbyte(text, voice);
-                        break;
-                }
-                if (result != null && result.length > 500) { // Valid audio should be at least some size
-                    return result;
-                }
-            } catch (Exception e) {
-                log.warn("Proxy {} failed: {}", proxy, e.getMessage());
-            }
-        }
-        
-        // Final fallback to Google with variety
+        // Standard Google Translate TTS for reliability as requested
         return callTranslateTTS(text, voice);
     }
 
@@ -156,15 +138,6 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
         return null;
     }
 
-    private byte[] trySharnit(String text, String voice) throws Exception {
-        String url = "https://api.sharnit.me/v1/tts?text=" + 
-            URLEncoder.encode(text, StandardCharsets.UTF_8) + "&voice=" + voice;
-        Request request = new Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (response.isSuccessful()) return response.body().bytes();
-        }
-        return null;
-    }
 
     private byte[] tryVercel(String text, String voice) throws Exception {
         String url = "https://tiktok-tts-api.vercel.app/api/tts?text=" + 
@@ -191,18 +164,6 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
         return null;
     }
 
-    private byte[] tryWeilbyte(String text, String voice) throws Exception {
-        String url = "https://tiktok-tts.weilbyte.dev/api/v1/tts";
-        String jsonBody = String.format("{\"text\": \"%s\", \"voice\": \"%s\"}", text.replace("\"", "\\\""), voice);
-        Request request = new Request.Builder().url(url).post(okhttp3.RequestBody.create(jsonBody, okhttp3.MediaType.parse("application/json")))
-            .header("User-Agent", "Mozilla/5.0").build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) return null;
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
-            if (node.has("data")) return java.util.Base64.getDecoder().decode(node.get("data").asText());
-        }
-        return null;
-    }
 
     private byte[] callTranslateTTS(String text, String voice) {
         try {
@@ -213,17 +174,25 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
             else if (voice.equals("en_us_002")) tl = "en-IN";
             else if (voice.equals("en_us_010")) tl = "en-IE";
 
-            String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8);
-            String url = "https://translate.google.com/translate_tts?ie=UTF-8&tl=" + tl + "&client=tw-ob&q=" + encodedText;
-            
-            Request request = new Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build();
+            String[] chunks = splitText(text, 180);
+            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                for (String chunk : chunks) {
+                    String encodedText = URLEncoder.encode(chunk, StandardCharsets.UTF_8);
+                    String url = "https://translate.google.com/translate_tts?ie=UTF-8&tl=" + tl + "&client=tw-ob&q=" + encodedText;
+                    
+                    Request request = new Request.Builder()
+                            .url(url)
+                            .header("User-Agent", "Mozilla/5.0")
+                            .build();
 
-            try (Response response = httpClient.newCall(request).execute()) {
-                if (!response.isSuccessful()) return null;
-                return response.body() != null ? response.body().bytes() : null;
+                    try (Response response = httpClient.newCall(request).execute()) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            outputStream.write(response.body().bytes());
+                        }
+                    }
+                }
+                byte[] result = outputStream.toByteArray();
+                return result.length > 0 ? result : null;
             }
         } catch (Exception e) {
             log.error("Google TTS fallback failed: {}", e.getMessage());

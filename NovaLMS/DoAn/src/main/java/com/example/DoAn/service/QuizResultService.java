@@ -19,10 +19,10 @@ public interface QuizResultService {
     PageResponse<QuizResultGradedDTO> getGradedResults(String email, Integer classId, int page, int size);
 
     /** Legacy method — accepts List of grading items only */
-    void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email);
+    Double gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email);
 
     /** Extended method — accepts skillScores + overallNote */
-    void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email);
+    Double gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email);
     
     /** Handles a violation: increments count, logs time, and locks if >= 3 */
     Map<String, Object> handleViolation(Integer quizId, String email, String reason);
@@ -41,4 +41,7 @@ public interface QuizResultService {
     
     /** Gets lightweight status info for polling */
     Map<String, Object> getResultBasicStatus(Integer resultId);
+
+    /** Teacher overrides AI score for a specific answer */
+    Double overrideScore(Integer answerId, String score, String teacherEmail);
 }

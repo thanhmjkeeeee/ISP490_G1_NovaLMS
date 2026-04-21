@@ -102,8 +102,8 @@ public class TeacherAssignmentGradingApiController {
         if (email == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
         try {
-            gradingService.gradeAssignment(resultId, request, email);
-            return ResponseData.success("Đã lưu điểm chấm thành công!");
+            Double score = gradingService.gradeAssignment(resultId, request, email);
+            return ResponseData.success("Đã lưu điểm chấm thành công! Tổng điểm: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

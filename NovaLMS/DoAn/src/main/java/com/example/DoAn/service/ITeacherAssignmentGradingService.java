@@ -26,5 +26,5 @@ public interface ITeacherAssignmentGradingService {
      * Submit grading for an assignment result.
      * Saves per-question scores, updates sectionScores JSON, recalculates total & pass/fail.
      */
-    void gradeAssignment(Integer resultId, AssignmentGradingRequestDTO request, String teacherEmail);
+    Double gradeAssignment(Integer resultId, AssignmentGradingRequestDTO request, String teacherEmail);
 }

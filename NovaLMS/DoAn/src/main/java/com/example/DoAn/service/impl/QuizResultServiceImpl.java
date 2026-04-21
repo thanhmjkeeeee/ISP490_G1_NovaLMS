@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class QuizResultServiceImpl implements QuizResultService {
 
     private final QuizRepository quizRepository;
@@ -657,6 +658,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .resultId(qr.getResultId())
                 .quizId(quiz.getQuizId())
                 .quizTitle(quiz.getTitle())
+                .studentName(qr.getUser().getFullName())
+                .className(quiz.getClazz() != null ? quiz.getClazz().getClassName() : 
+                    registrationRepository.findByUser_UserIdAndCourse_CourseIdAndStatus(qr.getUser().getUserId(), quiz.getCourse().getCourseId(), "Approved")
+                        .map(reg -> reg.getClazz() != null ? reg.getClazz().getClassName() : "Lớp học đã đăng ký").orElse("Lớp học đã đăng ký"))
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getTitle() : null)
                 .submittedAt(qr.getSubmittedAt())
                 .score(qr.getScore() != null ? qr.getScore().doubleValue() : 0.0)
@@ -838,7 +843,7 @@ public class QuizResultServiceImpl implements QuizResultService {
 
     @Override
     @Transactional
-    public void gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email) {
+    public Double gradeQuizResult(Integer resultId, List<QuestionGradingRequestDTO> gradingItems, String email) {
         QuizResult qr = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         Quiz quiz = qr.getQuiz();
@@ -968,6 +973,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 // Non-critical
             }
         }
+        return (qr.getScore() != null) ? qr.getScore().doubleValue() : 0.0;
     }
 
     /**
@@ -976,7 +982,7 @@ public class QuizResultServiceImpl implements QuizResultService {
      */
     @Override
     @Transactional
-    public void gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email) {
+    public Double gradeQuizResult(Integer resultId, QuizGradingRequestDTO request, String email) {
         QuizResult qr = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         Quiz quiz = qr.getQuiz();
@@ -1108,6 +1114,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 // Non-critical
             }
         }
+        return (qr.getScore() != null) ? qr.getScore().doubleValue() : 0.0;
     }
 
     /** Strip JSON quotes from a JSON-encoded string like "\"https://...\"" */
@@ -1233,7 +1240,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             return;
         Integer resultId = result.getResultId();
 
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(resultId);
         boolean anyPending = answers.stream().anyMatch(a -> Boolean.TRUE.equals(a.getPendingAiReview()));
 
         Map<String, Double> skillRawScore = new HashMap<>();
@@ -1426,5 +1433,44 @@ public class QuizResultServiceImpl implements QuizResultService {
             map.put("passed", qr.getPassed());
         }
         return map;
+    }
+
+    @Override
+    public Double overrideScore(Integer answerId, String score, String teacherEmail) {
+        QuizAnswer answer = quizAnswerRepository.findById(answerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu trả lời."));
+        
+        Quiz quiz = answer.getQuizResult().getQuiz();
+        // Authorization check
+        boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(teacherEmail);
+        boolean isAssignedTeacher = quiz.getClazz() != null
+                && quiz.getClazz().getTeacher() != null
+                && quiz.getClazz().getTeacher().getEmail().equals(teacherEmail);
+        
+        if (!isCreator && !isAssignedTeacher) {
+            // Check course-level access
+            User teacher = userRepository.findByEmail(teacherEmail).orElse(null);
+            boolean isCourseTeacher = false;
+            if (teacher != null && quiz.getCourse() != null) {
+                List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
+                isCourseTeacher = teacherClasses.stream()
+                        .anyMatch(c -> c.getCourse() != null
+                                && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+            }
+            if (!isCourseTeacher) {
+                throw new RuntimeException("Bạn không có quyền thay đổi điểm cho bài làm này.");
+            }
+        }
+
+        answer.setTeacherOverrideScore(score);
+        answer.setAiGradingStatus("REVIEWED");
+        quizAnswerRepository.save(answer);
+
+        // Recalculate
+        recalculateQuizResult(answer.getQuizResult().getResultId());
+        
+        // Return new total score
+        QuizResult updated = quizResultRepository.findById(answer.getQuizResult().getResultId()).orElse(null);
+        return (updated != null && updated.getScore() != null) ? updated.getScore().doubleValue() : 0.0;
     }
 }

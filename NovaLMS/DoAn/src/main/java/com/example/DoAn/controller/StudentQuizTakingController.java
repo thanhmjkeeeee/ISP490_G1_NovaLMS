@@ -95,7 +95,7 @@ public class StudentQuizTakingController {
     @GetMapping("/api/v1/student/quiz/result/{resultId}/ai-status")
     @ResponseBody
     public ResponseEntity<?> getAiStatus(@PathVariable Integer resultId) {
-        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultId(resultId);
+        List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(resultId);
         List<Map<String, Object>> data = answers.stream()
                 .filter(a -> {
                     String qt = a.getQuestion().getQuestionType();

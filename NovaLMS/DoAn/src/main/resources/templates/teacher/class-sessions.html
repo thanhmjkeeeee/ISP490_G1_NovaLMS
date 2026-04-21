@@ -7,6 +7,10 @@
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
+    <div class="container-fluid px-4">
+        <!-- Workspace Navigation Tabs -->
+        <div th:replace="~{fragments/workspace-nav :: workspace-tabs(activeTab='classes')}"></div>
+
     <!-- Class Info Header -->
     <div class="dash-page-header mb-4">
         <button class="btn btn-link text-decoration-none p-0 me-3" onclick="history.back()">

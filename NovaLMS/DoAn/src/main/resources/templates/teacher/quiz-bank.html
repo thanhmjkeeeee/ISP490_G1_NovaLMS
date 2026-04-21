@@ -7,6 +7,10 @@
 <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
 
 <main class="dash-main" id="dashMain">
+    <div class="container-fluid px-4">
+        <!-- Workspace Navigation Tabs -->
+        <div th:replace="~{fragments/workspace-nav :: workspace-tabs(activeTab='quiz')}"></div>
+
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white border-bottom-0 pt-4 px-4"><h5 class="fw-bold mb-2">Quiz theo lớp đang phụ trách</h5></div>
         <div class="card-body px-4 pb-4">

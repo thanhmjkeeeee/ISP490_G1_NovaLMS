@@ -22,6 +22,7 @@ public class AssignmentGradingDetailDTO {
     private LocalDateTime submittedAt;
     private BigDecimal autoScore;        // LISTENING + READING sum
     private BigDecimal totalScore;       // final total (null if not yet graded)
+    private BigDecimal totalMaxScore;    // total max possible points
     private Map<String, BigDecimal> sectionScores;
     private List<SkillSectionDetail> sections;
     
@@ -60,5 +61,14 @@ public class AssignmentGradingDetailDTO {
         private BigDecimal teacherScore;  // submitted score for this question
         private String teacherNote;
         private String audioUrl;          // for SPEAKING questions
+        private List<OptionDTO> options;  // choices to resolve IDs
+
+        @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class OptionDTO {
+            private Integer id;
+            private String title;
+        }
     }
 }

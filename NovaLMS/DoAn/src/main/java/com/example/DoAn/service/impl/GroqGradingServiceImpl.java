@@ -48,7 +48,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         log.info("[AI-BATCH] Started batch grading for resultId={}", quizResultId);
         try {
             transactionTemplate.executeWithoutResult(status -> {
-                List<QuizAnswer> pendingAnswers = quizAnswerRepository.findByQuizResultResultId(quizResultId).stream()
+                List<QuizAnswer> pendingAnswers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(quizResultId).stream()
                         .filter(a -> Boolean.TRUE.equals(a.getPendingAiReview()))
                         .toList();
 
