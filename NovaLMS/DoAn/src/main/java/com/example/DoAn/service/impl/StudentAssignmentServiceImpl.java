@@ -7,6 +7,7 @@ import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
 import com.example.DoAn.service.IStudentAssignmentService;
 import com.example.DoAn.service.GroqGradingService;
+import com.example.DoAn.service.QuizResultService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
     private final GroqGradingService groqGradingService;
+    private final QuizResultService quizResultService;
     private final TransactionTemplate transactionTemplate;
     private final ObjectMapper objectMapper;
     private final SessionQuizRepository sessionQuizRepository;
@@ -104,16 +106,20 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
                     + effectiveDeadline.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")");
         }
 
-        // Validate enrollment
-        if (quiz.getClazz() == null) {
-            throw new InvalidDataException("Bài tập chưa được gắn với lớp học");
+        // Validate enrollment — accept EITHER direct class link OR session-based enrollment
+        if (quiz.getClazz() == null && sessionQuiz == null) {
+            throw new InvalidDataException("Bài tập chưa được gắn với lớp học. Vui lòng liên hệ giáo viên.");
         }
-        boolean enrolled = registrationRepository
-                .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
-                        user.getUserId(), quiz.getClazz().getClassId());
-        if (!enrolled) {
-            throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+        if (quiz.getClazz() != null) {
+            boolean enrolled = registrationRepository
+                    .existsByUser_UserIdAndClazz_ClassIdAndStatusApproved(
+                            user.getUserId(), quiz.getClazz().getClassId());
+            if (!enrolled) {
+                throw new InvalidDataException("Bạn chưa đăng ký lớp học này");
+            }
         }
+        // If quiz.getClazz() == null but sessionQuiz != null: student is enrolled
+        // in a class that has this quiz in a session — already validated above (lines 74-82)
 
         // Check attempts using QuizResult (submitted ones)
         long attemptsUsed = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(quizId, user.getUserId(), "IN_PROGRESS");
@@ -826,7 +832,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
 
         result.setScore(totalScore);
         result.setCorrectRate(rate);
-        result.setPassed(rate.compareTo(BigDecimal.valueOf(50)) >= 0);
+        // result.setPassed(rate.compareTo(BigDecimal.valueOf(50)) >= 0); // Removed: let recalculateQuizResult handle this
         result.setSectionScores(toJson(sectionScores));
 
         QuizResult saved = quizResultRepository.save(result);
@@ -870,6 +876,9 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
                         qq.getQuestion().getQuestionType());
             }
         }
+        
+        // Final recalculation to set correct status and passed (as null if manual)
+        quizResultService.recalculateQuizResult(saved.getResultId());
 
         return saved.getResultId();
     }
