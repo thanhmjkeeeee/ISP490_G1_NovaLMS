@@ -19,7 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/student/assignment")
 @RequiredArgsConstructor
-public class StudentAssignmentApiController {
+    public class StudentAssignmentApiController {
 
     private final IStudentAssignmentService assignmentService;
 

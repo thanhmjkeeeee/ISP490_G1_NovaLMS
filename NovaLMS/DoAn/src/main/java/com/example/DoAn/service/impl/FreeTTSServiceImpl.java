@@ -124,45 +124,6 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
         return callTranslateTTS(text, voice);
     }
 
-    private byte[] tryTiklyDown(String text, String voice) throws Exception {
-        String url = "https://api.tiklydown.eu.org/api/main/tts?query=" + 
-            URLEncoder.encode(text, StandardCharsets.UTF_8) + "&voice=" + voice;
-        Request request = new Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) return null;
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
-            if (node.has("result") && node.get("result").has("data")) {
-                return java.util.Base64.getDecoder().decode(node.get("result").get("data").asText());
-            }
-        }
-        return null;
-    }
-
-
-    private byte[] tryVercel(String text, String voice) throws Exception {
-        String url = "https://tiktok-tts-api.vercel.app/api/tts?text=" + 
-            URLEncoder.encode(text, StandardCharsets.UTF_8) + "&voice=" + voice;
-        Request request = new Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) return null;
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
-            if (node.has("data")) return java.util.Base64.getDecoder().decode(node.get("data").asText());
-        }
-        return null;
-    }
-
-    private byte[] tryCountik(String text, String voice) throws Exception {
-        String url = "https://countik.com/api/text/speech";
-        String jsonBody = String.format("{\"text\": \"%s\", \"voice\": \"%s\"}", text.replace("\"", "\\\""), voice);
-        Request request = new Request.Builder().url(url).post(okhttp3.RequestBody.create(jsonBody, okhttp3.MediaType.parse("application/json")))
-            .header("User-Agent", "Mozilla/5.0").header("Origin", "https://countik.com").header("Referer", "https://countik.com/").build();
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) return null;
-            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
-            if (node.has("v_data")) return java.util.Base64.getDecoder().decode(node.get("v_data").asText());
-        }
-        return null;
-    }
 
 
     private byte[] callTranslateTTS(String text, String voice) {
@@ -215,5 +176,48 @@ public class FreeTTSServiceImpl implements ITextToSpeechService {
         }
         if (sb.length() > 0) parts.add(sb.toString());
         return parts.toArray(new String[0]);
+    }
+
+
+
+
+    private byte[] tryTiklyDown(String text, String voice) throws Exception {
+        String url = "https://api.tiklydown.eu.org/api/main/tts?query=" +
+                URLEncoder.encode(text, StandardCharsets.UTF_8) + "&voice=" + voice;
+        Request request = new Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) return null;
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
+            if (node.has("result") && node.get("result").has("data")) {
+                return java.util.Base64.getDecoder().decode(node.get("result").get("data").asText());
+            }
+        }
+        return null;
+    }
+
+
+    private byte[] tryVercel(String text, String voice) throws Exception {
+        String url = "https://tiktok-tts-api.vercel.app/api/tts?text=" +
+                URLEncoder.encode(text, StandardCharsets.UTF_8) + "&voice=" + voice;
+        Request request = new Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) return null;
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
+            if (node.has("data")) return java.util.Base64.getDecoder().decode(node.get("data").asText());
+        }
+        return null;
+    }
+
+    private byte[] tryCountik(String text, String voice) throws Exception {
+        String url = "https://countik.com/api/text/speech";
+        String jsonBody = String.format("{\"text\": \"%s\", \"voice\": \"%s\"}", text.replace("\"", "\\\""), voice);
+        Request request = new Request.Builder().url(url).post(okhttp3.RequestBody.create(jsonBody, okhttp3.MediaType.parse("application/json")))
+                .header("User-Agent", "Mozilla/5.0").header("Origin", "https://countik.com").header("Referer", "https://countik.com/").build();
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) return null;
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.body().string());
+            if (node.has("v_data")) return java.util.Base64.getDecoder().decode(node.get("v_data").asText());
+        }
+        return null;
     }
 }
