@@ -4288,18 +4288,43 @@
 
             let timeLimitMinutes = null;
             if (newOpen) {
+                // Fetch quiz info to get required duration
+                let requiredDuration = 30; // default
+                try {
+                    const qRes = await fetch(`/api/v1/teacher/quizzes/${quizId}`);
+                    const qJson = await qRes.json();
+                    if (qJson.status === 200 && qJson.data) {
+                        const qData = qJson.data;
+                        if (qData.timeLimitPerSkill) {
+                            const limits = typeof qData.timeLimitPerSkill === 'string' ? JSON.parse(qData.timeLimitPerSkill) : qData.timeLimitPerSkill;
+                            requiredDuration = Object.values(limits).reduce((a, b) => a + (b || 0), 0);
+                        } else {
+                            requiredDuration = qData.timeLimitMinutes || 30;
+                        }
+                    }
+                } catch (e) { console.error("Fetch quiz info error", e); }
+
                 const { value: timeLimit, isConfirmed } = await Swal.fire({
                     title: `Mở ${label.toLowerCase()}`,
-                    text: `Thiết lập thời gian làm bài cho ${label.toLowerCase()} này (phút):`,
+                    html: `<div class="text-start">
+                             <p class="mb-2">Thiết lập thời gian làm bài cho ${label.toLowerCase()} này (phút):</p>
+                             <div class="alert alert-info py-2 px-3 small mb-0">
+                               <i class="bi bi-info-circle me-1"></i>
+                               <strong>Yêu cầu tối thiểu:</strong> ${requiredDuration} phút (theo cấu hình của Quiz).
+                             </div>
+                           </div>`,
                     input: 'number',
                     inputLabel: 'Thời gian làm bài (phút)',
-                    inputValue: 30,
+                    inputValue: requiredDuration,
                     showCancelButton: true,
                     confirmButtonText: 'Mở bài',
                     cancelButtonText: 'Hủy',
                     inputValidator: (value) => {
                         if (!value || value <= 0) {
                             return 'Vui lòng nhập thời gian hợp lệ (> 0)';
+                        }
+                        if (parseInt(value) < requiredDuration) {
+                            return `Thời gian không được nhỏ hơn cấu hình tối thiểu (${requiredDuration} phút)`;
                         }
                     }
                 });
@@ -4319,7 +4344,7 @@
                     refreshActiveTab();
                     wsToast(newOpen ? `Đã mở ${label.toLowerCase()}` : `Đã đóng ${label.toLowerCase()}`);
                 } else {
-                    Swal.fire('Lỗi', json.message || `Lỗi khi mở/đóng ${label.toLowerCase()}`, 'error');
+                    Swal.fire('Thất bại', json.message || `Lỗi khi mở/đóng ${label.toLowerCase()}`, 'error');
                 }
             } catch (e) {
                 console.error("wsToggleQuizOpen error:", e);

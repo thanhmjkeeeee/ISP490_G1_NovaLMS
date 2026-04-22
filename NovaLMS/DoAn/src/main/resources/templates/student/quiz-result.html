@@ -64,7 +64,7 @@
                </button>
                
                <!-- Redo Button -->
-               <button th:if="${result.canRetake}"
+               <button th:if="${result.canRetake and result.passed != null}"
                        class="btn btn-warning rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"
                        data-bs-toggle="modal" data-bs-target="#redoModal">
                   <i class="bi bi-arrow-counterclockwise me-2"></i>Làm Lại Quiz

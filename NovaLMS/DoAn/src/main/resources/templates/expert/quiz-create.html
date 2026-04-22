@@ -1500,7 +1500,7 @@
         function wsFormatTranscript(text) {
             if (!text) return '—';
 
-            // [CRITICAL FIX]: Chống sập nếu text là Object từ AI
+            // Handle Object from AI
             if (typeof text === 'object') {
                 if (text.dialogue && Array.isArray(text.dialogue)) {
                     text = text.dialogue.map(d => `${d.speaker}: ${d.line}`).join('\n');
@@ -1512,6 +1512,8 @@
             }
 
             text = text.trim();
+            // Remove [Male], [Female] tags
+            text = text.replace(/\s*\[(Male|Female|male|female)\]\s*/gi, ' ');
 
             let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-primary">$1</strong>');
@@ -1527,62 +1529,12 @@
             if (progress) progress.parentElement.style.display = 'none';
         }
 
-        function wsFormatTranscript(t) {
-            if (!t) return '—';
-            let s = (typeof t === 'object') ? (t.dialogue ? t.dialogue.map(d => `${d.speaker}: ${d.line}`).join('\n') : JSON.stringify(t)) : t;
-
-            // Remove [Male], [Female], [male], [female] tags
-            s = s.replace(/\s*\[(Male|Female|male|female)\]\s*/gi, ' ');
-
-            return s.trim().replace(/&/g, "&amp;").replace(/</g, "&lt;");
-        }
-
         function wsRenderAiResults() {
             const list = document.getElementById('wsAiList');
             document.getElementById('wsAiTotalCount').textContent = _generatedAiQuestions.length;
             document.getElementById('wsAiSelectedCount').textContent = _generatedAiQuestions.length;
 
             let html = '';
-            _generatedAiQuestions.forEach((q, i) => {
-                q._selected = true;
-                const isG = (q.type === 'GROUP' || q.questions);
-                html += `
-                <div class="list-group-item p-3 mb-2 border rounded">
-                    <div class="d-flex gap-3">
-                        <div class="pt-1">
-                            <input class="form-check-input ws-ai-cb" type="checkbox" value="${i}" checked onchange="wsUpdateAiSelection()">
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-secondary">${isG ? 'BỘ CÂU HỎI' : typeName(q.questionType)}</span>
-                                <div class="d-flex gap-2">
-                                    <button id="btn-play-${i}" class="btn btn-xs btn-primary" onclick="wsSpeak(${i})"><i class="bi bi-play-fill"></i> Nghe</button>
-                                    <button id="btn-stop-${i}" class="btn btn-xs btn-danger" style="display:none;" onclick="wsStop(${i})"><i class="bi bi-stop-fill"></i> Dừng</button>
-                                </div>
-                            </div>
-                            <div class="progress mb-2" style="height:3px; display:none;"><div id="tts-progress-${i}" class="progress-bar bg-primary"></div></div>
-
-                            ${(q.passage || q.transcript || q.content) ? `
-                                <div class="p-2 bg-light border-start border-3 border-secondary mb-2 small text-muted" style="white-space:pre-wrap;">${wsFormatTranscript(q.passage || q.transcript || q.content)}</div>
-                            ` : ''}
-
-                            ${isG ? `
-                                <div class="ms-3 border-start ps-3">
-                                    ${q.questions.map((sq, si) => `
-                                        <div class="py-2 border-bottom last-child-border-0">
-                                            <div class="fw-bold small mb-1">${si + 1}. ${sq.content}</div>
-                                            <div class="small text-muted ps-2">
-                                                ${(sq.options || sq.answers || []).map(a => `<div>• ${a.title || a.answerText} ${(a.correct || a.isCorrect) ? '✓' : ''}</div>`).join('')}
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `
-                                <div class="fw-bold mb-2">${q.content}</div>
-                                <div class="small text-muted ps-3">
-                                    ${(q.options || q.answers || []).map(a => `<div>• ${a.title || a.answerText} ${(a.correct || a.isCorrect) ? '✓' : ''}</div>`).join('')}
-                                </div>
-                            `}
             _generatedAiQuestions.forEach((q, idx) => {
                 q._selected = true; // Default selected
 
@@ -1607,8 +1559,8 @@
                                   <div id="tts-progress-${idx}" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%"></div>
                                 </div>
 
-<div id="passage-content-${idx}" class="p-3 bg-light rounded-3 mb-3 text-dark fw-medium" style="max-height: 300px; overflow-y:auto; line-height:1.6; white-space: pre-wrap;">${wsFormatTranscript(q.passage || q.groupContent || q.content)}</div>                                    ${wsFormatTranscript(q.passage || q.groupContent || q.content)}
-                                </div>
+                                <div id="passage-content-${idx}" class="p-3 bg-light rounded-3 mb-3 text-dark fw-medium" style="max-height: 300px; overflow-y:auto; line-height:1.6; white-space: pre-wrap;">${wsFormatTranscript(q.passage || q.groupContent || q.content)}</div>
+                                
                                 <h6 class="fw-bold mb-3 border-bottom pb-2">Danh sách câu hỏi con:</h6>
                                 <div class="d-flex flex-column gap-2 ps-3">
                                     ${(q.questions || []).map((subQ, sIdx) => {
@@ -1682,8 +1634,8 @@
                                 ${ansHtml}
                             </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
+                }
             });
             list.innerHTML = html;
         }

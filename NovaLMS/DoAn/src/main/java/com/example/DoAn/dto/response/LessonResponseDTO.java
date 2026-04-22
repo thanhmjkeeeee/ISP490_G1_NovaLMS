@@ -32,6 +32,7 @@ public class LessonResponseDTO {
 
     private Integer latestResultId;
     private String gradingStatus;
+    private Boolean passed;
     private boolean isSequential;
     private Boolean canRetake;
     private Integer attemptsLeft;

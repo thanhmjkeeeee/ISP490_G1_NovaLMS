@@ -445,20 +445,26 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId,
                         item.getQuestionId());
                 if (answer != null) {
-                    answer.setPointsAwarded(item.getPointsAwarded());
-                    answer.setTeacherNote(item.getTeacherNote());
-                    answer.setIsCorrect(
-                            item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
-
-                    // Set override score for recalculateQuizResult logic
-                    if (item.getPointsAwarded() != null) {
-                        answer.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                    BigDecimal awarded = item.getPointsAwarded();
+                    if (awarded != null) {
+                        // Validate points
+                        BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), answer.getQuestion());
+                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
+                            throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId() 
+                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxPts + ".");
+                        }
+                        
+                        answer.setPointsAwarded(awarded);
+                        answer.setTeacherOverrideScore(awarded.toString());
                         answer.setPendingAiReview(false);
                         answer.setAiGradingStatus("COMPLETED");
                     } else {
+                        answer.setPointsAwarded(null);
                         answer.setTeacherOverrideScore(null);
                     }
-
+                    
+                    answer.setTeacherNote(item.getTeacherNote());
+                    answer.setIsCorrect(awarded != null && awarded.compareTo(BigDecimal.ZERO) > 0);
                     quizAnswerRepository.save(answer);
                 }
             }

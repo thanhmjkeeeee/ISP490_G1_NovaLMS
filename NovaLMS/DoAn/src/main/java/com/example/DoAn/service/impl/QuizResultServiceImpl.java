@@ -186,6 +186,15 @@ public class QuizResultServiceImpl implements QuizResultService {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
 
+        // CHẶN LÀM LẠI KHI ĐANG CHỜ CHẤM ĐIỂM
+        Optional<QuizResult> latestResultOpt = quizResultRepository.findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, user.getUserId());
+        if (latestResultOpt.isPresent()) {
+            QuizResult latest = latestResultOpt.get();
+            if (latest.getPassed() == null && !"IN_PROGRESS".equals(latest.getStatus()) && !"LOCKED".equals(latest.getStatus())) {
+                throw new RuntimeException("Bài làm trước đó của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại.");
+            }
+        }
+
         List<QuizQuestion> quizQuestions = quiz.getQuizQuestions();
         if ("RANDOM".equals(quiz.getQuestionOrder())) {
             List<QuizQuestion> shuffled = new ArrayList<>(quizQuestions);
@@ -1023,8 +1032,19 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             // Apply teacher grading
             if (item != null && item.getPointsAwarded() != null) {
-                ans.setPointsAwarded(item.getPointsAwarded());
-                ans.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                BigDecimal awarded = item.getPointsAwarded();
+                
+                // Fetch max points for this question in this quiz
+                BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId)
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                        .orElse(BigDecimal.ONE);
+                
+                if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
+                    throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + qId + " không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+                }
+
+                ans.setPointsAwarded(awarded);
+                ans.setTeacherOverrideScore(awarded.toString());
                 ans.setTeacherNote(item.getTeacherNote());
                 ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
                 ans.setPendingAiReview(false);
@@ -1500,7 +1520,24 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
+        BigDecimal decimalScore;
+        try {
+            decimalScore = new BigDecimal(score);
+        } catch (Exception e) {
+            throw new RuntimeException("Điểm số không hợp lệ: " + score);
+        }
+
+        // Validate range
+        BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), answer.getQuestion().getQuestionId())
+                .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                .orElse(BigDecimal.ONE);
+        
+        if (decimalScore.compareTo(BigDecimal.ZERO) < 0 || decimalScore.compareTo(maxPts) > 0) {
+            throw new RuntimeException("Số điểm chấm (" + decimalScore + ") không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+        }
+
         answer.setTeacherOverrideScore(score);
+        answer.setPointsAwarded(decimalScore); // Ensure pointsAwarded is also updated for consistency
         answer.setAiGradingStatus("REVIEWED");
         quizAnswerRepository.save(answer);
 

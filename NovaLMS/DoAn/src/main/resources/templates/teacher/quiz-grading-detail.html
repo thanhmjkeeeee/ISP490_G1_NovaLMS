@@ -399,18 +399,52 @@
         if (submitBtn) {
             submitBtn.addEventListener('click', async () => {
                 const gradingItems = [];
+                let hasError = false;
+
                 document.querySelectorAll('.grading-box').forEach(box => {
+                    if (hasError) return;
                     const qId = parseInt(box.getAttribute('data-qid'));
                     const scoreInput = box.querySelector('.score-input');
                     const noteInput = box.querySelector('.note-input');
-                    if (scoreInput) {
+                    if (scoreInput && !scoreInput.hasAttribute('readonly')) {
+                        const valStr = scoreInput.value.trim();
+                        // Kiểm tra kí tự chữ
+                        if (valStr === "" || isNaN(valStr)) {
+                            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Vui lòng nhập điểm số hợp lệ cho câu hỏi số ${qId}.` });
+                            hasError = true;
+                            return;
+                        }
+
+                        const score = parseFloat(valStr);
+                        const max = parseFloat(scoreInput.max) || 0;
+
+                        if (score < 0) {
+                            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Điểm chấm cho câu số ${qId} không được là số âm.` });
+                            hasError = true;
+                            return;
+                        }
+                        if (score > max) {
+                            Swal.fire({ icon: 'warning', title: 'Vượt quá điểm tối đa', text: `Điểm chấm cho câu số ${qId} không được vượt quá ${max} điểm.` });
+                            hasError = true;
+                            return;
+                        }
+
                         gradingItems.push({
+                            questionId: qId,
+                            pointsAwarded: score,
+                            teacherNote: noteInput ? (noteInput.value || '') : ''
+                        });
+                    } else if (scoreInput && scoreInput.hasAttribute('readonly')) {
+                         // Even if readonly, we should still include it in recalculation if it's there
+                         gradingItems.push({
                             questionId: qId,
                             pointsAwarded: parseFloat(scoreInput.value) || 0,
                             teacherNote: noteInput ? (noteInput.value || '') : ''
                         });
                     }
                 });
+
+                if (hasError) return;
 
                 const btn = document.getElementById('submitGradesBtn');
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';

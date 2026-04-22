@@ -321,10 +321,34 @@ function renderQuestion(q, qi, isAutoGraded) {
 function submitGrade() {
     const gradingItems  = [];
     const sectionScores = { LISTENING: 0, READING: 0, SPEAKING: 0, WRITING: 0 };
+    let hasError = false;
 
     document.querySelectorAll('.teacher-score').forEach(input => {
+        if (hasError) return;
         const qId   = parseInt(input.dataset.questionId);
-        const score = parseFloat(input.value) || 0;
+        const valStr = input.value.trim();
+        
+        // Validation
+        if (valStr === "" || isNaN(valStr)) {
+            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Vui lòng nhập điểm số hợp lệ cho câu hỏi số ${qId}.` });
+            hasError = true;
+            return;
+        }
+
+        const score = parseFloat(valStr);
+        const max   = parseFloat(input.dataset.max) || 0;
+
+        if (score < 0) {
+            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Điểm chấm cho câu số ${qId} không được là số âm.` });
+            hasError = true;
+            return;
+        }
+        if (score > max) {
+            Swal.fire({ icon: 'warning', title: 'Vượt quá điểm tối đa', text: `Điểm chấm cho câu số ${qId} không được vượt quá ${max} điểm.` });
+            hasError = true;
+            return;
+        }
+
         const note  = document.querySelector(`.teacher-note[data-question-id="${qId}"]`)?.value || '';
         gradingItems.push({ questionId: qId, pointsAwarded: score, teacherNote: note });
 
@@ -336,6 +360,8 @@ function submitGrade() {
                            q.questionType === 'WRITING'  ? 'WRITING'  :
                            'LISTENING'] += score;
     });
+
+    if (hasError) return;
 
     // Include auto-graded section totals
     gradingData.sections.forEach(s => {

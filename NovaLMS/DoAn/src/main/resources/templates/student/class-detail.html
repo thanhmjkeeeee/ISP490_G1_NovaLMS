@@ -582,6 +582,10 @@
                 } else if (!canRetake) {
                     lockedState = 'opacity: 0.6; cursor: not-allowed;';
                     onclick = `onclick="Swal.fire('Thông báo', 'Bạn đã hết lượt làm bài tập này!', 'info')"` ;
+                } else if (q.latestResultId && q.passed === null) {
+                    // Đang chờ chấm điểm -> Không cho làm lại
+                    lockedState = 'opacity: 0.6; cursor: not-allowed;';
+                    onclick = `onclick="Swal.fire('Thông báo', 'Bài làm của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại!', 'info')"` ;
                 } else if (qId) {
                     url = `/student/quiz/take/${qId}?classId=${classIdFromUrl}&sessionId=${session.sessionId}`;
                     onclick = `onclick="confirmStartQuiz('${url}', '${wsEscape(title)}'); return false;"`;
@@ -591,6 +595,7 @@
 
                 const latestResultId = q.latestResultId;
                 const isSequential = q.isSequential;
+                const isWaitingGrade = q.latestResultId && q.passed === null;
 
                 quizzesHtml += `
                     <div class="action-card shadow-sm" style="${lockedState}">
@@ -602,13 +607,13 @@
                                 <div class="card-title">${title} ${!canRetake ? '<span class="badge bg-danger ms-2" style="font-size:0.6rem">No Attempts Left</span>' : ''}</div>
                                 <div class="card-subtitle">${isSequential ? 'Bài tập nâng cao • Chấm thủ công' : 'Trắc nghiệm • Tự động'}</div>
                             </div>
-                            ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : (canRetake ? '<i class="bi bi-chevron-right arrow-icon"></i>' : '<i class="bi bi-slash-circle text-danger"></i>')}
+                            ${isLocked ? '<i class="bi bi-lock-fill text-muted"></i>' : (isWaitingGrade ? '<i class="bi bi-hourglass-split text-warning"></i>' : (canRetake ? '<i class="bi bi-chevron-right arrow-icon"></i>' : '<i class="bi bi-slash-circle text-danger"></i>'))}
                         </a>
                         ${!isLocked && latestResultId ? `
                             <div class="mt-2 pt-2 border-top d-flex justify-content-end w-100">
                                 <a href="${isSequential ? '/student/assignment/result/' : '/student/quiz/result/'}${latestResultId}" 
                                    class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                    <i class="bi bi-eye-fill me-1"></i> Xem kết quả
+                                    <i class="bi bi-eye-fill me-1"></i> ${isWaitingGrade ? 'Xem trạng thái' : 'Xem kết quả'}
                                 </a>
                             </div>
                         ` : ''}
@@ -769,17 +774,22 @@
             const isSequential = q.isSequential;
             
             let statusHtml = '';
+            const isWaitingGrade = q.latestResultId && q.passed === null;
+
             if (isLocked) {
                 statusHtml = '<span class="badge bg-secondary">Chưa mở</span>';
             } else if (!canRetake) {
                 statusHtml = '<span class="badge bg-danger">Hết lượt làm</span>';
+            } else if (isWaitingGrade) {
+                statusHtml = '<span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Chờ chấm điểm</span>';
             } else if (q.latestResultId) {
                 statusHtml = `<span class="badge bg-success">Đã hoàn thành</span> <small class="text-muted">(Còn ${attemptsLeft === -1 ? '∞' : attemptsLeft} lượt)</small>`;
             } else {
                 statusHtml = '<span class="badge bg-info">Chưa làm</span>';
             }
 
-            const url = isLocked || !canRetake ? 'javascript:void(0)' : `/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${q.sessionId}`;
+            const url = isLocked || !canRetake || isWaitingGrade ? 'javascript:void(0)' : `/student/quiz/take/${q.quizId}?classId=${classIdFromUrl}&sessionId=${q.sessionId}`;
+            const onclick = isWaitingGrade ? `onclick="Swal.fire('Thông báo', 'Bài làm của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại!', 'info')"` : '';
 
             html += `
             <div class="col-md-6 mb-3">
@@ -795,21 +805,22 @@
                         <p class="text-muted small mb-3">Buổi học ${q.sessionNo} • ${isSequential ? 'Sequential flow' : 'Direct quiz'}</p>
                         
                         <div class="d-flex gap-2">
-                            ${!isLocked && canRetake ? `
+                            ${!isLocked && canRetake && !isWaitingGrade ? `
                                 <a href="${url}" onclick="confirmStartQuiz('${url}', '${wsEscape(q.lessonTitle || q.lessonName)}'); return false;" class="btn btn-sm btn-primary rounded-pill px-3 flex-grow-1">
                                     <i class="bi bi-play-fill"></i> ${q.latestResultId ? 'Làm lại bài' : 'Bắt đầu làm'}
                                 </a>
                             ` : `
                                 <button class="btn btn-sm btn-secondary rounded-pill px-3 flex-grow-1" 
-                                        onclick="${!isLocked && !canRetake ? 'Swal.fire(\'Thông báo\', \'Bạn đã hết lượt làm bài tập này!\', \'info\')' : ''}"
+                                        onclick="${isWaitingGrade ? onclick : (!isLocked && !canRetake ? 'Swal.fire(\'Thông báo\', \'Bạn đã hết lượt làm bài tập này!\', \'info\')' : '')}"
                                         ${isLocked ? 'disabled' : ''}>
-                                    <i class="bi ${isLocked ? 'bi-lock-fill' : 'bi-x-circle'}"></i> ${isLocked ? 'Chưa mở' : 'Hết lượt làm'}
+                                    <i class="bi ${isLocked ? 'bi-lock-fill' : (isWaitingGrade ? 'bi-hourglass-split' : 'bi-x-circle')}"></i> 
+                                    ${isLocked ? 'Chưa mở' : (isWaitingGrade ? 'Chờ chấm điểm' : 'Hết lượt làm')}
                                 </button>
                             `}
                             ${q.latestResultId ? `
                                 <a href="${isSequential ? '/student/assignment/result/' : '/student/quiz/result/'}${q.latestResultId}" 
                                    class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                    <i class="bi bi-eye"></i> Kết quả
+                                    <i class="bi bi-eye"></i> ${isWaitingGrade ? 'Trạng thái' : 'Kết quả'}
                                 </a>
                             ` : ''}
                         </div>
