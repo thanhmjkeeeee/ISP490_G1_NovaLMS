@@ -58,9 +58,6 @@ public class TeacherAssignmentPreviewApiController {
             Map<Integer, Object> answers = (Map<Integer, Object>) body.get("answers");
             Map<String, Object> result = assignmentService.submitSection(
                     sessionId, skill, answers, auth.getName());
-            
-            // In preview, we might want to redirect back or show a message
-            // But for now, just let it proceed like a normal assignment
             return ResponseData.success(result);
         } catch (Exception e) {
             return ResponseData.error(400, e.getMessage());

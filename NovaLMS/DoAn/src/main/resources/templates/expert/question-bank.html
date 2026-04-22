@@ -13,7 +13,7 @@
 
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý ngân hàng đề</h3>
+            <h3 class="fw-bold m-0" style="color: #223a58;">Quản lý ngân hàng câu hỏi</h3>
             <p class="text-muted small m-0">Quản lý toàn bộ câu hỏi trong hệ thống.</p>
         </div>
         <div class="d-flex gap-2">
@@ -322,7 +322,13 @@ function renderTable(data) {
                 </td>
                 <td class="text-center">${q.skill || '—'}</td>
                 <td class="text-center"><span class="badge bg-primary">${q.cefrLevel || '—'}</span></td>
-                <td class="text-center"><span class="badge bg-info text-dark">${typeName(q.questionType)}</span></td>
+                <td class="text-center align-middle">
+                    <span class="badge bg-info text-dark text-truncate d-inline-block"
+                          style="width: 120px; vertical-align: middle; padding: 6px 8px;"
+                          title="${typeName(q.questionType)}">
+                        ${typeName(q.questionType)}
+                    </span>
+                </td>
                 <td class="text-center">${statusBadge(q.status)}</td>
                 <td class="text-center"><span class="badge bg-light text-dark">${q.usedInQuizCount}</span></td>
                 <td class="px-3">
