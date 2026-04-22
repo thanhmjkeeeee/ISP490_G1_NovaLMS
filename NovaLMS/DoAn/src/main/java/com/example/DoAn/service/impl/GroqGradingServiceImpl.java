@@ -30,7 +30,6 @@ import java.util.Map;
 public class GroqGradingServiceImpl implements GroqGradingService {
 
     private final GroqClient groqClient;
-    private final QuizQuestionRepository quizQuestionRepository;
     private final TransactionTemplate transactionTemplate;
     private final QuizAnswerRepository quizAnswerRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
