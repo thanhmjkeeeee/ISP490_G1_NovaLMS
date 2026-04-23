@@ -40,13 +40,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final ITextToSpeechService ttsService;
     private final FileUploadService fileUploadService;
 
-    @Value("${ai.api.key:}")
+    @Value("${ai.api.key:${groq.api.key:}}")
     private String aiApiKey;
 
-    @Value("${ai.model:apilms}")
+    @Value("${ai.model:${groq.model:llama-3.3-70b-versatile}}")
     private String aiModel;
 
-    @Value("${ai.api.url:http://localhost:20128/v1/chat/completions}")
+    @Value("${ai.api.url:${groq.api.url:https://api.groq.com/openai/v1}}")
     private String aiApiUrlBase;
 
     // OkHttpClient — uses OS DNS resolver, works on all environments
@@ -418,11 +418,60 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private String cleanAiJson(String rawJson) {
         if (rawJson == null) return "";
         String cleaned = rawJson.trim();
+        // Strip markdown code fences
         if (cleaned.startsWith("```json")) cleaned = cleaned.substring(7);
         else if (cleaned.startsWith("```")) cleaned = cleaned.substring(3);
         if (cleaned.endsWith("```")) cleaned = cleaned.substring(0, cleaned.length() - 3);
-        return cleaned.trim();
+        cleaned = cleaned.trim();
+
+        // Groq/LLaMA sometimes emits literal newlines (ASCII 10/13) inside JSON string values.
+        // Jackson strict mode rejects these — sanitize them before parsing.
+        cleaned = sanitizeJsonControlChars(cleaned);
+
+        return cleaned;
     }
+
+    /**
+     * Escapes literal control characters inside JSON string literals.
+     * Walks the string char-by-char tracking whether we are inside a JSON string.
+     */
+    private String sanitizeJsonControlChars(String json) {
+        if (json == null) return "";
+        StringBuilder sb = new StringBuilder(json.length() + 64);
+        boolean inString = false;
+        boolean escaped  = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                sb.append(c);
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                sb.append(c);
+                continue;
+            }
+            if (c == '"') {
+                inString = !inString;
+                sb.append(c);
+                continue;
+            }
+            if (inString) {
+                // Escape literal control characters that are illegal inside JSON strings
+                switch (c) {
+                    case '\n' -> sb.append("\\n");
+                    case '\r' -> sb.append("\\r");
+                    case '\t' -> sb.append("\\t");
+                    default   -> { if (c < 0x20) sb.append(' '); else sb.append(c); }
+                }
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
 
     private List<QuestionDTO> parseQuestions(String rawJson, int requested) {
         String cleaned = cleanAiJson(rawJson);

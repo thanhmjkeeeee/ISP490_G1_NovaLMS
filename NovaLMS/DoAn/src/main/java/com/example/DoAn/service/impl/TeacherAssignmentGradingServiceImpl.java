@@ -59,7 +59,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
-            return "SPEAKING".equalsIgnoreCase(q.getSkill())
+            return ("SPEAKING".equalsIgnoreCase(q.getSkill()) || "SPEAKING".equalsIgnoreCase(q.getQuestionType()))
                     && a.getPointsAwarded() == null;
         });
     }
@@ -68,7 +68,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(r.getResultId());
         return answers.stream().anyMatch(a -> {
             Question q = a.getQuestion();
-            return "WRITING".equalsIgnoreCase(q.getSkill())
+            return ("WRITING".equalsIgnoreCase(q.getSkill()) || "WRITING".equalsIgnoreCase(q.getQuestionType()))
                     && a.getPointsAwarded() == null;
         });
     }
@@ -137,7 +137,11 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             Integer quizId, List<QuizAnswer> answers, String skill) {
 
         List<QuizAnswer> sectionAnswers = answers.stream()
-                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                .filter(a -> {
+                    String s = a.getQuestion().getSkill();
+                    String t = a.getQuestion().getQuestionType();
+                    return skill.equalsIgnoreCase(s) || skill.equalsIgnoreCase(t);
+                })
                 .toList();
 
         if (sectionAnswers.isEmpty())
@@ -253,8 +257,14 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         Map<String, List<QuizAnswer>> bySkill = new LinkedHashMap<>();
         for (QuizAnswer a : answers) {
             Question q = a.getQuestion();
-            String skill = q.getSkill() != null ? q.getSkill() : "OTHER";
-            bySkill.computeIfAbsent(skill, k -> new ArrayList<>()).add(a);
+            String skill = q.getSkill();
+            if (skill == null || skill.isBlank() || "GENERAL".equalsIgnoreCase(skill)) {
+                if ("WRITING".equalsIgnoreCase(q.getQuestionType()) || "SPEAKING".equalsIgnoreCase(q.getQuestionType())) {
+                    skill = q.getQuestionType().toUpperCase();
+                }
+            }
+            if (skill == null) skill = "OTHER";
+            bySkill.computeIfAbsent(skill.toUpperCase(), k -> new ArrayList<>()).add(a);
         }
 
         AssignmentGradingDetailDTO dto = new AssignmentGradingDetailDTO();
@@ -435,20 +445,26 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(resultId,
                         item.getQuestionId());
                 if (answer != null) {
-                    answer.setPointsAwarded(item.getPointsAwarded());
-                    answer.setTeacherNote(item.getTeacherNote());
-                    answer.setIsCorrect(
-                            item.getPointsAwarded() != null && item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
-
-                    // Set override score for recalculateQuizResult logic
-                    if (item.getPointsAwarded() != null) {
-                        answer.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                    BigDecimal awarded = item.getPointsAwarded();
+                    if (awarded != null) {
+                        // Validate points
+                        BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), answer.getQuestion());
+                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
+                            throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId() 
+                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxPts + ".");
+                        }
+                        
+                        answer.setPointsAwarded(awarded);
+                        answer.setTeacherOverrideScore(awarded.toString());
                         answer.setPendingAiReview(false);
                         answer.setAiGradingStatus("COMPLETED");
                     } else {
+                        answer.setPointsAwarded(null);
                         answer.setTeacherOverrideScore(null);
                     }
-
+                    
+                    answer.setTeacherNote(item.getTeacherNote());
+                    answer.setIsCorrect(awarded != null && awarded.compareTo(BigDecimal.ZERO) > 0);
                     quizAnswerRepository.save(answer);
                 }
             }

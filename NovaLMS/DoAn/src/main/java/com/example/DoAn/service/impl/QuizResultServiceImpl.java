@@ -186,6 +186,15 @@ public class QuizResultServiceImpl implements QuizResultService {
             throw new RuntimeException("Bạn đã hết lượt làm bài. Số lần làm tối đa: " + quiz.getMaxAttempts());
         }
 
+        // CHẶN LÀM LẠI KHI ĐANG CHỜ CHẤM ĐIỂM
+        Optional<QuizResult> latestResultOpt = quizResultRepository.findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, user.getUserId());
+        if (latestResultOpt.isPresent()) {
+            QuizResult latest = latestResultOpt.get();
+            if (latest.getPassed() == null && !"IN_PROGRESS".equals(latest.getStatus()) && !"LOCKED".equals(latest.getStatus())) {
+                throw new RuntimeException("Bài làm trước đó của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại.");
+            }
+        }
+
         List<QuizQuestion> quizQuestions = quiz.getQuizQuestions();
         if ("RANDOM".equals(quiz.getQuestionOrder())) {
             List<QuizQuestion> shuffled = new ArrayList<>(quizQuestions);
@@ -1023,8 +1032,19 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             // Apply teacher grading
             if (item != null && item.getPointsAwarded() != null) {
-                ans.setPointsAwarded(item.getPointsAwarded());
-                ans.setTeacherOverrideScore(item.getPointsAwarded().toString());
+                BigDecimal awarded = item.getPointsAwarded();
+                
+                // Fetch max points for this question in this quiz
+                BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId)
+                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                        .orElse(BigDecimal.ONE);
+                
+                if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
+                    throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + qId + " không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+                }
+
+                ans.setPointsAwarded(awarded);
+                ans.setTeacherOverrideScore(awarded.toString());
                 ans.setTeacherNote(item.getTeacherNote());
                 ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
                 ans.setPendingAiReview(false);
@@ -1310,20 +1330,52 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
+        // ── Tính band dựa theo cefrLevel của câu hỏi (không dùng bảng IELTS chuẩn) ──────────
+        // Logic: achievedBand = avgCefrOfSkill × (rawScore / maxScore)
+        // Ví dụ: câu hỏi Band 5.0, đúng 100% → Band 5.0 (không phải 9.0)
+        Map<String, Double> skillCefrSum   = new HashMap<>();
+        Map<String, Integer> skillCefrCount = new HashMap<>();
+
+        for (QuizAnswer a : answers) {
+            Question q = a.getQuestion();
+            String skill = (q.getSkill() != null ? q.getSkill() : "DEFAULT").toUpperCase();
+            String cefrRaw = q.getCefrLevel();
+            if (cefrRaw != null && !cefrRaw.isBlank()) {
+                try {
+                    double cefrVal = Double.parseDouble(cefrRaw.trim());
+                    skillCefrSum.put(skill, skillCefrSum.getOrDefault(skill, 0.0) + cefrVal);
+                    skillCefrCount.put(skill, skillCefrCount.getOrDefault(skill, 0) + 1);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+
         Map<String, Double> skillBands = new HashMap<>();
         for (String skill : skillMaxScore.keySet()) {
             double raw = skillRawScore.getOrDefault(skill, 0.0);
             double max = skillMaxScore.get(skill);
+            double ratio = max > 0 ? raw / max : 0.0;
+
+            // Lấy cefrLevel trung bình của skill này (ceiling của band đạt được)
+            double avgCefr = 9.0; // mặc định nếu câu hỏi không có cefrLevel
+            if (skillCefrCount.containsKey(skill) && skillCefrCount.get(skill) > 0) {
+                avgCefr = skillCefrSum.get(skill) / skillCefrCount.get(skill);
+            }
 
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
-                skillBands.put(skill, max > 0 ? (raw / max) * 9.0 : 0.0);
+                // Writing/Speaking: AI đã cho điểm band (0-9), nhân tỷ lệ rồi cap theo avgCefr
+                double rawBand = max > 0 ? (raw / max) * 9.0 : 0.0;
+                skillBands.put(skill, Math.min(rawBand, avgCefr));
             } else {
-                skillBands.put(skill, IELTSScoreMapper.mapRawToBand(raw, max, skill));
+                // Reading/Listening/Grammar/Vocab: band = avgCefr × ratio
+                double achieved = avgCefr * ratio;
+                // Làm tròn theo quy tắc IELTS (bước 0.5)
+                skillBands.put(skill, IELTSScoreMapper.roundToIELTS(achieved));
             }
         }
 
         double overallBandScore = IELTSScoreMapper.calculateOverallBand(skillBands);
         result.setOverallBand(BigDecimal.valueOf(overallBandScore));
+
 
         double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
@@ -1333,32 +1385,35 @@ public class QuizResultServiceImpl implements QuizResultService {
             result.setCorrectRate(correctRate);
             result.setScore((int) Math.round(totalRaw));
 
-            // Set passed if no longer pending
-            if (!anyPending) {
-                Quiz quiz = result.getQuiz();
+            // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as GRADED
+            Quiz quiz = result.getQuiz();
+            boolean hasManual = quiz.getQuizQuestions().stream()
+                    .anyMatch(qq -> {
+                        String skill = qq.getQuestion().getSkill();
+                        String qType = qq.getQuestion().getQuestionType();
+                        return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)
+                                || "WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType);
+                    });
+
+            if (!"LOCKED".equals(result.getStatus())) {
+                if (!hasManual) {
+                    result.setStatus("GRADED");
+                } else {
+                    // Nếu có câu tự luận, chỉ đặt SUBMITTED nếu chưa được chấm xong (GRADED)
+                    if (!"GRADED".equals(result.getStatus())) {
+                        result.setStatus("SUBMITTED");
+                    }
+                }
+            }
+
+            // Set passed if:
+            // 1. AI is done (!anyPending)
+            // 2. AND (No manual content (!hasManual) OR Teacher has finalized (GRADED))
+            if (!anyPending && (!hasManual || "GRADED".equals(result.getStatus()))) {
                 if (quiz.getPassScore() != null) {
                     result.setPassed(correctRate.compareTo(quiz.getPassScore()) >= 0);
                 } else {
                     result.setPassed(true);
-                }
-
-                // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
-                // GRADED
-                boolean hasManual = quiz.getQuizQuestions().stream()
-                        .anyMatch(qq -> {
-                            String skill = qq.getQuestion().getSkill();
-                            return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill);
-                        });
-
-                if (!"LOCKED".equals(result.getStatus())) {
-                    if (!hasManual) {
-                        result.setStatus("GRADED");
-                    } else {
-                        // Nếu có câu tự luận, chỉ đặt SUBMITTED nếu chưa được chấm xong (GRADED)
-                        if (!"GRADED".equals(result.getStatus())) {
-                            result.setStatus("SUBMITTED");
-                        }
-                    }
                 }
 
                 // If passed, mark lesson completed
@@ -1367,6 +1422,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                         learningService.markLessonCompleted(l.getLessonId(), result.getUser().getEmail());
                     });
                 }
+            } else {
+                // Keep as null to trigger "Waiting for Grade" UI for students
+                result.setPassed(null);
             }
         }
 
@@ -1462,7 +1520,24 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
+        BigDecimal decimalScore;
+        try {
+            decimalScore = new BigDecimal(score);
+        } catch (Exception e) {
+            throw new RuntimeException("Điểm số không hợp lệ: " + score);
+        }
+
+        // Validate range
+        BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), answer.getQuestion().getQuestionId())
+                .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
+                .orElse(BigDecimal.ONE);
+        
+        if (decimalScore.compareTo(BigDecimal.ZERO) < 0 || decimalScore.compareTo(maxPts) > 0) {
+            throw new RuntimeException("Số điểm chấm (" + decimalScore + ") không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+        }
+
         answer.setTeacherOverrideScore(score);
+        answer.setPointsAwarded(decimalScore); // Ensure pointsAwarded is also updated for consistency
         answer.setAiGradingStatus("REVIEWED");
         quizAnswerRepository.save(answer);
 

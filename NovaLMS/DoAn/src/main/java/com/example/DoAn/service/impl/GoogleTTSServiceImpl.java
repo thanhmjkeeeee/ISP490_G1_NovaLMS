@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class GoogleTTSServiceImpl implements ITextToSpeechService {
 
-    @Value("${ai.api.key}")
+    @Value("${google.api.key:${ai.api.key:}}")
     private String apiKey;
 
     private final ObjectMapper objectMapper;

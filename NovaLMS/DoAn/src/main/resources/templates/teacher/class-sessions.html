@@ -1642,10 +1642,23 @@
             if (json.status === 200) {
                 loadData();
             } else {
-                alert(json.message || 'Lỗi khi mở/đóng quiz');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể mở Quiz',
+                        text: json.message || 'Lỗi khi mở/đóng quiz',
+                        confirmButtonText: 'Đã hiểu'
+                    });
+                } else {
+                    alert(json.message || 'Lỗi khi mở/đóng quiz');
+                }
             }
         } catch (e) {
-            alert('Lỗi kết nối: ' + e.message);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire('Lỗi', 'Lỗi kết nối: ' + e.message, 'error');
+            } else {
+                alert('Lỗi kết nối: ' + e.message);
+            }
         }
     };
 

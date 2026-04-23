@@ -40,34 +40,26 @@ public class AIQuestionPromptBuilder {
                 Requirements:
                 - Question types: %s
                 - IELTS Band: EXACTLY %s. DO NOT use any other level.
-                - STRICTNESS: The complexity of vocabulary, grammar, and sentence structure MUST be strictly appropriate for IELTS Band %s. DO NOT use advanced language from higher bands.
+                - STRICTNESS: The complexity of vocabulary, grammar, and sentence structure MUST be strictly appropriate for IELTS Band %s.
                 %s
-                - Every question must have: content (The question text), transcript (REQUIRED for LISTENING skill: a natural dialogue or monologue script with SPECIFIC English names like 'John', 'Mary' (NOT 'Man', 'Woman'). Each line MUST start with 'Name [Male/Female]: ...', e.g., 'Robert [Male]: Hello!\\nSarah [Female]: Hi!'), questionType, skill, cefrLevel (store the IELTS Band here, e.g., "5.5"), topic, explanation (can be null)
+                - Every question must have: content (The question text), transcript (REQUIRED for LISTENING skill: a natural dialogue between 2-3 characters with SPECIFIC English names like 'Sarah', 'Robert', 'Michael'. FORBIDDEN: 'Man', 'Woman', 'Speaker', 'A', 'B'. Each line MUST start with 'Name [Male/Female]: ...', e.g., 'Robert [Male]: Hello!\\nSarah [Female]: Hi!'), questionType, skill, cefrLevel (IELTS Band), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
                 - FILL_IN_BLANK: content contains "___", correctAnswer is the answer (For LISTENING, focus on short 1-3 word answers or numbers)
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index order)
                 - WRITING, SPEAKING: no options needed
 
-                CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "5.0", "6.5"). DO NOT use "A1", "B2", etc.
-                IMPORTANT: Every "title" field must contain real ENGLISH text. Do NOT leave title as null, empty, or a number.
-
                 Return ONLY a JSON array, no other text:
                 [
                   {
                     "content": "...",
-                    "transcript": "...",
+                    "transcript": "Sarah [Female]: Hello Robert.\\nRobert [Male]: Hi Sarah...",
                     "questionType": "...",
                     "skill": "...",
                     "cefrLevel": "...",
                     "topic": "%s",
                     "explanation": "...",
-                    "options": [
-                      {"title": "Paris", "correct": true},
-                      {"title": "London", "correct": false},
-                      {"title": "Berlin", "correct": false},
-                      {"title": "Madrid", "correct": false}
-                    ],
+                    "options": [...],
                     "correctAnswer": "...",
                     "matchLeft": [...],
                     "matchRight": [...],
@@ -76,7 +68,7 @@ public class AIQuestionPromptBuilder {
                 ]
                 """
                 .formatted(quantity, topic, quantity, types, cefr, cefr, skillConstraint, topic);
-}
+    }
 
     public String buildContextPrompt(String moduleName, String lessonSummary,
             int quantity, List<String> questionTypes, String skill, String cefr, Map<String, Object> advancedOptions) {
@@ -101,42 +93,16 @@ public class AIQuestionPromptBuilder {
                 Requirements:
                 - Question types: %s
                 - IELTS Band: EXACTLY %s. DO NOT use any other level.
-                - STRICTNESS: The complexity of vocabulary, grammar, and sentence structure MUST be strictly appropriate for IELTS Band %s. DO NOT use advanced language from higher bands.
                 %s
-                - Every question must have: content (The question text), transcript (REQUIRED for LISTENING skill: a natural dialogue or monologue script with SPECIFIC English names (NOT 'Man', 'Woman'). Each line MUST start with 'Name [Male/Female]: ...', e.g., 'Professor Jones [Male]: Welcome...'), questionType, skill, cefrLevel (store the IELTS Band here, e.g. "6.0"), topic, explanation (can be null)
+                - Every question must have: content, transcript (REQUIRED for LISTENING skill: a natural dialogue between 2-3 characters with REAL English names like 'Emily', 'David', 'Chris'. FORBIDDEN: 'Man', 'Woman', 'Speaker'. Each line MUST start with 'Name [Male/Female]: ...', e.g., 'David [Male]: Welcome...'), questionType, skill, cefrLevel (IELTS Band), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
-                - FILL_IN_BLANK: content contains "___", correctAnswer is the answer (For LISTENING, focus on short 1-3 word answers or numbers)
+                - FILL_IN_BLANK: content contains "___", correctAnswer is the answer
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index)
-                - WRITING, SPEAKING: no options needed
 
-                CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "5.0", "7.5"). DO NOT use letters like "B2".
-                IMPORTANT: Every "title" field must contain real ENGLISH text. Do NOT leave title as null, empty, or a number.
-
-                Return ONLY a JSON array, no other text:
-                [
-                  {
-                    "content": "...",
-                    "transcript": "...",
-                    "questionType": "...",
-                    "skill": "...",
-                    "cefrLevel": "...",
-                    "topic": "%s",
-                    "explanation": "...",
-                    "options": [
-                      {"title": "Paris", "correct": true},
-                      {"title": "London", "correct": false},
-                      {"title": "Berlin", "correct": false},
-                      {"title": "Madrid", "correct": false}
-                    ],
-                    "correctAnswer": "...",
-                    "matchLeft": [...],
-                    "matchRight": [...],
-                    "correctPairs": [...]
-                  }
-                ]
+                Return ONLY a JSON array, no other text.
                 """
-                .formatted(moduleName, truncated, quantity, quantity, types, cefr, cefr, skillConstraint, constraints, moduleName);
+                .formatted(moduleName, truncated, quantity, quantity, types, cefr, skillConstraint, constraints);
     }
 
     /**
@@ -184,13 +150,11 @@ public class AIQuestionPromptBuilder {
         String taskInstruction = "LISTENING".equalsIgnoreCase(skillVal)
                 ? "Đoạn văn này sẽ được dùng làm kịch bản (transcript) cho bài nghe. " +
                   (isDialogue 
-                    ? "YÊU CẦU BẮT BUỘC: Đây PHẢI là một đoạn hội thoại (dialogue) tự nhiên giữa ít nhất một nhân vật NAM và một nhân vật NỮ. " +
-                      "KHÔNG được sử dụng tên nhân vật chung chung như 'Man', 'Woman', 'Speaker 1', 'A', 'B'. " +
-                      "BẮT BUỘC sử dụng các tên tiếng Anh cụ thể (ví dụ: Robert, Sarah, John, Mary, ...). " +
+                    ? "YÊU CẦU BẮT BUỘC: Đây PHẢI là một đoạn hội thoại (dialogue) tự nhiên giữa 2-3 nhân vật có TÊN RIÊNG cụ thể (ví dụ: Robert, Sarah, John, Mary, ...). " +
+                      "KHÔNG ĐƯỢC sử dụng tên nhân vật chung chung như 'Man', 'Woman', 'Speaker 1', 'A', 'B'. " +
                       "Mỗi lời thoại PHẢI bắt đầu bằng dòng mới và BẮT BUỘC có nhãn giới tính ngay sau tên để hệ thống đổi giọng, ví dụ: 'Robert [Male]: Hello Sarah!\\nSarah [Female]: Hi Robert, how are you?'."
                     : "YÊU CẦU: Đây PHẢI là một bản " + listenType + " (monologue/announcement). " +
-                      "Hãy sử dụng nhãn nhân vật cụ thể và giới tính ở đầu, ví dụ: 'Professor Smith [Male]: ...' hoặc 'Sarah [Female]: ...'.") +
-                  " Hãy sử dụng ĐA DẠNG các tên nhân vật tiếng Anh thực tế."
+                      "Sử dụng tên nhân vật cụ thể và nhãn giới tính ở đầu, ví dụ: 'Professor Smith [Male]: ...'.")
                 : "Đoạn văn này dùng cho bài đọc hiểu.";
 
         StringBuilder sb = new StringBuilder();
@@ -216,33 +180,10 @@ public class AIQuestionPromptBuilder {
         sb.append("}\n\n");
 
         sb.append("Rules:\n");
-        sb.append("- Generate EXACTLY ").append(questionCount)
-                .append(" questions objects in the 'questions' array. This is strict.\n");
-        sb.append("- FORBIDDEN: Do NOT generate WRITING or SPEAKING questions for Reading/Listening skills.\n");
-        sb.append("- Question types allowed: MULTIPLE_CHOICE_SINGLE, MULTIPLE_CHOICE_MULTI, FILL_IN_BLANK, MATCHING.");
-        if (!matchingConstraint.isEmpty())
-            sb.append(matchingConstraint);
-        sb.append("\n");
-        sb.append(
-                "- MULTIPLE_CHOICE_SINGLE: exactly 1 correct answer, at least 3 distractors, all options in English.\n");
-        sb.append("- MULTIPLE_CHOICE_MULTI: 2 or more correct answers (but not all).\n");
-        sb.append("- FILL_IN_BLANK: must have a correctAnswer field. The answer must be found in the text.\n");
-        sb.append(
-                "- MATCHING: matchLeft (words/phrases) and matchRight (definitions/meanings) must have the same size.\n");
-        sb.append(
-                "  CRITICAL - correctPairs format: a JSON array of PURE INTEGER indices (e.g. [3,2,1]). DO NOT use strings like '1-3'.\n");
-        sb.append(
-                "  The Nth value in correctPairs is the 1-based index in matchRight that matches the Nth item in matchLeft.\n");
-        sb.append("  Example: matchLeft=[\"Libraries\",\"Laboratories\"] matchRight=[\"books\",\"experiments\"]\n");
-        sb.append(
-                "    If Libraries→books (position 1) and Laboratories→experiments (position 2): correctPairs=[1,2]\n");
-        sb.append(
-                "    If Libraries→experiments (position 2) and Laboratories→books (position 1): correctPairs=[2,1]\n");
-        sb.append(
-                "  IMPORTANT: The passage MUST explicitly state each pair. If the passage only mentions 'Libraries provide books' then Libraries→books is valid. Do NOT guess pairs that are not clearly stated in the passage.\n");
-        sb.append("- All content, options, explanations MUST be in English only. No Vietnamese.\n");
-        sb.append("- Every 'title' must be real English text, not null, empty, or just a number.\n");
-        sb.append("- CRITICAL: The 'cefrLevel' field MUST be exactly \"").append(cefr).append("\". DO NOT use CEFR letters like B2.\n");
+        sb.append("- Generate EXACTLY ").append(questionCount).append(" questions in the 'questions' array.\n");
+        sb.append("- For LISTENING, use 2-3 different characters with REAL names (e.g., Emily, Chris, David).\n");
+        sb.append("- FORBIDDEN: Man, Woman, Speaker, A, B names.\n");
+        sb.append("- All content MUST be in English only. No Vietnamese.\n");
         sb.append("- Return ONLY the JSON object, no markdown fences, no commentary.\n");
 
         return sb.toString();
@@ -491,12 +432,12 @@ public class AIQuestionPromptBuilder {
                 String subTypeInstruction;
                 if ("Dialogue".equalsIgnoreCase(listenType) || "Interview".equalsIgnoreCase(listenType)) {
                     subTypeInstruction = "MANDATORY: This MUST be a " + (listenType != null ? listenType : "dialogue") + 
-                        " between at least one MALE [Male] and one FEMALE [Female] speaker. Every line MUST start with a speaker label and gender, e.g., 'David [Male]: ...' or 'Sarah [Female]: ...'.";
+                        " between 2-3 characters with REAL English names (e.g., Sarah, Robert, Michael). FORBIDDEN: Man, Woman, Speaker, A, B. Every line MUST start with a speaker label and gender, e.g., 'David [Male]: ...' or 'Sarah [Female]: ...'.";
                 } else if ("Lecture".equalsIgnoreCase(listenType) || "Announcement".equalsIgnoreCase(listenType) || "Monologue".equalsIgnoreCase(listenType)) {
                     subTypeInstruction = "MANDATORY: This MUST be a " + (listenType != null ? listenType : "monologue") + 
-                        ". Use a speaker label at the start, e.g., 'Lecturer [Male]: ...' or 'Speaker [Female]: ...'.";
+                        ". Use a REAL name at the start, e.g., 'Professor Smith [Male]: ...' or 'Dr. Miller [Female]: ...'. FORBIDDEN: Man, Woman, Speaker.";
                 } else {
-                    subTypeInstruction = "Generate a realistic listening scenario (dialogue or monologue) with clear speaker labels and gender tags [Male]/[Female].";
+                    subTypeInstruction = "Generate a realistic listening scenario (dialogue between 2-3 people) with REAL English names and gender tags [Male]/[Female].";
                 }
                 taskTypeInstruction = "Generate a LISTENING task. The 'passage' field must contain the FULL transcript. " + subTypeInstruction + " Use diverse English names.";
             } else {
@@ -504,8 +445,8 @@ public class AIQuestionPromptBuilder {
             }
         } else {
             if ("LISTENING".equalsIgnoreCase(targetSkill)) {
-                taskTypeInstruction = "Generate independent LISTENING questions. For each question, you MUST provide a 'transcript' field containing a short dialogue or monologue (2-4 lines) that provides the context for the question. " +
-                    "Use speaker labels with gender, e.g., 'Man [Male]: ...' or 'Woman [Female]: ...'. The 'content' field should contain ONLY the actual question text.";
+                taskTypeInstruction = "Generate independent LISTENING questions. For each question, you MUST provide a 'transcript' field containing a natural dialogue between 2-3 characters (2-4 lines) with REAL English names. " +
+                    "FORBIDDEN: Man, Woman, Speaker. Use speaker labels with gender, e.g., 'Robert [Male]: ...' or 'Emily [Female]: ...'. The 'content' field should contain ONLY the actual question text.";
             } else {
                 taskTypeInstruction = "Generate independent advanced English questions.";
             }
@@ -525,7 +466,7 @@ public class AIQuestionPromptBuilder {
                   "questions": [
                     {
                       "content": "The actual question text (e.g. Where are they?)",
-                      "transcript": "The listening dialogue (e.g. Man: Hello...), REQUIRED if skill is LISTENING",
+                      "transcript": "Robert [Male]: Hello Sarah.\\nSarah [Female]: Hi Robert...",
                       "questionType": "...",
                       "options": [
                         { "title": "...", "correct": true },

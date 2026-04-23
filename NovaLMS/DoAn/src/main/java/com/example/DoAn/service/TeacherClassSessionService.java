@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -94,6 +95,33 @@ public class TeacherClassSessionService {
             return null;
         try {
             return objectMapper.writeValueAsString(materials);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer calculateRequiredDuration(Quiz quiz) {
+        if (quiz == null) return 0;
+        if (quiz.getTimeLimitPerSkill() != null && !quiz.getTimeLimitPerSkill().isBlank()) {
+            try {
+                Map<String, Integer> limits = objectMapper.readValue(quiz.getTimeLimitPerSkill(), new TypeReference<Map<String, Integer>>() {});
+                if (limits != null && !limits.isEmpty()) {
+                    return limits.values().stream().filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
+                }
+            } catch (Exception e) {
+                // fallback to timeLimitMinutes
+            }
+        }
+        return quiz.getTimeLimitMinutes() != null ? quiz.getTimeLimitMinutes() : 0;
+    }
+
+    private LocalDateTime getSessionEndDateTime(ClassSession session) {
+        if (session.getSessionDate() == null || session.getEndTime() == null || session.getEndTime().isBlank()) return null;
+        try {
+            String[] parts = session.getEndTime().split(":");
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            return session.getSessionDate().withHour(hour).withMinute(minute).withSecond(0).withNano(0);
         } catch (Exception e) {
             return null;
         }
@@ -415,10 +443,29 @@ public class TeacherClassSessionService {
                 return ResponseData.error(404, "Quiz không tồn tại trong buổi học này");
 
             Boolean current = sq.getIsOpen();
-            // Cùng logic nút workspace: wsToggleQuizOpen(..., newOpen) — API chỉ toggle; khi chuyển sang MỞ thì xuất bản nếu còn nháp
             boolean willOpen = current == null || !Boolean.TRUE.equals(current);
+            
+            Quiz quiz = sq.getQuiz();
+            int requiredDuration = calculateRequiredDuration(quiz);
+
             if (willOpen) {
-                Quiz quiz = sq.getQuiz();
+                // 1. Kiểm tra thời gian nếu teacher nhập thủ công
+                if (timeLimitMinutes != null && timeLimitMinutes < requiredDuration) {
+                    return ResponseData.error(400, "Thời gian làm bài không được nhỏ hơn cấu hình tối thiểu của Quiz (" + requiredDuration + " phút)");
+                }
+
+                // 2. Kiểm tra thời gian còn lại của buổi học
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime sessionEnd = getSessionEndDateTime(session);
+                if (sessionEnd != null) {
+                    long remainingMinutes = Duration.between(now, sessionEnd).toMinutes();
+                    int targetDuration = (timeLimitMinutes != null) ? timeLimitMinutes : requiredDuration;
+                    
+                    if (remainingMinutes < targetDuration) {
+                        return ResponseData.error(400, "Thời gian còn lại của buổi học (" + remainingMinutes + " phút) không đủ để thực hiện bài Quiz này (" + targetDuration + " phút).");
+                    }
+                }
+
                 if (quiz != null && "DRAFT".equals(quiz.getStatus())) {
                     var pub = teacherQuizService.publishQuiz(quizId, email);
                     if (pub.getStatus() != 200) {
@@ -426,6 +473,7 @@ public class TeacherClassSessionService {
                     }
                 }
             }
+            
             Boolean updated = willOpen;
             sq.setIsOpen(updated);
             sessionQuizRepository.save(sq);
@@ -434,7 +482,6 @@ public class TeacherClassSessionService {
                 if (timeLimitMinutes <= 0) {
                     return ResponseData.error(400, "Thời gian làm bài phải lớn hơn 0");
                 }
-                Quiz quiz = sq.getQuiz();
                 quiz.setTimeLimitMinutes(timeLimitMinutes);
                 quizRepository.save(quiz);
             }
@@ -1031,9 +1078,18 @@ public class TeacherClassSessionService {
             if (request.getCloseAt() != null && request.getCloseAt().isBefore(LocalDateTime.now())) {
                 return ResponseData.error(400, "Thời gian đóng không được ở trong quá khứ");
             }
-            if (request.getOpenAt() != null && request.getCloseAt() != null
-                    && !request.getCloseAt().isAfter(request.getOpenAt())) {
-                return ResponseData.error(400, "Thời gian đóng phải sau thời gian mở");
+            if (request.getOpenAt() != null && request.getCloseAt() != null) {
+                if (!request.getCloseAt().isAfter(request.getOpenAt())) {
+                    return ResponseData.error(400, "Thời gian đóng phải sau thời gian mở");
+                }
+                
+                // Kiểm tra độ dài thời gian có đủ cho quiz không
+                Quiz quiz = sq.getQuiz();
+                int requiredDuration = calculateRequiredDuration(quiz);
+                long scheduledDuration = Duration.between(request.getOpenAt(), request.getCloseAt()).toMinutes();
+                if (scheduledDuration < requiredDuration) {
+                    return ResponseData.error(400, "Khoảng thời gian mở bài (" + scheduledDuration + " phút) không đủ cho cấu hình tối thiểu của Quiz (" + requiredDuration + " phút).");
+                }
             }
             if (request.getDeadline() != null && request.getOpenAt() != null
                     && !request.getDeadline().isAfter(request.getOpenAt())) {
