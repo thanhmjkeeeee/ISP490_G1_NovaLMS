@@ -9976,7 +9976,7 @@ section,
            QUIZ TAKE — Premium Academic Theme
            BE fields: quiz.questions[].skill (not skillType)
         ═══════════════════════════════════════════════ */
-        :root {
+        .nova-quiz-theme {
           --bg:          #f0f4f8;
           --surface:     #ffffff;
           --border:      #e2e8f0;
@@ -9996,10 +9996,10 @@ section,
           --sh-sm: 0 1px 4px rgba(15,27,45,.06);
           --sh-md: 0 4px 16px rgba(15,27,45,.08);
         }
-        *{box-sizing:border-box;margin:0;padding:0;}
-        html{scroll-behavior:smooth;}
+        .nova-quiz-theme *{box-sizing:border-box;margin:0;padding:0;}
+        .nova-quiz-theme {scroll-behavior:smooth;}
 
-        body { font-family: 'Inter','Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text-1); user-select:none; -webkit-user-select:none; }
+        body.nova-quiz-theme { font-family: 'Inter','Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text-1); user-select:none; -webkit-user-select:none; }
 
         /* ── Anti-cheat ── */
         #anti-cheat-overlay {
@@ -10143,17 +10143,17 @@ section,
           flex-shrink:0; margin-top:1px; background:var(--surface); transition:all .15s;
         }
         .opt-dot.sq { border-radius:5px; }
-        input[type="radio"]:checked  + .opt-label,
-        input[type="checkbox"]:checked + .opt-label {
+        .opt-group input[type="radio"]:checked  + .opt-label,
+        .opt-group input[type="checkbox"]:checked + .opt-label {
           border-color:var(--accent); background:var(--accent-bg); color:var(--text-1);
         }
-        input[type="radio"]:checked  + .opt-label .opt-dot,
-        input[type="checkbox"]:checked + .opt-label .opt-dot {
+        .opt-group input[type="radio"]:checked  + .opt-label .opt-dot,
+        .opt-group input[type="checkbox"]:checked + .opt-label .opt-dot {
           background:var(--accent); border-color:var(--accent);
         }
-        input[type="radio"]:checked  + .opt-label .opt-dot::after { content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
-        input[type="checkbox"]:checked + .opt-label .opt-dot::after { content:'✓'; font-size:10px; color:#fff; font-weight:800; }
-        input[type="radio"], input[type="checkbox"] { display:none; }
+        .opt-group input[type="radio"]:checked  + .opt-label .opt-dot::after { content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
+        .opt-group input[type="checkbox"]:checked + .opt-label .opt-dot::after { content:'✓'; font-size:10px; color:#fff; font-weight:800; }
+        .opt-group input[type="radio"], .opt-group input[type="checkbox"] { display:none; }
 
         /* Text inputs */
         .q-input {
@@ -10277,7 +10277,7 @@ section,
 
 
 
-           :root {
+        .nova-quiz-theme {
               --res-success-grad: linear-gradient(135deg, #10b981 0%, #059669 100%);
               --res-danger-grad: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
               --res-warning-grad: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);

@@ -1,181 +1,221 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      th:with="isDashboard=true">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:with="isDashboard=true">
+
 <head th:replace="~{fragments/head :: common-head(pageTitle='Chỉnh sửa câu hỏi - Expert')}"></head>
+
 <body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Chỉnh sửa câu hỏi', breadcrumb='Expert / Question Bank')}"></header>
-<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='question-bank')}"></aside>
-<aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
+    <header
+        th:replace="~{fragments/header :: dash-header(pageTitle='Chỉnh sửa câu hỏi', breadcrumb='Expert / Question Bank')}">
+    </header>
+    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='question-bank')}"></aside>
+    <aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
 
-<style>
-    .split-container { display: flex; height: calc(100vh - 160px); gap: 20px; transition: all 0.3s ease; }
-    .passage-panel { flex: 0 0 45%; background: #fff; border-radius: 12px; border: 1px solid #eef2f6; overflow-y: auto; padding: 20px; }
-    .questions-panel { flex: 1; overflow-y: auto; padding: 5px; }
+    <style>
+        .split-container { display: flex; height: calc(100vh - 160px); gap: 20px; transition: all 0.3s ease; }
+        .passage-panel { flex: 0 0 45%; background: #fff; border-radius: 12px; border: 1px solid #eef2f6; overflow-y: auto; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .questions-panel { flex: 1; overflow-y: auto; padding: 5px; }
 
-    .single-container {
-        width: 100%;
-        background: #fff;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    }
-    
-    .upgrade-banner { 
-        background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%); 
-        color: white; border-radius: 12px; padding: 15px 20px;
-        display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
-    }
-    .preview-box { border: 2px dashed #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; }
-    .option-card { background: #fdfdfd; border: 1px solid #eee; border-radius: 10px; margin-bottom: 10px; transition: all 0.2s; }
-    .option-card:hover { border-color: #6366f1; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1); }
-</style>
+        .single-container {
+            width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        
+        .option-card { 
+            background: #fff; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            margin-bottom: 12px; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            padding: 8px;
+        }
+        .option-card:hover { border-color: #6366f1; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08); }
+        
+        /* Custom Checkbox/Radio UI */
+        .chk-custom-ui {
+            width: 28px; height: 28px;
+            border: 2px solid #cbd5e0;
+            transition: all 0.2s ease;
+            background: #fff;
+            cursor: pointer;
+        }
+        .chk-correct:checked + .chk-custom-ui {
+            background: #6366f1;
+            border-color: #6366f1;
+            color: #fff;
+        }
+        .chk-correct:checked + .chk-custom-ui i { display: block !important; }
+        .chk-custom-ui i { display: none; font-size: 16px; }
 
-<main class="dash-main d-flex flex-column px-4 py-4" id="dashMain">
-    <!-- Top Actions -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="fw-bold m-0" id="pageTitle">Cập nhật câu hỏi</h4>
-            <span class="text-muted small">#<span th:text="${questionId}"></span> • <span id="modeDisplay">Chế độ câu hỏi đơn</span></span>
-        </div>
-        <div class="d-flex gap-2">
-            <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-light border px-3">Hủy bỏ</a>
-            <button class="btn btn-sm btn-primary px-4 rounded-pill" onclick="saveAll()">Lưu thay đổi</button>
-        </div>
-    </div>
+        .invalid-feedback { font-size: 0.8rem; color: #ef4444; margin-top: 4px; display: none; }
+        .is-invalid { border-bottom: 2px solid #ef4444 !important; }
+    </style>
 
-
-
-    <!-- Unified Editor Container -->
-    <div id="editorLayout" class="single-container">
-        <!-- SINGLE MODE: Form fields will be rendered here -->
-        <!-- GROUP MODE: Will switch to split-container via JS -->
-        <div id="formContent">
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase">Kỹ năng</label>
-                    <select id="skill" class="form-select border-0 bg-light shadow-none" disabled></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase">Cấp độ IELTS (Band)</label>
-                    <select id="cefrLevel" class="form-select border-0 bg-light shadow-none"></select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-uppercase">Chủ đề</label>
-                    <input type="text" id="topic" class="form-control border-0 bg-light shadow-none" placeholder="Ví dụ: Education, Travel...">
-                </div>
+    <main class="dash-main d-flex flex-column px-4 py-4" id="dashMain">
+        <!-- Top Actions -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold m-0" id="pageTitle">Cập nhật câu hỏi</h4>
+                <span class="text-muted small">#<span th:text="${questionId}"></span> • <span id="modeDisplay">Chế độ
+                        câu hỏi đơn</span></span>
             </div>
-
-            <!-- This div will be swapped between Single Content and Passage Content -->
-            <div id="mainContentArea">
-                <div class="mb-4">
-                    <label class="form-label fw-bold small text-uppercase" id="contentLabel">Nội dung câu hỏi</label>
-                    <textarea id="content" class="form-control border-0 bg-light shadow-none" rows="5" placeholder="Nhập câu hỏi tại đây..."></textarea>
-                </div>
-
-                <div class="row g-3 mb-4" id="mediaSection">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold small text-uppercase">Audio</label>
-                        <div class="input-group mb-2">
-                            <input type="text" id="audioUrl" class="form-control form-control-sm border-0 bg-light" placeholder="URL Audio...">
-                            <label class="btn btn-light btn-sm border-start-0" for="audioUpload"><i class="bi bi-upload"></i></label>
-                            <input type="file" id="audioUpload" class="d-none" accept="audio/*" onchange="uploadFile(this, 'audio')">
-                        </div>
-                        <div id="audioPreviewWrap" class="preview-box d-none"><audio id="audioPreview" controls class="w-100"></audio></div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold small text-uppercase">Hình ảnh</label>
-                        <div class="input-group mb-2">
-                            <input type="text" id="imageUrl" class="form-control form-control-sm border-0 bg-light" placeholder="URL Hình ảnh...">
-                            <label class="btn btn-light btn-sm border-start-0" for="imageUpload"><i class="bi bi-image"></i></label>
-                            <input type="file" id="imageUpload" class="d-none" accept="image/*" onchange="uploadFile(this, 'image')">
-                        </div>
-                        <div id="imagePreviewWrap" class="preview-box d-none text-center"><img id="imagePreview" src="" class="img-fluid rounded" style="max-height:150px"></div>
-                    </div>
-                </div>
-                
-                <div id="optionsWrapper">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold m-0 text-uppercase small">Đáp án & Lựa chọn</h6>
-                        <select id="questionType" class="form-select form-select-sm w-auto border-0 bg-light fw-bold text-primary" onchange="renderOptions()"></select>
-                    </div>
-                    <div id="optionsContainer"></div>
-                    <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2" onclick="addOption()"><i class="bi bi-plus-circle me-1"></i>Thêm lựa chọn</button>
-                </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/expert/question-bank}" class="btn btn-sm btn-light border px-3">Hủy bỏ</a>
+                <button class="btn btn-sm btn-primary px-4 rounded-pill" onclick="saveAll()">Lưu thay đổi</button>
             </div>
         </div>
-    </div>
 
-</main>
 
-<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
-<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
-<script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
 
-<script th:inline="javascript">
-const itemId = /*[[${itemId}]]*/ 0;
-const itemType = /*[[${itemType}]]*/ 'SINGLE';
-let isGroupMode = false;
-let currentGroupId = null;
-let subQuestions = [];
-let subQuestionCounter = 0;
+        <!-- Unified Editor Container -->
+        <div id="editorLayout" class="single-container">
+            <!-- SINGLE MODE: Form fields will be rendered here -->
+            <!-- GROUP MODE: Will switch to split-container via JS -->
+            <div id="formContent">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-uppercase">Kỹ năng</label>
+                        <select id="skill" class="form-select border-0 bg-light shadow-none" disabled></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-uppercase">Cấp độ IELTS (Band)</label>
+                        <select id="cefrLevel" class="form-select border-0 bg-light shadow-none"></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-uppercase">Chủ đề</label>
+                        <input type="text" id="topic" class="form-control border-0 bg-light shadow-none"
+                            placeholder="Ví dụ: Education, Travel...">
+                    </div>
+                </div>
 
-async function loadData() {
-    try {
-        if (itemType === 'GROUP') {
-             loadGroup(itemId);
-             return;
+                <!-- This div will be swapped between Single Content and Passage Content -->
+                <div id="mainContentArea">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-uppercase" id="contentLabel">Nội dung câu
+                            hỏi</label>
+                        <textarea id="content" class="form-control border-0 bg-light shadow-none" rows="5"
+                            placeholder="Nhập câu hỏi tại đây..."></textarea>
+                    </div>
+
+                    <div class="row g-3 mb-4" id="mediaSection">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-uppercase">Audio</label>
+                            <div class="input-group mb-2">
+                                <input type="text" id="audioUrl" class="form-control form-control-sm border-0 bg-light"
+                                    placeholder="URL Audio...">
+                                <label class="btn btn-light btn-sm border-start-0" for="audioUpload"><i
+                                        class="bi bi-upload"></i></label>
+                                <input type="file" id="audioUpload" class="d-none" accept="audio/*"
+                                    onchange="uploadFile(this, 'audio')">
+                            </div>
+                            <div id="audioPreviewWrap" class="preview-box d-none"><audio id="audioPreview" controls
+                                    class="w-100"></audio></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-uppercase">Hình ảnh</label>
+                            <div class="input-group mb-2">
+                                <input type="text" id="imageUrl" class="form-control form-control-sm border-0 bg-light"
+                                    placeholder="URL Hình ảnh...">
+                                <label class="btn btn-light btn-sm border-start-0" for="imageUpload"><i
+                                        class="bi bi-image"></i></label>
+                                <input type="file" id="imageUpload" class="d-none" accept="image/*"
+                                    onchange="uploadFile(this, 'image')">
+                            </div>
+                            <div id="imagePreviewWrap" class="preview-box d-none text-center"><img id="imagePreview"
+                                    src="" class="img-fluid rounded" style="max-height:150px"></div>
+                        </div>
+                    </div>
+
+                    <div id="optionsWrapper">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold m-0 text-uppercase small">Đáp án & Lựa chọn</h6>
+                            <select id="questionType"
+                                class="form-select form-select-sm w-auto border-0 bg-light fw-bold text-primary"
+                                onchange="renderOptions()"></select>
+                        </div>
+                        <div id="optionsContainer"></div>
+                        <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2" onclick="addOption()"><i
+                                class="bi bi-plus-circle me-1"></i>Thêm lựa chọn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+    <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+    <script th:src="@{/assets/expert/js/question-form-settings.js}"></script>
+
+    <script th:inline="javascript">
+        const itemId = /*[[${itemId}]]*/ 0;
+        const itemType = /*[[${itemType}]]*/ 'SINGLE';
+        let isGroupMode = false;
+        let currentGroupId = null;
+        let subQuestions = [];
+        let subQuestionCounter = 0;
+
+        async function loadData() {
+            try {
+                if (itemType === 'GROUP') {
+                    loadGroup(itemId);
+                    return;
+                }
+                const res = await fetch(`/api/v1/expert/question-bank/${itemId}`);
+                const result = await res.json();
+                if (result.status === 200) {
+                    renderSingle(result.data);
+                }
+            } catch (e) { console.error(e); }
         }
-        const res = await fetch(`/api/v1/expert/question-bank/${itemId}`);
-        const result = await res.json();
-        if (result.status === 200) {
-            renderSingle(result.data);
+
+        function getFilteredQuestionTypeOptions(skill, currentType) {
+            if (window.NovaQuestionFormSettings) {
+                return NovaQuestionFormSettings.getQuestionTypeOptionsHtml(skill || 'READING', currentType || '');
+            }
+            return '<option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>';
         }
-    } catch (e) { console.error(e); }
-}
 
-function getFilteredQuestionTypeOptions(skill, currentType) {
-    if (window.NovaQuestionFormSettings) {
-        return NovaQuestionFormSettings.getQuestionTypeOptionsHtml(skill || 'READING', currentType || '');
-    }
-    return '<option value="MULTIPLE_CHOICE_SINGLE">Multiple Choice</option>';
-}
+        function renderSingle(q) {
+            document.getElementById('skill').value = q.skill;
+            document.getElementById('cefrLevel').value = q.cefrLevel;
+            document.getElementById('topic').value = q.topic || '';
+            document.getElementById('content').value = q.content || '';
+            document.getElementById('questionType').innerHTML = getFilteredQuestionTypeOptions(q.skill, q.questionType);
+            document.getElementById('questionType').value = q.questionType;
+            document.getElementById('audioUrl').value = q.audioUrl || '';
+            document.getElementById('imageUrl').value = q.imageUrl || '';
 
-function renderSingle(q) {
-    document.getElementById('skill').value = q.skill;
-    document.getElementById('cefrLevel').value = q.cefrLevel;
-    document.getElementById('topic').value = q.topic || '';
-    document.getElementById('content').value = q.content || '';
-    document.getElementById('questionType').innerHTML = getFilteredQuestionTypeOptions(q.skill, q.questionType);
-    document.getElementById('questionType').value = q.questionType;
-    document.getElementById('audioUrl').value = q.audioUrl || '';
-    document.getElementById('imageUrl').value = q.imageUrl || '';
-    
-    if(q.audioUrl) updatePreview('audio', q.audioUrl);
-    if(q.imageUrl) updatePreview('image', q.imageUrl);
-    
-    renderOptions(q.options || []);
-}
+            if (q.audioUrl) updatePreview('audio', q.audioUrl);
+            if (q.imageUrl) updatePreview('image', q.imageUrl);
 
-async function loadGroup(groupId) {
-    isGroupMode = true;
-    currentGroupId = groupId;
-    try {
-        const res = await fetch(`/api/v1/expert/questions/groups/${groupId}`);
-        const result = await res.json();
-        if (result.status === 200) {
-            switchToSplitView(result.data);
+            renderOptions(q.options || []);
         }
-    } catch (e) { console.error(e); }
-}
 
-function switchToSplitView(groupData) {
-    const layout = document.getElementById('editorLayout');
-    layout.className = 'split-container';
-    document.getElementById('modeDisplay').textContent = 'Chế độ bộ câu hỏi (Passage)';
-    
-    layout.innerHTML = `
+        async function loadGroup(groupId) {
+            isGroupMode = true;
+            currentGroupId = groupId;
+            try {
+                const res = await fetch(`/api/v1/expert/questions/groups/${groupId}`);
+                const result = await res.json();
+                if (result.status === 200) {
+                    switchToSplitView(result.data);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function switchToSplitView(groupData) {
+            const layout = document.getElementById('editorLayout');
+            layout.className = 'split-container';
+            document.getElementById('modeDisplay').textContent = 'Chế độ bộ câu hỏi (Passage)';
+
+            layout.innerHTML = `
         <div class="passage-panel shadow-sm">
             <h6 class="fw-bold mb-3">NỘI DUNG BÀI ĐỌC/NGHE</h6>
             <div class="row g-2 mb-3">
@@ -222,69 +262,86 @@ function switchToSplitView(groupData) {
             <div id="subQuestionsContainer"></div>
         </div>
     `;
-    
-    subQuestions = groupData.questions || [];
-    renderSubQuestions();
-}
 
-function getSubOptionHTML(data, type) {
-    const isMatching = type === 'MATCHING';
-    const checked = data.correctAnswer || data.correct ? 'checked' : '';
-    const title = data.title || '';
-    const match = data.matchTarget || '';
-    
-    return `
-        <div class="d-flex align-items-center mb-1 sub-opt-row border-bottom pb-1">
-            ${!isMatching ? `<input type="checkbox" class="form-check-input me-2 mt-0 sub-chk-correct" ${checked}>` : ''}
-            <input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none sub-opt-title" value="${title}" placeholder="${isMatching ? 'Vế trái' : 'Nhập đáp án...'}">
-            ${isMatching ? `<input type="text" class="form-control form-control-sm border-0 bg-transparent flex-grow-1 shadow-none border-start ps-2 sub-opt-match" value="${match}" placeholder="Vế phải">` : ''}
-            <button class="btn btn-sm text-muted p-0 ms-2" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
+            subQuestions = groupData.questions || [];
+            renderSubQuestions();
+        }
+
+        function getSubOptionHTML(data, type) {
+            const isMatching = type === 'MATCHING';
+            const isFib = type === 'FILL_IN_BLANK';
+            const checked = (data.correctAnswer || data.correct || isFib) ? 'checked' : '';
+            const title = data.title || '';
+            const match = data.matchTarget || '';
+
+            return `
+        <div class="d-flex align-items-center mb-2 sub-opt-row border-bottom pb-2">
+            ${(!isMatching && !isFib) ? `
+            <div class="pe-2">
+                <label class="m-0 cursor-pointer">
+                    <input type="checkbox" class="chk-correct d-none sub-chk-correct" ${checked}>
+                    <div class="chk-custom-ui d-flex align-items-center justify-content-center rounded-circle" style="width:22px; height:22px; border-width:1px;">
+                        <i class="bi bi-check-lg" style="font-size:12px;"></i>
+                    </div>
+                </label>
+            </div>` : ''}
+            <div class="flex-grow-1">
+                <input type="text" class="form-control form-control-sm border-0 bg-transparent shadow-none sub-opt-title fw-medium" 
+                       value="${title}" 
+                       oninput="checkDuplicateOptionsRealTime(null, this)"
+                       placeholder="${isMatching ? 'Vế trái' : isFib ? 'Đáp án đúng...' : 'Nhập đáp án...'}">
+                ${isMatching ? `<input type="text" class="form-control form-control-sm border-0 bg-transparent shadow-none border-top mt-1 pt-1 sub-opt-match" value="${match}" placeholder="Vế phải">` : ''}
+                ${isFib ? `<div class="small text-muted mt-1 px-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>Đáp án không phân biệt chữ hoa/thường.</div>` : ''}
+                <div class="invalid-feedback px-1" style="display: none;">Đáp án đã tồn tại!</div>
+            </div>
+            ${isFib ? '' : `<button class="btn btn-sm text-danger border-0 p-0 ms-2" onclick="this.parentElement.remove()"><i class="bi bi-trash3"></i></button>`}
         </div>
     `;
-}
+        }
 
-function renderSubQuestions() {
-    const container = document.getElementById('subQuestionsContainer');
-    container.innerHTML = '';
-    subQuestionCounter = 0;
-    subQuestions.forEach(q => {
-        const id = subQuestionCounter++;
-        const div = document.createElement('div');
-        div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
-        div.id = `sub-q-${id}`;
-        // Lưu lại questionId để backend có thể update in-place
-        if (q.questionId) div.dataset.questionId = q.questionId;
-        div.innerHTML = `
+        function renderSubQuestions() {
+            const container = document.getElementById('subQuestionsContainer');
+            container.innerHTML = '';
+            subQuestionCounter = 0;
+            subQuestions.forEach(q => {
+                const id = subQuestionCounter++;
+                const div = document.createElement('div');
+                div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
+                div.id = `sub-q-${id}`;
+                if (q.questionId) div.dataset.questionId = q.questionId;
+
+                const isFib = q.questionType === 'FILL_IN_BLANK';
+
+                div.innerHTML = `
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-2">
                     <span class="badge bg-light text-dark border q-number">Câu hỏi ${container.children.length + 1}</span>
                     <button class="btn btn-sm text-danger p-0" onclick="removeSubQuestion(${id})"><i class="bi bi-x-lg"></i> Xóa</button>
                 </div>
-                <!-- Selection Type -->
                 <select class="form-select form-select-sm mb-2 border-0 bg-light sub-type" onchange="updateSubType(this, ${id})">
                     ${getFilteredQuestionTypeOptions(document.getElementById('skill').value, q.questionType)}
                 </select>
-                <!-- Question Content -->
                 <input type="text" class="form-control border-0 bg-light mb-2 fw-bold sub-content" placeholder="Nội dung câu hỏi..." value="${q.content || ''}">
                 <div class="small text-muted mb-1 px-1 mt-2">Lựa chọn (Đánh dấu đáp án đúng)</div>
-                <!-- Options container -->
                 <div class="sub-options-container" ${(q.questionType === 'WRITING' || q.questionType === 'SPEAKING') ? 'style="display:none;"' : ''}>
                     ${(q.options || []).map(opt => getSubOptionHTML(opt, q.questionType)).join('')}
                 </div>
-                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" ${(q.questionType === 'WRITING' || q.questionType === 'SPEAKING') ? 'style="display:none;"' : ''} onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
+                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" 
+                        ${(q.questionType === 'WRITING' || q.questionType === 'SPEAKING' || isFib) ? 'style="display:none;"' : ''} 
+                        onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
             </div>
         `;
-        container.appendChild(div);
-    });
-}
+                container.appendChild(div);
+            });
+        }
 
-function addSubQuestion() {
-    const container = document.getElementById('subQuestionsContainer');
-    const id = subQuestionCounter++;
-    const div = document.createElement('div');
-    div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
-    div.id = `sub-q-${id}`;
-    div.innerHTML = `
+        function addSubQuestion() {
+            const container = document.getElementById('subQuestionsContainer');
+            const id = subQuestionCounter++;
+            const div = document.createElement('div');
+            div.className = "card border-0 mb-3 shadow-sm rounded-4 sub-question-item";
+            div.id = `sub-q-${id}`;
+            div.innerHTML = `
         <div class="card-body">
             <div class="d-flex justify-content-between mb-2">
                 <span class="badge bg-light text-dark border q-number">${container.children.length + 1}</span>
@@ -299,240 +356,357 @@ function addSubQuestion() {
             <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-primary sub-add-btn" onclick="addSubOption(${id})"><i class="bi bi-plus-circle me-1"></i>Thêm đáp án</button>
         </div>
     `;
-    container.appendChild(div);
-    addSubOption(id); addSubOption(id);
-}
+            container.appendChild(div);
+            addSubOption(id); addSubOption(id);
+        }
 
-function removeSubQuestion(id) {
-    document.getElementById(`sub-q-${id}`).remove();
-    document.querySelectorAll('.q-number').forEach((el, idx) => el.textContent = idx + 1);
-}
+        function removeSubQuestion(id) {
+            document.getElementById(`sub-q-${id}`).remove();
+            document.querySelectorAll('.q-number').forEach((el, idx) => el.textContent = idx + 1);
+        }
 
-function updateSubType(selectEl, qId) {
-    const type = selectEl.value;
-    const container = document.querySelector(`#sub-q-${qId} .sub-options-container`);
-    const addBtn = document.querySelector(`#sub-q-${qId} .sub-add-btn`);
-    
-    container.innerHTML = '';
-    if (type === 'WRITING' || type === 'SPEAKING') {
-        container.style.display = 'none';
-        if(addBtn) addBtn.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'block';
-    if(addBtn) addBtn.style.display = 'inline-block';
-    
-    const count = type === 'MATCHING' ? 3 : 4;
-    for(let i=0; i<count; i++) addSubOption(qId, type);
-}
+        function updateSubType(selectEl, qId) {
+            const type = selectEl.value;
+            const container = document.querySelector(`#sub-q-${qId} .sub-options-container`);
+            const addBtn = document.querySelector(`#sub-q-${qId} .sub-add-btn`);
 
-function addSubOption(qId, forceType = null) {
-    const qDiv = document.querySelector(`#sub-q-${qId}`);
-    if(!qDiv) return;
-    const type = forceType || qDiv.querySelector('.sub-type').value;
-    const container = qDiv.querySelector('.sub-options-container');
-    
-    const temp = document.createElement('div');
-    temp.innerHTML = getSubOptionHTML({}, type);
-    container.appendChild(temp.firstElementChild);
-}
+            container.innerHTML = '';
+            if (type === 'WRITING' || type === 'SPEAKING') {
+                container.style.display = 'none';
+                if (addBtn) addBtn.style.display = 'none';
+                return;
+            }
 
-async function saveAll() {
-    if(isGroupMode) {
-        const body = {
-            topic: document.getElementById('groupTopic').value,
-            groupContent: document.getElementById('groupContent').value,
-            audioUrl: document.getElementById('groupAudio').value,
-            imageUrl: document.getElementById('groupImage').value,
-            skill: document.getElementById('skill').value,
-            cefrLevel: document.getElementById('cefrLevel').value,
-            questions: Array.from(document.querySelectorAll('.sub-question-item')).map(item => {
-                const subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => {
-                    const chk = opt.querySelector('.sub-chk-correct');
-                    const matchEl = opt.querySelector('.sub-opt-match');
-                    return {
-                        title: opt.querySelector('.sub-opt-title').value,
-                        correct: chk ? chk.checked : false,
-                        matchTarget: matchEl ? matchEl.value : null
-                    };
-                });
-                const qId = item.dataset.questionId ? parseInt(item.dataset.questionId) : null;
-                return {
-                    questionId: qId,  // Trượng quan trọng: để backend update in-place
-                    content: item.querySelector('.sub-content').value,
-                    questionType: item.querySelector('.sub-type').value,
+            container.style.display = 'block';
+            if (addBtn) {
+                addBtn.style.display = (type === 'FILL_IN_BLANK') ? 'none' : 'inline-block';
+            }
+
+            const count = type === 'FILL_IN_BLANK' ? 1 : (type === 'MATCHING' ? 3 : 4);
+            for (let i = 0; i < count; i++) addSubOption(qId, type);
+        }
+
+        function addSubOption(qId, forceType = null) {
+            const qDiv = document.querySelector(`#sub-q-${qId}`);
+            if (!qDiv) return;
+            const type = forceType || qDiv.querySelector('.sub-type').value;
+            const container = qDiv.querySelector('.sub-options-container');
+
+            const temp = document.createElement('div');
+            temp.innerHTML = getSubOptionHTML({}, type);
+            container.appendChild(temp.firstElementChild);
+        }
+
+        async function saveAll() {
+            if (isGroupMode) {
+                const body = {
+                    topic: document.getElementById('groupTopic').value,
+                    groupContent: document.getElementById('groupContent').value,
+                    audioUrl: document.getElementById('groupAudio').value,
+                    imageUrl: document.getElementById('groupImage').value,
                     skill: document.getElementById('skill').value,
                     cefrLevel: document.getElementById('cefrLevel').value,
-                    options: subOpts
+                    questions: Array.from(document.querySelectorAll('.sub-question-item')).map(item => {
+                        const subType = item.querySelector('.sub-type').value;
+                        const isFibSub = subType === 'FILL_IN_BLANK';
+                        const subOpts = Array.from(item.querySelectorAll('.sub-opt-row')).map(opt => {
+                            const chk = opt.querySelector('.sub-chk-correct');
+                            const matchEl = opt.querySelector('.sub-opt-match');
+                            return {
+                                title: opt.querySelector('.sub-opt-title').value.trim(),
+                                correct: isFibSub ? true : (chk ? chk.checked : false),
+                                matchTarget: matchEl ? matchEl.value.trim() : null
+                            };
+                        }).filter(o => o.title !== "");
+
+                        // Duplicates check
+                        const sTitles = subOpts.map(o => o.title.toLowerCase());
+                        if (sTitles.length !== new Set(sTitles).size) {
+                            throw new Error(`Câu hỏi "${item.querySelector('.sub-content').value}" có các đáp án trùng nhau.`);
+                        }
+
+                        // FIB check
+                        if (isFibSub) {
+                            if (subOpts.length === 0) throw new Error(`Vui lòng nhập đáp án cho câu hỏi Fill in Blank.`);
+                            if (subOpts.length > 1) throw new Error(`Câu hỏi Fill in Blank chỉ cho phép duy nhất 1 đáp án.`);
+                        }
+
+                        const qId = item.dataset.questionId ? parseInt(item.dataset.questionId) : null;
+                        return {
+                            questionId: qId,
+                            content: item.querySelector('.sub-content').value.trim(),
+                            questionType: subType,
+                            skill: document.getElementById('skill').value,
+                            cefrLevel: document.getElementById('cefrLevel').value,
+                            options: subOpts
+                        };
+                    })
                 };
-            })
-        };
-        try {
-            const res = await fetch(`/api/v1/expert/questions/groups/${currentGroupId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const result = await res.json();
-            if(res.ok) { 
-                alert("Cập nhật bộ câu hỏi thành công!"); 
-                window.location.href = '/expert/question-bank'; 
+                try {
+                    const res = await fetch(`/api/v1/expert/questions/groups/${currentGroupId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const result = await res.json();
+                    if (res.ok) {
+                        alert("Cập nhật bộ câu hỏi thành công!");
+                        window.location.href = '/expert/question-bank';
+                    } else {
+                        alert("Lỗi: " + result.message);
+                    }
+                } catch (e) { console.error(e); alert("Lỗi kết nối"); }
             } else {
-                alert("Lỗi: " + result.message);
+                updateSingle();
             }
-        } catch(e) { console.error(e); alert("Lỗi kết nối"); }
-    } else {
-        updateSingle();
-    }
-}
-
-async function updateSingle() {
-    const body = {
-        content: document.getElementById('content').value,
-        questionType: document.getElementById('questionType').value,
-        skill: document.getElementById('skill').value,
-        cefrLevel: document.getElementById('cefrLevel').value,
-        topic: document.getElementById('topic').value,
-        audioUrl: document.getElementById('audioUrl').value,
-        imageUrl: document.getElementById('imageUrl').value,
-        options: collectOptions()
-    };
-    try {
-        const res = await fetch(`/api/v1/expert/question-bank/${itemId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        const result = await res.json();
-        if(res.ok) { 
-            alert("Cập nhật thành công!"); 
-            window.location.href = '/expert/question-bank'; 
-        } else {
-            alert("Lỗi: " + result.message);
         }
-    } catch(e) { console.error(e); alert("Lỗi kết nối server"); }
-}
 
-function renderOptions(options = []) {
-    const type = document.getElementById('questionType').value;
-    const container = document.getElementById('optionsContainer');
-    const addBtn = document.querySelector('button[onclick="addOption()"]');
-    
-    container.innerHTML = '';
-    if (type === 'WRITING' || type === 'SPEAKING') {
-        container.style.display = 'none';
-        if (addBtn) addBtn.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'block';
-    if (addBtn) addBtn.style.display = 'inline-block';
-    
-    if(options.length === 0) {
-        for(let i=0; i<(type==='MATCHING'?3:4); i++) _addOptionRow(container);
-    } else {
-        options.forEach(opt => _addOptionRow(container, opt));
-    }
-}
+        async function updateSingle() {
+            const body = {
+                content: document.getElementById('content').value,
+                questionType: document.getElementById('questionType').value,
+                skill: document.getElementById('skill').value,
+                cefrLevel: document.getElementById('cefrLevel').value,
+                topic: document.getElementById('topic').value,
+                audioUrl: document.getElementById('audioUrl').value,
+                imageUrl: document.getElementById('imageUrl').value,
+                options: collectOptions()
+            };
+            try {
+                const res = await fetch(`/api/v1/expert/question-bank/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    alert("Cập nhật thành công!");
+                    window.location.href = '/expert/question-bank';
+                } else {
+                    alert("Lỗi: " + result.message);
+                }
+            } catch (e) { console.error(e); alert("Lỗi kết nối server"); }
+        }
 
-function _addOptionRow(container, data = {}) {
-    const type = document.getElementById('questionType').value;
-    const isMatching = type === 'MATCHING';
-    
-    const div = document.createElement('div');
-    div.className = 'option-card p-2 mb-2';
-    div.innerHTML = `
-        <div class="input-group input-group-sm border-0">
-            ${!isMatching ? `
-            <div class="input-group-text bg-transparent border-0">
-                <input class="form-check-input mt-0" type="checkbox" data-field="correct" ${data.correctAnswer ? 'checked' : ''}>
-            </div>` : ''}
-            <input type="text" class="form-control border-0 bg-transparent shadow-none" data-field="title" value="${data.title || ''}" placeholder="${isMatching ? 'Vế trái' : 'Nhập lựa chọn...'}">
+        function renderOptions(options = []) {
+            const type = document.getElementById('questionType').value;
+            const container = document.getElementById('optionsContainer');
+            const addBtn = document.querySelector('button[onclick="addOption()"]');
+
+            container.innerHTML = '';
+            if (type === 'WRITING' || type === 'SPEAKING') {
+                container.style.display = 'none';
+                if (addBtn) addBtn.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            if (addBtn) {
+                addBtn.style.display = (type === 'FILL_IN_BLANK') ? 'none' : 'inline-block';
+            }
+
+            if (options.length === 0) {
+                const count = type === 'FILL_IN_BLANK' ? 1 : (type === 'MATCHING' ? 3 : 4);
+                for (let i = 0; i < count; i++) _addOptionRow(container);
+            } else {
+                options.forEach(opt => _addOptionRow(container, opt));
+            }
+        }
+
+        function _addOptionRow(container, data = {}) {
+            const type = document.getElementById('questionType').value;
+            const isMatching = type === 'MATCHING';
+            const isFib = type === 'FILL_IN_BLANK';
+
+            const inputType = (type === 'MULTIPLE_CHOICE_SINGLE') ? 'radio' : 'checkbox';
+            const inputName = (type === 'MULTIPLE_CHOICE_SINGLE') ? 'singleCorrect' : '';
+            const checked = (data.correctAnswer || data.correct || isFib) ? 'checked' : '';
+
+            const div = document.createElement('div');
+            div.className = 'option-card option-row';
+            div.innerHTML = `
+        ${(!isMatching && !isFib) ? `
+        <div class="px-3">
+            <label class="m-0 cursor-pointer">
+                <input type="${inputType}" name="${inputName}" class="chk-correct d-none" ${checked} onchange="validateCorrectSelection(this)">
+                <div class="chk-custom-ui d-flex align-items-center justify-content-center" 
+                     style="border-radius: ${inputType==='radio'?'50%':'6px'};">
+                    <i class="bi bi-check-lg fw-bold"></i>
+                </div>
+            </label>
+        </div>` : ''}
+        <div class="flex-grow-1 px-2 position-relative">
+            <input type="text" class="form-control border-0 py-2 shadow-none opt-title bg-transparent" 
+                   style="font-size: 1rem;"
+                   value="${data.title || ''}" 
+                   oninput="checkDuplicateOptionsRealTime('optionsContainer')"
+                   placeholder="${isMatching ? 'Vế trái...' : isFib ? 'Đáp án đúng...' : 'Nhập nội dung đáp án...'}">
             ${isMatching ? `
-            <input type="text" class="form-control border-0 bg-transparent shadow-none border-start" data-field="matchTarget" value="${data.matchTarget || ''}" placeholder="Vế phải">
+            <input type="text" class="form-control border-0 border-top mt-1 pt-2 shadow-none opt-match bg-transparent" 
+                   value="${data.matchTarget || ''}" placeholder="Vế phải (Kết quả khớp)">
             ` : ''}
-            <button class="btn btn-sm text-muted" onclick="this.closest('.option-card').remove()"><i class="bi bi-x"></i></button>
+            ${isFib ? `<div class="small text-muted mt-1 px-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>Đáp án không phân biệt chữ hoa/thường. Hệ thống sẽ tự động chấm đúng.</div>` : ''}
+            <div class="invalid-feedback ps-1">Đáp án này đã tồn tại!</div>
         </div>
+        ${isFib ? '' : `
+        <div class="px-2">
+            <button class="btn btn-light btn-sm text-danger border-0 rounded-circle" style="width:32px; height:32px;" onclick="this.closest('.option-card').remove()">
+                <i class="bi bi-trash3"></i>
+            </button>
+        </div>`}
     `;
-    container.appendChild(div);
-}
-
-function addOption() {
-    const container = document.getElementById('optionsContainer');
-    _addOptionRow(container);
-}
-
-function collectOptions() {
-    return Array.from(document.querySelectorAll('.option-card')).map((card, i) => {
-        const correctEl = card.querySelector('[data-field="correct"]');
-        const matchEl = card.querySelector('[data-field="matchTarget"]');
-        return {
-            title: card.querySelector('[data-field="title"]').value,
-            correct: correctEl ? correctEl.checked : false,
-            matchTarget: matchEl ? matchEl.value : null,
-            orderIndex: i
-        };
-    });
-}
-
-function updatePreview(type, url) {
-    const wrap = document.getElementById(type + 'PreviewWrap');
-    const preview = document.getElementById(type + 'Preview');
-    if(url) { wrap.classList.remove('d-none'); preview.src = url; }
-    else { wrap.classList.add('d-none'); }
-}
-
-const _AUDIO_EXT_EDIT = new Set(['mp3','wav','ogg','m4a','aac','opus','flac','webm']);
-const _IMAGE_EXT_EDIT = new Set(['jpg','jpeg','png','gif','webp','bmp','svg']);
-function _fileExtEdit(name) {
-    if (!name || !name.includes('.')) return '';
-    return name.slice(name.lastIndexOf('.') + 1).toLowerCase();
-}
-async function uploadFile(input, type, targetId) {
-    const file = input.files[0];
-    if(!file) return;
-    const mime = (file.type || '').toLowerCase();
-    const ext = _fileExtEdit(file.name);
-    if (type === 'audio') {
-        if (!mime.startsWith('audio/') && !_AUDIO_EXT_EDIT.has(ext)) {
-            alert('Vui lòng chọn file âm thanh (mp3, wav, m4a, ...).');
-            input.value = '';
-            return;
+            container.appendChild(div);
         }
-    } else if (type === 'image') {
-        if (!mime.startsWith('image/') && !_IMAGE_EXT_EDIT.has(ext)) {
-            alert('Vui lòng chọn file ảnh (jpg, png, gif, ...).');
-            input.value = '';
-            return;
-        }
-    }
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-        const res = await fetch(`/api/v1/upload/${type}`, { method: 'POST', body: formData });
-        const result = await res.json();
-        if(res.ok && result.data) {
-            document.getElementById(targetId || (type + 'Url')).value = result.data;
-            updatePreview(type, result.data);
-            alert('Tải lên thành công!');
-        } else {
-            alert(result.message || 'Tải lên thất bại.');
-            input.value = '';
-        }
-    } catch(e) { console.error(e); input.value = ''; }
-}
 
-(async function initQuestionEdit() {
-    try {
-        if (window.NovaQuestionFormSettings) {
-            await NovaQuestionFormSettings.load();
-            NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('skill'));
-            NovaQuestionFormSettings.fillCefrSelect(document.getElementById('cefrLevel'));
+        function validateCorrectSelection(input) {
+            if (input.type === 'radio') {
+                const container = input.closest('#optionsContainer') || input.closest('.sub-options-container');
+                if (container) {
+                    container.querySelectorAll('.chk-correct').forEach(i => {
+                        if (i !== input) i.checked = false;
+                    });
+                }
+            }
         }
-    } catch (e) { console.error(e); }
-    await loadData();
-})();
-</script>
+
+        function addOption() {
+            const container = document.getElementById('optionsContainer');
+            _addOptionRow(container);
+        }
+
+        function collectOptions() {
+            const qType = document.getElementById('questionType').value;
+            const isFib = qType === 'FILL_IN_BLANK';
+
+            const options = Array.from(document.querySelectorAll('.option-row')).map((card, i) => {
+                const correctEl = card.querySelector('.chk-correct');
+                const matchEl = card.querySelector('.opt-match');
+                return {
+                    title: card.querySelector('.opt-title').value.trim(),
+                    correct: isFib ? true : (correctEl ? correctEl.checked : false),
+                    matchTarget: matchEl ? matchEl.value.trim() : null,
+                    orderIndex: i
+                };
+            }).filter(o => o.title !== "");
+
+            // Duplicates check
+            const titles = options.map(o => o.title.toLowerCase());
+            if (titles.length !== new Set(titles).size) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Lỗi', 'Các đáp án không được trùng nhau.', 'warning');
+                } else {
+                    alert('Các đáp án không được trùng nhau.');
+                }
+                throw new Error('Duplicate titles');
+            }
+
+            // FIB check
+            if (isFib) {
+                if (options.length === 0) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Lỗi', 'Vui lòng nhập đáp án cho câu hỏi Fill in Blank.', 'warning');
+                    else alert('Vui lòng nhập đáp án cho câu hỏi Fill in Blank.');
+                    throw new Error('Empty FIB');
+                }
+                if (options.length > 1) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Lỗi', 'Câu hỏi Fill in Blank chỉ cho phép duy nhất 1 đáp án.', 'warning');
+                    else alert('Câu hỏi Fill in Blank chỉ cho phép duy nhất 1 đáp án.');
+                    throw new Error('Multiple FIB');
+                }
+            } else {
+                const cCount = options.filter(o => o.correct).length;
+                if (cCount === 0) {
+                    if (typeof Swal !== 'undefined') Swal.fire('Lỗi', 'Vui lòng chọn ít nhất một đáp án đúng.', 'warning');
+                    else alert('Vui lòng chọn ít nhất một đáp án đúng.');
+                    throw new Error('No correct answer');
+                }
+            }
+
+            return options;
+        }
+
+        function updatePreview(type, url) {
+            const wrap = document.getElementById(type + 'PreviewWrap');
+            const preview = document.getElementById(type + 'Preview');
+            if (url) { wrap.classList.remove('d-none'); preview.src = url; }
+            else { wrap.classList.add('d-none'); }
+        }
+
+        const _AUDIO_EXT_EDIT = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'opus', 'flac', 'webm']);
+        const _IMAGE_EXT_EDIT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']);
+        function _fileExtEdit(name) {
+            if (!name || !name.includes('.')) return '';
+            return name.slice(name.lastIndexOf('.') + 1).toLowerCase();
+        }
+        async function uploadFile(input, type, targetId) {
+            const file = input.files[0];
+            if (!file) return;
+            const mime = (file.type || '').toLowerCase();
+            const ext = _fileExtEdit(file.name);
+            if (type === 'audio') {
+                if (!mime.startsWith('audio/') && !_AUDIO_EXT_EDIT.has(ext)) {
+                    alert('Vui lòng chọn file âm thanh (mp3, wav, m4a, ...).');
+                    input.value = '';
+                    return;
+                }
+            } else if (type === 'image') {
+                if (!mime.startsWith('image/') && !_IMAGE_EXT_EDIT.has(ext)) {
+                    alert('Vui lòng chọn file ảnh (jpg, png, gif, ...).');
+                    input.value = '';
+                    return;
+                }
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch(`/api/v1/upload/${type}`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (res.ok && result.data) {
+                    document.getElementById(targetId || (type + 'Url')).value = result.data;
+                    updatePreview(type, result.data);
+                    alert('Tải lên thành công!');
+                } else {
+                    alert(result.message || 'Tải lên thất bại.');
+                    input.value = '';
+                }
+            } catch (e) { console.error(e); input.value = ''; }
+        }
+
+        function checkDuplicateOptionsRealTime(containerId, inputEl = null) {
+            let container;
+            if (containerId) {
+                container = document.getElementById(containerId);
+            } else if (inputEl) {
+                container = inputEl.closest('.sub-options-container');
+            }
+            if (!container) return;
+
+            const inputs = Array.from(container.querySelectorAll('.opt-title, .sub-opt-title'));
+            const values = inputs.map(i => i.value.trim().toLowerCase());
+
+            inputs.forEach(input => {
+                const val = input.value.trim().toLowerCase();
+                const feedback = input.parentElement.querySelector('.invalid-feedback');
+                if (val && values.filter(v => v === val).length > 1) {
+                    input.style.borderBottom = '2px solid #dc3545';
+                    if (feedback) feedback.style.display = 'block';
+                } else {
+                    input.style.borderBottom = '';
+                    if (feedback) feedback.style.display = 'none';
+                }
+            });
+        }
+
+        (async function initQuestionEdit() {
+            try {
+                if (window.NovaQuestionFormSettings) {
+                    await NovaQuestionFormSettings.load();
+                    NovaQuestionFormSettings.fillSkillSelectAll(document.getElementById('skill'));
+                    NovaQuestionFormSettings.fillCefrSelect(document.getElementById('cefrLevel'));
+                }
+            } catch (e) { console.error(e); }
+            await loadData();
+        })();
+    </script>
 </body>
+
 </html>
