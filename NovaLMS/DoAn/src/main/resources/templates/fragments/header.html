@@ -20,9 +20,9 @@
                 <li><a th:href="@{/}"
                        th:classappend="${currentPage == 'index'} ? 'active'">Trang chủ</a></li>
                 <!-- Khu vực học viên / khách: admin & staff không thấy (tránh nhầm luồng đăng ký công khai) -->
-                <li sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')"><a th:href="@{/classes}"
+                <li ><a th:href="@{/classes}"
                        th:classappend="${currentPage == 'class'} ? 'active'">Lịch khai giảng</a></li>
-                <li sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')"><a th:href="@{/courses}"
+                <li ><a th:href="@{/courses}"
                        th:classappend="${currentPage == 'courses'} ? 'active'">Khóa học</a></li>
 
                 <li class="dropdown" sec:authorize="isAuthenticated()" style="margin-left: auto !important;">
