@@ -1,132 +1,309 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<head th:replace="~{fragments/head :: common-head('Contact')}">
+<head th:replace="~{fragments/head :: common-head('Liên hệ & Hỗ trợ')}">
+  <link rel="stylesheet" th:href="@{/css/contact.css}">
 </head>
 
-<body class="contact-page">
+<body class="contact-page bg-light">
 
-<header th:replace="~{fragments/header :: header-fragment}"></header>
+<header th:replace="~{fragments/header :: header-fragment('contact')}"></header>
 
 <main class="main">
 
-  <main class="main">
+  <div class="page-title bg-dark text-white py-5 mb-5 mt-5" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2000&auto=format&fit=crop') center/cover;">
+    <div class="container text-center py-5">
+      <h1 class="display-4 fw-bold mb-3">Chúng tôi có thể giúp gì cho bạn?</h1>
+      <p class="lead mb-4 text-light opacity-75 mx-auto" style="max-width: 700px;">
+        Dù bạn là học viên đang gặp khó khăn kỹ thuật, giảng viên muốn hợp tác, hay doanh nghiệp cần giải pháp đào tạo. Đội ngũ của chúng tôi luôn sẵn sàng hỗ trợ 24/7.
+      </p>
+      <nav class="breadcrumbs d-flex justify-content-center" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a th:href="@{/}" class="text-info text-decoration-none">Trang chủ</a></li>
+          <li class="breadcrumb-item active text-white-50" aria-current="page">Liên hệ</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
 
-    <!-- Page Title -->
-    <div class="page-title light-background">
-      <div class="container d-lg-flex justify-content-between align-items-center">
-        <h1 class="mb-2 mb-lg-0">Contact</h1>
-        <nav class="breadcrumbs">
-          <ol>
-            <li><a href="index.html">Home</a></li>
-            <li class="current">Contact</li>
-          </ol>
-        </nav>
-      </div>
-    </div><!-- End Page Title -->
+  <section class="support-categories section mb-5 mt-n5 position-relative" style="z-index: 10;">
+    <div class="container" data-aos="fade-up">
+      <div class="row g-4 justify-content-center">
 
-    <!-- Contact Section -->
-    <section id="contact" class="contact section">
-
-      <div class="container" data-aos="fade-up" data-aos-delay="100">
-        <div class="contact-main-wrapper">
-          <div class="map-wrapper">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d48389.78314118045!2d-74.006138!3d40.710059!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25a22a3bda30d%3A0xb89d1fe6bc499443!2sDowntown%20Conference%20Center!5e0!3m2!1sen!2sus!4v1676961268712!5m2!1sen!2sus" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-4 hover-lift transition-all">
+            <div class="icon-box bg-primary-subtle text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+              <i class="bi bi-mortarboard fs-2"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Hỗ trợ Học viên</h4>
+            <p class="text-muted mb-4 text-sm">Giải đáp thắc mắc về bài giảng, cấp chứng chỉ, hướng dẫn thanh toán và xử lý lỗi không xem được video.</p>
+            <a href="#faq-section" class="btn btn-outline-primary rounded-pill mt-auto fw-bold px-4">Xem trợ giúp</a>
           </div>
+        </div>
 
-          <div class="contact-content">
-            <div class="contact-cards-container" data-aos="fade-up" data-aos-delay="300">
-              <div class="contact-card">
-                <div class="icon-box">
-                  <i class="bi bi-geo-alt"></i>
-                </div>
-                <div class="contact-text">
-                  <h4>Location</h4>
-                  <p>8721 Broadway Avenue, New York, NY 10023</p>
-                </div>
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-4 hover-lift transition-all">
+            <div class="icon-box bg-success-subtle text-success rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+              <i class="bi bi-person-video3 fs-2"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Trở thành Giảng viên</h4>
+            <p class="text-muted mb-4 text-sm">Cùng chúng tôi lan tỏa tri thức. Nhận hướng dẫn về cách tạo khóa học, tiêu chuẩn video và tỷ lệ chia sẻ doanh thu.</p>
+            <a href="#" class="btn btn-outline-success rounded-pill mt-auto fw-bold px-4">Đăng ký dạy</a>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="card h-100 border-0 shadow-sm rounded-4 text-center p-4 hover-lift transition-all">
+            <div class="icon-box bg-warning-subtle text-warning rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+              <i class="bi bi-buildings fs-2"></i>
+            </div>
+            <h4 class="fw-bold mb-3">Giải pháp Doanh nghiệp</h4>
+            <p class="text-muted mb-4 text-sm">Hệ thống quản lý đào tạo nội bộ (LMS) riêng biệt, nâng cao năng lực nhân sự với kho khóa học chất lượng cao.</p>
+            <a href="#contact-form-section" class="btn btn-outline-warning rounded-pill mt-auto fw-bold px-4 text-dark">Liên hệ Sale</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section id="contact-form-section" class="contact section mb-5 py-5 bg-white">
+    <div class="container" data-aos="fade-up" data-aos-delay="100">
+
+      <div class="text-center mb-5">
+        <span class="text-primary fw-bold text-uppercase tracking-wider">Gửi tin nhắn</span>
+        <h2 class="fw-bold mt-2">Kết nối trực tiếp với chúng tôi</h2>
+        <div class="divider bg-primary mx-auto my-3" style="width: 60px; height: 3px; border-radius: 5px;"></div>
+      </div>
+
+      <div class="row g-5">
+
+        <div class="col-lg-5">
+          <div class="bg-light p-4 p-md-5 rounded-4 h-100">
+            <h3 class="fw-bold mb-4">Thông tin liên lạc</h3>
+            <p class="text-muted mb-5">Điền vào biểu mẫu bên cạnh hoặc liên hệ với chúng tôi qua các kênh dưới đây. Chúng tôi sẽ cố gắng phản hồi sớm nhất có thể.</p>
+
+            <div class="d-flex align-items-center mb-4">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 50px; height: 50px;">
+                <i class="bi bi-geo-alt fs-5"></i>
               </div>
-
-              <div class="contact-card">
-                <div class="icon-box">
-                  <i class="bi bi-envelope"></i>
-                </div>
-                <div class="contact-text">
-                  <h4>Email</h4>
-                  <p>info@examplecompany.com</p>
-                </div>
-              </div>
-
-              <div class="contact-card">
-                <div class="icon-box">
-                  <i class="bi bi-telephone"></i>
-                </div>
-                <div class="contact-text">
-                  <h4>Call</h4>
-                  <p>+1 (212) 555-7890</p>
-                </div>
-              </div>
-
-              <div class="contact-card">
-                <div class="icon-box">
-                  <i class="bi bi-clock"></i>
-                </div>
-                <div class="contact-text">
-                  <h4>Open Hours</h4>
-                  <p>Monday-Friday: 9AM - 6PM</p>
-                </div>
+              <div>
+                <h6 class="fw-bold mb-1">Trụ sở chính</h6>
+                <p class="text-muted mb-0 small">Khu Công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội</p>
               </div>
             </div>
 
-            <div class="contact-form-container" data-aos="fade-up" data-aos-delay="400">
-              <h3>Get in Touch</h3>
-              <p>Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua consectetur adipiscing.</p>
+            <div class="d-flex align-items-center mb-4">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 50px; height: 50px;">
+                <i class="bi bi-envelope fs-5"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-1">Email hỗ trợ</h6>
+                <p class="text-muted mb-0 small">support@novalms.edu.vn</p>
+              </div>
+            </div>
 
-              <form action="../forms/contact.php" method="post" class="php-email-form">
-                <div class="row">
-                  <div class="col-md-6 form-group">
-                    <input type="text" name="name" class="form-control" id="name" placeholder="Your Name" required="">
-                  </div>
-                  <div class="col-md-6 form-group mt-3 mt-md-0">
-                    <input type="email" class="form-control" name="email" id="email" placeholder="Your Email" required="">
-                  </div>
-                </div>
-                <div class="form-group mt-3">
-                  <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" required="">
-                </div>
-                <div class="form-group mt-3">
-                  <textarea class="form-control" name="message" rows="5" placeholder="Message" required=""></textarea>
-                </div>
+            <div class="d-flex align-items-center mb-4">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 50px; height: 50px;">
+                <i class="bi bi-telephone fs-5"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-1">Hotline (24/7)</h6>
+                <p class="text-muted mb-0 small">+84 (24) 7300 8888</p>
+              </div>
+            </div>
 
-                <div class="my-3">
-                  <div class="loading">Loading</div>
-                  <div class="error-message"></div>
-                  <div class="sent-message">Your message has been sent. Thank you!</div>
-                </div>
+            <hr class="my-5 opacity-25">
 
-                <div class="form-submit">
-                  <button type="submit">Send Message</button>
-                  <div class="social-links">
-                    <a href="#"><i class="bi bi-twitter"></i></a>
-                    <a href="#"><i class="bi bi-facebook"></i></a>
-                    <a href="#"><i class="bi bi-instagram"></i></a>
-                    <a href="#"><i class="bi bi-linkedin"></i></a>
-                  </div>
-                </div>
-              </form>
+            <h6 class="fw-bold mb-3">Bản đồ chỉ đường</h6>
+            <div class="rounded-3 overflow-hidden shadow-sm" style="height: 200px;">
+              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.506341929532!2d105.52271427503102!3d21.01241668063273!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135abc60e7d3f19%3A0x2ce9d08369e79471!2zVHLGsOG7nW5nIMSQ4bqhaSBo4buNYyBGUFQgSMOgIE7hu5lp!5e0!3m2!1svi!2s!4v1714000000000!5m2!1svi!2s"
+                      width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+
+            <div class="d-flex gap-3 mt-4">
+              <a href="#" class="btn btn-outline-secondary btn-sm rounded-circle"><i class="bi bi-facebook"></i></a>
+              <a href="#" class="btn btn-outline-secondary btn-sm rounded-circle"><i class="bi bi-youtube"></i></a>
+              <a href="#" class="btn btn-outline-secondary btn-sm rounded-circle"><i class="bi bi-linkedin"></i></a>
+              <a href="#" class="btn btn-outline-secondary btn-sm rounded-circle"><i class="bi bi-github"></i></a>
             </div>
           </div>
         </div>
+
+        <div class="col-lg-7">
+          <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm border h-100">
+            <form action="/contact/submit" method="post" class="needs-validation" novalidate>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label for="fullName" class="form-label fw-semibold small">Họ và Tên <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control form-control-lg bg-light" id="fullName" name="fullName" placeholder="Nhập tên của bạn" required>
+                  <div class="invalid-feedback">Vui lòng nhập họ tên.</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="phone" class="form-label fw-semibold small">Số điện thoại</label>
+                  <input type="tel" class="form-control form-control-lg bg-light" id="phone" name="phone" placeholder="09xx xxx xxx">
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="email" class="form-label fw-semibold small">Địa chỉ Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control form-control-lg bg-light" id="email" name="email" placeholder="email@example.com" required>
+                <div class="invalid-feedback">Vui lòng nhập một địa chỉ email hợp lệ.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="department" class="form-label fw-semibold small">Bạn cần hỗ trợ về vấn đề gì? <span class="text-danger">*</span></label>
+                <select class="form-select form-select-lg bg-light" id="department" name="department" required>
+                  <option value="" selected disabled>-- Chọn phòng ban hỗ trợ --</option>
+                  <option value="technical">Hỗ trợ kỹ thuật (Lỗi web, video, tài khoản)</option>
+                  <option value="billing">Thanh toán & Hoàn tiền</option>
+                  <option value="instructor">Đăng ký trở thành giảng viên</option>
+                  <option value="business">Mua khóa học cho doanh nghiệp (B2B)</option>
+                  <option value="other">Góp ý & Các vấn đề khác</option>
+                </select>
+                <div class="invalid-feedback">Vui lòng chọn một bộ phận để chúng tôi hỗ trợ tốt nhất.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="subject" class="form-label fw-semibold small">Tiêu đề <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-lg bg-light" id="subject" name="subject" placeholder="Tóm tắt vấn đề của bạn" required>
+              </div>
+
+              <div class="mb-4">
+                <label for="message" class="form-label fw-semibold small">Nội dung chi tiết <span class="text-danger">*</span></label>
+                <textarea class="form-control form-control-lg bg-light" id="message" name="message" rows="5" placeholder="Mô tả chi tiết lỗi bạn gặp phải hoặc yêu cầu của bạn..." required></textarea>
+              </div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow">
+                  <i class="bi bi-send me-2"></i> GỬI YÊU CẦU HỖ TRỢ
+                </button>
+              </div>
+
+              <p class="text-muted text-center mt-3 small">
+                Bằng việc gửi biểu mẫu này, bạn đồng ý với <a href="#" class="text-primary text-decoration-none">Chính sách bảo mật</a> của chúng tôi.
+              </p>
+
+              <div th:if="${successMessage}" class="alert alert-success mt-3 d-flex align-items-center" role="alert">
+                <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                <div><strong th:text="${successMessage}">Tin nhắn đã gửi thành công!</strong></div>
+              </div>
+              <div th:if="${errorMessage}" class="alert alert-danger mt-3 d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                <div><strong th:text="${errorMessage}">Có lỗi xảy ra, vui lòng thử lại!</strong></div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
       </div>
-    </section><!-- /Contact Section -->
+    </div>
+  </section>
 
-  </main>
+  <section id="faq-section" class="faq section py-5 mb-5 bg-light">
+    <div class="container" data-aos="fade-up">
 
-  <footer th:replace="~{fragments/footer :: common-footer}"></footer>
+      <div class="text-center mb-5">
+        <span class="text-primary fw-bold text-uppercase tracking-wider">Hỏi đáp nhanh</span>
+        <h2 class="fw-bold mt-2">Câu hỏi thường gặp (FAQ)</h2>
+        <p class="text-muted">Tìm kiếm câu trả lời nhanh chóng cho các vấn đề phổ biến nhất.</p>
+      </div>
 
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-  <div id="preloader"></div>
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="accordion accordion-flush bg-white rounded-4 shadow-sm p-3" id="faqAccordion">
 
-  <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+            <div class="accordion-item border-bottom">
+              <h2 class="accordion-header" id="faq-heading-1">
+                <button class="accordion-button fw-bold py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-1" aria-expanded="true" aria-controls="faq-collapse-1">
+                  1. Tôi có thể yêu cầu hoàn tiền nếu khóa học không phù hợp không?
+                </button>
+              </h2>
+              <div id="faq-collapse-1" class="accordion-collapse collapse show" aria-labelledby="faq-heading-1" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-secondary pb-4">
+                  Có. Chúng tôi cung cấp chính sách hoàn tiền 100% trong vòng 30 ngày kể từ ngày mua khóa học, miễn là bạn chưa hoàn thành quá 30% nội dung chương trình học. Vui lòng gửi yêu cầu qua form liên hệ và chọn mục "Thanh toán & Hoàn tiền".
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-bottom">
+              <h2 class="accordion-header" id="faq-heading-2">
+                <button class="accordion-button collapsed fw-bold py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-2" aria-expanded="false" aria-controls="faq-collapse-2">
+                  2. Làm thế nào để tôi nhận được chứng chỉ hoàn thành?
+                </button>
+              </h2>
+              <div id="faq-collapse-2" class="accordion-collapse collapse" aria-labelledby="faq-heading-2" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-secondary pb-4">
+                  Chứng chỉ sẽ tự động được cấp và gửi vào email của bạn ngay sau khi bạn hoàn thành 100% các bài giảng dạng video và vượt qua bài kiểm tra cuối khóa (Placement Test/Final Exam) với số điểm tối thiểu theo yêu cầu của giảng viên.
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-bottom">
+              <h2 class="accordion-header" id="faq-heading-3">
+                <button class="accordion-button collapsed fw-bold py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-3" aria-expanded="false" aria-controls="faq-collapse-3">
+                  3. Video bài giảng bị giật lag hoặc không tải được, tôi phải làm sao?
+                </button>
+              </h2>
+              <div id="faq-collapse-3" class="accordion-collapse collapse" aria-labelledby="faq-heading-3" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-secondary pb-4">
+                  Trước tiên, hãy thử xóa cache trình duyệt hoặc mở bằng tab ẩn danh (Incognito). Đảm bảo kết nối mạng của bạn ổn định. Bạn cũng có thể giảm độ phân giải video (từ 1080p xuống 720p) ở biểu tượng bánh răng góc phải màn hình video. Nếu vẫn lỗi, hãy liên hệ bộ phận Kỹ thuật.
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="faq-heading-4">
+                <button class="accordion-button collapsed fw-bold py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-4" aria-expanded="false" aria-controls="faq-collapse-4">
+                  4. Tôi muốn mua khóa học số lượng lớn cho nhân viên công ty?
+                </button>
+              </h2>
+              <div id="faq-collapse-4" class="accordion-collapse collapse" aria-labelledby="faq-heading-4" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-secondary pb-4">
+                  Tuyệt vời! Chúng tôi có các gói chiết khấu đặc biệt dành cho doanh nghiệp (B2B) và cấp quyền quản lý Dashboard riêng để theo dõi tiến độ học tập của nhân viên. Vui lòng chọn mục "Mua khóa học cho doanh nghiệp" trên form liên hệ, chuyên viên Sale của chúng tôi sẽ gọi lại ngay.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer th:replace="~{fragments/footer :: common-footer}"></footer>
+
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center bg-primary text-white rounded-circle shadow" style="width: 40px; height: 40px; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
+  <i class="bi bi-arrow-up-short fs-3"></i>
+</a>
+
+<div id="preloader"></div>
+
+<th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<script>
+  (function () {
+    'use strict'
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.querySelectorAll('.needs-validation')
+
+    // Loop over them and prevent submission
+    Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+              form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+              }, false)
+            })
+  })()
+</script>
+
 </body>
-
 </html>

@@ -1,150 +1,344 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
-<!-- Sử dụng head chung, truyền tên lớp học vào title -->
-<head th:replace="~{fragments/head :: common-head(${clazz.className != null ? clazz.className : 'Chi tiết lớp học'})}">
+<head th:replace="~{fragments/head :: common-head(${clazz?.className ?: 'Chi tiết lớp học'})}">
 </head>
 
-<body class="class-details-page">
+<body class="class-details-page bg-light">
 
-<!-- Header: Vẫn giữ active ở menu Khóa học -->
 <header th:replace="~{fragments/header :: header-fragment('courses')}"></header>
 
 <main class="main">
 
-    <!-- Tiêu đề trang & Breadcrumbs -->
-    <div class="page-title light-background">
-        <div class="container d-lg-flex justify-content-between align-items-center">
-            <h1 class="mb-2 mb-lg-0" th:text="${clazz.className != null ? clazz.className : ''}"></h1>
-            <nav class="breadcrumbs">
-                <ol>
-                    <li><a th:href="@{/}">Trang chủ</a></li>
-                    <li><a th:href="@{/courses}">Khóa học</a></li>
-                    <!-- Tên khóa học gốc -->
-                    <li>
-                        <a th:if="${clazz.course != null}"
-                           th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
-                           th:text="${clazz.course.title != null ? clazz.course.title : ''}"></a>
-                        <span th:if="${clazz.course == null}"></span>
+    <div class="page-title bg-dark text-white py-5 mb-4">
+        <div class="container py-4">
+            <nav class="breadcrumbs mb-4" aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a th:href="@{/}" class="text-info text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/courses}" class="text-info text-decoration-none">Khóa học</a></li>
+                    <li class="breadcrumb-item" th:if="${clazz?.course != null}">
+                        <a th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
+                           th:text="${clazz.course.title ?: 'Chi tiết'}" class="text-info text-decoration-none"></a>
                     </li>
-                    <li class="current">Chi tiết lớp</li>
+                    <li class="breadcrumb-item active text-white-50" aria-current="page" th:text="${clazz?.className ?: 'Chi tiết lớp'}"></li>
                 </ol>
             </nav>
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <h1 class="display-5 fw-bold mb-3" th:text="${clazz?.className ?: 'Đang cập nhật tên lớp'}"></h1>
+                    <p class="lead mb-4 text-light opacity-75 lh-base"
+                       th:text="${clazz?.course?.description != null ? #strings.abbreviate(clazz.course.description, 180) : 'Khóa học được thiết kế chuyên sâu giúp bạn nắm vững kiến thức từ cơ bản đến nâng cao, áp dụng ngay vào thực tế dự án.'}">
+                    </p>
+
+                    <div class="d-flex flex-wrap align-items-center text-sm mb-4 gap-4">
+                        <div>
+                            <span class="text-warning fw-bold fs-5"><i class="bi bi-star-fill"></i> 4.8</span>
+                            <a href="#reviews" class="text-info text-decoration-none ms-1">(2,104 đánh giá)</a>
+                        </div>
+                        <div>
+                            <i class="bi bi-people-fill me-1"></i> <span th:text="${clazz?.currentStudents ?: '1,532'} + ' học viên'"></span>
+                        </div>
+                        <div>
+                            <i class="bi bi-patch-check-fill text-info me-1"></i> Đã kiểm duyệt
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-2 fw-bold" style="width: 35px; height: 35px;">
+                            <span th:text="${clazz?.teacher?.fullName != null ? #strings.substring(clazz.teacher.fullName, 0, 1) : 'G'}"></span>
+                        </div>
+                        <span class="text-white-50 me-2">Giảng viên:</span>
+                        <a href="#instructor" class="text-info text-decoration-none fw-bold" th:text="${clazz?.teacher?.fullName ?: 'Đội ngũ chuyên gia NovaLMS'}"></a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <section id="class-details" class="class-details section">
+    <section id="class-details" class="class-details section mb-5">
         <div class="container" data-aos="fade-up">
-            <div class="row">
+            <div class="row g-4 position-relative">
 
-                <!-- CỘT TRÁI: THÔNG TIN CHI TIẾT LỚP HỌC -->
                 <div class="col-lg-8">
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-body p-4">
-                            <h3 class="fw-bold text-primary mb-3" th:text="${clazz.className != null ? clazz.className : ''}"></h3>
 
-                            <!-- Giảng viên -->
-                            <div class="d-flex align-items-center mb-4 text-muted">
-                                <i class="bi bi-person-video3 me-2 fs-5"></i>
-                                <span class="me-1">Giảng viên:</span>
-                                <strong class="text-dark" th:text="${clazz.teacher != null ? clazz.teacher.fullName : ''}"></strong>
-                            </div>
-
-                            <hr>
-
-                            <!-- Hiển thị toàn bộ các trường trong bảng class -->
-                            <h5 class="fw-bold mt-4 mb-3">Thông tin chi tiết</h5>
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h4 class="fw-bold mb-4">Bạn sẽ học được gì?</h4>
                             <div class="row g-3">
-
-                                <!-- Lịch học (schedule) -->
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded bg-light">
-                                        <small class="text-muted d-block mb-1">Lịch học</small>
-                                        <strong th:text="${clazz.schedule != null ? clazz.schedule : ''}"></strong>
-                                    </div>
+                                <div class="col-md-6 d-flex align-items-start">
+                                    <i class="bi bi-check2 text-success fs-4 me-2 mt-n1"></i>
+                                    <span class="text-muted">Nắm vững kiến thức nền tảng và tư duy phân tích hệ thống.</span>
                                 </div>
-
-                                <!-- Thuộc khóa học (course_id) -->
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded bg-light">
-                                        <small class="text-muted d-block mb-1">Thuộc khóa học</small>
-                                        <strong th:text="${clazz.course != null ? clazz.course.title : ''}"></strong>
-                                    </div>
+                                <div class="col-md-6 d-flex align-items-start">
+                                    <i class="bi bi-check2 text-success fs-4 me-2 mt-n1"></i>
+                                    <span class="text-muted">Thực hành xây dựng các module thực tế chuẩn doanh nghiệp.</span>
                                 </div>
-
-                                <!-- Ngày bắt đầu (start_date) -->
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded bg-light">
-                                        <small class="text-muted d-block mb-1">Ngày khai giảng</small>
-                                        <strong th:text="${clazz.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : ''}"></strong>
-                                    </div>
+                                <div class="col-md-6 d-flex align-items-start">
+                                    <i class="bi bi-check2 text-success fs-4 me-2 mt-n1"></i>
+                                    <span class="text-muted">Sử dụng thành thạo các công cụ quản lý mã nguồn (Git/GitHub).</span>
                                 </div>
-
-                                <!-- Ngày kết thúc (end_date) -->
-                                <div class="col-md-6">
-                                    <div class="p-3 border rounded bg-light">
-                                        <small class="text-muted d-block mb-1">Ngày kết thúc</small>
-                                        <strong th:text="${clazz.endDate != null ? #temporals.format(clazz.endDate, 'dd/MM/yyyy') : ''}"></strong>
-                                    </div>
+                                <div class="col-md-6 d-flex align-items-start">
+                                    <i class="bi bi-check2 text-success fs-4 me-2 mt-n1"></i>
+                                    <span class="text-muted">Tự tin tham gia các kỳ thi đánh giá năng lực đầu vào.</span>
                                 </div>
-
                             </div>
-
-                            <!-- Mô tả (Lấy từ khóa học gốc) -->
-                            <h5 class="fw-bold mt-4 mb-3">Mô tả khóa học</h5>
-                            <p th:text="${clazz.course != null && clazz.course.description != null ? clazz.course.description : ''}" style="white-space: pre-line;">
-                            </p>
-
                         </div>
                     </div>
-                </div>
 
-                <!-- CỘT PHẢI: HÀNH ĐỘNG (ĐĂNG KÝ) -->
-                <div class="col-lg-4">
-                    <div class="card shadow-sm border-0 sticky-top" style="top: 100px;">
-                        <div class="card-body p-4 text-center">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-primary-subtle border border-primary-subtle">
+                        <div class="card-body p-4">
+                            <div class="row g-4 text-center">
+                                <div class="col-6 col-md-3 border-end border-primary-subtle border-opacity-50">
+                                    <i class="bi bi-calendar-check fs-2 text-primary mb-2 d-block"></i>
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1">Khai giảng</small>
+                                    <strong class="text-dark fs-5" th:text="${clazz?.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : '---'}"></strong>
+                                </div>
+                                <div class="col-6 col-md-3 border-end-md border-primary-subtle border-opacity-50">
+                                    <i class="bi bi-calendar-x fs-2 text-danger mb-2 d-block"></i>
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1">Bế giảng</small>
+                                    <strong class="text-dark fs-5" th:text="${clazz?.endDate != null ? #temporals.format(clazz.endDate, 'dd/MM/yyyy') : '---'}"></strong>
+                                </div>
+                                <div class="col-6 col-md-3 border-end border-primary-subtle border-opacity-50">
+                                    <i class="bi bi-clock-history fs-2 text-info mb-2 d-block"></i>
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1">Lịch học</small>
+                                    <strong class="text-dark" th:text="${clazz?.schedule ?: 'Đang xếp lịch'}"></strong>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <i class="bi bi-info-circle fs-2 text-success mb-2 d-block"></i>
+                                    <small class="text-muted d-block text-uppercase fw-semibold mb-1">Trạng thái</small>
+                                    <span class="badge bg-success fs-6 mt-1" th:text="${clazz?.status ?: 'Đang mở'}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Trạng thái lớp học (status) -->
-                            <div class="mb-3" th:if="${clazz.status != null}">
-                 <span class="badge bg-success px-3 py-2 rounded-pill fs-6"
-                       th:text="${clazz.status}"></span>
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h4 class="fw-bold mb-4">Mô tả chi tiết</h4>
+                            <div class="text-secondary lh-lg"
+                                 th:text="${clazz?.course?.description ?: 'Nội dung chi tiết của khóa học đang được cập nhật. Vui lòng quay lại sau.'}"
+                                 style="white-space: pre-line;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">Lộ trình học tập</h4>
+                                <span class="text-muted small fw-semibold">12 Chương • 48 Bài giảng</span>
                             </div>
 
-                            <!-- Giá tiền (Lấy từ bảng Course) -->
-                            <div class="mb-4">
-                                <h2 class="fw-bold text-primary mt-2"
-                                    th:if="${clazz.course != null && clazz.course.price != null && clazz.course.price > 0}"
+                            <div class="accordion accordion-flush border rounded-3 overflow-hidden" id="curriculumAccordion">
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="headingOne">
+                                        <button class="accordion-button bg-light fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                            Phần 1: Giới thiệu và Tổng quan nền tảng
+                                            <span class="ms-auto me-3 badge bg-secondary fw-normal">5 Bài học</span>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#curriculumAccordion">
+                                        <div class="accordion-body p-0">
+                                            <ul class="list-group list-group-flush text-muted">
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                                    <span><i class="bi bi-play-circle-fill text-primary me-3"></i> Bài 1: Cài đặt môi trường làm việc</span>
+                                                    <span class="small text-muted">10:45</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                                    <span><i class="bi bi-play-circle-fill text-primary me-3"></i> Bài 2: Cấu trúc thư mục dự án</span>
+                                                    <span class="small text-muted">15:20</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 bg-light">
+                                                    <span><i class="bi bi-file-earmark-pdf-fill text-danger me-3"></i> Tài liệu Slide chương 1</span>
+                                                    <span class="small text-muted border border-secondary px-2 py-1 rounded text-uppercase" style="font-size: 10px;">Tài liệu</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item border-top">
+                                    <h2 class="accordion-header" id="headingTwo">
+                                        <button class="accordion-button collapsed bg-light fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                            Phần 2: Triển khai các chức năng cốt lõi
+                                            <span class="ms-auto me-3 badge bg-secondary fw-normal">8 Bài học</span>
+                                        </button>
+                                    </h2>
+                                    <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#curriculumAccordion">
+                                        <div class="accordion-body p-0">
+                                            <ul class="list-group list-group-flush text-muted">
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                                    <span><i class="bi bi-play-circle-fill text-primary me-3"></i> Bài 3: Xử lý logic Backend</span>
+                                                    <span class="small text-muted">22:10</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                                                    <span><i class="bi bi-question-circle-fill text-success me-3"></i> Bài tập trắc nghiệm cuối chương</span>
+                                                    <span class="small text-muted">10 Câu</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="instructor" class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h4 class="fw-bold mb-4">Về giảng viên</h4>
+                            <div class="d-flex flex-column flex-md-row gap-4">
+                                <div class="text-center">
+                                    <img src="https://ui-avatars.com/api/?name=Giang+Vien&background=0D8ABC&color=fff&size=120"
+                                         alt="Avatar" class="rounded-circle shadow-sm mb-3" width="120" height="120">
+                                    <div class="text-muted small text-start ps-2">
+                                        <div class="mb-2"><i class="bi bi-star-fill text-warning me-2"></i> 4.9 Đánh giá</div>
+                                        <div class="mb-2"><i class="bi bi-people-fill text-primary me-2"></i> 5k+ Học viên</div>
+                                        <div class="mb-2"><i class="bi bi-play-btn-fill text-danger me-2"></i> 8 Khóa học</div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="fw-bold mb-1 text-primary" th:text="${clazz?.teacher?.fullName ?: 'Giảng viên ẩn danh'}"></h5>
+                                    <p class="text-muted fw-semibold mb-3 small">Chuyên gia Kỹ thuật Phần mềm / Senior Developer</p>
+                                    <p class="text-secondary lh-lg mb-4">
+                                        Với nhiều năm kinh nghiệm thực chiến trong các dự án lớn, giảng viên sẽ mang đến những kiến thức thực tế nhất,
+                                        giúp bạn không chỉ nắm vững lý thuyết mà còn tự tin triển khai code chuẩn chỉnh, đáp ứng yêu cầu khắt khe của doanh nghiệp.
+                                    </p>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold">Xem hồ sơ</button>
+                                        <a href="#" class="btn btn-light btn-sm rounded-circle text-muted"><i class="bi bi-youtube"></i></a>
+                                        <a href="#" class="btn btn-light btn-sm rounded-circle text-muted"><i class="bi bi-linkedin"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="reviews" class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h4 class="fw-bold mb-4">Phản hồi từ học viên</h4>
+
+                            <div class="row align-items-center mb-5">
+                                <div class="col-md-4 text-center text-md-start mb-4 mb-md-0">
+                                    <h1 class="display-2 fw-bold text-dark mb-0">4.8</h1>
+                                    <div class="text-warning fs-5 mb-2">
+                                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-half"></i>
+                                    </div>
+                                    <span class="text-muted fw-bold">Xếp hạng trung bình</span>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="text-muted small me-2" style="width: 40px;">5 sao</span>
+                                        <div class="progress flex-grow-1 bg-light" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 80%" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="text-muted small ms-2" style="width: 30px;">80%</span>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="text-muted small me-2" style="width: 40px;">4 sao</span>
+                                        <div class="progress flex-grow-1 bg-light" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 15%" aria-valuenow="15" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="text-muted small ms-2" style="width: 30px;">15%</span>
+                                    </div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="text-muted small me-2" style="width: 40px;">3 sao</span>
+                                        <div class="progress flex-grow-1 bg-light" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 5%" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="text-muted small ms-2" style="width: 30px;">5%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex border-bottom pb-4 mb-4">
+                                <img src="https://ui-avatars.com/api/?name=Hoc+Vien&background=random" class="rounded-circle me-3" width="50" height="50">
+                                <div>
+                                    <h6 class="fw-bold mb-1">Nguyễn Đức Anh</h6>
+                                    <div class="text-warning small mb-2 d-flex align-items-center">
+                                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                                        <span class="text-muted ms-3 small">Tuần trước</span>
+                                    </div>
+                                    <p class="text-secondary mb-0">Khóa học rất hay, nội dung bám sát thực tế. Mình đặc biệt thích phần bài tập áp dụng thực hành ngay sau mỗi chương.</p>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-outline-secondary fw-bold w-100 py-2">Xem tất cả đánh giá</button>
+                        </div>
+                    </div>
+
+                </div> <div class="col-lg-4">
+                <div class="card shadow-lg border-0 rounded-4 sticky-top" style="top: 100px; z-index: 10;">
+
+                    <div class="position-relative bg-dark rounded-top-4" style="height: 200px; background: url('https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=600&auto=format&fit=crop') center/cover;">
+                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex flex-column justify-content-center align-items-center text-white cursor-pointer hover-opacity transition-all">
+                            <i class="bi bi-play-circle-fill display-3 mb-2 opacity-75"></i>
+                            <span class="fw-bold">Xem giới thiệu khóa học</span>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-4 p-xl-5 text-center">
+
+                        <div class="mb-4 text-start">
+                            <span class="text-danger fw-bold small"><i class="bi bi-clock-history"></i> Ưu đãi giới hạn</span>
+                            <div class="d-flex align-items-baseline mt-2">
+                                <h2 class="fw-bold text-dark mb-0 me-3"
+                                    th:if="${clazz?.course?.price != null && clazz.course.price > 0}"
                                     th:text="${#numbers.formatDecimal(clazz.course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                 </h2>
-                                <h2 class="fw-bold text-success mt-2"
-                                    th:if="${clazz.course != null && (clazz.course.price == null || clazz.course.price == 0)}">
-                                    Miễn phí
-                                </h2>
+                                <span class="text-muted text-decoration-line-through fs-5"
+                                      th:if="${clazz?.course?.price != null && clazz.course.price > 0}">
+                                        1,500,000 đ
+                                    </span>
                             </div>
 
-                            <!-- Nút Đăng ký -->
-                            <a href="#" class="btn btn-primary w-100 py-3 fw-bold shadow mb-3">
-                                ĐĂNG KÝ NGAY
-                            </a>
-
-                            <!-- Nút quay lại -->
-                            <a th:if="${clazz.course != null}"
-                               th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
-                               class="btn btn-outline-secondary w-100 fw-bold">
-                                Quay lại Khóa Học
-                            </a>
-
+                            <h2 class="fw-bold text-success mb-0 mt-2 text-center"
+                                th:if="${clazz?.course?.price == null || clazz.course.price == 0}">
+                                MIỄN PHÍ HOÀN TOÀN
+                            </h2>
                         </div>
+
+                        <form action="/enroll" method="POST">
+                            <input type="hidden" name="classId" th:value="${clazz?.classId}">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow mb-3 rounded-3 text-uppercase">
+                                Đăng ký học ngay
+                            </button>
+                        </form>
+
+                        <a th:if="${clazz?.course != null}"
+                           th:href="@{/course/details/{id}(id=${clazz.course.courseId})}"
+                           class="btn btn-outline-dark w-100 fw-bold py-2 rounded-3 mb-4">
+                            Quay lại Khóa Học
+                        </a>
+
+                        <div class="text-muted small mb-4">Cam kết hoàn tiền trong 30 ngày</div>
+
+                        <div class="text-start border-top pt-4">
+                            <h6 class="fw-bold mb-3">Khóa học này bao gồm:</h6>
+                            <ul class="list-unstyled text-muted small mb-0 lh-lg">
+                                <li class="mb-2"><i class="bi bi-camera-video text-secondary me-2 fs-6"></i> Hơn 40 giờ video bài giảng</li>
+                                <li class="mb-2"><i class="bi bi-file-earmark-text text-secondary me-2 fs-6"></i> 15 tài liệu PDF chuyên sâu</li>
+                                <li class="mb-2"><i class="bi bi-infinity text-secondary me-2 fs-6"></i> Truy cập trọn đời không giới hạn</li>
+                                <li class="mb-2"><i class="bi bi-phone text-secondary me-2 fs-6"></i> Học mọi lúc trên Mobile và PC</li>
+                                <li><i class="bi bi-trophy text-secondary me-2 fs-6"></i> Cấp Chứng chỉ hoàn thành LMS</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-flex justify-content-center gap-4 mt-4 pt-4 border-top text-muted small fw-semibold">
+                            <a href="#" class="text-muted text-decoration-none hover-primary"><i class="bi bi-share me-1"></i> Chia sẻ</a>
+                            <a href="#" class="text-muted text-decoration-none hover-primary"><i class="bi bi-bookmark-plus me-1"></i> Lưu lại</a>
+                        </div>
+
                     </div>
                 </div>
-
-            </div>
+            </div> </div>
         </div>
     </section>
 
 </main>
 
-<!-- Footer -->
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
