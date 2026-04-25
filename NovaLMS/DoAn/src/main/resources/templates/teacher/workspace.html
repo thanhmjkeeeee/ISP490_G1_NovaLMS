@@ -330,7 +330,7 @@
                             <ul class="nav nav-tabs mb-0" id="ws-gd-skillTabs"></ul>
                             <div class="tab-content" id="ws-gd-tabContent"></div>
 
-                            <div class="card border-0 shadow-sm rounded-4 mt-4">
+                            <div class="card border-0 shadow-sm rounded-4 mt-4" id="ws-gd-actionArea">
                                 <div class="card-body p-4">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="text-muted small">
@@ -3633,13 +3633,19 @@
         };
 
         const wsFormatTranscript = (text) => {
-            if (!text) return '';
-            // Strip [Male] / [Female] tags for display
-            let cleaned = text.replace(/\s*\[(Male|Female)\]/gi, '');
-            let escaped = wsEscape(cleaned);
-            // Bold speaker names
-            return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-dark">$1</strong>');
-        };
+    if (!text) return '';
+
+    // 1. Tách từng dòng, xóa khoảng trắng thừa ở 2 đầu mỗi dòng để sát lề trái
+    let lines = text.split('\n').map(line => line.trim());
+    let cleaned = lines.join('\n');
+
+    // 2. Xóa các tag [Male] / [Female]
+    cleaned = cleaned.replace(/\s*\[(Male|Female)\]/gi, '');
+    let escaped = wsEscape(cleaned);
+
+    // 3. In đậm tên người nói
+    return escaped.replace(/^([^:\n]+:)/gm, '<strong class="text-dark">$1</strong>');
+};
         
         let wsCurrentAudio = null;
         let wsCurrentAudioBtnId = null;
@@ -3684,104 +3690,183 @@
 
 
         const wsRenderAIQuestions = () => {
-            const container = document.getElementById('wsAiList');
-            document.getElementById('wsAiTotal').textContent = wsAiQuestions.length;
-            document.getElementById('wsAiSelected').textContent = wsAiSelected.size;
+    const container = document.getElementById('wsAiList');
+    document.getElementById('wsAiTotal').textContent = wsAiQuestions.length;
+    document.getElementById('wsAiSelected').textContent = wsAiSelected.size;
 
-            const typeLabels = {
-                'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án',
-                'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
-                'FILL_IN_BLANK': 'Điền từ',
-                'MATCHING': 'Nối từ',
-                'WRITING': 'Viết',
-                'SPEAKING': 'Nói'
-            };
+    const typeLabels = {
+        'MULTIPLE_CHOICE_SINGLE': 'TN 1 đáp án',
+        'MULTIPLE_CHOICE_MULTI': 'TN nhiều đáp án',
+        'FILL_IN_BLANK': 'Điền từ',
+        'MATCHING': 'Nối từ',
+        'WRITING': 'Viết',
+        'SPEAKING': 'Nói'
+    };
 
-            const typeIcons = {
-                'MULTIPLE_CHOICE_SINGLE': 'bi-check2-circle',
-                'MULTIPLE_CHOICE_MULTI': 'bi-list-check',
-                'FILL_IN_BLANK': 'bi-pencil-fill',
-                'MATCHING': 'bi-intersect',
-                'WRITING': 'bi-card-text',
-                'SPEAKING': 'bi-mic-fill'
-            };
+    const typeIcons = {
+        'MULTIPLE_CHOICE_SINGLE': 'bi-check2-circle',
+        'MULTIPLE_CHOICE_MULTI': 'bi-list-check',
+        'FILL_IN_BLANK': 'bi-pencil-fill',
+        'MATCHING': 'bi-intersect',
+        'WRITING': 'bi-card-text',
+        'SPEAKING': 'bi-mic-fill'
+    };
 
-            let html = '';
+    let html = '';
 
-            // Render passage if exists
-            if (wsAiPassage) {
-                const firstQ = wsAiQuestions[0];
-                const isListening = firstQ && firstQ.skill && firstQ.skill.toUpperCase() === 'LISTENING';
-                const title = isListening ? 'Nội dung Audio / Transcript' : 'Nội dung Passage / Transcript';
-                const icon = isListening ? 'bi-volume-up-fill' : 'bi-file-text';
-
-                html += `
-                <div class="card border-0 bg-primary bg-opacity-10 mb-4 shadow-sm" style="border-radius: 16px;">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                    <i class="bi ${icon}"></i>
-                                </div>
-                                <span class="fw-bold text-primary">${title}:</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                                ${wsAiAudioUrl ? `
-                                    <button id="wsAiMainAudioBtn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all" 
-                                        style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);"
-                                        data-is-primary="true"
-                                        onclick="wsPlayAudio('${wsAiAudioUrl}', 'wsAiMainAudioBtn')">
-                                        <i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio
-                                    </button>
-                                ` : `
-                                    <button id="wsAiTtsBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold transition-all" 
-                                        data-is-primary="false"
-                                        onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText, 'wsAiTtsBtn')">
-                                        <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
-                                    </button>
-                                `}
-                            </div>
+    // Render passage (Giữ nguyên logic cũ)
+    if (wsAiPassage) {
+        const firstQ = wsAiQuestions[0];
+        const isListening = firstQ && firstQ.skill && firstQ.skill.toUpperCase() === 'LISTENING';
+        const title = isListening ? 'Nội dung Audio / Transcript' : 'Nội dung Passage / Transcript';
+        const icon = isListening ? 'bi-volume-up-fill' : 'bi-file-text';
+        const transcriptHtml = wsFormatTranscript(wsAiPassage);
+        html += `
+        <div class="card border-0 bg-primary bg-opacity-10 mb-4 shadow-sm" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <i class="bi ${icon}"></i>
                         </div>
-                        ${isListening ? `
-                            <div class="alert alert-info border-0 rounded-4 mb-3 small d-flex align-items-center gap-2">
-                                <i class="bi bi-info-circle-fill"></i>
-                                <span>Học sinh sẽ nhận được yêu cầu: "Hãy nghe đoạn hội thoại sau và chọn đáp án". Bản transcript sẽ bị ẩn trong quá trình làm bài.</span>
-                            </div>
-                            <div class="text-center">
-                                <button class="btn btn-outline-primary btn-sm border-dashed" type="button" data-bs-toggle="collapse" data-bs-target="#wsAiPassageCollapse">
-                                    Xem Transcript (Bản gỡ băng)
-                                </button>
-                            </div>
-                            <div class="collapse mt-3" id="wsAiPassageCollapse">
-                                <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
-                                    ${wsFormatTranscript(wsAiPassage)}
-                                </div>
-                            </div>
+                        <span class="fw-bold text-primary">${title}:</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        ${wsAiAudioUrl ? `
+                            <button id="wsAiMainAudioBtn" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm fw-bold border-0 transition-all"
+                                style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);"
+                                data-is-primary="true"
+                                onclick="wsPlayAudio('${wsAiAudioUrl}', 'wsAiMainAudioBtn')">
+                                <i class="bi bi-play-circle-fill me-1"></i> Nghe thử Audio
+                            </button>
                         ` : `
-                            <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
-                                ${wsFormatTranscript(wsAiPassage)}
-                            </div>
+                            <button id="wsAiTtsBtn" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-bold transition-all"
+                                data-is-primary="false"
+                                onclick="wsSpeak(document.getElementById('wsAiPassageTextContent').innerText, 'wsAiTtsBtn')">
+                                <i class="bi bi-play-circle-fill me-1"></i> Nghe thử (TTS)
+                            </button>
                         `}
                     </div>
-                </div>`;
+                </div>
+                ${isListening ? `
+                    <div class="alert alert-info border-0 rounded-4 mb-3 small d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>Học sinh sẽ nhận được yêu cầu: "Hãy nghe đoạn hội thoại sau và chọn đáp án". Bản transcript sẽ bị ẩn trong quá trình làm bài.</span>
+                    </div>
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary btn-sm border-dashed" type="button" data-bs-toggle="collapse" data-bs-target="#wsAiPassageCollapse">
+                            Xem Transcript (Bản gỡ băng)
+                        </button>
+                    </div>
+                    <div class="collapse mt-3" id="wsAiPassageCollapse">
+                        <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
+                            ${wsFormatTranscript(wsAiPassage)}
+                        </div>
+                    </div>
+                ` : `
+                    <div id="wsAiPassageTextContent" class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
+                        ${wsFormatTranscript(wsAiPassage)}
+                    </div>
+                `}
+            </div>
+        </div>`;
+    }
+
+    // Render danh sách câu hỏi AI
+    html += wsAiQuestions.map((q, i) => {
+        const isSelected = wsAiSelected.has(i);
+        const icon = typeIcons[q.questionType] || 'bi-question-circle';
+
+        if (q._isEditing) {
+            // === CHẾ ĐỘ CHỈNH SỬA (EDIT MODE) ===
+            let editOptionsHtml = '';
+            if (q.options && q.options.length > 0) {
+                editOptionsHtml = `
+                    <div class="mt-3 border-top pt-3">
+                        <label class="form-label small fw-bold text-primary">Các đáp án:</label>
+                        ${q.options.map((o, optIdx) => `
+                            <div class="input-group input-group-sm mb-2">
+                                <div class="input-group-text bg-light">
+                                    <input class="form-check-input mt-0" type="${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="editAiOpt_${i}" id="editAiOpt_${i}_${optIdx}" ${o.correct ? 'checked' : ''} title="Chọn làm đáp án đúng">
+                                </div>
+                                <input type="text" class="form-control" id="editAiOptText_${i}_${optIdx}" value="${wsEscape(o.title)}">
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
             }
 
-            html += wsAiQuestions.map((q, i) => {
-                const isSelected = wsAiSelected.has(i);
-                const icon = typeIcons[q.questionType] || 'bi-question-circle';
-
-                return `
-                <div class="card mb-3 border-0 shadow-sm question-card ${isSelected ? 'selected' : ''}" 
-                     style="border-radius: 12px; transition: all 0.2s; border-left: 5px solid ${isSelected ? '#0d6efd' : '#e2e8f0'} !important;">
-                    <div class="card-body p-3">
-                        <div class="d-flex align-items-start gap-3">
-                            <div class="pt-1">
-                                <div class="form-check custom-checkbox">
-                                    <input type="checkbox" class="form-check-input cursor-pointer" id="wsAiChk${i}" ${isSelected ? 'checked' : ''} onchange="wsToggleAI(${i})" style="width: 20px; height: 20px;">
+            let editMatchHtml = '';
+            if (q.questionType === 'MATCHING' && q.matchLeft && q.matchRight) {
+                 editMatchHtml = `
+                    <div class="mt-3 border-top pt-3">
+                        <label class="form-label small fw-bold text-primary">Các cặp nối chính xác:</label>
+                        ${q.matchLeft.map((left, idx) => {
+                            const rIdx = (q.correctPairs && q.correctPairs[idx]) ? q.correctPairs[idx] - 1 : -1;
+                            const right = rIdx >= 0 ? q.matchRight[rIdx] : '';
+                            return `
+                                <div class="row g-2 mb-2 align-items-center">
+                                    <div class="col-5"><input type="text" class="form-control form-control-sm" id="editAiMatchL_${i}_${idx}" value="${wsEscape(left)}" placeholder="Vế trái"></div>
+                                    <div class="col-1 text-center"><i class="bi bi-arrow-right text-muted"></i></div>
+                                    <div class="col-6"><input type="text" class="form-control form-control-sm border-success" id="editAiMatchR_${i}_${idx}" value="${wsEscape(right)}" placeholder="Vế phải (Kết quả)"></div>
                                 </div>
+                            `;
+                        }).join('')}
+                    </div>
+                 `;
+            }
+
+            let editCorrectAnsHtml = '';
+            if (q.questionType === 'FILL_IN_BLANK') {
+                editCorrectAnsHtml = `
+                    <div class="mt-3 border-top pt-3">
+                        <label class="form-label small fw-bold text-primary">Đáp án đúng (Từ cần điền):</label>
+                        <input type="text" id="editAiCorrectAns_${i}" class="form-control form-control-sm border-success" value="${wsEscape(q.correctAnswer || '')}">
+                    </div>
+                `;
+            }
+
+            return `
+            <div class="card mb-3 border-primary shadow-sm question-card" style="border-radius: 12px; border-width: 2px;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-primary text-white"><i class="bi bi-pencil-square me-1"></i>Đang chỉnh sửa câu hỏi</span>
+                        <span class="badge rounded-pill bg-light text-dark border d-flex align-items-center gap-1">
+                            <i class="bi ${icon} text-primary"></i> ${typeLabels[q.questionType] || q.questionType}
+                        </span>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-primary">Nội dung câu hỏi / Đề bài:</label>
+                        <textarea id="editAiContent_${i}" class="form-control form-control-sm" rows="3">${wsEscape(q.content || '')}</textarea>
+                    </div>
+
+                    ${editOptionsHtml}
+                    ${editMatchHtml}
+                    ${editCorrectAnsHtml}
+
+                    <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+                        <button class="btn btn-sm btn-light rounded-pill px-4 fw-bold" onclick="wsCancelEditAi(${i})">Hủy bỏ</button>
+                        <button class="btn btn-sm btn-primary rounded-pill px-4 fw-bold shadow-sm" onclick="wsSaveEditAi(${i})"><i class="bi bi-save me-1"></i>Lưu thay đổi</button>
+                    </div>
+                </div>
+            </div>`;
+
+        } else {
+            // === CHẾ ĐỘ XEM (VIEW MODE) CÓ NÚT SỬA ===
+            return `
+            <div class="card mb-3 border-0 shadow-sm question-card ${isSelected ? 'selected' : ''}"
+                 style="border-radius: 12px; transition: all 0.2s; border-left: 5px solid ${isSelected ? '#0d6efd' : '#e2e8f0'} !important;">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="pt-1">
+                            <div class="form-check custom-checkbox">
+                                <input type="checkbox" class="form-check-input cursor-pointer" id="wsAiChk${i}" ${isSelected ? 'checked' : ''} onchange="wsToggleAI(${i})" style="width: 20px; height: 20px;">
                             </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex gap-2 flex-wrap mb-2">
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex gap-2 flex-wrap">
                                     <span class="badge rounded-pill bg-light text-dark border d-flex align-items-center gap-1">
                                         <i class="bi ${icon} text-primary"></i> ${typeLabels[q.questionType] || q.questionType}
                                     </span>
@@ -3789,74 +3874,138 @@
                                     <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">${q.cefrLevel || ''}</span>
                                     ${q.topic ? `<span class="badge rounded-pill bg-light text-muted border">${wsEscape(q.topic)}</span>` : ''}
                                     ${q.audioUrl ? `
-                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2" 
+                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2"
                                             style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
                                             data-is-primary="false"
                                             onclick="wsPlayAudio('${q.audioUrl}', 'wsAiPlayQ${i}')">
                                             <i class="bi bi-play-circle-fill me-1"></i> Nghe nội dung
                                         </button>
                                     ` : (q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
-                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2" 
+                                        <button id="wsAiPlayQ${i}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold ms-2"
                                             style="height: 24px; line-height: 1; padding-top: 0; padding-bottom: 0; font-size: 0.75rem;"
                                             onclick="wsSpeak('${wsEscape(q.transcript || q.content || '')}', 'wsAiPlayQ${i}')">
                                             <i class="bi bi-play-circle-fill me-1"></i> Nghe nội dung
                                         </button>
                                     ` : ''}
                                 </div>
-                                ${q.transcript ? `
-                                    <div class="mb-3 p-3 bg-light rounded-3 border-start border-4 border-primary small text-dark fw-medium" style="max-height: 150px; overflow-y:auto; line-height:1.5; white-space: pre-wrap;">
-                                        <div class="text-primary mb-1 fw-bold small text-uppercase">Transcript:</div>
-                                        ${wsFormatTranscript(q.transcript)}
-                                    </div>
-                                ` : ''}
-                                <h6 class="mb-2 fw-bold text-dark" style="font-size: 0.95rem;">${wsEscape(q.content || '')}</h6>
-                                
-                                ${q.options && q.options.length > 0 ? `
-                                    <div class="row g-2 mt-1">
-                                        ${q.options.map(o => `
-                                            <div class="col-md-6">
-                                                <div class="p-2 rounded-3 border ${o.correct ? 'bg-success bg-opacity-10 border-success border-opacity-25' : 'bg-light border-light'} d-flex align-items-center gap-2">
-                                                    <i class="bi ${o.correct ? 'bi-check-circle-fill text-success' : 'bi-circle text-muted'}" style="font-size: 0.8rem;"></i>
-                                                    <span class="small ${o.correct ? 'fw-bold text-dark' : 'text-muted'}">${wsEscape(o.title)}</span>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                                
-                                ${q.correctAnswer ? `
-                                    <div class="mt-2 py-1 px-2 rounded bg-light border-start border-3 border-success small">
-                                        <span class="text-muted">Đáp án:</span> <span class="fw-bold text-success">${wsEscape(q.correctAnswer)}</span>
-                                    </div>
-                                ` : ''}
-
-                                ${q.questionType === 'MATCHING' && q.matchLeft && q.matchRight ? `
-                                    <div class="mt-2 p-2 rounded-3 bg-light border border-light-subtle">
-                                        <div class="fw-bold small mb-2 text-primary d-flex align-items-center gap-1">
-                                            <i class="bi bi-link-45deg"></i> Các cặp nối chính xác:
-                                        </div>
-                                        <div class="d-flex flex-column gap-1">
-                                            ${q.matchLeft.map((left, idx) => {
-                    const rIdx = (q.correctPairs && q.correctPairs[idx]) ? q.correctPairs[idx] - 1 : -1;
-                    const right = rIdx >= 0 ? q.matchRight[rIdx] : '???';
-                    return `
-                                                <div class="d-flex align-items-center gap-2 small">
-                                                    <div class="px-2 py-1 bg-white border rounded text-dark">${wsEscape(left)}</div>
-                                                    <i class="bi bi-arrow-right text-muted"></i>
-                                                    <div class="px-2 py-1 bg-white border border-success rounded text-success fw-bold">${wsEscape(right)}</div>
-                                                </div>`;
-                }).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
+                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-sm" style="font-size: 0.75rem;" onclick="wsStartEditAi(${i})">
+                                    <i class="bi bi-pencil-square me-1"></i>Sửa câu
+                                </button>
                             </div>
+                            ${q.transcript ? `
+                                <div class="mb-3 p-3 bg-light rounded-3 border-start border-4 border-primary small text-dark fw-medium" style="max-height: 150px; overflow-y:auto; line-height:1.5;">
+                                    <div class="text-primary mb-1 fw-bold small text-uppercase">Transcript:</div>
+                                    <div style="white-space: pre-wrap; word-break: break-word;">${wsFormatTranscript(q.transcript)}</div>
+                                </div>
+                            ` : ''}
+                            <h6 class="mb-2 fw-bold text-dark" style="font-size: 0.95rem;">${wsEscape(q.content || '')}</h6>
+
+                            ${q.options && q.options.length > 0 ? `
+                                <div class="row g-2 mt-1">
+                                    ${q.options.map(o => `
+                                        <div class="col-md-6">
+                                            <div class="p-2 rounded-3 border ${o.correct ? 'bg-success bg-opacity-10 border-success border-opacity-25' : 'bg-light border-light'} d-flex align-items-center gap-2">
+                                                <i class="bi ${o.correct ? 'bi-check-circle-fill text-success' : 'bi-circle text-muted'}" style="font-size: 0.8rem;"></i>
+                                                <span class="small ${o.correct ? 'fw-bold text-dark' : 'text-muted'}">${wsEscape(o.title)}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+
+                            ${q.correctAnswer ? `
+                                <div class="mt-2 py-1 px-2 rounded bg-light border-start border-3 border-success small">
+                                    <span class="text-muted">Đáp án:</span> <span class="fw-bold text-success">${wsEscape(q.correctAnswer)}</span>
+                                </div>
+                            ` : ''}
+
+                            ${q.questionType === 'MATCHING' && q.matchLeft && q.matchRight ? `
+                                <div class="mt-2 p-2 rounded-3 bg-light border border-light-subtle">
+                                    <div class="fw-bold small mb-2 text-primary d-flex align-items-center gap-1">
+                                        <i class="bi bi-link-45deg"></i> Các cặp nối chính xác:
+                                    </div>
+                                    <div class="d-flex flex-column gap-1">
+                                        ${q.matchLeft.map((left, idx) => {
+                                            const rIdx = (q.correctPairs && q.correctPairs[idx]) ? q.correctPairs[idx] - 1 : -1;
+                                            const right = rIdx >= 0 ? q.matchRight[rIdx] : '???';
+                                            return `
+                                            <div class="d-flex align-items-center gap-2 small">
+                                                <div class="px-2 py-1 bg-white border rounded text-dark">${wsEscape(left)}</div>
+                                                <i class="bi bi-arrow-right text-muted"></i>
+                                                <div class="px-2 py-1 bg-white border border-success rounded text-success fw-bold">${wsEscape(right)}</div>
+                                            </div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
-                </div>`;
-            }).join('');
+                </div>
+            </div>`;
+        }
+    }).join('');
 
-            container.innerHTML = html;
-        };
+    container.innerHTML = html;
+};
+
+window.wsStartEditAi = function(index) {
+    wsAiQuestions[index]._isEditing = true;
+    wsRenderAIQuestions();
+};
+
+window.wsCancelEditAi = function(index) {
+    wsAiQuestions[index]._isEditing = false;
+    wsRenderAIQuestions();
+};
+
+window.wsSaveEditAi = function(index) {
+    const q = wsAiQuestions[index];
+
+    // Cập nhật nội dung câu hỏi
+    const contentEl = document.getElementById(`editAiContent_${index}`);
+    if (contentEl) q.content = contentEl.value;
+
+    // Cập nhật các đáp án (Cho dạng Trắc nghiệm)
+    if (q.options && q.options.length > 0) {
+        q.options.forEach((o, optIdx) => {
+            const textEl = document.getElementById(`editAiOptText_${index}_${optIdx}`);
+            const checkEl = document.getElementById(`editAiOpt_${index}_${optIdx}`);
+            if (textEl) o.title = textEl.value;
+            if (checkEl) {
+                o.correct = checkEl.checked;
+                o.correctAnswer = checkEl.checked; // Tùy thuộc vào model Backend nhận field nào
+            }
+        });
+    }
+
+    // Cập nhật cặp nối (Cho dạng Matching)
+    if (q.questionType === 'MATCHING' && q.matchLeft && q.matchRight) {
+        q.matchLeft.forEach((left, idx) => {
+            const leftEl = document.getElementById(`editAiMatchL_${index}_${idx}`);
+            const rightEl = document.getElementById(`editAiMatchR_${index}_${idx}`);
+            if (leftEl) q.matchLeft[idx] = leftEl.value;
+            if (rightEl) {
+                // Update phía right (kết quả)
+                const rIdx = (q.correctPairs && q.correctPairs[idx]) ? q.correctPairs[idx] - 1 : -1;
+                if (rIdx >= 0) q.matchRight[rIdx] = rightEl.value;
+            }
+        });
+    }
+
+    // Cập nhật đáp án đúng (Cho dạng Điền từ - Fill in blank)
+    const ansEl = document.getElementById(`editAiCorrectAns_${index}`);
+    if (ansEl) q.correctAnswer = ansEl.value;
+
+    // Tắt chế độ Edit và render lại list
+    q._isEditing = false;
+    wsRenderAIQuestions();
+
+    // Bật check để tự động đưa câu vừa chỉnh sửa vào list chuẩn bị import
+    wsAiSelected.add(index);
+    wsRenderAIQuestions();
+
+    wsToast('Đã lưu thay đổi!', 'success');
+};
 
         window.wsToggleAI = function (idx) {
             if (wsAiSelected.has(idx)) wsAiSelected.delete(idx); else wsAiSelected.add(idx);
@@ -5457,7 +5606,7 @@
                 </div>`;
             }).join('');
 
-            const actionArea = document.querySelector('#gradingDetailArea .card-body.p-4 .d-flex.justify-content-between.align-items-center')?.parentElement?.parentElement;
+            const actionArea = document.getElementById('ws-gd-actionArea');
             if (actionArea) actionArea.style.display = isReadonly ? 'none' : 'block';
         }
 
