@@ -77,11 +77,11 @@
                   class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up">
                   <i class="bi bi-arrow-left me-2"></i>Quay Lại Lớp Học
                </a>
-               <button th:if="${sessionId == null}"
-                       class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"
-                       onclick="window.history.back()">
-                  <i class="bi bi-arrow-left me-2"></i>Quay Lại
-               </button>
+<!--               <button th:if="${sessionId == null}"-->
+<!--                       class="btn btn-light rounded-pill fw-bold px-4 py-2 border-0 shadow-sm transition-all hover-up"-->
+<!--                       onclick="window.history.back()">-->
+<!--                  <i class="bi bi-arrow-left me-2"></i>Quay Lại-->
+<!--               </button>-->
                
                <!-- Redo Button -->
                <button th:if="${result.canRetake and result.passed != null}"

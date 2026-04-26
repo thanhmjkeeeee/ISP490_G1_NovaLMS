@@ -420,7 +420,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         sessionRepository.save(session);
     }
 
-    // ─── submitSection ──────────────────────────────────────────────────
+    // ─── submitSection: Save and next skill ──────────────────────────────────────────────────
 
     @Override
     public Map<String, Object> submitSection(Long sessionId, String skill,
@@ -444,7 +444,7 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
             } catch (Exception ignored) {}
         }
 
-        // Save answers
+        // Save answers to DB (Json Draft format )
         saveAnswers(sessionId, skill, answers, userEmail);
 
         // Grade MC/FILL/MATCH answers

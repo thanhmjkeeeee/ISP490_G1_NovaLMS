@@ -120,6 +120,73 @@
          groupId, passage, groupAudioUrl, groupImageUrl
        quiz.canRetake, quiz.attemptsLeft, quiz.maxAttempts
 ═══════════════════════════════════════════════ -->
+
+
+<style>
+  /* ════ TỐI ƯU GIAO DIỆN SWEETALERT2 (CHỐNG VỠ LỀ) ════ */
+
+  /* 1. Bo góc và tạo độ thoáng cho toàn bộ Popup */
+  .swal2-popup {
+      border-radius: 16px !important;
+      padding: 24px 24px 32px 24px !important;
+  }
+
+  /* 2. Ép Icon ra giữa tuyệt đối */
+  .swal2-icon {
+      margin: 0 auto 20px auto !important;
+      display: flex !important;
+      justify-content: center !important;
+  }
+
+  /* 3. Căn giữa Tiêu đề và Nội dung chữ */
+  .swal2-title {
+      text-align: center !important;
+      font-weight: 700 !important;
+      font-size: 1.5rem !important;
+      color: #1e293b !important;
+      margin: 0 0 10px 0 !important;
+  }
+  .swal2-html-container {
+      text-align: center !important;
+      font-size: 0.95rem !important;
+      line-height: 1.5 !important;
+      margin: 0 !important;
+  }
+
+  /* 4. Tách biệt và Căn giữa khu vực chứa Nút bấm */
+  .swal2-actions {
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      gap: 16px !important; /* Khoảng cách an toàn giữa 2 nút */
+      margin-top: 28px !important;
+      width: 100% !important;
+  }
+
+  /* 5. Đồng bộ kích thước và làm đẹp Nút bấm */
+  .swal2-confirm, .swal2-cancel {
+      margin: 0 !important; /* Xóa margin lỗi */
+      padding: 12px 24px !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      min-width: 130px !important; /* Ép 2 nút có độ rộng tương đương nhau */
+      box-shadow: none !important; /* Bỏ viền shadow mặc định hơi lố của thư viện */
+  }
+
+  /* Nút xác nhận (Màu tím/xanh) */
+  .swal2-confirm {
+      background-color: #6366f1 !important; /* Chỉnh mã màu hợp với theme của bạn */
+      color: #fff !important;
+  }
+
+  /* Nút Hủy (Màu xám) */
+  .swal2-cancel {
+      background-color: #64748b !important;
+      color: #fff !important;
+  }
+</style>
+
 <script th:inline="javascript">
 /* ─── Raw data ─── */
 const RAW_QUIZ    = /*[[${quiz}]]*/ null;
@@ -580,7 +647,8 @@ function activateSkill(idx) {
   renderQGrid(idx);
   updateSidebar(idx);
   startTimer(skill.timeSecs, idx);
-  
+
+
   /* Update submit button text and action based on whether it is the last section */
   const isLast = idx >= ES.skills.length - 1;
   document.querySelectorAll('.btn-submit').forEach(btn => {

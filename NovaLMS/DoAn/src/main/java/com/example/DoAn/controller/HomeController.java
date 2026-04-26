@@ -23,18 +23,7 @@ public class HomeController {
             User user = userRepository.findByEmailWithRole(principal.getName()).orElse(null);
             if (user != null) {
                 model.addAttribute("userProfile", user);
-                
-                // Redirect based on role
-                if (user.getRole() != null) {
-                    String roleVal = user.getRole().getValue();
-                    if ("ROLE_ADMIN".equals(roleVal) || "ADMIN".equals(roleVal)) {
-                        return "redirect:/admin/dashboard";
-                    } else if ("ROLE_MANAGER".equals(roleVal) || "MANAGER".equals(roleVal)) {
-                        return "redirect:/manager/dashboard";
-                    } else if ("ROLE_EXPERT".equals(roleVal) || "EXPERT".equals(roleVal)) {
-                        return "redirect:/expert/dashboard";
-                    }
-                }
+
             }
         }
 

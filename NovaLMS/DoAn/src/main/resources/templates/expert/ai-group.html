@@ -38,8 +38,8 @@
                     <select id="groupCefr" class="form-select"></select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-bold">Số câu hỏi con (2–20)</label>
-                    <input type="number" id="groupQty" class="form-control" min="2" max="20" value="5">
+                    <label class="form-label fw-bold">Số câu hỏi con (2–7)</label>
+                    <input type="number" id="groupQty" class="form-control" min="2" max="7" value="5">
                 </div>
             </div>
             <div class="mt-3 text-end">
@@ -111,7 +111,7 @@
         const qty = parseInt(document.getElementById('groupQty').value);
 
         if (!topic) { alert('Vui lòng nhập chủ đề.'); return; }
-        if (!qty || qty < 2 || qty > 20) { alert('Số câu hỏi con phải từ 2-20.'); return; }
+        if (!qty || qty < 2 || qty > 7) { alert('Số câu hỏi con phải từ 2-7.'); return; }
 
         const body = { topic, quantity: qty, skill, cefrLevel: cefr };
 
@@ -144,51 +144,166 @@
         }
     }
 
-    function renderGroupPreview() {
-        const g = groupPreviewData;
-        if (!g) return;
 
-        const header = document.getElementById('passageHeader');
-        header.innerHTML = `<span>Đoạn văn / Nội dung (Passage)</span>
+    // ===== EDIT AI GEN =====
+function renderGroupPreview() {
+    const g = groupPreviewData;
+    if (!g) return;
+
+    // [CẬP NHẬT LOGIC MỚI]: Ẩn nút "Sửa Nội dung" nếu bài này có file Audio
+    const isListening = g.audioUrl ? true : false;
+    let editPassageBtn = '';
+
+    if (!isListening) {
+        editPassageBtn = `<button class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-2" onclick="groupPreviewData._isEditingPassage=true; renderGroupPreview()"><i class="bi bi-pencil me-1"></i>Sửa Nội dung</button>`;
+    }
+
+    const header = document.getElementById('passageHeader');
+    header.innerHTML = `<span>Đoạn văn / Nội dung (Passage)</span>
+        <div>
+            ${editPassageBtn}
             ${g.audioUrl ? `
                 <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="playAudio('${g.audioUrl}', this)">
-                    <i class="bi bi-play-fill me-1"></i> Nghe bài nghe
+                    <i class="bi bi-play-fill me-1"></i> Nghe Audio
                 </button>
-            ` : ''}`;
+            ` : ''}
+        </div>`;
 
+    // 1. NẾU ĐANG SỬA PASSAGE (CHỈ DÀNH CHO READING)
+    if (g._isEditingPassage && !isListening) {
+        document.getElementById('passageContent').innerHTML = `<textarea class="form-control" id="edit-passage-content" rows="10">${escapeHtml(g.passage || '')}</textarea>`;
+        document.getElementById('explanationContent').innerHTML = `
+            <div class="mt-3"><label class="small fw-bold">Giải thích chung:</label><textarea class="form-control form-control-sm" id="edit-passage-exp" rows="2">${escapeHtml(g.explanation || '')}</textarea></div>
+            <div class="mt-2 text-end"><button class="btn btn-sm btn-primary rounded-pill px-4" onclick="saveEditPassage()">Lưu Nội dung</button></div>`;
+    } else {
         document.getElementById('passageContent').textContent = g.passage || '';
-        document.getElementById('explanationContent').innerHTML = g.explanation ? `<div class="small text-muted fst-italic"><i class="bi bi-info-circle me-1"></i>${escapeHtml(g.explanation)}</div>` : '';
-        
-        const container = document.getElementById('groupQuestionList');
-        const questions = g.questions || [];
+        document.getElementById('explanationContent').innerHTML = g.explanation ? `<div class="small text-muted fst-italic mt-3"><i class="bi bi-info-circle me-1"></i>${escapeHtml(g.explanation)}</div>` : '';
+    }
 
-        container.innerHTML = questions.map((q, i) => `
-            <div class="list-group-item py-3 ${groupSelectedSet.has(i) ? 'bg-light-subtle' : ''}">
-                <div class="d-flex align-items-start gap-2">
-                    <input type="checkbox" class="form-check-input mt-1" id="gqChk${i}"
-                        ${groupSelectedSet.has(i) ? 'checked' : ''}
-                        onchange="toggleGroupQ(${i})">
-                    <div class="flex-grow-1 ms-2">
-                        <div class="d-flex gap-2 mb-1">
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">${q.questionType || 'MC'}</span>
-                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill small">${q.cefrLevel || g.cefrLevel || 'B1'}</span>
+    const container = document.getElementById('groupQuestionList');
+    const questions = g.questions || [];
+
+    container.innerHTML = questions.map((q, i) => {
+        // 2. NẾU ĐANG SỬA CÂU HỎI CON (SUB-QUESTION)
+        if (q._isEditing) {
+            let editFieldsHtml = '';
+
+            // Form sửa cho MATCHING
+            if (q.questionType === 'MATCHING' && q.matchLeft && q.matchRight) {
+                editFieldsHtml += '<div class="row g-2 mt-2">';
+                editFieldsHtml += '<div class="col-md-6"><label class="small fw-bold">Cột A</label>';
+                q.matchLeft.forEach((l, idx) => {
+                    editFieldsHtml += `<input type="text" class="form-control form-control-sm mb-1 edit-gmatch-left-${i}" value="${escapeHtml(String(l))}">`;
+                });
+                editFieldsHtml += '</div><div class="col-md-6"><label class="small fw-bold">Cột B</label>';
+                q.matchRight.forEach((r, idx) => {
+                    editFieldsHtml += `<input type="text" class="form-control form-control-sm mb-1 edit-gmatch-right-${i}" value="${escapeHtml(String(r))}">`;
+                });
+                editFieldsHtml += '</div></div>';
+            }
+            // Form sửa cho TRẮC NGHIỆM
+            else if (q.options && q.options.length > 0) {
+                editFieldsHtml += '<div class="mt-2"><label class="small fw-bold">Các đáp án:</label>' + q.options.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text bg-white">
+                            <input class="form-check-input mt-0" type="${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="edit-gopt-corr-${i}" value="${optIdx}" ${o.correct ? 'checked' : ''} id="edit-gopt-corr-${i}-${optIdx}">
                         </div>
-                        <p class="mb-2 small fw-bold text-dark">${escapeHtml(q.content || '')}</p>
-                        ${q.options && q.options.length > 0 ? `
-                            <div class="small">
-                                ${q.options.map(o => `
-                                    <div class="mb-1 ${o.correct ? 'text-success fw-bold' : 'text-muted'}">
-                                        <i class="bi ${o.correct ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${escapeHtml(o.title)}
-                                    </div>
-                                `).join('')}
-                            </div>` : ''}
+                        <input type="text" class="form-control form-control-sm" id="edit-gopt-txt-${i}-${optIdx}" value="${escapeHtml(o.title)}">
                     </div>
+                `).join('') + '</div>';
+            }
+
+            // Form sửa cho ĐIỀN TỪ
+            if (q.questionType === 'FILL_IN_BLANK') {
+                editFieldsHtml += `<div class="mt-2"><label class="small fw-bold">Đáp án đúng (Điền từ):</label><input type="text" class="form-control form-control-sm" id="edit-gq-correct-${i}" value="${escapeHtml(q.correctAnswer || '')}"></div>`;
+            }
+
+            return `
+            <div class="list-group-item py-3 bg-light border-primary border-start border-4">
+                <div class="mb-2 fw-bold text-primary small">Sửa câu ${i + 1}</div>
+                <textarea class="form-control form-control-sm mb-2" id="edit-gq-content-${i}" rows="2">${escapeHtml(q.content || '')}</textarea>
+                ${editFieldsHtml}
+                <div class="mt-3 text-end">
+                    <button class="btn btn-sm btn-secondary rounded-pill px-3" onclick="groupPreviewData.questions[${i}]._isEditing=false; renderGroupPreview()">Hủy</button>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 ms-2" onclick="saveEditGroupQ(${i})"><i class="bi bi-save me-1"></i> Lưu</button>
+                </div>
+            </div>`;
+        }
+
+        // 3. XEM CÂU HỎI CON BÌNH THƯỜNG
+        return `
+        <div class="list-group-item py-3 ${groupSelectedSet.has(i) ? 'bg-light-subtle' : ''}">
+            <div class="d-flex align-items-start gap-2">
+                <input type="checkbox" class="form-check-input mt-1" id="gqChk${i}" ${groupSelectedSet.has(i) ? 'checked' : ''} onchange="toggleGroupQ(${i})">
+                <div class="flex-grow-1 ms-2">
+                    <div class="d-flex gap-2 mb-1 align-items-center">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">${q.questionType || 'MC'}</span>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill small">${q.cefrLevel || g.cefrLevel || 'B1'}</span>
+
+                        <button class="btn btn-sm btn-link text-secondary p-0 ms-auto" onclick="groupPreviewData.questions[${i}]._isEditing=true; renderGroupPreview()">
+                            <i class="bi bi-pencil-square"></i> Sửa
+                        </button>
+                    </div>
+
+                    <p class="mb-2 small fw-bold text-dark">${escapeHtml(q.content || '')}</p>
+
+                    ${q.options && q.options.length > 0 ? `
+                        <div class="small">
+                            ${q.options.map(o => `
+                                <div class="mb-1 ${o.correct ? 'text-success fw-bold' : 'text-muted'}">
+                                    <i class="bi ${o.correct ? 'bi-check-circle-fill' : 'bi-circle'} me-1"></i>${escapeHtml(o.title)}
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+                    ${q.correctAnswer ? `<div class="small text-success fw-bold mt-1">Đáp án: ${escapeHtml(q.correctAnswer)}</div>` : ''}
                 </div>
             </div>
-        `).join('');
+        </div>`;
+    }).join('');
 
-        document.getElementById('groupPreview').style.display = 'block';
+    document.getElementById('groupPreview').style.display = 'block';
+}
+
+window.saveEditPassage = function() {
+    if (!groupPreviewData) return;
+
+    const passageEl = document.getElementById('edit-passage-content');
+    if (passageEl) groupPreviewData.passage = passageEl.value;
+
+    const expEl = document.getElementById('edit-passage-exp');
+    if (expEl) groupPreviewData.explanation = expEl.value;
+
+    groupPreviewData._isEditingPassage = false; // Đóng trạng thái edit
+    renderGroupPreview(); // Load lại giao diện
+};
+
+window.saveEditGroupQ = function(idx) {
+    const q = groupPreviewData.questions[idx];
+    q.content = document.getElementById(`edit-gq-content-${idx}`).value;
+
+    if (q.questionType === 'MATCHING') {
+        const leftInputs = document.querySelectorAll(`.edit-gmatch-left-${idx}`);
+        q.matchLeft = Array.from(leftInputs).map(inp => inp.value);
+
+        const rightInputs = document.querySelectorAll(`.edit-gmatch-right-${idx}`);
+        q.matchRight = Array.from(rightInputs).map(inp => inp.value);
+    } else if (q.options && q.options.length > 0) {
+        q.options.forEach((o, optIdx) => {
+            o.title = document.getElementById(`edit-gopt-txt-${idx}-${optIdx}`).value;
+            const checkEl = document.getElementById(`edit-gopt-corr-${idx}-${optIdx}`);
+            if (checkEl) o.correct = checkEl.checked;
+        });
     }
+
+    if (q.questionType === 'FILL_IN_BLANK') {
+        const corrEl = document.getElementById(`edit-gq-correct-${idx}`);
+        if (corrEl) q.correctAnswer = corrEl.value;
+    }
+
+    q._isEditing = false;
+    renderGroupPreview();
+};
+// ===== EDIT AI GEN =====
 
     function toggleGroupQ(idx) {
         if (groupSelectedSet.has(idx)) groupSelectedSet.delete(idx);
