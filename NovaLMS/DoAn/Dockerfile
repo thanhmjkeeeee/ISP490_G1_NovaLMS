@@ -14,19 +14,17 @@ RUN mvn package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Create a non-root user for security
-RUN addgroup -S spring && adduser -S spring -G spring
+# Create a non-root user and ensure /app is writable
+RUN addgroup -S spring && adduser -S spring -G spring && \
+    chown -R spring:spring /app
+
 USER spring:spring
 
-# Copy the jar and SQL seed file from build stage (or root)
+# Copy the jar and SQL seed file from build stage
 COPY --from=build /app/target/DoAn-0.0.1-SNAPSHOT.jar app.jar
 COPY massive_seed_v2.sql .
 
-# Render dynamic port binding
+# Render scans EXPOSE to detect the port. Spring Boot will use $PORT from properties.
 EXPOSE 8080
-
-# Environment variables with defaults for Render
-ENV SPRING_PROFILES_ACTIVE=prod
-ENV SERVER_PORT=8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

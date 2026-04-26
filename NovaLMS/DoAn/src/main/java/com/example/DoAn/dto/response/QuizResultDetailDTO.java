@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -29,4 +30,9 @@ public class QuizResultDetailDTO {
     /** Distinct skills present in this quiz's questions — used for dynamic tab rendering */
     private List<String> skillsPresent;
     private String status;
+
+    // IELTS specific fields
+    private Map<String, Double> sectionScores;
+    private String quizCategory;
+    private Boolean isAssignment;
 }

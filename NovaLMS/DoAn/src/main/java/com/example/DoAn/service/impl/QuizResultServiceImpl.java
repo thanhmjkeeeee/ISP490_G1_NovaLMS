@@ -663,6 +663,19 @@ public class QuizResultServiceImpl implements QuizResultService {
         long usedAttempts = quizResultRepository.countByQuizQuizIdAndUserUserIdAndStatusNot(
                 quiz.getQuizId(), qr.getUser().getUserId(), "IN_PROGRESS");
 
+        Map<String, Double> sectionScores = null;
+        if (qr.getSectionScores() != null && !qr.getSectionScores().isBlank()) {
+            try {
+                sectionScores = objectMapper.readValue(qr.getSectionScores(), new TypeReference<Map<String, Double>>() {
+                });
+            } catch (Exception e) {
+                log.warn("Failed to parse section scores for result {}: {}", qr.getResultId(), e.getMessage());
+            }
+        }
+
+        QuizCategory category = QuizCategory.fromValue(quiz.getQuizCategory());
+        boolean isAssignment = category != null && category.isAssignment();
+
         return QuizResultDetailDTO.builder()
                 .resultId(qr.getResultId())
                 .quizId(quiz.getQuizId())
@@ -688,6 +701,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .usedAttempts(usedAttempts)
                 .canRetake(isStudent && (quiz.getMaxAttempts() == null || usedAttempts < quiz.getMaxAttempts()))
                 .status(qr.getStatus())
+                .sectionScores(sectionScores)
+                .quizCategory(quiz.getQuizCategory())
+                .isAssignment(isAssignment)
                 .build();
     }
 

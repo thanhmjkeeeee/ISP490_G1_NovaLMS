@@ -91,85 +91,12 @@
                                 </div>
                             </section>
 
-            <section>
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold m-0 section-title">2. Phân bổ loại câu hỏi (%)</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" onclick="autoDistributeRatios()">
-                        <i class="bi bi-magic me-1"></i> Tự động chia đều
-                    </button>
-                </div>
-                                <div id="ratiosContainer" class="ratio-grid">
-                                    <div class="ratio-item" data-type="MULTIPLE_CHOICE_SINGLE">
-                                        <label>
-                                            Trắc nghiệm (1 đáp án)
-                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Câu hỏi chọn 1 đáp án đúng duy nhất."></i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="ratio-item" data-type="MULTIPLE_CHOICE_MULTI">
-                                        <label>
-                                            Trắc nghiệm (Nhiều đáp án)
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="ratio-item" data-type="FILL_IN_BLANK">
-                                        <label>
-                                            Điền từ vào chỗ trống
-                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Học viên phải tự nhập từ còn thiếu vào chỗ trống."></i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="ratio-item" data-type="MATCHING">
-                                        <label>
-                                            Nối cặp (Matching)
-                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Học viên nối các cặp thông tin tương ứng ở 2 cột."></i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="ratio-item" data-type="WRITING">
-                                        <label>
-                                            Câu hỏi Tự luận (Viết)
-                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Yêu cầu học viên viết một đoạn văn hoặc bài luận."></i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                    <div class="ratio-item" data-type="SPEAKING">
-                                        <label>
-                                            Câu hỏi Nói (Speaking)
-                                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" title="Yêu cầu học viên ghi âm bài nói dựa trên yêu cầu của AI."></i>
-                                        </label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control ratio-input" min="0" max="100">
-                                            <span class="input-group-text">%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mt-3 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
-                                    <span class="text-secondary small">Tổng cộng:</span>
-                                    <span id="totalRatio" class="fw-bold text-primary fs-5">0%</span>
-                                </div>
-                            </section>
                         </div>
 
                         <!-- Right Column: Grammar & Constraints -->
                         <div class="col-lg-5">
                             <section class="mb-5">
-                                <h5 class="fw-bold mb-4 section-title">3. Chủ điểm ngữ pháp</h5>
+                                <h5 class="fw-bold mb-4 section-title">2. Chủ điểm ngữ pháp</h5>
                                 <div class="grammar-widget p-4 rounded-4 bg-light border">
                                     <div class="input-group mb-3">
                                         <input type="text" id="grammarInput" class="form-control border-0 bg-white" placeholder="Thêm chủ điểm ngữ pháp...">
@@ -184,7 +111,7 @@
                             </section>
 
                             <section>
-                                <h5 class="fw-bold mb-4 section-title">4. Ràng buộc phản hồi (Constraints)</h5>
+                                <h5 class="fw-bold mb-4 section-title">3. Ràng buộc phản hồi (Constraints)</h5>
                                 <div class="mb-4">
                                     <label class="form-label fw-semibold text-secondary small text-uppercase">
                                         Writing Constraint
@@ -208,9 +135,18 @@
                             </section>
 
                             <div class="mt-5 pt-5 border-top d-grid gap-2">
-                                <button type="button" class="btn btn-primary btn-lg rounded-pill fw-bold" onclick="saveConfig()">
-                                    <i class="bi bi-cloud-check me-2"></i>Cập nhật cấu hình
-                                </button>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-outline-secondary w-100 rounded-pill fw-bold" onclick="previewPrompt()">
+                                            <i class="bi bi-eye me-2"></i>Xem thử Prompt
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-primary w-100 rounded-pill fw-bold" onclick="saveConfig()">
+                                            <i class="bi bi-cloud-check me-2"></i>Cập nhật cấu hình
+                                        </button>
+                                    </div>
+                                </div>
                                 <button type="button" class="btn btn-link text-danger text-decoration-none" onclick="resetToDefault()">
                                     <i class="bi bi-arrow-counterclockwise me-2"></i>Khôi phục giá trị mặc định
                                 </button>
@@ -222,6 +158,34 @@
         </div>
     </div>
 </main>
+
+<!-- Prompt Preview Modal -->
+<div class="modal fade" id="promptPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-dark text-white border-0 py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-code-slash me-2"></i>Bản hướng dẫn gửi cho AI (Prompt)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light p-0">
+                <div class="p-4">
+                    <div class="alert alert-primary border-0 shadow-sm rounded-3 mb-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>AI sẽ nhận được nội dung sau đây để đảm bảo chất lượng câu hỏi đúng trình độ bạn yêu cầu.
+                    </div>
+                    <div class="prompt-code-container bg-white border rounded-3 p-4 shadow-sm position-relative">
+                        <pre id="promptContent" class="mb-0 text-dark" style="white-space: pre-wrap; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; line-height: 1.6;"></pre>
+                        <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-3" onclick="copyPrompt()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
     :root {
@@ -346,14 +310,6 @@
                 cb.checked = skills.includes(cb.value);
             });
 
-            // Handle Ratios
-            const ratios = JSON.parse(data.questionTypesRatio || '{}');
-            document.querySelectorAll('.ratio-input').forEach(input => {
-                const type = input.closest('.ratio-item').dataset.type;
-                input.value = Math.round((ratios[type] || 0) * 100);
-            });
-            updateTotalRatio();
-
         } catch (e) {
             Swal.fire('Lỗi', e.message, 'error');
         }
@@ -392,69 +348,8 @@
         }
     });
 
-    function updateTotalRatio() {
-        let total = 0;
-        document.querySelectorAll('.ratio-input').forEach(input => {
-            total += parseInt(input.value || 0);
-        });
-        const totalEl = document.getElementById('totalRatio');
-        totalEl.textContent = total + '%';
-        totalEl.className = total === 100 ? 'fw-bold text-success fs-5' : 'fw-bold text-danger fs-5';
-    }
-
-    document.querySelectorAll('.ratio-input').forEach(input => {
-        input.addEventListener('input', updateTotalRatio);
-    });
-
-    function autoDistributeRatios() {
-        const inputs = document.querySelectorAll('.ratio-input');
-        const count = inputs.length;
-        if (count === 0) return;
-        
-        const base = Math.floor(100 / count);
-        const remainder = 100 % count;
-        
-        inputs.forEach((input, index) => {
-            input.value = (index < remainder) ? base + 1 : base;
-        });
-        
-        updateTotalRatio();
-        
-        // Visual feedback
-        Swal.fire({
-            title: 'Đã chia đều!',
-            text: 'Tỉ lệ đã được tự động cân bằng về 100%.',
-            icon: 'success',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000
-        });
-    }
 
     async function saveConfig() {
-        // Collect Ratios
-        let total = 0;
-        const ratios = {};
-        document.querySelectorAll('.ratio-input').forEach(input => {
-            const type = input.closest('.ratio-item').dataset.type;
-            const val = parseInt(input.value || 0);
-            ratios[type] = val / 100;
-            total += val;
-        });
-
-        if (total !== 100) {
-            const confirm = await Swal.fire({
-                title: 'Tổng tỉ lệ không bằng 100%',
-                text: `Tổng hiện tại là ${total}%. AI có thể sinh câu hỏi không như ý muốn. Bạn vẫn muốn lưu?`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Lưu bất chấp',
-                cancelButtonText: 'Sửa lại'
-            });
-            if (!confirm.isConfirmed) return;
-        }
-
         // Collect Skills
         const selectedSkills = Array.from(document.querySelectorAll('#skillsContainer input:checked'))
                                      .map(cb => cb.value);
@@ -463,7 +358,6 @@
             bucket: document.getElementById('currentBucket').value,
             bloomInstruction: document.getElementById('bloomInstruction').value,
             grammarFocus: JSON.stringify(currentGrammar),
-            questionTypesRatio: JSON.stringify(ratios),
             skills: JSON.stringify(selectedSkills),
             lexicalComplexity: document.getElementById('lexicalComplexity').value,
             writingConstraint: document.getElementById('writingConstraint').value,
@@ -505,6 +399,61 @@
                 loadConfig(bucket);
             }
         }
+    }
+
+    function previewPrompt() {
+        const bloom = document.getElementById('bloomInstruction').value || "(Chưa có hướng dẫn)";
+        const lexical = document.getElementById('lexicalComplexity').value || "(Chưa có hướng dẫn)";
+        const skills = Array.from(document.querySelectorAll('#skillsContainer input:checked')).map(cb => cb.value).join(', ');
+        const grammar = currentGrammar.length > 0 ? currentGrammar.map(g => "        - " + g).join('\n') : "        - (Chưa có chủ điểm)";
+        const writing = document.getElementById('writingConstraint').value || "80-150 words";
+        const speaking = document.getElementById('speakingConstraint').value || "4-8 sentences";
+
+        const previewText = `You are a professional English teacher specializing in advanced question design for IELTS Band [CEFR].
+(Hệ thống tự động xác định CEFR dựa trên lựa chọn của người dùng khi sinh câu hỏi)
+
+CRITICAL: The final response MUST be a JSON array containing EXACTLY [Quantity] question objects.
+
+## ADVANCED MODE REQUIREMENTS (SYSTEM CONFIG)
+
+### Bloom's Taxonomy Focus
+${bloom}
+
+### Grammar & Language Focus
+Generate questions that demonstrate mastery of:
+${grammar}
+
+### Lexical Complexity
+${lexical}
+
+### Skills Distribution
+Prioritize these skills: ${skills || 'READING, LISTENING, WRITING, SPEAKING'}
+
+### Question Requirements
+- WRITING questions: ${writing}
+- SPEAKING questions: ${speaking}
+
+Every question must have: content, questionType, skill, cefrLevel, topic, explanation (can be null).
+
+IMPORTANT: Return ONLY a JSON array, no other text.`;
+
+        document.getElementById('promptContent').textContent = previewText;
+        const modal = new bootstrap.Modal(document.getElementById('promptPreviewModal'));
+        modal.show();
+    }
+
+    function copyPrompt() {
+        const text = document.getElementById('promptContent').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = event.currentTarget;
+            const originalIcon = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check2"></i>';
+            btn.classList.replace('btn-light', 'btn-success');
+            setTimeout(() => {
+                btn.innerHTML = originalIcon;
+                btn.classList.replace('btn-success', 'btn-light');
+            }, 2000);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {

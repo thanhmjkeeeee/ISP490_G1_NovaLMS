@@ -63,8 +63,9 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     "Bạn đã vượt giới hạn 10 yêu cầu/phút. Vui lòng chờ một chút.");
         }
 
-        String mode = (request.getMode() != null && "ADVANCED".equalsIgnoreCase(request.getMode()))
-                ? "ADVANCED" : "NORMAL";
+        // Default to ADVANCED to ensure Admin AI Configs are applied
+        String mode = (request.getMode() != null && "NORMAL".equalsIgnoreCase(request.getMode()))
+                ? "NORMAL" : "ADVANCED";
 
         String prompt;
         if ("ADVANCED".equals(mode)) {
@@ -145,7 +146,8 @@ public class AIQuestionServiceImpl implements AIQuestionService {
         String skill = request.getSkill() != null ? request.getSkill() : "READING";
         String cefr = request.getCefrLevel() != null ? request.getCefrLevel() : "5.0";
         int qty = request.getQuantity() != null ? request.getQuantity() : 5;
-        boolean isAdvanced = request.getMode() != null && "ADVANCED".equalsIgnoreCase(request.getMode());
+        // Default to true to apply Admin configs
+        boolean isAdvanced = (request.getMode() == null || !"NORMAL".equalsIgnoreCase(request.getMode()));
 
         String prompt;
         if (isAdvanced) {
