@@ -1,12 +1,15 @@
 package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.response.ResponseData;
+import com.example.DoAn.model.AnswerOption;
 import com.example.DoAn.model.Question;
 import com.example.DoAn.model.User;
 import jakarta.persistence.EntityManager;
+import com.example.DoAn.service.ITeacherQuestionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.transaction.annotation.Transactional; // <-- THÊM IMPORT NÀY
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -25,6 +28,7 @@ import java.util.Map;
 public class TeacherQuestionController {
 
     private final EntityManager entityManager;
+    private final ITeacherQuestionService teacherQuestionService;
 
     /**
      * List all TEACHER_PRIVATE questions belonging to the authenticated teacher.
@@ -32,6 +36,7 @@ public class TeacherQuestionController {
      * GET /api/v1/teacher/questions/my?status=PENDING_REVIEW&page=0&size=20
      */
     @GetMapping("/my")
+    @Transactional(readOnly = true) // <-- FIX LỖI LAZY PROXY Ở ĐÂY
     public ResponseData<Map<String, Object>> getMyQuestions(
             Authentication auth,
             @RequestParam(required = false) String status,
@@ -91,6 +96,19 @@ public class TeacherQuestionController {
             dto.put("reviewNote", q.getReviewNote());
             dto.put("createdAt", q.getCreatedAt());
 
+            // Vòng lặp này sẽ chạy mượt mà vì Session vẫn đang mở nhờ @Transactional
+            if (q.getAnswerOptions() != null && !q.getAnswerOptions().isEmpty()) {
+                List<Map<String, Object>> optionsList = new ArrayList<>();
+                for (var opt : q.getAnswerOptions()) {
+                    Map<String, Object> optDto = new HashMap<>();
+                    optDto.put("optionId", opt.getAnswerOptionId());
+                    optDto.put("optionText", opt.getTitle());
+                    optDto.put("isCorrect", opt.getCorrectAnswer());
+                    optionsList.add(optDto);
+                }
+                dto.put("options", optionsList);
+            }
+
             // Resolve reviewer name if reviewerId is set
             if (q.getReviewerId() != null) {
                 var reviewer = entityManager.find(User.class, q.getReviewerId());
@@ -113,6 +131,76 @@ public class TeacherQuestionController {
         result.put("last", page >= totalPages - 1);
 
         return ResponseData.success(result);
+    }
+
+    /**
+     * Cancel a question submission.
+     * Only allowed if status is PENDING_REVIEW.
+     * POST /api/v1/teacher/questions/{id}/cancel-submit
+     */
+    @PostMapping("/{id}/cancel-submit")
+    public ResponseData<String> cancelSubmitQuestion(
+            Authentication auth,
+            @PathVariable("id") Integer id) {
+
+        String email = getEmail(auth);
+        if (email == null) {
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
+        }
+
+        try {
+            teacherQuestionService.cancelSubmitQuestion(id, email);
+            return ResponseData.success("Đã hủy gửi câu hỏi và chuyển về bản nháp thành công.");
+        } catch (Exception e) {
+            return ResponseData.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * Submit a question for review.
+     * Only allowed if status is DRAFT or REJECTED.
+     * POST /api/v1/teacher/questions/{id}/submit
+     */
+    @PostMapping("/{id}/submit")
+    public ResponseData<String> submitQuestion(
+            Authentication auth,
+            @PathVariable("id") Integer id) {
+
+        String email = getEmail(auth);
+        if (email == null) {
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
+        }
+
+        try {
+            teacherQuestionService.submitQuestion(id, email);
+            return ResponseData.success("Gửi phê duyệt câu hỏi thành công.");
+        } catch (Exception e) {
+            return ResponseData.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * Update a question and its options.
+     * Only allowed if status is DRAFT or REJECTED.
+     * PUT /api/v1/teacher/questions/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseData<String> updateQuestion(
+            Authentication auth,
+            @PathVariable("id") Integer id,
+            @RequestBody Map<String, Object> data) {
+
+        String email = getEmail(auth);
+        if (email == null) {
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
+        }
+
+        try {
+            teacherQuestionService.updateQuestion(id, data, email);
+            return ResponseData.success("Cập nhật câu hỏi thành công.");
+        } catch (Exception e) {
+            return ResponseData.error(400, e.getMessage());
+        }
     }
 
     private Integer getTeacherId(Principal principal) {

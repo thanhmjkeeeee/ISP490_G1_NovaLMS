@@ -57,8 +57,8 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label fw-bold">Số lượng (1-50)</label>
-                    <input type="number" id="aiQty" class="form-control" min="1" max="50" value="5">
+                    <label class="form-label fw-bold">Số lượng (1-7)</label>
+                    <input type="number" id="aiQty" class="form-control" min="1" max="7" value="5">
                 </div>
             </div>
             <div class="mt-3 text-end">
@@ -209,7 +209,7 @@
         const qty = parseInt(document.getElementById('aiQty').value);
 
         if (!moduleId) { alert('Vui lòng chọn module.'); return; }
-        if (!qty || qty < 1 || qty > 50) { alert('Số lượng phải từ 1-50.'); return; }
+        if (!qty || qty < 1 || qty > 7) { alert('Số lượng phải từ 1-7.'); return; }
 
         const body = { moduleId: parseInt(moduleId), cefrLevel: cefr, quantity: qty };
         
@@ -242,56 +242,182 @@
         }
     }
 
-    function renderAIQuestions() {
-        const container = document.getElementById('aiQuestionList');
-        document.getElementById('aiTotalCount').textContent = aiQuestions.length;
-        document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
-        document.getElementById('aiPreview').style.display = 'block';
 
-        if (aiQuestions.length === 0) {
-            container.innerHTML = '<div class="p-4 text-center text-muted">AI không thể trả về câu hỏi nào.</div>';
-            return;
+function renderAIQuestions() {
+    const container = document.getElementById('aiQuestionList');
+    document.getElementById('aiTotalCount').textContent = aiQuestions.length;
+    document.getElementById('aiSelectedCount').textContent = aiSelectedSet.size;
+    document.getElementById('aiPreview').style.display = 'block';
+
+    if (aiQuestions.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-muted">AI không thể trả về câu hỏi nào. Hãy thử chủ đề/module khác.</div>';
+        return;
+    }
+
+    container.innerHTML = aiQuestions.map((q, i) => {
+        // Kiểm tra xem có phải câu hỏi Nghe hay không
+        const isListening = q.audioUrl ? true : (q.skill && q.skill.toUpperCase() === 'LISTENING');
+
+        // 1. NẾU ĐANG Ở CHẾ ĐỘ CHỈNH SỬA (EDIT MODE)
+        if (q._isEditing) {
+            let editFieldsHtml = '';
+
+            // Form sửa cho MATCHING
+            if (q.questionType === 'MATCHING' && q.matchLeft && q.matchRight) {
+                editFieldsHtml += '<div class="row g-2 mt-2">';
+                editFieldsHtml += '<div class="col-md-6"><label class="small fw-bold">Cột A (Vế trái)</label>';
+                q.matchLeft.forEach((l, idx) => {
+                    editFieldsHtml += `<input type="text" class="form-control form-control-sm mb-1 edit-match-left-${i}" value="${escapeHtml(String(l))}">`;
+                });
+                editFieldsHtml += '</div><div class="col-md-6"><label class="small fw-bold">Cột B (Vế phải)</label>';
+                q.matchRight.forEach((r, idx) => {
+                    editFieldsHtml += `<input type="text" class="form-control form-control-sm mb-1 edit-match-right-${i}" value="${escapeHtml(String(r))}">`;
+                });
+                editFieldsHtml += '</div></div><div class="small text-muted mt-1 fst-italic">* Mapping ghép cặp giữ nguyên theo AI gen.</div>';
+            }
+            // Form sửa cho TRẮC NGHIỆM
+            else if (q.options && q.options.length > 0) {
+                editFieldsHtml += '<div class="mt-2"><label class="small fw-bold">Các đáp án:</label>' + q.options.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text bg-white">
+                            <input class="form-check-input mt-0" type="${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="edit-opt-corr-${i}" value="${optIdx}" ${o.correct ? 'checked' : ''} id="edit-opt-corr-${i}-${optIdx}">
+                        </div>
+                        <input type="text" class="form-control" id="edit-opt-txt-${i}-${optIdx}" value="${escapeHtml(o.title)}">
+                    </div>
+                `).join('') + '</div>';
+            }
+
+            // Form sửa cho ĐIỀN TỪ
+            if (q.questionType === 'FILL_IN_BLANK') {
+                editFieldsHtml += `<div class="mt-2"><label class="small fw-bold">Đáp án đúng (Điền từ):</label><input type="text" class="form-control form-control-sm" id="edit-correct-${i}" value="${escapeHtml(q.correctAnswer || '')}"></div>`;
+            }
+            // Form sửa cho VIẾT/NÓI
+            if (q.questionType === 'WRITING' || q.questionType === 'SPEAKING') {
+                editFieldsHtml += `<div class="mt-2"><label class="small fw-bold">Gợi ý / Giải thích (Viết/Nói):</label><textarea class="form-control form-control-sm" id="edit-exp-${i}" rows="2">${escapeHtml(q.explanation || '')}</textarea></div>`;
+            }
+
+            // XỬ LÝ KHÓA NỘI DUNG CÂU HỎI NGHE
+            let contentEditHtml = '';
+            if (isListening) {
+                contentEditHtml = `
+                <div class="alert alert-warning py-2 px-3 small mb-2 border-0">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Lưu ý:</strong> Nội dung câu hỏi được gắn chặt với Audio nên không thể sửa chữ. Bạn chỉ có thể chỉnh sửa đáp án bên dưới.
+                </div>
+                <textarea class="form-control form-control-sm mb-2 bg-light text-muted" id="edit-content-${i}" rows="3" readonly>${escapeHtml(q.content || '')}</textarea>
+                `;
+            } else {
+                contentEditHtml = `<textarea class="form-control form-control-sm mb-2" id="edit-content-${i}" rows="3">${escapeHtml(q.content || '')}</textarea>`;
+            }
+
+            return `
+            <div class="list-group-item p-4 border border-primary shadow-sm rounded mb-2 bg-white">
+                <div class="mb-2 fw-bold text-primary"><i class="bi bi-pencil-square me-1"></i>Chỉnh sửa câu ${i + 1}</div>
+                <label class="small fw-bold">Nội dung câu hỏi:</label>
+                ${contentEditHtml}
+                ${editFieldsHtml}
+                <div class="mt-3 text-end">
+                    <button class="btn btn-sm btn-light rounded-pill px-3" onclick="aiQuestions[${i}]._isEditing=false; renderAIQuestions()">Hủy</button>
+                    <button class="btn btn-sm btn-primary rounded-pill px-3 ms-2" onclick="saveEditAI(${i})"><i class="bi bi-save me-1"></i>Lưu lại</button>
+                </div>
+            </div>`;
         }
 
-        container.innerHTML = aiQuestions.map((q, i) => `
-            <div class="list-group-item p-4 ${aiSelectedSet.has(i) ? 'bg-light-subtle' : ''}">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="aiChk${i}"
-                            ${aiSelectedSet.has(i) ? 'checked' : ''}
-                            onchange="toggleAI(${i})">
+        // 2. CHẾ ĐỘ XEM BÌNH THƯỜNG (VIEW MODE)
+        return `
+        <div class="list-group-item p-4 ${aiSelectedSet.has(i) ? 'bg-light-subtle' : ''}">
+            <div class="d-flex align-items-start gap-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="aiChk${i}" ${aiSelectedSet.has(i) ? 'checked' : ''} onchange="toggleAI(${i})">
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex gap-2 flex-wrap mb-2 align-items-center">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">${q.questionType}</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">${q.skill}</span>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">${q.cefrLevel}</span>
+                        ${q.topic ? `<span class="badge bg-light text-dark border rounded-pill">${q.topic}</span>` : ''}
+
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 ms-auto" onclick="aiQuestions[${i}]._isEditing=true; renderAIQuestions()">
+                            <i class="bi bi-pencil me-1"></i> Sửa
+                        </button>
+
+                        ${q.audioUrl ? `
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold" onclick="playAudio('${q.audioUrl}', this)">
+                                <i class="bi bi-play-fill me-1"></i> Nghe
+                            </button>
+                        ` : ''}
                     </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex gap-2 flex-wrap mb-2 align-items-center">
-                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">${q.questionType}</span>
-                             <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill">${q.skill}</span>
-                             <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">${q.cefrLevel}</span>
-                             ${q.audioUrl ? `
-                                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 ms-auto fw-bold" onclick="playAudio('${q.audioUrl}', this)">
-                                    <i class="bi bi-play-fill me-1"></i> Nghe câu hỏi
-                                </button>
-                            ` : ''}
-                        </div>
-                        <h6 class="mb-2 fw-bold text-dark">${escapeHtml(q.content || '')}</h6>
-                        ${q.options && q.options.length > 0 ? `
-                            <div class="row g-2 mt-2">
-                                ${q.options.map(o => `
-                                    <div class="col-md-6">
-                                        <div class="p-2 border rounded ${o.correct ? 'bg-success-subtle border-success' : 'bg-white'}">
-                                            <span class="small ${o.correct ? 'fw-bold text-success' : 'text-muted'}">${escapeHtml(o.title)}</span>
-                                            ${o.correct ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : ''}
-                                        </div>
+                    <h6 class="mb-2 fw-bold text-dark">Câu ${i + 1}: ${escapeHtml(q.content || '')}</h6>
+                    ${q.options && q.options.length > 0 ? `
+                        <div class="row g-2 mt-2">
+                            ${q.options.map(o => `
+                                <div class="col-md-6">
+                                    <div class="p-2 border rounded ${o.correct ? 'bg-success-subtle border-success' : 'bg-white'}">
+                                        <span class="small ${o.correct ? 'fw-bold text-success' : 'text-muted'}">${escapeHtml(o.title)}</span>
+                                        ${o.correct ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : ''}
                                     </div>
-                                `).join('')}
-                            </div>` : ''}
-                        ${matchingPreviewHtml(q)}
-                        ${writingPreviewHtml(q)}
-                        ${q.correctAnswer ? `<p class="mt-2 mb-0 small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
-                    </div>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+                    ${matchingPreviewHtml(q)}
+                    ${writingPreviewHtml(q)}
+                    ${q.correctAnswer ? `<p class="mt-2 mb-0 small text-success fw-bold"><i class="bi bi-info-circle me-1"></i>Đáp án: ${escapeHtml(q.correctAnswer)}</p>` : ''}
                 </div>
             </div>
-        `).join('');
+        </div>`;
+    }).join('');
+}
+
+window.saveEditAI = function(idx) {
+    try {
+        const q = aiQuestions[idx];
+        if (!q) return;
+
+        // 1. Lấy nội dung câu hỏi
+        const contentEl = document.getElementById(`edit-content-${idx}`);
+        if (contentEl) q.content = contentEl.value;
+
+        // 2. Lấy dữ liệu MATCHING
+        if (q.questionType === 'MATCHING') {
+            const leftInputs = document.querySelectorAll(`.edit-match-left-${idx}`);
+            if (leftInputs.length > 0) q.matchLeft = Array.from(leftInputs).map(inp => inp.value);
+
+            const rightInputs = document.querySelectorAll(`.edit-match-right-${idx}`);
+            if (rightInputs.length > 0) q.matchRight = Array.from(rightInputs).map(inp => inp.value);
+
+        }
+        // 3. Lấy dữ liệu TRẮC NGHIỆM
+        else if (q.options && q.options.length > 0) {
+            q.options.forEach((o, optIdx) => {
+                const txtEl = document.getElementById(`edit-opt-txt-${idx}-${optIdx}`);
+                if (txtEl) o.title = txtEl.value;
+
+                const checkEl = document.getElementById(`edit-opt-corr-${idx}-${optIdx}`);
+                if (checkEl) o.correct = checkEl.checked;
+            });
+        }
+
+        // 4. Lấy dữ liệu ĐIỀN TỪ
+        if (q.questionType === 'FILL_IN_BLANK') {
+            const corrEl = document.getElementById(`edit-correct-${idx}`);
+            if (corrEl) q.correctAnswer = corrEl.value;
+        }
+
+        // 5. Lấy dữ liệu NÓI/VIẾT
+        if (q.questionType === 'WRITING' || q.questionType === 'SPEAKING') {
+            const expEl = document.getElementById(`edit-exp-${idx}`);
+            if (expEl) q.explanation = expEl.value;
+        }
+
+        // Đóng form sửa và load lại UI
+        q._isEditing = false;
+        renderAIQuestions();
+
+    } catch (error) {
+        console.error("Lỗi khi lưu câu hỏi:", error);
+        alert("Đã có lỗi xảy ra khi lưu: " + error.message);
     }
+};
+
 
     function toggleAI(idx) {
         if (aiSelectedSet.has(idx)) aiSelectedSet.delete(idx);
