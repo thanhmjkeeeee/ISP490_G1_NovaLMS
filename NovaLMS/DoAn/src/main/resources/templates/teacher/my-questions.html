@@ -106,235 +106,412 @@
 <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
 <script th:inline="javascript">
-// ─── State ───────────────────────────────────────────────────────────
-let currentStatus = '';
-let currentPage   = 0;
-const PAGE_SIZE   = 20;
+    // ─── State ───────────────────────────────────────────────────────────
+    let currentStatus = '';
+    let currentPage   = 0;
+    const PAGE_SIZE   = 20;
 
-// ─── Load on tab switch ─────────────────────────────────────────────
-document.querySelectorAll('#statusTabs .nav-link').forEach(tab => {
-    tab.addEventListener('click', () => {
-        currentStatus = tab.dataset.status;
-        currentPage   = 0;
+    // ─── Load on tab switch ─────────────────────────────────────────────
+    document.querySelectorAll('#statusTabs .nav-link').forEach(tab => {
+        tab.addEventListener('click', () => {
+            currentStatus = tab.dataset.status;
+            currentPage   = 0;
+            loadQuestions();
+        });
+    });
+
+    // Load summary counts once
+    document.addEventListener('DOMContentLoaded', () => {
+        loadSummary();
         loadQuestions();
     });
-});
 
-// Load summary counts once
-document.addEventListener('DOMContentLoaded', () => {
-    loadSummary();
-    loadQuestions();
-});
-
-// ─── Summary counts ──────────────────────────────────────────────────
-async function loadSummary() {
-    const statuses = ['', 'PENDING_REVIEW', 'PUBLISHED', 'DRAFT'];
-    const ids     = ['count-all', 'count-pending', 'count-published', 'count-draft'];
-    try {
-        // Fetch all + each status in parallel
-        const fetches = statuses.map(s =>
-            fetch(`/api/v1/teacher/questions/my?status=${s}&page=0&size=1`).then(r => r.json())
-        );
-        const results = await Promise.all(fetches);
-        results.forEach((r, i) => {
-            const el = document.getElementById(ids[i]);
-            if (el) {
-                el.textContent = (r.data && r.data.totalElements !== undefined)
-                    ? r.data.totalElements
-                    : '0';
-            }
-        });
-    } catch (e) {
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '?';
-        });
-    }
-}
-
-// ─── Load questions ───────────────────────────────────────────────────
-async function loadQuestions(page = 0) {
-    currentPage = page;
-    const list = document.getElementById('questionsList');
-    list.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="text-muted mt-2 mb-0">Đang tải…</p>
-        </div>`;
-
-    try {
-        let url = `/api/v1/teacher/questions/my?page=${page}&size=${PAGE_SIZE}`;
-        if (currentStatus) url += `&status=${encodeURIComponent(currentStatus)}`;
-
-        const resp = await fetch(url);
-        const result = await resp.json();
-
-        if (result.status !== 200 || !result.data) {
-            list.innerHTML = `<div class="alert alert-danger m-3">Lỗi: ${result.message || 'Không thể tải danh sách'}</div>`;
-            return;
+    // ─── Summary counts ──────────────────────────────────────────────────
+    async function loadSummary() {
+        const statuses = ['', 'PENDING_REVIEW', 'PUBLISHED', 'DRAFT'];
+        const ids     = ['count-all', 'count-pending', 'count-published', 'count-draft'];
+        try {
+            // Fetch all + each status in parallel
+            const fetches = statuses.map(s =>
+                fetch(`/api/v1/teacher/questions/my?status=${s}&page=0&size=1`).then(r => r.json())
+            );
+            const results = await Promise.all(fetches);
+            results.forEach((r, i) => {
+                const el = document.getElementById(ids[i]);
+                if (el) {
+                    el.textContent = (r.data && r.data.totalElements !== undefined)
+                        ? r.data.totalElements
+                        : '0';
+                }
+            });
+        } catch (e) {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '?';
+            });
         }
-        render(result.data);
-    } catch (e) {
-        list.innerHTML = `<div class="alert alert-danger m-3">Lỗi kết nối: ${e.message}</div>`;
     }
-}
 
-// ─── Render ───────────────────────────────────────────────────────────
-function render(pageData) {
-    const list = document.getElementById('questionsList');
-    const items = pageData.content || [];
-
-    if (items.length === 0) {
+    // ─── Load questions ───────────────────────────────────────────────────
+    async function loadQuestions(page = 0) {
+        currentPage = page;
+        const list = document.getElementById('questionsList');
         list.innerHTML = `
             <div class="text-center py-5">
-                <i class="bi bi-inbox fs-1 text-muted"></i>
-                <p class="text-muted mt-2 mb-0">Không có câu hỏi nào.</p>
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-2 mb-0">Đang tải…</p>
             </div>`;
-        document.getElementById('paginationNav').style.display = 'none';
-        return;
+
+        try {
+            let url = `/api/v1/teacher/questions/my?page=${page}&size=${PAGE_SIZE}`;
+            if (currentStatus) url += `&status=${encodeURIComponent(currentStatus)}`;
+
+            const resp = await fetch(url);
+            const result = await resp.json();
+
+            if (result.status !== 200 || !result.data) {
+                list.innerHTML = `<div class="alert alert-danger m-3">Lỗi: ${result.message || 'Không thể tải danh sách'}</div>`;
+                return;
+            }
+            render(result.data);
+        } catch (e) {
+            list.innerHTML = `<div class="alert alert-danger m-3">Lỗi kết nối: ${e.message}</div>`;
+        }
     }
 
-    list.innerHTML = items.map(q => buildCard(q)).join('');
-    renderPagination(pageData);
-}
+    // ─── Render ───────────────────────────────────────────────────────────
+    function render(pageData) {
+        const list = document.getElementById('questionsList');
+        const items = pageData.content || [];
 
-function buildCard(q) {
-    // Status badge
-    let badge, badgeClass, statusText, statusIcon;
-    if (q.status === 'PUBLISHED') {
-        badge      = 'Đã phê duyệt';
-        badgeClass = 'bg-success';
-        statusIcon = '✓';
-    } else if (q.status === 'PENDING_REVIEW') {
-        badge      = 'Chờ phê duyệt';
-        badgeClass = 'bg-warning text-dark';
-        statusIcon = '⏳';
-    } else if (q.status === 'DRAFT') {
-        badge      = 'Nháp / Từ chối';
-        badgeClass = 'bg-danger';
-        statusIcon = '✗';
-    } else {
-        badge      = q.status || '—';
-        badgeClass = 'bg-secondary';
-        statusIcon = '';
+        if (items.length === 0) {
+            list.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-2 mb-0">Không có câu hỏi nào.</p>
+                </div>`;
+            document.getElementById('paginationNav').style.display = 'none';
+            return;
+        }
+
+        list.innerHTML = items.map(q => buildCard(q)).join('');
+        renderPagination(pageData);
     }
 
-    // Type label
-    const typeLabels = {
-        'MULTIPLE_CHOICE_SINGLE': 'Trắc nghiệm 1 đáp án',
-        'MULTIPLE_CHOICE_MULTI':   'Trắc nghiệm nhiều đáp án',
-        'FILL_IN_BLANK':           'Điền khuyết',
-        'MATCHING':                'Nối cột',
-        'WRITING':                 'Viết',
-        'SPEAKING':                'Nói'
-    };
+    function buildCard(q) {
+        // Status badge
+        let badge, badgeClass, statusText, statusIcon;
+        if (q.status === 'PUBLISHED') {
+            badge      = 'Đã phê duyệt';
+            badgeClass = 'bg-success';
+            statusIcon = '✓';
+        } else if (q.status === 'PENDING_REVIEW') {
+            badge      = 'Chờ phê duyệt';
+            badgeClass = 'bg-warning text-dark';
+            statusIcon = '⏳';
+        } else if (q.status === 'DRAFT') {
+            badge      = 'Nháp / Từ chối';
+            badgeClass = 'bg-danger';
+            statusIcon = '✗';
+        } else {
+            badge      = q.status || '—';
+            badgeClass = 'bg-secondary';
+            statusIcon = '';
+        }
 
-    const content = (q.content || '').length > 180
-        ? (q.content || '').substring(0, 180) + '…'
-        : (q.content || '—');
+        // Type label
+        const typeLabels = {
+            'MULTIPLE_CHOICE_SINGLE': 'Trắc nghiệm 1 đáp án',
+            'MULTIPLE_CHOICE_MULTI':   'Trắc nghiệm nhiều đáp án',
+            'FILL_IN_BLANK':           'Điền khuyết',
+            'MATCHING':                'Nối cột',
+            'WRITING':                 'Viết',
+            'SPEAKING':                'Nói'
+        };
 
-    const createdAt = q.createdAt
-        ? new Date(q.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        : '—';
+        const truncatedContent = (q.content || '').length > 180
+            ? (q.content || '').substring(0, 180) + '…'
+            : (q.content || '—');
 
-    // Review metadata
-    let reviewMeta = '';
-    if (q.status === 'PUBLISHED' && q.reviewedAt) {
-        const reviewerLabel = q.reviewerName || q.reviewerEmail || 'Expert';
-        reviewMeta = `<div class="mt-2">
-            <span class="text-success small">
-                <i class="bi bi-check-circle me-1"></i>
-                Đã duyệt bởi ${reviewerLabel} lúc
-                ${new Date(q.reviewedAt).toLocaleDateString('vi-VN')}
-            </span>
-        </div>`;
-    }
-    if (q.status === 'DRAFT' && q.reviewNote) {
-        reviewMeta = `<div class="mt-2 p-2 rounded" style="background:#fff0f0;border:1px solid #ffcccc">
-            <span class="text-danger small">
-                <i class="bi bi-chat-left-text me-1"></i>
-                <strong>Lý do từ chối:</strong> ${q.reviewNote}
-            </span>
-        </div>`;
-    }
-    if (q.status === 'PUBLISHED' && q.reviewNote) {
-        reviewMeta = `<div class="mt-2 p-2 rounded" style="background:#f0fff0;border:1px solid #ccffcc">
-            <span class="text-success small">
-                <i class="bi bi-chat-left-text me-1"></i>
-                <strong>Ghi chú:</strong> ${q.reviewNote}
-            </span>
-        </div>`;
-    }
+        const createdAt = q.createdAt
+            ? new Date(q.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '—';
 
-    return `
-    <div class="card mb-3 border shadow-sm question-card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1 me-3">
-                    <div class="mb-2">
-                        <span class="badge ${badgeClass}">${statusIcon} ${badge}</span>
-                        <span class="badge bg-primary ms-1">${q.skill || '—'}</span>
-                        <span class="badge bg-light text-dark border ms-1">${typeLabels[q.questionType] || q.questionType || '—'}</span>
-                        ${q.cefrLevel ? `<span class="badge bg-dark ms-1">${q.cefrLevel}</span>` : ''}
+        // Review metadata
+        let reviewMeta = '';
+        if (q.status === 'PUBLISHED' && q.reviewedAt) {
+            const reviewerLabel = q.reviewerName || q.reviewerEmail || 'Expert';
+            reviewMeta = `<div class="mt-2">
+                <span class="text-success small">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Đã duyệt bởi ${reviewerLabel} lúc
+                    ${new Date(q.reviewedAt).toLocaleDateString('vi-VN')}
+                </span>
+            </div>`;
+        }
+        if (q.status === 'DRAFT' && q.reviewNote) {
+            reviewMeta = `<div class="mt-2 p-2 rounded" style="background:#fff0f0;border:1px solid #ffcccc">
+                <span class="text-danger small">
+                    <i class="bi bi-chat-left-text me-1"></i>
+                    <strong>Lý do từ chối:</strong> ${q.reviewNote}
+                </span>
+            </div>`;
+        }
+        if (q.status === 'PUBLISHED' && q.reviewNote) {
+            reviewMeta = `<div class="mt-2 p-2 rounded" style="background:#f0fff0;border:1px solid #ccffcc">
+                <span class="text-success small">
+                    <i class="bi bi-chat-left-text me-1"></i>
+                    <strong>Ghi chú:</strong> ${q.reviewNote}
+                </span>
+            </div>`;
+        }
+
+        // Actions Button
+        let actionButtons = '';
+        if (q.status === 'DRAFT' || q.status === 'REJECTED') {
+            actionButtons = `
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" data-bs-toggle="collapse" data-bs-target="#collapse-q-${q.questionId}">
+                    <i class="bi bi-chevron-down me-1"></i> Chi tiết & Sửa
+                </button>
+                <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm mt-2" onclick="submitForReview(${q.questionId})">
+                    <i class="bi bi-send me-1"></i> Gửi phê duyệt
+                </button>
+            `;
+        } else if (q.status === 'PENDING_REVIEW') {
+            actionButtons = `
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" data-bs-toggle="collapse" data-bs-target="#collapse-q-${q.questionId}">
+                    <i class="bi bi-chevron-down me-1"></i> Chi tiết
+                </button>
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm mt-2" onclick="cancelReview(${q.questionId})">
+                    <i class="bi bi-x-circle me-1"></i> Hủy gửi
+                </button>
+            `;
+        } else {
+             actionButtons = `
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" data-bs-toggle="collapse" data-bs-target="#collapse-q-${q.questionId}">
+                    <i class="bi bi-chevron-down me-1"></i> Chi tiết
+                </button>
+            `;
+        }
+
+        // Render answers
+        let answersHtml = '';
+        if (q.options && q.options.length > 0) {
+            answersHtml = '<ul class="list-group mt-3">';
+            q.options.forEach(opt => {
+                const icon = opt.isCorrect ? '<i class="bi bi-check-circle-fill text-success me-2"></i>' : '<i class="bi bi-circle text-muted me-2"></i>';
+                const bg = opt.isCorrect ? 'bg-success bg-opacity-10 border-success' : '';
+                answersHtml += `<li class="list-group-item ${bg}">${icon}${opt.optionText}</li>`;
+            });
+            answersHtml += '</ul>';
+        }
+
+        // Edit options HTML
+        let editOptionsHtml = '';
+        if (q.options && q.options.length > 0) {
+            editOptionsHtml = '<div class="mt-2"><label class="form-label small fw-bold">Đáp án:</label>';
+            q.options.forEach((opt, idx) => {
+                const checked = opt.isCorrect ? 'checked' : '';
+                editOptionsHtml += `
+                <div class="input-group input-group-sm mb-2">
+                    <div class="input-group-text bg-white">
+                        <input class="form-check-input mt-0 edit-opt-correct-${q.questionId}" type="${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="opt-${q.questionId}" value="${opt.optionId}" ${checked}>
                     </div>
-                    <p class="mb-1" style="max-width:680px;line-height:1.6">${content}</p>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            <i class="bi bi-calendar3 me-1"></i> Tạo: ${createdAt}
-                            ${q.topic ? `<span class="ms-2"><i class="bi bi-tag"></i> ${q.topic}</span>` : ''}
-                        </small>
-                    </div>
-                    ${reviewMeta}
-                </div>
-                <div class="ms-auto">
-                    ${q.status === 'DRAFT' ? `
-                        <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="submitForReview(${q.questionId})">
-                            <i class="bi bi-send me-1"></i> Gửi phê duyệt
-                        </button>
+                    <input type="text" class="form-control edit-opt-text-${q.questionId}" data-id="${opt.optionId}" value="${(opt.optionText || '').replace(/"/g, '&quot;')}">
+                </div>`;
+            });
+            editOptionsHtml += '</div>';
+        }
+
+        const collapseHtml = `
+        <div class="collapse mt-3" id="collapse-q-${q.questionId}">
+            <div class="card-footer bg-white border-top p-3 rounded-bottom">
+                <!-- View Mode -->
+                <div id="view-q-${q.questionId}">
+                    <h6 class="fw-bold mb-2 text-primary">Nội dung chi tiết:</h6>
+                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">${q.content || ''}</div>
+                    ${answersHtml}
+                    ${(q.status === 'DRAFT' || q.status === 'REJECTED') ? `
+                        <div class="text-end mt-3">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="toggleEditQuestion(${q.questionId}, true)"><i class="bi bi-pencil me-1"></i> Chỉnh sửa</button>
+                        </div>
                     ` : ''}
                 </div>
+                <!-- Edit Mode -->
+                <div id="edit-q-${q.questionId}" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold">Đề bài:</label>
+                        <textarea class="form-control form-control-sm" id="edit-content-${q.questionId}" rows="4">${q.content || ''}</textarea>
+                    </div>
+                    <div class="mb-2">
+                       <label class="form-label small fw-bold">Chủ đề:</label>
+                       <input class="form-control form-control-sm" id="edit-topic-${q.questionId}" value="${q.topic || ''}">
+                    </div>
+                    ${editOptionsHtml}
+                    <div class="text-end mt-3">
+                        <button class="btn btn-sm btn-secondary rounded-pill px-3" onclick="toggleEditQuestion(${q.questionId}, false)">Hủy</button>
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 ms-2" onclick="saveQuestion(${q.questionId})"><i class="bi bi-save me-1"></i> Lưu lại</button>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>`;
-}
+        </div>`;
 
-// ─── Actions ────────────────────────────────────────────────────────
-async function submitForReview(id) {
-    const result = await Swal.fire({
-        title: 'Xác nhận gửi?',
-        text: 'Câu hỏi sẽ được gửi lên Expert để kiểm duyệt trước khi đưa vào Bank.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Gửi ngay',
-        cancelButtonText: 'Để sau'
-    });
+        return `
+        <div class="card mb-3 border shadow-sm question-card">
+            <div class="card-body pb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 me-3">
+                        <div class="mb-2">
+                            <span class="badge ${badgeClass}">${statusIcon} ${badge}</span>
+                            <span class="badge bg-primary ms-1">${q.skill || '—'}</span>
+                            <span class="badge bg-light text-dark border ms-1">${typeLabels[q.questionType] || q.questionType || '—'}</span>
+                            ${q.cefrLevel ? `<span class="badge bg-dark ms-1">${q.cefrLevel}</span>` : ''}
+                        </div>
+                        <p class="mb-1" style="max-width:680px;line-height:1.6">${truncatedContent}</p>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i> Tạo: ${createdAt}
+                                ${q.topic ? `<span class="ms-2"><i class="bi bi-tag"></i> ${q.topic}</span>` : ''}
+                            </small>
+                        </div>
+                        ${reviewMeta}
+                    </div>
+                    <div class="ms-auto d-flex flex-column gap-2 flex-shrink-0">
+                        ${actionButtons}
+                    </div>
+                </div>
+            </div>
+            ${collapseHtml}
+        </div>`;
+    }
 
-    if (!result.isConfirmed) return;
+    // ─── Actions ────────────────────────────────────────────────────────
+    async function submitForReview(id) {
+        const result = await Swal.fire({
+            title: 'Xác nhận gửi?',
+            text: 'Câu hỏi sẽ được gửi lên Expert để kiểm duyệt trước khi đưa vào Bank.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Gửi ngay',
+            cancelButtonText: 'Để sau'
+        });
 
-    try {
-        const resp = await fetch(`/api/v1/teacher/quizzes/questions/${id}/submit`, { method: 'POST' });
-        const json = await resp.json();
-        if (json.status === 200) {
-            Swal.fire('Thành công', 'Câu hỏi đã được gửi đi!', 'success');
-            loadSummary();
-            loadQuestions(currentPage);
-        } else {
-            Swal.fire('Thất bại', json.message || 'Lỗi khi gửi', 'error');
+        if (!result.isConfirmed) return;
+
+        try {
+            // Đã sửa đường dẫn thành đúng với endpoint câu hỏi riêng lẻ
+            const resp = await fetch(`/api/v1/teacher/questions/${id}/submit`, { method: 'POST' });
+            const json = await resp.json();
+            if (json.status === 200 || json.status === 201) { // Một số BE trả 201
+                Swal.fire('Thành công', 'Câu hỏi đã được gửi đi chờ phê duyệt!', 'success');
+                loadSummary();
+                loadQuestions(currentPage);
+            } else {
+                Swal.fire('Thất bại', json.message || 'Lỗi khi gửi', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi kết nối', e.message, 'error');
         }
-    } catch (e) {
-        Swal.fire('Lỗi kết nối', e.message, 'error');
     }
-}
 
-function renderPagination(pageData) {
-    const nav  = document.getElementById('paginationNav');
-    if (pageData.totalPages <= 1) {
-        nav.style.display = 'none';
-        return;
+    function toggleEditQuestion(id, isEdit) {
+        if (isEdit) {
+            document.getElementById(`view-q-${id}`).style.display = 'none';
+            document.getElementById(`edit-q-${id}`).style.display = 'block';
+        } else {
+            document.getElementById(`view-q-${id}`).style.display = 'block';
+            document.getElementById(`edit-q-${id}`).style.display = 'none';
+        }
     }
-    nav.style.display = 'flex';
-    NovaPagination.render('paginationList', pageData.totalPages, currentPage, 'loadQuestions');
-}
+
+    async function saveQuestion(id) {
+        const content = document.getElementById(`edit-content-${id}`).value;
+        const topic = document.getElementById(`edit-topic-${id}`).value;
+
+        const options = [];
+        const textInputs = document.querySelectorAll(`.edit-opt-text-${id}`);
+        const correctInputs = document.querySelectorAll(`.edit-opt-correct-${id}`);
+
+        for(let i=0; i<textInputs.length; i++) {
+            options.push({
+                // [FIX] Bắt buộc ép sang số nguyên (Int) trước khi gửi xuống Server
+                optionId: parseInt(textInputs[i].dataset.id),
+                optionText: textInputs[i].value,
+                isCorrect: correctInputs[i].checked
+            });
+        }
+
+        const payload = {
+            content: content,
+            topic: topic,
+            options: options.length > 0 ? options : undefined
+        };
+
+        try {
+            const resp = await fetch(`/api/v1/teacher/questions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const json = await resp.json();
+            if (json.status === 200 || json.status === 201) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Đã lưu thay đổi',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+                // [FIX] Tự động gập form lại sau khi lưu thành công
+                toggleEditQuestion(id, false);
+                loadQuestions(currentPage);
+            } else {
+                Swal.fire('Thất bại', json.message || 'Lỗi khi lưu', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi', e.message, 'error');
+        }
+    }
+
+    async function cancelReview(id) {
+        const result = await Swal.fire({
+            title: 'Hủy gửi phê duyệt?',
+            text: 'Câu hỏi sẽ quay về trạng thái Nháp. Bạn có thể chỉnh sửa và gửi lại sau.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Hủy gửi',
+            cancelButtonText: 'Đóng'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const resp = await fetch(`/api/v1/teacher/questions/${id}/cancel-submit`, { method: 'POST' });
+            const json = await resp.json();
+
+            if (json.status === 200 || json.status === 201) {
+                Swal.fire('Thành công', 'Đã hủy gửi, câu hỏi quay về trạng thái Nháp.', 'success');
+                loadSummary();
+                loadQuestions(currentPage);
+            } else {
+                Swal.fire('Thất bại', json.message || 'Không thể hủy lúc này', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi kết nối', e.message, 'error');
+        }
+    }
+
+    function renderPagination(pageData) {
+        const nav  = document.getElementById('paginationNav');
+        if (pageData.totalPages <= 1) {
+            nav.style.display = 'none';
+            return;
+        }
+        nav.style.display = 'flex';
+        NovaPagination.render('paginationList', pageData.totalPages, currentPage, 'loadQuestions');
+    }
 </script>
 
 <style>

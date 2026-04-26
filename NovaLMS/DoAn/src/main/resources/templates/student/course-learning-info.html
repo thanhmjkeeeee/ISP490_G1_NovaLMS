@@ -226,6 +226,10 @@
 
       // 4. Render Modules & Lessons
       const modulesDiv = document.getElementById('accordionModules');
+
+      // [THÊM DÒNG NÀY ĐỂ GOM ID CÁC BÀI QUIZ CHUẨN CỦA KHÓA HỌC]
+      const masterQuizIds = new Set();
+
       if (!course.modules || course.modules.length === 0) {
           modulesDiv.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-folder2-open fs-1 mb-3"></i><p>Nội dung đang được cập nhật. Vui lòng quay lại sau.</p></div>';
       } else {
@@ -238,7 +242,14 @@
                   let iconClass = 'bi-file-earmark-text';
                   let iconColor = 'text-primary';
                   if (l.type === 'VIDEO') { iconClass = 'bi-play-circle-fill'; iconColor = 'text-danger'; }
-                  if (l.type === 'QUIZ')  { iconClass = 'bi-patch-question-fill'; iconColor = 'text-warning'; }
+
+                  // [THÊM LOGIC ĐỂ GOM QUIZ ID NẾU LÀ DẠNG QUIZ]
+                  if (l.type === 'QUIZ')  {
+                      iconClass = 'bi-patch-question-fill';
+                      iconColor = 'text-warning';
+                      if (l.quizId) masterQuizIds.add(l.quizId); // Thêm ID vào rổ
+                      if (l.quiz_id) masterQuizIds.add(l.quiz_id); // Trường hợp snake_case
+                  }
 
                   const statusIcon = isCompleted
                       ? '<i class="bi bi-check-circle-fill text-success fs-5"></i>'
@@ -286,8 +297,28 @@
       // 5. Render Quizzes (COURSE_QUIZ only)
       const quizContent = document.getElementById('courseQuizContent');
       const allQuizzes = course.quizzes || [];
-      const regularQuizzes = allQuizzes.filter(q => q.isAssignment !== true);
-      const assignments = allQuizzes.filter(q => q.isAssignment === true);
+
+      // ===== [BẮT ĐẦU SỬA TỪ ĐÂY] =====
+      const regularQuizzes = allQuizzes.filter(q => {
+          if (q.isAssignment === true) return false; // Bỏ qua assignment
+
+          // 1. ƯU TIÊN 1: Nếu Quiz đã được Expert gán vào Chương/Bài học -> GIỮ LẠI CHẮC CHẮN 100%
+          if (masterQuizIds.has(q.quizId)) return true;
+
+          // 2. ƯU TIÊN 2: Nếu Quiz đứng rời rạc (chưa gán vào bài nào), ta lọc bằng tên:
+          // Nếu tên chứa chữ "buổi" -> Đích thị là hàng của Giáo viên tạo cho lớp -> VỨT BỎ
+          // Nếu không chứa chữ "buổi" -> Hàng của Expert -> GIỮ LẠI
+          const isTeacherQuiz = (q.title || '').toLowerCase().includes('buổi');
+          return !isTeacherQuiz;
+      });
+
+      const assignments = allQuizzes.filter(q => {
+          if (q.isAssignment !== true) return false;
+
+          if (masterQuizIds.has(q.quizId)) return true;
+          const isTeacherAssign = (q.title || '').toLowerCase().includes('buổi');
+          return !isTeacherAssign;
+      });
 
       if (regularQuizzes.length === 0) {
           quizContent.innerHTML = '<div class="text-center py-5 bg-white rounded-4 shadow-sm text-muted"><i class="bi bi-clipboard-x" style="font-size: 4rem;"></i><h5 class="fw-bold mt-3">Chưa có bài kiểm tra</h5><p>Khóa học này không yêu cầu làm bài kiểm tra cuối khóa.</p></div>';
