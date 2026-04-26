@@ -24,5 +24,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
     /** Lấy danh sách payment thành công để xuất Excel */
     List<Payment> findByStatusOrderByPaidAtDesc(String status);
 
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT r.user.userId) FROM Registration r JOIN Payment p ON r.registrationId = p.registrationId WHERE p.status = 'PAID'")
+    long countConvertedStudents();
+
     List<Payment> findAllByRegistrationIdOrderByCreatedAtDesc(Integer registrationId);
 }

@@ -52,6 +52,8 @@ public class AuthServiceImpl implements AuthService {
     private final JavaMailSender mailSender;
     private final AuthenticationManager authenticationManager;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final com.example.DoAn.repository.VisitorLogRepository visitorLogRepository;
+    private final jakarta.servlet.http.HttpServletRequest httpServletRequest;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -121,8 +123,23 @@ public class AuthServiceImpl implements AuthService {
                 .authProvider("LOCAL")
                 .build();
 
-        userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
         verificationRepository.deleteByEmail(request.getEmail());
+
+        // --- LIÊN KẾT VISITOR TOKEN (GUEST CONVERSION) ---
+        jakarta.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if ("nova_visitor_token".equals(cookie.getName())) {
+                    String token = cookie.getValue();
+                    visitorLogRepository.findByVisitorToken(token).ifPresent(visitor -> {
+                        visitor.setUser(savedUser);
+                        visitorLogRepository.save(visitor);
+                    });
+                    break;
+                }
+            }
+        }
 
         return ResponseData.success("Đăng ký tài khoản thành công!", null);
     }

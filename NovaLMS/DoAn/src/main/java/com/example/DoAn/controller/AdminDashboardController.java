@@ -41,6 +41,7 @@ public class AdminDashboardController {
     private final PaymentRepository paymentRepository;
     private final QuizRepository quizRepository;
     private final ExcelExportService excelExportService;
+    private final com.example.DoAn.repository.VisitorLogRepository visitorLogRepository;
 
     @GetMapping("/dashboard")
     public String managerDashboard(Model model) {
@@ -66,6 +67,32 @@ public class AdminDashboardController {
         model.addAttribute("quizCount", quizCount);
         model.addAttribute("totalRevenue", totalRevenue);
         model.addAttribute("recentRegistrations", recentRegistrations);
+
+        // --- DỮ LIỆU CHUYỂN ĐỔI (Guest to Student) ---
+        long totalStudentAccounts = userRepository.countByRoleName("ROLE_STUDENT");
+        long convertedStudentsCount = paymentRepository.countConvertedStudents();
+        long totalGuests = totalStudentAccounts - convertedStudentsCount;
+        if (totalGuests < 0) totalGuests = 0; // Tránh số âm nếu data có chút lệch
+        
+        double conversionRate = 0;
+        if (totalStudentAccounts > 0) {
+            conversionRate = (double) convertedStudentsCount / totalStudentAccounts * 100;
+        }
+
+        model.addAttribute("totalGuests", totalGuests);
+        model.addAttribute("convertedStudentsCount", convertedStudentsCount);
+        model.addAttribute("conversionRate", Math.round(conversionRate * 10.0) / 10.0);
+
+        // --- DỮ LIỆU CHUYỂN ĐỔI GUEST (VISITOR TO USER) ---
+        long totalUniqueVisitors = visitorLogRepository.countTotalVisitors();
+        long registeredFromGuest = visitorLogRepository.countRegisteredVisitors();
+        double guestToUserRate = 0;
+        if (totalUniqueVisitors > 0) {
+            guestToUserRate = (double) registeredFromGuest / totalUniqueVisitors * 100;
+        }
+        model.addAttribute("totalUniqueVisitors", totalUniqueVisitors);
+        model.addAttribute("registeredFromGuest", registeredFromGuest);
+        model.addAttribute("guestToUserRate", Math.round(guestToUserRate * 10.0) / 10.0);
 
         // --- DỮ LIỆU BIỂU ĐỒ DOANH THU ---
         List<Object[]> revenueData = paymentRepository.getMonthlyRevenue();

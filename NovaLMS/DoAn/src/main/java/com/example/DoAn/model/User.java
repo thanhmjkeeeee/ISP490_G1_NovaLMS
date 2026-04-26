@@ -59,6 +59,9 @@ public class User {
     @Column(length = 100)
     private String city;
 
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
 
@@ -101,10 +104,14 @@ public class User {
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
 
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
     // Callbacks
     @PrePersist
     protected void onCreate() {
         if (this.status == null) this.status = "Active";
         if (this.authProvider == null) this.authProvider = "LOCAL";
+        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
     }
-}
+}
