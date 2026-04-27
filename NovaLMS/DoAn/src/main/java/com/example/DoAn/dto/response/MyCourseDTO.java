@@ -11,6 +11,7 @@ public class MyCourseDTO {
     private String description;
     private String imageUrl;
     private String className;
+    private Integer classId;
     
     // Thống kê tiến độ
     private String teacherName;

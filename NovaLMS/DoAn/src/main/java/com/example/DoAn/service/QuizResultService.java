@@ -44,4 +44,7 @@ public interface QuizResultService {
 
     /** Teacher overrides AI score for a specific answer */
     Double overrideScore(Integer answerId, String score, String teacherEmail);
+
+    /** Individual question grading with Writing criteria support */
+    void gradeQuizItem(com.example.DoAn.dto.request.QuizItemGradingRequestDTO request, String email);
 }

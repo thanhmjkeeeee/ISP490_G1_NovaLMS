@@ -62,4 +62,17 @@ public class QuizAnswer {
     // Teacher override score — if non-null, used instead of AI score
     @Column(name = "teacher_override_score", length = 20)
     private String teacherOverrideScore;
+
+    // IELTS Writing criteria
+    @Column(name = "writing_task_achievement", precision = 5, scale = 2)
+    private java.math.BigDecimal writingTaskAchievement;
+
+    @Column(name = "writing_coherence_cohesion", precision = 5, scale = 2)
+    private java.math.BigDecimal writingCoherenceCohesion;
+
+    @Column(name = "writing_lexical_resource", precision = 5, scale = 2)
+    private java.math.BigDecimal writingLexicalResource;
+
+    @Column(name = "writing_grammar_accuracy", precision = 5, scale = 2)
+    private java.math.BigDecimal writingGrammarAccuracy;
 }

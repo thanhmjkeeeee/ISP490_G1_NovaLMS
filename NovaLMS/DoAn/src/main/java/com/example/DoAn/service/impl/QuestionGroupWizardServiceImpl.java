@@ -92,6 +92,8 @@ public class QuestionGroupWizardServiceImpl implements IQuestionGroupWizardServi
                 .totalQuestions(merged.size())
                 .errorCount(errors.size())
                 .sourceType(sourceType)
+                .passage(step1.getPassageContent())
+                .audioUrl(step1.getAudioUrl())
                 .build();
     }
 
@@ -114,28 +116,67 @@ public class QuestionGroupWizardServiceImpl implements IQuestionGroupWizardServi
         }
 
         try {
-            AIGenerateRequestDTO request = AIGenerateRequestDTO.builder()
-                    .topic(dto.getAiTopic())
-                    .quantity(dto.getAiQuantity() != null ? dto.getAiQuantity() : 5)
-                    .skill(step1.getSkill())
-                    .cefrLevel(step1.getCefrLevel())
-                    .questionTypes(dto.getAiQuestionTypes())
-                    .mode(dto.getAiMode() != null ? dto.getAiMode() : "NORMAL")
-                    .build();
+            boolean isGroupNeeded = "TOPIC_BASED".equals(step1.getMode()) &&
+                    ("READING".equalsIgnoreCase(step1.getSkill()) || "LISTENING".equalsIgnoreCase(step1.getSkill()));
 
-            AIGenerateResponseDTO response = aiQuestionService.generate(request, email);
+            if (isGroupNeeded) {
+                AIGenerateGroupRequestDTO groupRequest = AIGenerateGroupRequestDTO.builder()
+                        .topic(dto.getAiTopic())
+                        .quantity(dto.getAiQuantity() != null ? dto.getAiQuantity() : 5)
+                        .skill(step1.getSkill())
+                        .cefrLevel(step1.getCefrLevel())
+                        .questionTypes(dto.getAiQuestionTypes())
+                        .mode(dto.getAiMode() != null ? dto.getAiMode() : "NORMAL")
+                        .advancedOptions(dto.getAiAdvancedOptions())
+                        .build();
 
-            if (response.getWarning() != null && !response.getWarning().isBlank()) {
-                log.warn("[Wizard] AI warning: {}", response.getWarning());
-            }
+                AIGenerateGroupResponseDTO response = aiQuestionService.generateGroup(groupRequest, email);
 
-            List<ValidatedQuestionDTO> result = new ArrayList<>();
-            if (response.getQuestions() != null) {
-                for (AIGenerateResponseDTO.QuestionDTO q : response.getQuestions()) {
-                    result.add(toValidatedQuestion(q));
+                if (response.getWarning() != null && !response.getWarning().isBlank()) {
+                    log.warn("[Wizard] AI warning: {}", response.getWarning());
                 }
+
+                // Update Step 1 with generated passage
+                if (response.getPassage() != null && !response.getPassage().isBlank()) {
+                    step1.setPassageContent(response.getPassage());
+                }
+                if (response.getAudioUrl() != null && !response.getAudioUrl().isBlank()) {
+                    step1.setAudioUrl(response.getAudioUrl());
+                }
+
+                List<ValidatedQuestionDTO> result = new ArrayList<>();
+                if (response.getQuestions() != null) {
+                    for (AIGenerateResponseDTO.QuestionDTO q : response.getQuestions()) {
+                        result.add(toValidatedQuestion(q));
+                    }
+                }
+                return result;
+
+            } else {
+                AIGenerateRequestDTO request = AIGenerateRequestDTO.builder()
+                        .topic(dto.getAiTopic())
+                        .quantity(dto.getAiQuantity() != null ? dto.getAiQuantity() : 5)
+                        .skill(step1.getSkill())
+                        .cefrLevel(step1.getCefrLevel())
+                        .questionTypes(dto.getAiQuestionTypes())
+                        .mode(dto.getAiMode() != null ? dto.getAiMode() : "NORMAL")
+                        .advancedOptions(dto.getAiAdvancedOptions())
+                        .build();
+
+                AIGenerateResponseDTO response = aiQuestionService.generate(request, email);
+
+                if (response.getWarning() != null && !response.getWarning().isBlank()) {
+                    log.warn("[Wizard] AI warning: {}", response.getWarning());
+                }
+
+                List<ValidatedQuestionDTO> result = new ArrayList<>();
+                if (response.getQuestions() != null) {
+                    for (AIGenerateResponseDTO.QuestionDTO q : response.getQuestions()) {
+                        result.add(toValidatedQuestion(q));
+                    }
+                }
+                return result;
             }
-            return result;
 
         } catch (Exception e) {
             log.error("[Wizard] AI generation failed", e);

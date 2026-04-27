@@ -122,15 +122,26 @@
                                         <input type="text" class="form-control border-start-0" id="writingConstraint">
                                     </div>
                                 </div>
-                                <div class="mb-4">
-                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
-                                        Speaking Constraint
-                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Quy định cụ thể cho bài nói (ví dụ: thời gian nói, ngữ điệu, các yêu cầu đặc biệt...)."></i>
-                                    </label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-mic"></i></span>
                                         <input type="text" class="form-control border-start-0" id="speakingConstraint">
                                     </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="fw-bold mb-4 section-title">4. Tiêu chí chấm điểm (Grading Rubrics)</h5>
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                        Writing Rubric (JSON)
+                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Cấu hình tiêu chí và mô tả các mức điểm (0-9) cho kỹ năng Viết."></i>
+                                    </label>
+                                    <textarea class="form-control rounded-3 font-monospace small" id="writingRubricJson" rows="10" style="font-size: 0.75rem;"></textarea>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold text-secondary small text-uppercase">
+                                        Speaking Rubric (JSON)
+                                        <i class="bi bi-info-circle ms-1 text-primary shadow-sm" data-bs-toggle="tooltip" title="Cấu hình tiêu chí và mô tả các mức điểm (0-9) cho kỹ năng Nói."></i>
+                                    </label>
+                                    <textarea class="form-control rounded-3 font-monospace small" id="speakingRubricJson" rows="10" style="font-size: 0.75rem;"></textarea>
                                 </div>
                             </section>
 
@@ -299,6 +310,10 @@
             document.getElementById('lexicalComplexity').value = data.lexicalComplexity || '';
             document.getElementById('writingConstraint').value = data.writingConstraint || '';
             document.getElementById('speakingConstraint').value = data.speakingConstraint || '';
+            
+            // Handle Rubrics
+            document.getElementById('writingRubricJson').value = data.writingRubricJson ? JSON.stringify(JSON.parse(data.writingRubricJson), null, 2) : '';
+            document.getElementById('speakingRubricJson').value = data.speakingRubricJson ? JSON.stringify(JSON.parse(data.speakingRubricJson), null, 2) : '';
 
             // Handle Grammar Tags
             currentGrammar = JSON.parse(data.grammarFocus || '[]');
@@ -361,8 +376,19 @@
             skills: JSON.stringify(selectedSkills),
             lexicalComplexity: document.getElementById('lexicalComplexity').value,
             writingConstraint: document.getElementById('writingConstraint').value,
-            speakingConstraint: document.getElementById('speakingConstraint').value
+            speakingConstraint: document.getElementById('speakingConstraint').value,
+            writingRubricJson: document.getElementById('writingRubricJson').value,
+            speakingRubricJson: document.getElementById('speakingRubricJson').value
         };
+
+        // Simple JSON validation for rubrics
+        try {
+            if (payload.writingRubricJson) JSON.parse(payload.writingRubricJson);
+            if (payload.speakingRubricJson) JSON.parse(payload.speakingRubricJson);
+        } catch (e) {
+            Swal.fire('Lỗi', 'Định dạng JSON của Rubric không hợp lệ. Vui lòng kiểm tra lại.', 'error');
+            return;
+        }
 
         try {
             const resp = await fetch('/expert/ai-config/api/save', {

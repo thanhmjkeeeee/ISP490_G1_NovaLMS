@@ -14,6 +14,56 @@
     .st-Draft { background: #fff3cd; color: #856404; }
     .st-Closed { background: #f8d7da; color: #842029; }
     .schedule-check .btn { border-radius: 20px !important; font-size: 0.82rem; }
+
+    /* Searchable Select Premium Styles */
+    .searchable-select-container {
+        position: relative;
+    }
+    .searchable-select-input {
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+    }
+    .searchable-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        display: none;
+        max-height: 300px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-top: 5px;
+    }
+    .searchable-select-dropdown.show {
+        display: block;
+    }
+    .searchable-select-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .searchable-select-item:hover {
+        background: #f8faff;
+        color: #136ad5;
+    }
+    .searchable-select-item.active {
+        background: #eef4ff;
+        color: #136ad5;
+        font-weight: 600;
+    }
+    .searchable-select-no-results {
+        padding: 15px;
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+    }
   </style>
 </head>
 
@@ -69,9 +119,22 @@
 
             <div class="col-md-6">
               <label class="form-label small fw-bold text-secondary text-uppercase">Khóa học <span class="text-danger">*</span></label>
-              <select id="courseId" class="form-select" required>
-                <option value="">-- Chọn khóa học --</option>
-              </select>
+              <div class="searchable-select-container" id="courseSearchContainer">
+                <input type="text" id="courseDisplay" class="form-control searchable-select-input" 
+                    placeholder="Chọn hoặc tìm khóa học..." readonly onclick="toggleSearchableSelect('courseSearchContainer')">
+                <div class="searchable-select-dropdown" id="courseDropdown">
+                    <div class="p-2 border-bottom sticky-top bg-white">
+                        <input type="text" class="form-control form-control-sm dropdown-search-input" 
+                            placeholder="Tìm kiếm..." onkeyup="filterSearchableItems('courseSearchContainer', this.value)">
+                    </div>
+                    <div class="searchable-items-list">
+                        <!-- Items will be loaded here -->
+                    </div>
+                </div>
+                <select id="courseId" class="d-none" required>
+                    <option value="">-- Chọn khóa học --</option>
+                </select>
+              </div>
               <div id="courseIdError" class="text-danger small mt-1"></div>
             </div>
 
@@ -501,20 +564,92 @@
       document.getElementById('classFormSection').style.display = 'none';
   }
 
-  // Store course data for auto-fill
-  let courseDataMap = {};
+  function toggleSearchableSelect(containerId) {
+      const dropdown = document.querySelector(`#${containerId} .searchable-select-dropdown`);
+      const isShown = dropdown.classList.contains('show');
+      document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
+      if (!isShown) {
+          dropdown.classList.add('show');
+          const searchInput = dropdown.querySelector('.dropdown-search-input');
+          if (searchInput) {
+              searchInput.value = '';
+              searchInput.focus();
+              filterSearchableItems(containerId, '');
+          }
+      }
+  }
+
+  function filterSearchableItems(containerId, keyword) {
+      const items = document.querySelectorAll(`#${containerId} .searchable-select-item`);
+      let hasResults = false;
+      items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          const match = text.includes(keyword.toLowerCase());
+          item.style.display = match ? 'block' : 'none';
+          if (match) hasResults = true;
+      });
+      const noResults = document.querySelector(`#${containerId} .searchable-select-no-results`);
+      if (noResults) noResults.style.display = hasResults ? 'none' : 'block';
+  }
+
+  function selectSearchableItem(containerId, value, text) {
+      const container = document.getElementById(containerId);
+      const display = container.querySelector('.searchable-select-input');
+      const hiddenSelect = container.querySelector('select');
+      const dropdown = container.querySelector('.searchable-select-dropdown');
+      display.value = text;
+      hiddenSelect.value = value;
+      dropdown.classList.remove('show');
+      const event = new Event('change');
+      hiddenSelect.dispatchEvent(event);
+      container.querySelectorAll('.searchable-select-item').forEach(item => {
+          item.classList.toggle('active', item.dataset.value == value);
+      });
+  }
+
+  document.addEventListener('click', function(e) {
+      if (!e.target.closest('.searchable-select-container')) {
+          document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
+      }
+  });
 
   async function loadCourses() {
+      const container = document.getElementById('courseSearchContainer');
+      if (!container) return;
+      const hiddenSelect = document.getElementById('courseId');
+      const itemsList = container.querySelector('.searchable-items-list');
+      const currentVal = hiddenSelect.value;
+      itemsList.innerHTML = '<div class="p-3 text-center text-muted small">Đang tải...</div>';
       try {
-          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=100');
+          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=500');
           const result = await res.json();
           if (result.data && result.data.items) {
-              const select = document.getElementById('courseId');
+              hiddenSelect.innerHTML = '<option value="">-- Chọn khóa học --</option>';
+              itemsList.innerHTML = '';
               result.data.items.forEach(c => {
-                  courseDataMap[c.courseId] = c;
+                  const val = c.courseId;
+                  const text = c.courseName;
+                  courseDataMap[val] = c;
                   const opt = document.createElement('option');
-                  opt.value = c.courseId; opt.textContent = c.courseName; select.appendChild(opt);
+                  opt.value = val; opt.textContent = text;
+                  hiddenSelect.appendChild(opt);
+                  const item = document.createElement('div');
+                  item.className = 'searchable-select-item';
+                  item.dataset.value = val;
+                  item.textContent = text;
+                  item.onclick = () => selectSearchableItem('courseSearchContainer', val, text);
+                  itemsList.appendChild(item);
               });
+              const noRes = document.createElement('div');
+              noRes.className = 'searchable-select-no-results';
+              noRes.style.display = 'none';
+              noRes.textContent = 'Không tìm thấy kết quả';
+              itemsList.appendChild(noRes);
+              if (currentVal) {
+                  hiddenSelect.value = currentVal;
+                  const selectedOpt = hiddenSelect.options[hiddenSelect.selectedIndex];
+                  if (selectedOpt) document.getElementById('courseDisplay').value = selectedOpt.textContent;
+              }
           }
       } catch (err) { console.error('Error loading courses', err); }
   }

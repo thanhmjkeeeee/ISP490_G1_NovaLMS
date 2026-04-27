@@ -26,6 +26,8 @@ public class WizardStep2DTO {
     @Builder.Default
     private String aiMode = "NORMAL"; // "NORMAL" | "ADVANCED"
 
+    private java.util.Map<String, Object> aiAdvancedOptions;
+
     // EXCEL_IMPORT fields
     private MultipartFile excelFile;
     private String excelQuestionType; // the question type for the uploaded Excel

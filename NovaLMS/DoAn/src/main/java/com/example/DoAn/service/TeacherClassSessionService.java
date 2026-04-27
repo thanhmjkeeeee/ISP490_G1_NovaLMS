@@ -454,10 +454,10 @@ public class TeacherClassSessionService {
                     return ResponseData.error(400, "Thời gian làm bài không được nhỏ hơn cấu hình tối thiểu của Quiz (" + requiredDuration + " phút)");
                 }
 
-                // 2. Kiểm tra thời gian còn lại của buổi học
+                // 2. Kiểm tra thời gian còn lại của buổi học (Chỉ chặn nếu buổi học ĐANG diễn ra)
                 LocalDateTime now = LocalDateTime.now();
                 LocalDateTime sessionEnd = getSessionEndDateTime(session);
-                if (sessionEnd != null) {
+                if (sessionEnd != null && now.isBefore(sessionEnd)) {
                     long remainingMinutes = Duration.between(now, sessionEnd).toMinutes();
                     int targetDuration = (timeLimitMinutes != null) ? timeLimitMinutes : requiredDuration;
                     

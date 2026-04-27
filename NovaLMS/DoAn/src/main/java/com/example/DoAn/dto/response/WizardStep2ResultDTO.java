@@ -13,4 +13,6 @@ public class WizardStep2ResultDTO {
     private int totalQuestions;
     private int errorCount;
     private String sourceType;
+    private String passage;
+    private String audioUrl;
 }

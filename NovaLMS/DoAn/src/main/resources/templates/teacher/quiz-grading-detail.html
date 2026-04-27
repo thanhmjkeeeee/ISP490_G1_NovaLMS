@@ -1,328 +1,689 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 
-<head
-    th:replace="~{fragments/head :: common-head(pageTitle='Chấm Bài: ' + (${result != null ? result.quizTitle : 'Chi tiết'}))}">
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chấm Bài: ' + (${result != null ? result.quizTitle : 'Chi tiết'}))}">
 </head>
 
-<body class="dashboard-body">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    <header th:replace="~{fragments/header :: dash-header(pageTitle='Teacher Dashboard', breadcrumb='Chấm Điểm')}">
-    </header>
-    <aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='workspace')}"></aside>
-    <div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+    :root {
+        --ws-bg: #f8fafc;
+        --ws-sidebar: #ffffff;
+        --ws-accent: #2563eb;
+        --ws-border: #e2e8f0;
+        --ws-text-main: #0f172a;
+        --ws-text-muted: #64748b;
+    }
 
-    <main class="dash-main" id="dashMain">
-        <div class="container-fluid px-4 py-3">
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--ws-bg);
+        color: var(--ws-text-main);
+        overflow: hidden;
+    }
 
+    .grading-workspace {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+    }
 
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div>
-                            <h4 class="fw-bold mb-1" id="studentName" th:text="${result.studentName ?: 'N/A'}">Đang
-                                tải...</h4>
-                            <div class="text-muted small">
-                                <span>Bài: <strong th:text="${result.quizTitle}">—</strong></span>
-                                <span class="mx-2">·</span>
-                                <span>Lớp: <strong
-                                        th:text="${result.className ?: 'Lớp học đã đăng ký'}">—</strong></span>
-                                <span class="mx-2">·</span>
-                                <span>Ngày nộp: <strong
-                                        th:text="${result.submittedAt != null ? #temporals.format(result.submittedAt, 'dd/MM/yyyy HH:mm') : 'Chưa ghi nhận'}">—</strong></span>
-                            </div>
+    /* Left Nav Rail */
+    .nav-rail {
+        width: 72px;
+        background: #1e293b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1.5rem 0;
+        z-index: 100;
+    }
+
+    .nav-rail-item {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .nav-rail-item:hover, .nav-rail-item.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    /* Main Container */
+    .workspace-container {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Top Workspace Header */
+    .ws-header {
+        height: 72px;
+        background: white;
+        border-bottom: 1px solid var(--ws-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        flex-shrink: 0;
+    }
+
+    .ws-student-info h1 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .ws-student-info p {
+        font-size: 0.8rem;
+        color: var(--ws-text-muted);
+        margin: 0;
+    }
+
+    /* Dual Pane Layout */
+    .ws-content {
+        flex-grow: 1;
+        display: flex;
+        overflow: hidden;
+    }
+
+    /* Left Question List */
+    .ws-question-sidebar {
+        width: 300px;
+        background: white;
+        border-right: 1px solid var(--ws-border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .ws-sidebar-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--ws-border);
+    }
+
+    .ws-q-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    .ws-q-item {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .ws-q-item:hover {
+        background: #f1f5f9;
+    }
+
+    .ws-q-item.active {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+    }
+
+    .ws-q-status {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    .status-graded { background: #10b981; }
+    .status-pending { background: #f59e0b; }
+
+    /* Middle Pane: Student Evidence */
+    .ws-evidence-pane {
+        flex-grow: 1;
+        background: white;
+        overflow-y: auto;
+        padding: 3rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .evidence-card {
+        width: 100%;
+        max-width: 800px;
+    }
+
+    /* Right Pane: Grading */
+    .ws-grading-pane {
+        width: 450px;
+        background: #f8fafc;
+        border-left: 1px solid var(--ws-border);
+        padding: 2rem;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    /* UI Components */
+    .ws-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid var(--ws-border);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+    }
+
+    .ws-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--ws-text-muted);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .ws-score-input {
+        font-size: 2rem;
+        font-weight: 800;
+        width: 100px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        text-align: center;
+        padding: 0.5rem;
+        color: var(--ws-accent);
+    }
+
+    .ws-score-input:focus {
+        border-color: var(--ws-accent);
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .ai-prediction-box {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-ws-primary {
+        background: var(--ws-accent);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+
+    .btn-ws-primary:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* Animation */
+    .fade-in-up { animation: fadeInUp 0.4s ease-out; }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<body class="nova-quiz-theme">
+
+    <div class="grading-workspace">
+        <!-- Left Nav Rail -->
+        <nav class="nav-rail">
+            <a href="/teacher/workspace" class="nav-rail-item" title="Back to Workspace">
+                <i class="bi bi-grid-fill fs-4"></i>
+            </a>
+            <div class="nav-rail-item active">
+                <i class="bi bi-pen-fill fs-4"></i>
+            </div>
+            <div class="nav-rail-item">
+                <i class="bi bi-chat-dots-fill fs-4"></i>
+            </div>
+            <div class="mt-auto">
+                <div class="nav-rail-item">
+                    <i class="bi bi-gear-fill fs-4"></i>
+                </div>
+            </div>
+        </nav>
+
+        <div class="workspace-container">
+            <!-- Header -->
+            <header class="ws-header">
+                <div class="ws-student-info">
+                    <h1 th:text="${result.studentName}">Student Name</h1>
+                    <p><span th:text="${result.quizTitle}">Quiz</span> • <span th:text="${result.className}">Class</span></p>
+                </div>
+
+                <div id="skillAnalysisContainer" class="d-flex align-items-center gap-2">
+                    <!-- Standard status badges here, then IELTS badge -->
+                    <div id="ielts-header-badge" class="d-none">
+                        <div class="d-flex align-items-center gap-2 bg-light p-1 rounded-pill pe-3">
+                            <span class="badge bg-primary rounded-pill py-2 px-3 fw-bold">BAND <span id="hdr-overall-band">0.0</span></span>
+                            <div class="small fw-bold text-muted text-nowrap" id="hdr-skill-breakdown">L: - | R: - | W: - | S: -</div>
                         </div>
-                        <a th:href="${result.status == 'GRADED' ? '/teacher/workspace?tab=graded&classId=' + result.classId : '/teacher/workspace?tab=grading&classId=' + result.classId}"
-                           th:if="${result.classId != null}"
-                           class="btn btn-outline-secondary rounded-pill">
-                            <i class="bi bi-arrow-left"></i> Quay lại
-                        </a>
-                        <a th:href="${result.status == 'GRADED' ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading'}"
-                           th:if="${result.classId == null}"
-                           class="btn btn-outline-secondary rounded-pill">
-                            <i class="bi bi-arrow-left"></i> Quay lại
-                        </a>
                     </div>
-
-                    <div class="alert alert-info mb-0 py-2 px-3 border-0 rounded-3" style="background-color: #e0f7fa; color: #006064;">
-                    <i class="bi bi-lightning-charge me-1"></i>
-                    Điểm trắc nghiệm (Tự động):
-                    <strong th:text="${result.score ?: 0}">—</strong> / <strong th:text="${result.totalPoints ?: 0}">0</strong>
-                    <span th:if="${result.overallBand != null}" class="ms-3 badge bg-primary">
-                        IELTS Band: <span th:text="${#numbers.formatDecimal(result.overallBand, 1, 1)}"></span>
-                    </span>
                 </div>
-                </div>
-            </div>
 
-        <ul class="nav nav-tabs mb-3" id="skillTabs">
-            <li class="nav-item"><span class="nav-link text-muted">Đang tải kỹ năng...</span></li>
-        </ul>
-
-        <div class="tab-content" id="tabContent"></div>
-
-        <div class="card border-0 shadow-sm rounded-4 mt-4 text-center">
-            <div class="card-body p-4">
-                <div th:if="${result != null and result.status != 'GRADED'}">
-                    <button id="submitGradesBtn" class="btn btn-success rounded-pill px-5 py-2 fw-bold shadow-sm mb-3">
-                        <i class="bi bi-check2-circle me-2"></i> Lưu điểm chấm
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-end me-2 d-none d-xl-block">
+                        <div class="ws-label mb-0">Grading Progress</div>
+                        <div class="progress" style="width: 120px; height: 6px;">
+                            <div id="gradingProgress" class="progress-bar bg-success" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <button id="submitGradesBtn" class="btn-ws-primary" th:if="${result.status != 'GRADED'}">
+                        Hoàn tất Chấm điểm
                     </button>
-                    <br>
+                    <a th:href="${result.classId != null ? '/teacher/workspace?tab=grading&classId=' + result.classId : '/teacher/workspace?tab=grading'}"
+                       class="btn btn-outline-secondary rounded-pill px-4">Thoát</a>
                 </div>
-                <a th:href="${result != null and result.classId != null ? (result.status == 'GRADED' ? '/teacher/workspace?tab=graded&classId=' + result.classId : '/teacher/workspace?tab=grading&classId=' + result.classId) : (result.status == 'GRADED' ? '/teacher/workspace?tab=graded' : '/teacher/workspace?tab=grading')}"
-                    class="btn btn-outline-secondary rounded-pill px-5">
-                    <i class="bi bi-arrow-left me-1"></i> Quay lại
-                </a>
+            </header>
+
+            <div class="ws-content">
+                <!-- Question Sidebar -->
+                <aside class="ws-question-sidebar">
+                    <div class="ws-sidebar-header">
+                        <h6 class="fw-bold mb-0">Danh sách Câu hỏi</h6>
+                    </div>
+                    <div class="ws-q-list" id="questionNav">
+                        <!-- Populated by JS -->
+                    </div>
+                </aside>
+
+                <!-- Evidence Pane -->
+                <main class="ws-evidence-pane" id="gradingMainContent">
+                    <div class="evidence-card" id="tabContent">
+                        <!-- Current Question Evidence -->
+                    </div>
+                </main>
+
+                <!-- Grading Pane -->
+                <aside class="ws-grading-pane">
+                    <div id="assessmentContainer">
+                        <div class="text-center py-5 opacity-50">
+                            <i class="bi bi-cursor-fill display-4 mb-3 d-block"></i>
+                            <p>Chọn một câu hỏi để bắt đầu chấm điểm</p>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </div>
+    </div>
 
-        </div>
-    </main>
+    <!-- Hidden data -->
+    <script th:inline="javascript">
+        const resultData = /*[[${result}]]*/ {};
+        const resultId = /*[[${resultId}]]*/ 0;
+    </script>
 
     <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
     <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
     <script th:inline="javascript">
-        // ── Skill icon map ─────────────────────────────────────────────────────────
-        const SKILL_ICONS = {
-            LISTENING: '🎧',
-            READING: '📖',
-            SPEAKING: '🎤',
-            WRITING: '✍️'
-        };
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!resultData || !resultData.questions) return;
 
-        const SKILL_LABELS = {
-            LISTENING: 'Nghe',
-            READING: 'Đọc',
-            SPEAKING: 'Nói',
-            WRITING: 'Viết'
-        };
+            const nav = document.getElementById('questionNav');
+            const content = document.getElementById('tabContent');
+            const assessment = document.getElementById('assessmentContainer');
 
-        // ── Load grading detail ─────────────────────────────────────────────────────
-        const resultId = /*[[${resultId}]]*/ null;
-        const isGraded = /*[[${result != null && result.status == 'GRADED'}]]*/ false;
+            function renderSidebar() {
+                nav.innerHTML = '';
+                resultData.questions.forEach((q, idx) => {
+                    if (q.questionType !== 'WRITING' && q.questionType !== 'SPEAKING') return;
+                    
+                    const isGraded = q.teacherOverrideScore !== null;
+                    const item = document.createElement('div');
+                    item.className = `ws-q-item ${idx === activeIdx ? 'active' : ''}`;
+                    item.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-bold small text-truncate" style="max-width: 180px;">
+                                <span class="ws-q-status ${isGraded ? 'status-graded' : 'status-pending'}"></span>
+                                Câu ${idx + 1}: ${q.questionType}
+                            </div>
+                            <span class="badge ${isGraded ? 'bg-success' : 'bg-warning'} rounded-pill" style="font-size: 0.6rem;">
+                                ${isGraded ? 'Đã chấm' : 'Cần chấm'}
+                            </span>
+                        </div>
+                    `;
+                    item.onclick = () => {
+                        activeIdx = idx;
+                        renderWorkspace();
+                    };
+                    nav.appendChild(item);
+                });
+            }
 
-        (async () => {
-            if (!resultId) {
-                document.getElementById('tabContent').innerHTML = `<div class="alert alert-danger">Lỗi: Không tìm thấy ID bài nộp.</div>`;
+            let activeIdx = resultData.questions.findIndex(q => q.questionType === 'WRITING' || q.questionType === 'SPEAKING');
+            if (activeIdx === -1) activeIdx = 0;
+
+            function renderWorkspace() {
+                const q = resultData.questions[activeIdx];
+                renderSidebar();
+                
+                // Render Evidence
+                content.innerHTML = `
+                    <div class="fade-in-up">
+                        <div class="mb-4">
+                            <span class="ws-label">Question Content</span>
+                            <div class="fs-4 fw-bold text-dark mb-4">${q.content}</div>
+                            ${q.imageUrl ? `<img src="${q.imageUrl}" class="img-fluid rounded-4 border shadow-sm mb-4" style="max-height: 300px;">` : ''}
+                            ${q.audioUrl ? `
+                                <div class="bg-light p-3 rounded-4 mb-4">
+                                    <span class="ws-label">Reference Audio</span>
+                                    <audio controls src="${q.audioUrl}" class="w-100"></audio>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="ws-card">
+                            <span class="ws-label">Student Answer</span>
+                            <div class="bg-white p-3 rounded-3 border-0">
+                                ${q.questionType === 'SPEAKING' && q.userAnswerDisplay.includes('http') 
+                                    ? `<audio controls src="${q.userAnswerDisplay.replace(/&quot;/g, '')}" class="w-100"></audio>`
+                                    : `<p class="mb-0 fs-5 lh-lg" style="white-space: pre-wrap;">${q.userAnswerDisplay || 'No answer.'}</p>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Render Assessment
+                assessment.innerHTML = `
+                    <div class="fade-in-up">
+                        <div class="ai-prediction-box">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-robot text-primary"></i>
+                                <span class="fw-bold small text-uppercase">AI IELTS Prediction</span>
+                            </div>
+                            <div class="display-5 fw-bold text-primary mb-2">${q.aiScore || '?'}</div>
+                            <p class="small text-muted mb-0">${q.aiFeedback || 'AI hasn\'t analyzed this answer yet.'}</p>
+                        </div>
+
+                        <div class="ws-card">
+                            ${q.questionType === 'WRITING' ? `
+                                <div class="mb-4">
+                                    <label class="ws-label mb-2">${resultData.criteriaLabels ? 'Grading Criteria' : 'IELTS Writing Criteria'} (0-9)</label>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="small text-muted mb-1">${resultData.criteriaLabels?.ta || 'Task Achievement'}</label>
+                                            <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 w-ta" 
+                                                   value="${q.writingTaskAchievement || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small text-muted mb-1">${resultData.criteriaLabels?.cc || 'Coherence and cohesion'}</label>
+                                            <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 w-cc" 
+                                                   value="${q.writingCoherenceCohesion || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small text-muted mb-1">${resultData.criteriaLabels?.lr || 'Lexical resource'}</label>
+                                            <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 w-lr" 
+                                                   value="${q.writingLexicalResource || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small text-muted mb-1">${resultData.criteriaLabels?.gra || 'Grammatical range and accuracy'}</label>
+                                            <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 w-gra" 
+                                                   value="${q.writingGrammarAccuracy || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                        </div>
+                                    </div>
+                                    <div class="bg-light p-3 rounded-4 mb-3 d-flex justify-content-between align-items-center">
+                                        <span class="small fw-bold text-secondary">OVERALL</span>
+                                        <span class="fw-bold text-primary fs-4" id="overall-writing-${q.questionId}">
+                                            ${(q.writingTaskAchievement != null) ? ((parseFloat(q.writingTaskAchievement) + parseFloat(q.writingCoherenceCohesion) + parseFloat(q.writingLexicalResource) + parseFloat(q.writingGrammarAccuracy))/4).toFixed(1) : '0.0'}
+                                        </span>
+                                    </div>
+                                    <div class="bg-light p-2 rounded-3 text-center mb-3">
+                                        <span class="small text-muted">Final Score:</span>
+                                        <span class="fw-bold text-primary fs-5" id="writingAvgDisp">${q.teacherOverrideScore || '0.0'}</span>
+                                    </div>
+                                </div>
+                            ` : `
+                                <label class="ws-label">Teacher Band Score (0-9)</label>
+                                <input type="number" class="ws-score-input mb-3" step="0.5" min="0" max="9" 
+                                       data-qid="${q.questionId}" value="${q.teacherOverrideScore || ''}">
+                            `}
+                            
+                            <label class="ws-label">Detailed Feedback</label>
+                            <textarea class="form-control rounded-4 border-2 p-3 mb-3" rows="4" 
+                                      data-qid="${q.questionId}" placeholder="Enter your feedback here...">${q.teacherNote || ''}</textarea>
+                            
+                            <button class="btn-ws-primary w-100 save-item-btn">
+                                <i class="bi bi-save me-2"></i> Lưu Điểm & Nhận Xét
+                            </button>
+                        </div>
+
+                        ${q.aiRubricJson ? `
+                            <div class="ws-card">
+                                <span class="ws-label">IELTS Rubric Analysis</span>
+                                <div class="rubric-breakdown" data-rubric='${q.aiRubricJson}' data-is-teacher="true"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                // Attach Save Event
+                assessment.querySelector('.save-item-btn').onclick = function() {
+                    const qType = q.questionType;
+                    let score = 0;
+                    let criteria = {};
+
+                    if (qType === 'WRITING') {
+                        criteria = {
+                            writingTaskAchievement: parseFloat(assessment.querySelector('.w-ta').value) || 0,
+                            writingCoherenceCohesion: parseFloat(assessment.querySelector('.w-cc').value) || 0,
+                            writingLexicalResource: parseFloat(assessment.querySelector('.w-lr').value) || 0,
+                            writingGrammarAccuracy: parseFloat(assessment.querySelector('.w-gra').value) || 0
+                        };
+                        score = (criteria.writingTaskAchievement + criteria.writingCoherenceCohesion + 
+                                criteria.writingLexicalResource + criteria.writingGrammarAccuracy) / 4;
+                    } else {
+                        score = parseFloat(assessment.querySelector('.ws-score-input').value) || 0;
+                    }
+
+                    const note = assessment.querySelector('textarea').value;
+                    saveGrade(q.questionId, score, note, criteria, this);
+                };
+
+                // Re-init Rubrics
+                if (window.renderRubric) {
+                    assessment.querySelectorAll('.rubric-breakdown').forEach(el => window.renderRubric(el, true));
+                }
+            }
+
+            function saveGrade(qid, score, note, criteria, btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang lưu...';
+                btn.disabled = true;
+
+                const payload = { 
+                    resultId: resultId, 
+                    questionId: qid, 
+                    score: score, 
+                    note: note,
+                    ...criteria
+                };
+
+                fetch('/api/v1/teacher/quiz-results/grade-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 200) {
+                        btn.innerHTML = '<i class="bi bi-check-lg me-2"></i> Đã Lưu';
+                        btn.className = 'btn btn-success w-100 rounded-4';
+                        // Update local data
+                        const question = resultData.questions.find(qu => qu.questionId == qid);
+                        if (question) {
+                            question.teacherOverrideScore = score;
+                            if (criteria.writingTaskAchievement !== undefined) {
+                                question.writingTaskAchievement = criteria.writingTaskAchievement;
+                                question.writingCoherenceCohesion = criteria.writingCoherenceCohesion;
+                                question.writingLexicalResource = criteria.writingLexicalResource;
+                                question.writingGrammarAccuracy = criteria.writingGrammarAccuracy;
+                            }
+                        }
+                        renderSidebar();
+                        updateIeltSummary();
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.className = 'btn-ws-primary w-100 save-item-btn';
+                            btn.disabled = false;
+                        }, 2000);
+                    }
+                });
+            }
+
+            function updateWritingOverall(qId) {
+                const ta = parseFloat(assessment.querySelector('.w-ta')?.value) || 0;
+                const cc = parseFloat(assessment.querySelector('.w-cc')?.value) || 0;
+                const lr = parseFloat(assessment.querySelector('.w-lr')?.value) || 0;
+                const gra = parseFloat(assessment.querySelector('.w-gra')?.value) || 0;
+                
+                const avg = (ta + cc + lr + gra) / 4;
+                const overallEl = document.getElementById(`overall-writing-${qId}`);
+                if (overallEl) overallEl.textContent = avg.toFixed(1);
+                
+                updateIeltSummary();
+            }
+
+            // Finish Grading
+            document.getElementById('submitGradesBtn').onclick = function() {
+                if(!confirm("Xác nhận hoàn tất chấm điểm bài làm này?")) return;
+                fetch(`/api/v1/teacher/quiz/result/${resultId}/submit-grades`, { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.status === 200) location.reload();
+                        else alert("Lỗi: " + data.message);
+                    });
+            };
+
+            renderWorkspace();
+            updateIeltSummary();
+        });
+        /*]]>*/
+    </script>
+
+    <!-- Copied from student side for rubric rendering -->
+    <script th:inline="javascript">
+    (function() {
+        function pointsToBand(points, max) {
+            if (!max || max <= 0) return 0;
+            const ratio = points / max;
+            if (ratio >= 0.975) return 9.0;
+            if (ratio >= 0.925) return 8.5;
+            if (ratio >= 0.875) return 8.0;
+            if (ratio >= 0.825) return 7.5;
+            if (ratio >= 0.75)  return 7.0;
+            if (ratio >= 0.65)  return 6.5;
+            if (ratio >= 0.575) return 6.0;
+            if (ratio >= 0.5)   return 5.5;
+            if (ratio >= 0.4)   return 5.0;
+            if (ratio >= 0.3)   return 4.5;
+            if (ratio >= 0.2)   return 4.0;
+            return 0;
+        }
+
+        function updateIeltSummary() {
+            if (typeof resultData === 'undefined' || !resultData) return;
+            const area = document.getElementById('ielts-header-badge');
+            if (!area) return;
+
+            const isIelts = (resultData.quizCategory && resultData.quizCategory.toUpperCase() === 'IELTS') || 
+                          (resultData.quizTitle && resultData.quizTitle.toUpperCase().includes('IELTS')) ||
+                          (resultData.className && resultData.className.toUpperCase().includes('IELTS'));
+            
+            if (!isIelts) {
+                area.classList.add('d-none');
                 return;
             }
-            try {
-                const resp = await fetch(`/api/v1/teacher/quiz-results/${resultId}/detail`);
-                const json = await resp.json();
-                if (json.status !== 200) {
-                    Swal.fire({ icon: 'error', title: 'Lỗi', text: json.message });
-                    return;
+            area.classList.remove('d-none');
+
+            const skillBands = { LISTENING: 0, READING: 0, WRITING: 0, SPEAKING: 0 };
+            const questions = resultData.questions || [];
+            const sections = resultData.sections || []; // QuizDetailDTO might not have sections, but good to check
+            const skills = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+
+            skills.forEach(s => {
+                let skillQs = [];
+                if (sections && sections.length > 0) {
+                    skillQs = sections.find(sec => sec.skill === s)?.questions || [];
+                } else {
+                    skillQs = questions.filter(q => q.skill === s);
                 }
-                const data = json.data;
-                if (!data) {
-                    throw new Error("Không có dữ liệu bài làm.");
-                }
-                const skillsFound = data.skillsPresent || detectSkills(data.questions || []);
-                renderSkillTabs(skillsFound, data.questions || []);
-                renderQuestions(data);
-
-                // Render Rubric
-                document.querySelectorAll('.rubric-breakdown').forEach(function (el) {
-                    renderRubric(el, el.getAttribute('data-is-teacher') === 'true');
-                });
-            } catch (e) {
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải chi tiết bài nộp.' });
-            }
-        })();
-
-        // ── Detect skills from questions ─────────────────────────────────────────────
-        function detectSkills(questions) {
-            if (!questions || !Array.isArray(questions)) return [];
-            const seen = new Set();
-            questions.forEach(q => {
-                if (q.skill) seen.add(q.skill);
-            });
-            return Array.from(seen);
-        }
-
-        // ── Render skill tabs ─────────────────────────────────────────────────────────
-        function renderSkillTabs(skills, questions) {
-            const nav = document.getElementById('skillTabs');
-            nav.innerHTML = skills.map((skill, i) => {
-                const skillQs = questions.filter(q => q.skill === skill);
-                const isAllGraded = skillQs.every(q => {
-                    const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
-                    if (!isManual) return true; // auto-graded
-                    return q.status === 'GRADED';
-                });
-                const isAIPending = skillQs.some(q => q.aiGradingStatus === 'PENDING');
                 
-                const badge = isAllGraded ? '✅' : (isAIPending ? '⏳' : '');
+                if (skillQs.length === 0) return;
 
-                return `
-                    <li class="nav-item">
-                        <button class="nav-link ${i === 0 ? 'active' : ''}"
-                                data-bs-toggle="tab"
-                                data-bs-target="#skill-${skill}"
-                                type="button">
-                            ${SKILL_ICONS[skill] || '📝'} ${SKILL_LABELS[skill] || skill} ${badge}
-                        </button>
-                    </li>
+                if (s === 'LISTENING' || s === 'READING') {
+                    let raw = 0; let max = 0;
+                    skillQs.forEach(q => {
+                        if (q.isCorrect) raw += (q.maxPoints || 0);
+                        max += (q.maxPoints || 0);
+                    });
+                    skillBands[s] = pointsToBand(raw, max);
+                } else if (s === 'WRITING') {
+                    let sum = 0; let count = 0;
+                    skillQs.forEach(q => {
+                        const ta = parseFloat(document.querySelector(`.writing-ta[data-qid="${q.questionId}"]`)?.value) || q.writingTaskAchievement || 0;
+                        const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${q.questionId}"]`)?.value) || q.writingCoherenceCohesion || 0;
+                        const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${q.questionId}"]`)?.value) || q.writingLexicalResource || 0;
+                        const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${q.questionId}"]`)?.value) || q.writingGrammarAccuracy || 0;
+                        sum += (ta + cc + lr + gra) / 4;
+                        count++;
+                    });
+                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                } else if (s === 'SPEAKING') {
+                    let sum = 0; let count = 0;
+                    skillQs.forEach(q => {
+                        const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherOverrideScore || 0;
+                        sum += score; count++;
+                    });
+                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                }
+            });
+
+            const breakdownEl = document.getElementById('hdr-skill-breakdown');
+            if (breakdownEl) {
+                breakdownEl.innerHTML = `
+                    L: <span class="text-primary">${skillBands.LISTENING.toFixed(1)}</span> | 
+                    R: <span class="text-primary">${skillBands.READING.toFixed(1)}</span> | 
+                    W: <span class="text-primary">${skillBands.WRITING.toFixed(1)}</span> | 
+                    S: <span class="text-primary">${skillBands.SPEAKING.toFixed(1)}</span>
                 `;
-            }).join('');
-        }
-
-        // ── Render all questions grouped by skill ────────────────────────────────────
-        function renderQuestions(data) {
-            if (!data || !data.questions) return;
-            const container = document.getElementById('tabContent');
-            const skills = data.skillsPresent || detectSkills(data.questions);
-
-            container.innerHTML = skills.map((skill, i) => {
-                const skillQs = data.questions.filter(q => q.skill === skill);
-                const isActive = i === 0 ? 'show active' : '';
-                return `
-            <div class="tab-pane fade ${isActive}" id="skill-${skill}">
-            <div class="d-flex flex-column gap-3">
-            ${skillQs.map((q, qi) => renderQuestion(q, qi)).join('')}
-            </div>
-            </div>`;
-            }).join('');
-        }
-
-        const fmtNum = (n) => { const v = (n === 0 || !n) ? 0 : n; return (v % 1 === 0) ? v.toFixed(0) : v.toString(); };
-
-        // ── Render single question card ─────────────────────────────────────────────
-        function renderQuestion(q, qi) {
-            const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
-            const isCorrect = q.isCorrect;
-            const scoreVal = (q.pointsAwarded == null || Object.is(q.pointsAwarded, -0)) ? 0 : q.pointsAwarded;
-
-            // Audio player for SPEAKING
-            let audioBlock = '';
-            if (q.questionType === 'SPEAKING') {
-                let sUrl = q.studentAudioUrl;
-                if (!sUrl && q.userAnswerDisplay && (q.userAnswerDisplay.includes('http') || q.userAnswerDisplay.includes('cloudinary'))) {
-                    sUrl = q.userAnswerDisplay.trim();
-                }
-                if (sUrl) {
-                    audioBlock += `
-                    <div class="mb-2">
-                    <label class="form-label small fw-semibold text-muted">🎤 File ghi âm của student:</label>
-                    <audio controls src="${sUrl}" class="w-100"></audio>
-                    </div>`;
-                }
             }
 
-            // AI grading display for WRITING/SPEAKING
-            let aiBlock = '';
-            if (isManual) {
-                const aiStatus = q.aiGradingStatus || 'PENDING';
-                const aiStatusLabel = aiStatus === 'PENDING' ? '<span class="badge bg-warning text-dark">⏳ Đang chấm...</span>'
-                    : aiStatus === 'COMPLETED' ? '<span class="badge bg-success">🤖 AI đã chấm</span>'
-                        : '<span class="badge bg-primary">✅ Đã duyệt</span>';
-                aiBlock = `
-            <div class="border rounded p-3 mb-3 bg-light">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <span class="fw-bold small">🤖 Kết quả AI</span>
-                    ${aiStatusLabel}
-                </div>
-                ${q.aiScore ? `
-                <div class="mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary fs-6">IELTS</span>
-                        <span class="fs-5 fw-bold text-primary">${q.aiScore}</span>
-                        <span class="text-muted">/ ${q.points || 0} điểm</span>
-                    </div>
-                </div>` : ''}
-                ${q.aiFeedback ? `<p class="small text-muted mb-1" style="white-space:pre-wrap;">${q.aiFeedback}</p>` : ''}
-
-                ${q.aiRubricJson ? `
-                <details class="small" ${aiStatus !== 'PENDING' ? 'open' : ''}>
-                    <summary class="text-decoration-none text-secondary fw-semibold">📊 Chi tiết IELTS Rubric</summary>
-                    <div class="rubric-breakdown mt-2"
-                        data-rubric="${encodeURIComponent(q.aiRubricJson)}"
-                        data-qtype="${q.questionType}"
-                        data-is-teacher="true">
-                    </div>
-                </details>` : ''}
-            </div>`;
-            }
-
-            // Student answer
-            let answerBlock = '';
-            if (q.userAnswerDisplay && q.questionType !== 'SPEAKING') {
-                const displayText = (q.userAnswerDisplay || '').replace(/&quot;/g, '"');
-                const safeText = displayText.split(String.fromCharCode(96)).join('&#96;');
-                answerBlock = `
-            <div class="p-3 bg-light rounded-3 mb-3">
-                <h6 class="fw-bold text-muted mb-2">📝 Câu trả lời:</h6>
-                <div class="text-dark" style="white-space:pre-wrap;">${safeText}</div>
-            </div>`;
-            } else if (q.questionType !== 'SPEAKING' && q.questionType !== 'WRITING') {
-                const correctBadge = isCorrect === true ? '<span class="badge bg-success">✅ Đúng</span>'
-                    : isCorrect === false ? '<span class="badge bg-danger">❌ Sai</span>'
-                        : '<span class="badge bg-secondary">Chưa rõ</span>';
-                answerBlock = `
-            <div class="p-3 bg-light rounded-3 mb-3">
-                <h6 class="fw-bold text-muted mb-2">Kết quả tự động:</h6>
-                ${correctBadge}
-            </div>`;
-            }
-
-            // Grading input (only for WRITING/SPEAKING)
-            let inputBlock = '';
-            if (isManual) {
-                inputBlock = `
-            <div class="bg-success bg-opacity-10 p-4 rounded-3 grading-box" data-qid="${q.questionId}">
-                <label class="form-label fw-bold text-success">
-                    ${isGraded ? 'Điểm đã chấm:' : 'Chấm điểm thủ công (Tối đa: ' + fmtNum(q.points) + ' điểm)'}
-                </label>
-                <input type="number" class="form-control score-input border-success d-inline-block"
-                       style="max-width:120px" min="0" max="${q.points}" value="${scoreVal}" step="0.5"
-                       ${isGraded ? 'readonly' : ''}>
-                <div class="mt-2">
-                    <label class="form-label small text-success">Ghi chú cho câu này:</label>
-                    <input type="text" class="form-control note-input"
-                           placeholder="Nhận xét (tùy chọn)..."
-                           value="${q.teacherNote || ''}"
-                           ${isGraded ? 'readonly' : ''}>
-                </div>
-            </div>`;
-            } else {
-                inputBlock = `
-            <div class="grading-box" data-qid="${q.questionId}">
-                <input type="number" class="form-control d-none score-input" min="0" max="${q.points}" value="${scoreVal}">
-                <span class="badge ${isCorrect ? 'bg-success' : 'bg-danger'}">
-                    ${isCorrect ? '✅' : '❌'} ${fmtNum(scoreVal)} / ${fmtNum(q.points)} điểm
-                </span>
-            </div>`;
-            }
-
-            return `
-        <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="badge bg-secondary rounded-pill px-3 py-2 fw-medium text-uppercase">${q.skill}</span>
-                    <span class="badge bg-light text-dark border px-3 py-2 fw-medium">${fmtNum(q.points)} Điểm</span>
-                </div>
-                <h5 class="fw-bold lh-base">
-                    <span class="text-primary me-2">Câu ${qi + 1}:</span>
-                    ${q.content || '—'}
-                </h5>
-            </div>
-            <div class="card-body p-4">
-                ${audioBlock}
-                ${aiBlock}
-                ${answerBlock}
-                ${inputBlock}
-            </div>
-        </div>`;
-        }
-
-
-
-        // ── Rubric render ─────────────────────────────────────────────────────────────
-        function bandColor(score) {
-            if (score <= 4) return '#dc3545';
-            if (score <= 6) return '#ffc107';
-            return '#198754';
+            const activeSkills = skills.filter(s => {
+                return (sections && sections.some(sec => sec.skill === s)) || questions.some(q => q.skill === s);
+            });
+            const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
+            const overall = Math.round(avg * 2) / 2;
+            const overallEl = document.getElementById('hdr-overall-band');
+            if (overallEl) overallEl.textContent = overall.toFixed(1);
         }
 
         function bandColorCss(score) {
@@ -330,199 +691,36 @@
             if (score <= 6) return 'bg-warning text-dark';
             return 'bg-success';
         }
-
-        var CRITERION_LABELS = {
-            'task_achievement': '📝 Task Achievement',
-            'lexical_resource': '📖 Lexical Resource',
-            'grammatical_range': '🔤 Grammatical Range & Accuracy',
-            'coherence_cohesion': '🔗 Coherence & Cohesion',
-            'fluency_cohesion': '🎤 Fluency & Coherence',
-            'pronunciation': '🔊 Pronunciation'
-        };
-
-        function renderRubric(container, isTeacher) {
+        function getCriterionLabel(key) {
+            if (resultData && resultData.criteriaLabels) {
+                if (key === 'task_achievement' || key === 'ta') return resultData.criteriaLabels.ta || 'Task Achievement';
+                if (key === 'lexical_resource' || key === 'lr') return resultData.criteriaLabels.lr || 'Lexical Resource';
+                if (key === 'grammatical_range' || key === 'gra') return resultData.criteriaLabels.gra || 'Grammar Range & Accuracy';
+                if (key === 'coherence_cohesion' || key === 'cc') return resultData.criteriaLabels.cc || 'Coherence & Cohesion';
+            }
+            return key.replace(/_/g, ' ').toUpperCase();
+        }
+        window.renderRubric = function(container, isTeacher) {
             var rubricJson = container.getAttribute('data-rubric');
             if (!rubricJson || rubricJson === 'null') return;
-            
-            var decoded;
-            try {
-                decoded = decodeURIComponent(rubricJson);
-            } catch(e) {
-                decoded = rubricJson;
-            }
-
-            var parsedData;
-            try {
-                parsedData = JSON.parse(decoded);
-            } catch(e) {
-                console.error("Rubric Parse Error:", e, decoded);
-                container.innerHTML = '<div class="alert alert-light small border-0"><i class="bi bi-exclamation-circle me-2"></i>Không thể hiển thị chi tiết Rubric (Dữ liệu lỗi)</div>';
-                return;
-            }
-
-            // Bóc vỏ nếu cần
+            var parsedData = JSON.parse(rubricJson);
             var rubric = (parsedData && parsedData.rubric) ? parsedData.rubric : parsedData;
             
-            if (!rubric || typeof rubric !== 'object' || Object.keys(rubric).length === 0) {
-                container.innerHTML = '<p class="text-muted small fst-italic py-2"><i class="bi bi-info-circle me-1"></i>Dữ liệu Rubric đang được cập nhật...</p>';
-                return;
-            }
-
-            var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
-            html += '<thead><tr class="small text-muted">' +
-                '<th style="width:40%">Tiêu chí IELTS</th>' +
-                '<th style="width:15%">Band</th>' +
-                '<th style="width:35%">Tiến trình</th>' +
-                '<th style="width:10%">Điểm</th></tr></thead><tbody>';
-                
-            var hasCriteria = false;
+            var html = '<div class="table-responsive"><table class="table table-sm border-0">';
             for (var key in rubric) {
                 var c = rubric[key];
-                if (!c || typeof c.score === 'undefined') continue;
-                hasCriteria = true;
-                
-                var label    = CRITERION_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
-                var maxVal   = c.max || 9;
                 var scoreVal = parseFloat(c.score) || 0;
-                var pct      = Math.min(100, Math.round((scoreVal / maxVal) * 100));
-                var color    = bandColor(scoreVal);
-                var colorCls = bandColorCss(scoreVal);
-
-                var bandDisp = c.bandLabel || (scoreVal % 1 === 0 ? String(scoreVal) : scoreVal.toFixed(1));
-                
-                html += '<tr>' +
-                    '<td>' +
-                        '<span class="small fw-bold text-dark d-block">' + label + '</span>' +
-                        '<div class="text-muted" style="font-size:0.75rem; line-height: 1.2; margin-top: 2px;">' +
-                            (c.bandDescription || 'Đang cập nhật mô tả...') +
-                        '</div>' +
-                    '</td>' +
-                    '<td><span class="badge ' + colorCls + ' rounded-pill shadow-sm px-2">' + bandDisp + '</span></td>' +
-                    '<td>' +
-                        '<div class="progress rounded-pill" style="height:8px; background-color: #f1f5f9;">' +
-                            '<div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" ' +
-                                 'style="width:' + pct + '%; background-color:' + color + '"></div>' +
-                        '</div>' +
-                    '</td>' +
-                    '<td><span class="small fw-black">' + scoreVal + '/' + maxVal + '</span></td>' +
-                '</tr>';
+                var label = getCriterionLabel(key);
+                html += `<tr>
+                    <td class="small fw-bold py-2">${label}</td>
+                    <td class="text-end"><span class="badge ${bandColorCss(scoreVal)}">${scoreVal}</span></td>
+                </tr>
+                <tr><td colspan="2" class="extra-small text-muted border-0 pt-0 pb-3">${c.bandDescription || ''}</td></tr>`;
             }
-
-            if (!hasCriteria) {
-                container.innerHTML = '<p class="text-muted small fst-italic py-2">Không có dữ liệu tiêu chí.</p>';
-                return;
-            }
-
-            html += '</tbody></table></div>';
-
-            if (isTeacher) {
-                var reasoningHtml = '';
-                for (var key in rubric) {
-                    var c = rubric[key];
-                    if (c && c.aiReasoning) {
-                        var label = CRITERION_LABELS[key] || key;
-                        reasoningHtml += '<div class="mt-2 p-2 bg-light rounded-3 small border-start border-primary border-4">' +
-                            '<strong class="text-primary">' + label + ':</strong> ' +
-                            '<span class="text-secondary">' + c.aiReasoning + '</span>' +
-                        '</div>';
-                    }
-                }
-                if (reasoningHtml) {
-                    html += '<div class="mt-3 pt-2 border-top">' +
-                            '<h6 class="fw-bold mb-2 small text-dark"><i class="bi bi-robot me-1"></i>Giải thích từ AI:</h6>' +
-                            reasoningHtml +
-                        '</div>';
-                }
-            }
+            html += '</table></div>';
             container.innerHTML = html;
         }
-
-        // ── Submit ───────────────────────────────────────────────────────────────────
-        const submitBtn = document.getElementById('submitGradesBtn');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', async () => {
-                const gradingItems = [];
-                let hasError = false;
-
-                document.querySelectorAll('.grading-box').forEach(box => {
-                    if (hasError) return;
-                    const qId = parseInt(box.getAttribute('data-qid'));
-                    const scoreInput = box.querySelector('.score-input');
-                    const noteInput = box.querySelector('.note-input');
-                    if (scoreInput && !scoreInput.hasAttribute('readonly')) {
-                        const valStr = scoreInput.value.trim();
-                        // Kiểm tra kí tự chữ
-                        if (valStr === "" || isNaN(valStr)) {
-                            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Vui lòng nhập điểm số hợp lệ cho câu hỏi số ${qId}.` });
-                            hasError = true;
-                            return;
-                        }
-
-                        const score = parseFloat(valStr);
-                        const max = parseFloat(scoreInput.max) || 0;
-
-                        if (score < 0) {
-                            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Điểm chấm cho câu số ${qId} không được là số âm.` });
-                            hasError = true;
-                            return;
-                        }
-                        if (score > max) {
-                            Swal.fire({ icon: 'warning', title: 'Vượt quá điểm tối đa', text: `Điểm chấm cho câu số ${qId} không được vượt quá ${max} điểm.` });
-                            hasError = true;
-                            return;
-                        }
-
-                        gradingItems.push({
-                            questionId: qId,
-                            pointsAwarded: score,
-                            teacherNote: noteInput ? (noteInput.value || '') : ''
-                        });
-                    } else if (scoreInput && scoreInput.hasAttribute('readonly')) {
-                         // Even if readonly, we should still include it in recalculation if it's there
-                         gradingItems.push({
-                            questionId: qId,
-                            pointsAwarded: parseFloat(scoreInput.value) || 0,
-                            teacherNote: noteInput ? (noteInput.value || '') : ''
-                        });
-                    }
-                });
-
-                if (hasError) return;
-
-                const btn = document.getElementById('submitGradesBtn');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
-                btn.disabled = true;
-
-                try {
-                    const res = await fetch(`/api/v1/teacher/quiz-results/${resultId}/grade-extended`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ gradingItems, skillScores: null, overallNote: '' })
-                    });
-                    const data = await res.json();
-                    if (data.status === 200) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Thành công!',
-                            text: data.message,
-                            confirmButtonText: 'Đóng',
-                            confirmButtonColor: '#0d6efd'
-                        }).then(() => {
-                            const cid = /*[[${result.classId}]]*/ null;
-                            const target = cid ? `/teacher/workspace?tab=graded&classId=${cid}` : '/teacher/workspace?tab=graded';
-                            window.location.href = target;
-                        });
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message || 'Có lỗi xảy ra!' });
-                    }
-                } catch (e) {
-                    Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Vui lòng thử lại sau.' });
-                } finally {
-                    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i> Lưu điểm chấm';
-                    btn.disabled = false;
-                }
-            });
-        }
+    })();
     </script>
 </body>
 </html>

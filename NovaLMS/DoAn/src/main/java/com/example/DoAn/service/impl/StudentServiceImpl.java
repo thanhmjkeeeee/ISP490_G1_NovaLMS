@@ -68,22 +68,38 @@ public class StudentServiceImpl implements StudentService {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) return ResponseData.error(401, "Vui lòng đăng nhập.");
 
-            Clazz clazz = classRepository.findById(request.getClassId()).orElse(null);
-            if (clazz == null) return ResponseData.error(404, "Không tìm thấy lớp học.");
+            Course course;
+            Clazz clazz = null;
 
-            Course course = clazz.getCourse();
-            if (course == null) return ResponseData.error(400, "Lớp học chưa được gán khóa học.");
-
-            if (registrationRepository.existsActiveRegistrationForSameCourseOtherClass(
-                    user.getUserId(), course.getCourseId(), request.getClassId())) {
-                return ResponseData.error(400,
-                        "Bạn đã đăng ký khóa học này ở một lớp khác rồi!");
+            if (request.getClassId() != null) {
+                clazz = classRepository.findById(request.getClassId()).orElse(null);
+                if (clazz == null) return ResponseData.error(404, "Không tìm thấy lớp học.");
+                course = clazz.getCourse();
+            } else if (request.getCourseId() != null) {
+                course = courseRepository.findById(request.getCourseId()).orElse(null);
+                if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học.");
+            } else {
+                return ResponseData.error(400, "Thông tin đăng ký không hợp lệ (thiếu lớp hoặc khóa học).");
             }
 
-            boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
-                    user.getUserId(), request.getClassId(), "Cancelled");
+            if (course == null) return ResponseData.error(400, "Không xác định được khóa học.");
 
-            if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
+            // Removed: check for other class registration to allow multi-class enrollment
+
+            if (clazz != null) {
+                boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
+                        user.getUserId(), request.getClassId(), "Cancelled");
+                if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
+            } else {
+                // For course-only (self-study), check if already has a course-only registration
+                boolean exists = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                        user.getUserId(), course.getCourseId(), "Approved");
+                // Wait, if it's self-study, maybe we only allow one "Active" enrollment for the content.
+                // But the user said "0, 1 hoặc nhiều Class". 0 class means content-only.
+                // If they already have an approved registration (either class or content), should they be allowed another content-only one?
+                // Usually content-only is just one per course.
+                if (exists) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
+            }
 
             // Tính giá: price - sale
             Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
@@ -98,7 +114,8 @@ public class StudentServiceImpl implements StudentService {
                     .course(course)
                     .status("Submitted")
                     .registrationPrice(BigDecimal.valueOf(finalPrice))
-                    .note(request.getNote() != null && !request.getNote().trim().isEmpty() ? request.getNote() : "Đăng ký trực tuyến, chờ thanh toán PayOS")                    .build();
+                    .note(request.getNote() != null && !request.getNote().trim().isEmpty() ? request.getNote() : "Đăng ký trực tuyến, chờ thanh toán PayOS")
+                    .build();
 
             registrationRepository.save(reg);
             return ResponseData.success("Đăng ký thành công! Vui lòng hoàn tất thanh toán.", reg.getRegistrationId());
@@ -204,14 +221,16 @@ public class StudentServiceImpl implements StudentService {
                         .average().orElse(0.0);
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
-                        ? reg.getClazz().getTeacher().getFullName() : "Chưa cập nhật";
+                        ? reg.getClazz().getTeacher().getFullName() 
+                        : (Boolean.TRUE.equals(course.getIsSelfStudy()) ? "Tự học" : "Chưa cập nhật");
 
                 return MyCourseDTO.builder()
                         .courseId(courseId)
                         .title(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .description(course.getDescription())
                         .imageUrl(course.getImageUrl())
-                        .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Chưa xếp lớp")
+                        .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Học nội dung (Tự học)")
+                        .classId(reg.getClazz() != null ? reg.getClazz().getClassId() : null)
                         .teacherName(teacherName)
                         .progressPercent(progressPercent)
                         .completedLessons((int) completedLessonsNum)
@@ -598,16 +617,29 @@ public class StudentServiceImpl implements StudentService {
     @Override
     @Transactional(readOnly = true)
     public StudentClassDetailResponse getStudentClassDetail(Integer classId, Integer userId) {
-        // 1. Check phân quyền thật
-        boolean isEnrolled = registrationRepository.existsByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved");
-        if (!isEnrolled) {
-            throw new RuntimeException("Bạn không có quyền truy cập hoặc chưa thanh toán khóa học này!");
+        // 1. Check phân quyền
+        Registration currentReg;
+        if (classId != null) {
+            currentReg = registrationRepository.findByClazz_ClassIdAndUser_UserIdAndStatus(classId, userId, "Approved")
+                    .stream().findFirst().orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập hoặc chưa thanh toán khóa học này!"));
+        } else {
+             throw new RuntimeException("ID lớp học không được để trống");
         }
 
-        Clazz clazz = classRepository.findById(classId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+        Clazz clazz = currentReg.getClazz();
+        Course course = currentReg.getCourse();
 
-        // 2. Gom danh sách Members
+        // 2. Find other classes the user is enrolled in for the same course
+        List<Registration> allRegs = registrationRepository.findAllByUser_UserIdAndCourse_CourseIdAndStatus(userId, course.getCourseId(), "Approved");
+        List<ClassSelectionDTO> otherClasses = allRegs.stream()
+                .filter(r -> r.getClazz() != null)
+                .map(r -> ClassSelectionDTO.builder()
+                        .classId(r.getClazz().getClassId())
+                        .className(r.getClazz().getClassName())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 3. Gom danh sách Members
         List<MemberDTO> members = new ArrayList<>();
         if (clazz.getTeacher() != null) {
             members.add(MemberDTO.builder()
@@ -628,7 +660,7 @@ public class StudentServiceImpl implements StudentService {
                     .build());
         }
 
-        // 3. Tối ưu N+1: Kéo toàn bộ SessionLesson và SessionQuiz của lớp
+        // 4. Tối ưu N+1: Kéo toàn bộ SessionLesson và SessionQuiz của lớp
         List<SessionLesson> allLessonsInClass = sessionLessonRepository
                 .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
         
@@ -643,7 +675,7 @@ public class StudentServiceImpl implements StudentService {
         java.util.Map<Integer, List<SessionQuiz>> sessionQuizzesGrouped = allQuizzesInClass.stream()
                 .collect(Collectors.groupingBy(sq -> sq.getSession().getSessionId()));
 
-        // 4. Gom Session và Map nội dung
+        // 5. Gom Session và Map nội dung
         List<SessionDetailDTO> sessionDTOs = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
@@ -661,7 +693,6 @@ public class StudentServiceImpl implements StudentService {
                         sessionStatus = "COMPLETED";
                     } else if (sDate.isEqual(today)) {
                         sessionStatus = "LEARNING";
-                        // Check if endTime has passed
                         if (session.getEndTime() != null && !session.getEndTime().isBlank()) {
                             try {
                                 String[] parts = session.getEndTime().split(":");
@@ -678,14 +709,11 @@ public class StudentServiceImpl implements StudentService {
 
                 boolean isLocked = sessionStatus.equals("UPCOMING");
 
-                // --- CATEGORY 1: MATERIALS & EXPERT QUIZZES (from SessionLesson) ---
                 List<SessionLesson> sessionLessons = lessonsGroupedBySession.getOrDefault(session.getSessionId(), new ArrayList<>());
-                
-                // Aggregate Topic: Nối tên tất cả bài học
                 String aggregatedTopic = sessionLessons.stream()
                         .map(sl -> sl.getLesson().getLessonName())
                         .collect(Collectors.joining(", "));
-                if (aggregatedTopic.isEmpty()) aggregatedTopic = session.getTopic(); // Fallback to database topic
+                if (aggregatedTopic.isEmpty()) aggregatedTopic = session.getTopic();
 
                 List<LessonResponseDTO> materials = new ArrayList<>();
                 List<LessonResponseDTO> quizzes = new ArrayList<>();
@@ -711,7 +739,6 @@ public class StudentServiceImpl implements StudentService {
 
                     boolean rowLocked = isLocked;
                     if (!"QUIZ".equalsIgnoreCase(lesson.getType())) {
-                        // Tài liệu / video: không khóa theo ngày buổi — học viên đã vào lớp được xem từ lịch
                         rowLocked = false;
                     } else if (qObj != null && Boolean.TRUE.equals(qObj.getIsOpen())) {
                         rowLocked = false;
@@ -740,7 +767,6 @@ public class StudentServiceImpl implements StudentService {
                     else materials.add(lDTO);
                 }
 
-                // --- CATEGORY 2: TEACHER DIRECT QUIZ (ClassSession.quiz) ---
                 if (session.getQuiz() != null) {
                     Quiz q = session.getQuiz();
                     QuizResult latestResult = quizResultRepository
@@ -769,11 +795,9 @@ public class StudentServiceImpl implements StudentService {
                             .build());
                 }
 
-                // --- CATEGORY 3: TEACHER MAPPED QUIZZES (SessionQuiz) ---
                 List<SessionQuiz> sessionQuizzes = sessionQuizzesGrouped.getOrDefault(session.getSessionId(), new ArrayList<>());
                 for (SessionQuiz sq : sessionQuizzes) {
                     Quiz q = sq.getQuiz();
-                    // Chỉ hiển thị nếu Teacher đã "Open"
                     if (Boolean.TRUE.equals(sq.getIsOpen())) {
                         QuizResult latestResult = quizResultRepository
                                 .findFirstByQuizQuizIdAndUserUserIdOrderBySubmittedAtDesc(q.getQuizId(), userId)
@@ -800,26 +824,19 @@ public class StudentServiceImpl implements StudentService {
                     }
                 }
 
-                // Resolve meetLink: session-level overrides class-level
                 String resolvedMeetLink = (session.getMeetLink() != null && !session.getMeetLink().isBlank())
-                        ? session.getMeetLink()
-                        : clazz.getMeetLink();
-
-                // Nếu đã kết thúc thì không cho vào meet nữa
-                if ("COMPLETED".equals(sessionStatus)) {
-                    resolvedMeetLink = null;
-                }
+                        ? session.getMeetLink() : clazz.getMeetLink();
+                if ("COMPLETED".equals(sessionStatus)) resolvedMeetLink = null;
 
                 sessionDTOs.add(SessionDetailDTO.builder()
                         .sessionId(session.getSessionId())
-                        .sessionNo(session.getSessionNumber())
+                        .sessionNumber(session.getSessionNumber())
+                        .sessionDate(session.getSessionDate() != null ? session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "")
+                        .topic(aggregatedTopic)
                         .startTime(session.getStartTime())
                         .endTime(session.getEndTime())
-                        .dayOfWeek(session.getSessionDate() != null ? session.getSessionDate().getDayOfWeek().getValue() : null)
-                        .slotNumber(calculateSlotNumber(session.getStartTime()))
-                        .topic(aggregatedTopic)
-                        .date(session.getSessionDate() != null ? session.getSessionDate().toLocalDate().toString() : "")
                         .status(sessionStatus)
+                        .isLocked(isLocked)
                         .meetLink(resolvedMeetLink)
                         .materials(materials)
                         .quizzes(quizzes)
@@ -827,23 +844,22 @@ public class StudentServiceImpl implements StudentService {
             }
         }
 
-        int progress = totalLessonsMapped == 0 ? 0 : (completedLessonsByUser * 100) / totalLessonsMapped;
-
         return StudentClassDetailResponse.builder()
                 .classId(clazz.getClassId())
-                .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
+                .courseId(course.getCourseId())
                 .className(clazz.getClassName())
-                .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "")
-                .courseImage(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : "")
+                .courseName(course.getCourseName())
+                .courseImage(course.getImageUrl())
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
                 .endDate(clazz.getEndDate() != null ? clazz.getEndDate().toString() : "")
                 .status(clazz.getStatus())
                 .meetLink(clazz.getMeetLink())
-                .progressPercent(progress)
+                .progressPercent(totalLessonsMapped > 0 ? (completedLessonsByUser * 100 / totalLessonsMapped) : 0)
                 .completedSessions((int) sessionDTOs.stream().filter(s -> s.getStatus().equals("COMPLETED")).count())
                 .totalSessions(sessionDTOs.size())
-                .sessions(sessionDTOs)
                 .members(members)
+                .sessions(sessionDTOs)
+                .otherClasses(otherClasses)
                 .build();
     }
 

@@ -109,7 +109,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
         JOIN Registration reg ON reg.user.userId = stu.userId
         WHERE (:classId IS NULL OR reg.clazz.classId = :classId)
           AND LOWER(reg.status) = 'approved'
-          AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED'))
+          AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED', 'PENDING_GRADING'))
           AND (
                (q.quizCategory = 'COURSE_ASSIGNMENT' AND (q.clazz.classId = :classId OR (q.clazz IS NULL AND q.course.courseId = reg.clazz.course.courseId))) 
                OR EXISTS (
@@ -122,9 +122,9 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
           )
           AND (
             'ALL' IN :status
-            OR ('PENDING_SPEAKING' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL))
-            OR ('PENDING_WRITING' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL))
-            OR ('PENDING_BOTH' IN :status AND qr.status != 'GRADED' AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL) AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL))
+            OR ('PENDING_SPEAKING' IN :status AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL))
+            OR ('PENDING_WRITING' IN :status AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL) AND NOT EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL))
+            OR ('PENDING_BOTH' IN :status AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'WRITING' OR qu.questionType = 'WRITING') AND qa.teacherOverrideScore IS NULL) AND EXISTS (SELECT 1 FROM QuizAnswer qa JOIN qa.question qu WHERE qa.quizResult.resultId = qr.resultId AND (qu.skill = 'SPEAKING' OR qu.questionType = 'SPEAKING') AND qa.teacherOverrideScore IS NULL))
             OR ('ALL_GRADED' IN :status AND qr.status = 'GRADED')
           )
         ORDER BY qr.submittedAt DESC

@@ -8,11 +8,12 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class QuestionGradingRequestDTO {
+public class QuizItemGradingRequestDTO {
+    private Integer resultId;
     private Integer questionId;
-    private BigDecimal pointsAwarded;
-    private String teacherNote;
-
+    private BigDecimal score;
+    private String note;
+    
     // Writing criteria
     private BigDecimal writingTaskAchievement;
     private BigDecimal writingCoherenceCohesion;

@@ -50,6 +50,10 @@ public class Course {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+    
+    @Column(name = "is_self_study")
+    @Builder.Default
+    private Boolean isSelfStudy = false;
 
     // KẾT NỐI VỚI CATEGORY (Bảng setting)
     @ManyToOne(fetch = FetchType.LAZY)

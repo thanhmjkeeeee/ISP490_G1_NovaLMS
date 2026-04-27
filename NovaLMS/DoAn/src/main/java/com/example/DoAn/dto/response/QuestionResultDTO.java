@@ -30,4 +30,10 @@ public class QuestionResultDTO {
     private String studentAudioUrl;   // student's SPEAKING answer audio URL (Cloudinary)
     private String aiGradingStatus;  // PENDING | COMPLETED | REVIEWED
     private String teacherOverrideScore; // override AI score
+
+    // Writing criteria breakdown
+    private java.math.BigDecimal writingTaskAchievement;
+    private java.math.BigDecimal writingCoherenceCohesion;
+    private java.math.BigDecimal writingLexicalResource;
+    private java.math.BigDecimal writingGrammarAccuracy;
 }

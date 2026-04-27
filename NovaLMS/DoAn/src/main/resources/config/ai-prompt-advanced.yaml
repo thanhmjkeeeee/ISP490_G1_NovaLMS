@@ -24,6 +24,120 @@ advanced:
     lexical_complexity: basic-to-intermediate
     writing_constraint: 50–80 words per response
     speaking_constraint: Short responses, 2–4 sentences per turn
+    writing_rubric: &default_writing_rubric
+      task_achievement:
+        label: Task Achievement
+        max: 9
+        bands:
+          "0": "Content is irrelevant or does not communicate the message"
+          "1": "Barely communicates with occasional comprehensible sections"
+          "2": "Partially addresses the task; content may be largely irrelevant"
+          "3": "Task not fully achieved; coverage is inadequate"
+          "4": "Presents a position but development is insufficient or repetitive"
+          "5": "Presents some relevant ideas but development is limited"
+          "6": "Addresses the task adequately; relevant ideas with some development"
+          "7": "Covers all requirements; well-developed with clear progression"
+          "8": "Satisfies all requirements; very good development and cohesion"
+          "9": "Fully addresses all requirements with complete clarity and precision"
+      coherence_cohesion:
+        label: Coherence and cohesion
+        max: 9
+        bands:
+          "0": "No organization or cohesion"
+          "1": "Unconnected ideas; minimal cohesion"
+          "2": "Lacks cohesion; organization unclear"
+          "3": "Cohesion inadequate; organization hard to follow"
+          "4": "Cohesion developed; organization sometimes unclear"
+          "5": "Uses some cohesive devices; organization generally clear"
+          "6": "Logically organized; appropriate cohesive devices"
+          "7": "Well-organized; clear progression; effective cohesion"
+          "8": "Very well organized; seamless cohesion"
+          "9": "Fluent and sophisticated; perfect cohesion and progression"
+      lexical_resource:
+        label: Lexical resource
+        max: 9
+        bands:
+          "0": "No appropriate lexical resource"
+          "1": "Rarely used appropriate vocabulary; comprehension is severely limited"
+          "2": "Limited vocabulary; frequent errors of word choice"
+          "3": "Limited vocabulary; inaccuracies impede meaning"
+          "4": "Adequate vocabulary; some inaccuracies but meaning largely clear"
+          "5": "Sufficient range; some vocabulary errors but meaning clear"
+          "6": "Wide enough vocabulary; occasional lexical errors"
+          "7": "Wide range; minor errors; effective communication"
+          "8": "Wide range; very few lexical errors; communicates flexibly"
+          "9": "Full flexibility and precision; sophisticated vocabulary"
+      grammatical_range:
+        label: Grammatical range and accuracy
+        max: 9
+        bands:
+          "0": "No grammatical structures"
+          "1": "Rarely produces grammatical structures"
+          "2": "Few sentence structures; accuracy only in simplest forms"
+          "3": "Limited control; errors impede communication"
+          "4": "Some accuracy; limited range of structures"
+          "5": "Fair range; frequent errors but clear communication"
+          "6": "Good range; reasonable accuracy; complex structures attempted"
+          "7": "Wide range; good accuracy; minor errors"
+          "8": "Wide range; very good accuracy; rare errors"
+          "9": "Full range; high accuracy; sophisticated structures"
+    speaking_rubric: &default_speaking_rubric
+      fluency_cohesion:
+        label: Fluency and coherence
+        max: 9
+        bands:
+          "0": "Cannot communicate"
+          "1": "Difficult to produce connected speech"
+          "2": "Long pauses; hesitant; communication is stilted"
+          "3": "Usually hesitant; some connected speech"
+          "4": "Shows hesitation; limited connected speech"
+          "5": "Able to sustain speech; some hesitation"
+          "6": "Speaks at reasonable speed; occasional repetition"
+          "7": "Speaks fluently with occasional self-correction"
+          "8": "Speaks fluently with rare hesitation or repetition"
+          "9": "Speaks with complete fluency like a native speaker"
+      lexical_resource:
+        label: Lexical resource
+        max: 9
+        bands:
+          "0": "No appropriate lexical resource"
+          "1": "Barely communicates; no evidence of lexical control"
+          "2": "Limited vocabulary; frequent word-searching"
+          "3": "Limited vocabulary; comprehension often breaks down"
+          "4": "Limited range; occasional word-finding difficulty"
+          "5": "Sufficient range; some word choice errors"
+          "6": "Wide enough vocabulary; occasional errors"
+          "7": "Wide range; minor lexical gaps; communicates effectively"
+          "8": "Wide range; very few lexical errors"
+          "9": "Full lexical sophistication; precise word choice"
+      grammatical_range:
+        label: Grammatical range and accuracy
+        max: 9
+        bands:
+          "0": "No grammatical structures"
+          "1": "Rarely produces grammatical structures"
+          "2": "Few structures; frequent errors"
+          "3": "Limited control; frequent errors impede meaning"
+          "4": "Some accuracy in simple sentences; complex forms rare"
+          "5": "Fair range; frequent grammatical errors"
+          "6": "Good range; reasonable accuracy; complex structures attempted"
+          "7": "Wide range; good accuracy; minor errors"
+          "8": "Wide range; very good accuracy; rare errors"
+          "9": "Full range; sophisticated structures; high accuracy"
+      pronunciation:
+        label: Pronunciation
+        max: 9
+        bands:
+          "0": "No intelligible pronunciation"
+          "1": "Barely intelligible; constant breakdowns"
+          "2": "Severe pronunciation difficulties; frequent breakdowns"
+          "3": "Heavy accent; frequent mispronunciation; meaning obscured"
+          "4": "Pronunciation errors require listener effort"
+          "5": "Acceptable but with occasional mispronunciation"
+          "6": "Generally intelligible; some errors but clear"
+          "7": "Clear and intelligible; minor pronunciation slips"
+          "8": "Very clear; rare pronunciation errors"
+          "9": "Equivalent to an educated native speaker"
 
   intermediate:
     bloom_levels:
@@ -56,6 +170,8 @@ advanced:
     lexical_complexity: intermediate
     writing_constraint: 80–150 words per response
     speaking_constraint: Moderate responses, 4–8 sentences per turn
+    writing_rubric: *default_writing_rubric
+    speaking_rubric: *default_speaking_rubric
 
   advanced:
     bloom_levels:
@@ -85,3 +201,5 @@ advanced:
     lexical_complexity: advanced
     writing_constraint: 150–300 words per response, formal register preferred
     speaking_constraint: Extended responses, justify opinions, discuss abstract topics
+    writing_rubric: *default_writing_rubric
+    speaking_rubric: *default_speaking_rubric

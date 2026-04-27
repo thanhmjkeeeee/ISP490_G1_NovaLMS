@@ -94,6 +94,19 @@ public class AdminDashboardController {
         model.addAttribute("registeredFromGuest", registeredFromGuest);
         model.addAttribute("guestToUserRate", Math.round(guestToUserRate * 10.0) / 10.0);
 
+        // --- DỮ LIỆU BIỂU ĐỒ TRUY CẬP (Visitor Traffic) ---
+        List<Object[]> visitorData = visitorLogRepository.getDailyVisitors();
+        List<String> visitorLabels = new ArrayList<>();
+        List<Long> visitorValues = new ArrayList<>();
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM");
+        for (Object[] row : visitorData) {
+            java.sql.Date sqlDate = (java.sql.Date) row[0];
+            visitorLabels.add(sqlDate.toLocalDate().format(dtf));
+            visitorValues.add(((Number) row[1]).longValue());
+        }
+        model.addAttribute("visitorLabels", visitorLabels);
+        model.addAttribute("visitorValues", visitorValues);
+
         // --- DỮ LIỆU BIỂU ĐỒ DOANH THU ---
         List<Object[]> revenueData = paymentRepository.getMonthlyRevenue();
         List<Integer> revenueLabels = new ArrayList<>();

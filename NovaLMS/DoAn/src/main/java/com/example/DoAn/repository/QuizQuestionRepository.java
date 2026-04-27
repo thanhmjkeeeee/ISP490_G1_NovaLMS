@@ -22,6 +22,9 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
     java.util.Optional<QuizQuestion> findByQuizQuizIdAndQuestionQuestionId(Integer quizId, Integer questionId);
     java.util.Optional<QuizQuestion> findByQuestion_QuestionId(Integer questionId);
 
+    @org.springframework.data.jpa.repository.Query("SELECT MAX(qq.points) FROM QuizQuestion qq WHERE qq.question.questionId = :questionId")
+    java.math.BigDecimal findMaxPointsByQuestionId(@org.springframework.data.repository.query.Param("questionId") Integer questionId);
+
     void deleteByQuizQuizIdAndQuestionGroupGroupId(Integer quizId, Integer groupId);
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT qq.quiz.quizId) FROM QuizQuestion qq WHERE qq.questionGroup.groupId = :groupId")

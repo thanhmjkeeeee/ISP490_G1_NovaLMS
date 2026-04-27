@@ -33,13 +33,35 @@
             </div>
 
             <!-- Auto-score summary bar -->
-            <div class="alert alert-info mb-0 py-2 px-3">
-                <i class="bi bi-lightning-charge me-1"></i>
-                Điểm tự động (LISTENING + READING):
-                <strong id="autoScore">—</strong>
-                &nbsp;|&nbsp;
-                Tổng điểm sau chấm:
-                <strong id="totalScore">—</strong>
+            <div class="alert alert-info mb-0 py-3 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-nowrap">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+                        Điểm tự động (L+R): <strong id="autoScore" class="text-primary">—</strong>
+                    </div>
+                    <div class="text-nowrap border-start ps-3">
+                        Tổng điểm sau chấm: <strong id="totalScore" class="text-primary">—</strong>
+                    </div>
+                </div>
+                <div id="ielts-summary-area" class="d-none">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center" style="min-width: 120px;">
+                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Overall Band</span>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <span id="overall-band-val" style="font-size: 1.4rem; line-height: 1.2;">0.0</span>
+                                <span id="overall-max-val" style="font-size: 0.8rem; opacity: 0.7;">/ 9.0</span>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            <div class="small fw-bold text-dark d-flex gap-3" id="skill-breakdown-val">
+                                <!-- L | R | W | S Breakdown -->
+                            </div>
+                            <div class="progress" style="height: 4px; width: 150px; background: rgba(0,0,0,0.05);">
+                                <div id="ielts-progress-bar" class="progress-bar bg-primary" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- External Submission Link -->
@@ -112,6 +134,8 @@ async function loadDetail() {
         document.querySelectorAll('.rubric-breakdown').forEach(el => {
             renderRubric(el, el.getAttribute('data-is-teacher') === 'true');
         });
+        
+        updateIeltSummary();
     } catch (e) {
         Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải chi tiết bài nộp.' });
     }
@@ -302,27 +326,79 @@ function renderQuestion(q, qi, isAutoGraded) {
         </div>`;
     } else {
         const isGraded = (gradingData && gradingData.status === 'GRADED');
-        inputBlock = `
-        <div class="row g-3 mt-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold">Điểm giáo viên</label>
-                <input type="number" step="0.5" min="0"
-                       max="${q.maxPoints}"
-                       class="form-control teacher-score"
-                       data-question-id="${q.questionId}"
-                       data-max="${q.maxPoints}"
-                       value="${scoreVal}"
-                       ${isGraded ? 'readonly' : ''}>
-            </div>
-            <div class="col-md-9">
-                <label class="form-label small fw-semibold">Ghi chú</label>
-                <input type="text" class="form-control teacher-note"
-                       data-question-id="${q.questionId}"
-                       value="${noteVal}"
-                       placeholder="Nhận xét cho câu trả lời này..."
-                       ${isGraded ? 'readonly' : ''}>
-            </div>
-        </div>`;
+        const isWriting = (q.questionType === 'WRITING');
+        
+        if (isWriting) {
+            inputBlock = `
+            <div class="mt-3">
+                <label class="form-label small fw-bold text-primary"><i class="bi bi-pencil-square me-1"></i> ${gradingData.criteriaLabels ? 'Grading Criteria' : 'IELTS Writing Criteria'} (0-9)</label>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <label class="small text-muted mb-1">${gradingData.criteriaLabels?.ta || 'Task Achievement'}</label>
+                        <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 writing-ta criteria-input" 
+                               data-question-id="${q.questionId}" value="${q.writingTaskAchievement || ''}" ${isGraded ? 'readonly' : ''} oninput="updateWritingOverall(${q.questionId})">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted mb-1">${gradingData.criteriaLabels?.cc || 'Coherence and cohesion'}</label>
+                        <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 writing-cc criteria-input" 
+                               data-question-id="${q.questionId}" value="${q.writingCoherenceCohesion || ''}" ${isGraded ? 'readonly' : ''} oninput="updateWritingOverall(${q.questionId})">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted mb-1">${gradingData.criteriaLabels?.lr || 'Lexical resource'}</label>
+                        <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 writing-lr criteria-input" 
+                               data-question-id="${q.questionId}" value="${q.writingLexicalResource || ''}" ${isGraded ? 'readonly' : ''} oninput="updateWritingOverall(${q.questionId})">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted mb-1">${gradingData.criteriaLabels?.gra || 'Grammatical range and accuracy'}</label>
+                        <input type="number" step="0.5" min="0" max="9" class="form-control rounded-3 writing-gra criteria-input" 
+                               data-question-id="${q.questionId}" value="${q.writingGrammarAccuracy || ''}" ${isGraded ? 'readonly' : ''} oninput="updateWritingOverall(${q.questionId})">
+                    </div>
+                </div>
+                <div class="bg-light p-3 rounded-4 mb-3 border-start border-primary border-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-uppercase small fw-bold text-secondary">Writing Overall Band Score</span>
+                        <div class="text-muted small">Tự động tính từ trung bình cộng 4 tiêu chí</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="display-6 fw-bold text-primary" id="overall-writing-${q.questionId}">
+                            ${(q.writingTaskAchievement != null) ? ((parseFloat(q.writingTaskAchievement) + parseFloat(q.writingCoherenceCohesion) + parseFloat(q.writingLexicalResource) + parseFloat(q.writingGrammarAccuracy))/4).toFixed(1) : '0.0'}
+                        </span>
+                    </div>
+                </div>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label small fw-semibold">Ghi chú & Nhận xét chi tiết</label>
+                        <textarea class="form-control teacher-note" rows="3"
+                               data-question-id="${q.questionId}"
+                               placeholder="Nhận xét cho bài viết này..."
+                               ${isGraded ? 'readonly' : ''}>${noteVal}</textarea>
+                    </div>
+                </div>
+            </div>`;
+        } else {
+            inputBlock = `
+            <div class="row g-3 mt-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">Điểm giáo viên</label>
+                    <input type="number" step="0.5" min="0"
+                           max="${q.maxPoints}"
+                           class="form-control teacher-score"
+                           data-question-id="${q.questionId}"
+                           data-max="${q.maxPoints}"
+                           value="${scoreVal}"
+                           ${isGraded ? 'readonly' : ''}
+                           oninput="updateIeltSummary()">
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label small fw-semibold">Ghi chú</label>
+                    <input type="text" class="form-control teacher-note"
+                           data-question-id="${q.questionId}"
+                           value="${noteVal}"
+                           placeholder="Nhận xét cho câu trả lời này..."
+                           ${isGraded ? 'readonly' : ''}>
+                </div>
+            </div>`;
+        }
     }
 
     return `
@@ -353,12 +429,160 @@ function bandColorCss(score) {
 }
 const CRITERION_LABELS = {
     'task_achievement': '📝 Task Achievement',
-    'lexical_resource': '📖 Lexical Resource',
-    'grammatical_range': '🔤 Grammatical Range & Accuracy',
-    'coherence_cohesion': '🔗 Coherence & Cohesion',
-    'fluency_cohesion': '🎤 Fluency & Coherence',
-    'pronunciation': '🔊 Pronunciation'
+    'lexical_resource': '📖 Lexical resource',
+    'grammatical_range': '🔤 Grammatical range and accuracy',
+    'coherence_cohesion': '🔗 Coherence and cohesion',
+    'fluency_cohesion': '🎤 Fluency and coherence',
+    'pronunciation': '🔊 Pronunciation',
+    
+    // Dynamic mapping aliases
+    'ta': '📝 Task Achievement',
+    'lr': '📖 Lexical resource',
+    'gra': '🔤 Grammatical range and accuracy',
+    'cc': '🔗 Coherence and cohesion'
 };
+
+function updateWritingOverall(qId) {
+    const ta = parseFloat(document.querySelector(`.writing-ta[data-question-id="${qId}"]`)?.value) || 0;
+    const cc = parseFloat(document.querySelector(`.writing-cc[data-question-id="${qId}"]`)?.value) || 0;
+    const lr = parseFloat(document.querySelector(`.writing-lr[data-question-id="${qId}"]`)?.value) || 0;
+    const gra = parseFloat(document.querySelector(`.writing-gra[data-question-id="${qId}"]`)?.value) || 0;
+    
+    const avg = (ta + cc + lr + gra) / 4;
+    const overallEl = document.getElementById(`overall-writing-${qId}`);
+    if (overallEl) overallEl.textContent = avg.toFixed(1);
+
+    updateIeltSummary();
+}
+
+function pointsToBand(points, max) {
+    if (!max || max <= 0) return 0;
+    const ratio = points / max;
+    if (ratio >= 0.975) return 9.0;
+    if (ratio >= 0.925) return 8.5;
+    if (ratio >= 0.875) return 8.0;
+    if (ratio >= 0.825) return 7.5;
+    if (ratio >= 0.75)  return 7.0;
+    if (ratio >= 0.65)  return 6.5;
+    if (ratio >= 0.575) return 6.0;
+    if (ratio >= 0.5)   return 5.5;
+    if (ratio >= 0.4)   return 5.0;
+    if (ratio >= 0.3)   return 4.5;
+    if (ratio >= 0.2)   return 4.0;
+    return 0;
+}
+
+function updateIeltSummary() {
+    if (!gradingData) return;
+    const area = document.getElementById('ielts-summary-area');
+    const isIelts = (gradingData.quizCategory && gradingData.quizCategory.toUpperCase() === 'IELTS') || 
+                  (gradingData.quizTitle && gradingData.quizTitle.toUpperCase().includes('IELTS')) ||
+                  (gradingData.className && gradingData.className.toUpperCase().includes('IELTS'));
+    
+    if (!isIelts) {
+        area.classList.add('d-none');
+        return;
+    }
+    area.classList.remove('d-none');
+
+    const skillBands = { LISTENING: 0, READING: 0, WRITING: 0, SPEAKING: 0 };
+    const questions = gradingData.questions || [];
+    const sections = gradingData.sections || [];
+    const skills = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+
+    skills.forEach(s => {
+        let skillQs = [];
+        if (sections.length > 0) {
+            skillQs = sections.find(sec => sec.skill === s)?.questions || [];
+        } else {
+            skillQs = questions.filter(q => q.skill === s);
+        }
+        
+        if (skillQs.length === 0) return;
+
+        if (s === 'LISTENING' || s === 'READING') {
+            let raw = 0; let max = 0;
+            skillQs.forEach(q => {
+                if (q.isCorrect) raw += (q.maxPoints || 0);
+                max += (q.maxPoints || 0);
+            });
+            // If max is a band score (<= 9.0), use raw points directly as band. Otherwise map (like for 40 questions)
+            skillBands[s] = (max > 0 && max <= 9.0) ? raw : pointsToBand(raw, max);
+        } else if (s === 'WRITING') {
+            let sum = 0; let count = 0;
+            skillQs.forEach(q => {
+                const ta = parseFloat(document.querySelector(`.writing-ta[data-question-id="${q.questionId}"]`)?.value) || q.writingTaskAchievement || 0;
+                const cc = parseFloat(document.querySelector(`.writing-cc[data-question-id="${q.questionId}"]`)?.value) || q.writingCoherenceCohesion || 0;
+                const lr = parseFloat(document.querySelector(`.writing-lr[data-question-id="${q.questionId}"]`)?.value) || q.writingLexicalResource || 0;
+                const gra = parseFloat(document.querySelector(`.writing-gra[data-question-id="${q.questionId}"]`)?.value) || q.writingGrammarAccuracy || 0;
+                sum += (ta + cc + lr + gra) / 4;
+                count++;
+            });
+            skillBands[s] = count > 0 ? (sum / count) : 0;
+        } else if (s === 'SPEAKING') {
+            let sum = 0; let count = 0;
+            skillQs.forEach(q => {
+                const score = parseFloat(document.querySelector(`.teacher-score[data-question-id="${q.questionId}"]`)?.value) || q.teacherScore || 0;
+                sum += score; count++;
+            });
+            skillBands[s] = count > 0 ? (sum / count) : 0;
+        }
+    });
+
+    document.getElementById('skill-breakdown-val').innerHTML = `
+        L: <span class="text-primary">${skillBands.LISTENING.toFixed(1)}</span> | 
+        R: <span class="text-primary">${skillBands.READING.toFixed(1)}</span> | 
+        W: <span class="text-primary">${skillBands.WRITING.toFixed(1)}</span> | 
+        S: <span class="text-primary">${skillBands.SPEAKING.toFixed(1)}</span>
+    `;
+
+    const activeSkills = skills.filter(s => {
+        // Only include skills that have a score > 0 OR have a max points configuration > 0
+        // This prevents empty skills from pulling down the average to 0.5
+        const score = skillBands[s] || 0;
+        let skillMax = 0;
+        if (sections && sections.length > 0) {
+            skillMax = sections.find(sec => sec.skill === s)?.maxScore || 0;
+        } else {
+            const skillQs = questions.filter(q => q.skill === s);
+            skillMax = skillQs.length > 0 ? (skillQs[0].maxPoints || skillQs[0].points || 0) : 0;
+        }
+        return score > 0 || skillMax > 0;
+    }).filter(s => skillBands[s] > 0); // Strictly only average skills that have a score for now to fix the user's issue
+
+    const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
+    const overall = Math.round(avg * 2) / 2;
+    
+    const overallEl = document.getElementById('overall-band-val');
+    if (overallEl) {
+        overallEl.textContent = overall.toFixed(1);
+        // Color coding
+        const parent = overallEl.closest('.bg-primary, .bg-success, .bg-warning');
+        if (parent) {
+            if (overall >= 7) parent.className = 'bg-success text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+            else if (overall >= 5) parent.className = 'bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+            else parent.className = 'bg-warning text-dark px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+        }
+    }
+    
+    const overallMaxEl = document.getElementById('overall-max-val');
+    if (overallMaxEl && gradingData.totalMaxScore) {
+        overallMaxEl.textContent = `/ ${parseFloat(gradingData.totalMaxScore).toFixed(1)}`;
+    }
+    
+    const progressBar = document.getElementById('ielts-progress-bar');
+    if (progressBar) progressBar.style.width = (overall / 9 * 100) + '%';
+}
+
+function getCriterionLabel(key) {
+    if (gradingData && gradingData.criteriaLabels) {
+        if (key === 'task_achievement' || key === 'ta') return '📝 ' + (gradingData.criteriaLabels.ta || 'Task Achievement');
+        if (key === 'lexical_resource' || key === 'lr') return '📖 ' + (gradingData.criteriaLabels.lr || 'Lexical Resource');
+        if (key === 'grammatical_range' || key === 'gra') return '🔤 ' + (gradingData.criteriaLabels.gra || 'Grammar Range & Accuracy');
+        if (key === 'coherence_cohesion' || key === 'cc') return '🔗 ' + (gradingData.criteriaLabels.cc || 'Coherence & Cohesion');
+    }
+    return CRITERION_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+}
 
 function renderRubric(container, isTeacher) {
     var rubricJson = container.getAttribute('data-rubric');
@@ -394,7 +618,7 @@ function renderRubric(container, isTeacher) {
         if (!c || typeof c.score === 'undefined') continue;
         hasCriteria = true;
         
-        var label    = CRITERION_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+        var label    = getCriterionLabel(key);
         var maxVal   = c.max || 9;
         var scoreVal = parseFloat(c.score) || 0;
         var pct      = Math.min(100, Math.round((scoreVal / maxVal) * 100));
@@ -431,7 +655,7 @@ function renderRubric(container, isTeacher) {
         for (var key in rubric) {
             var c = rubric[key];
             if (c && c.aiReasoning) {
-                var label = CRITERION_LABELS[key] || key;
+                var label = getCriterionLabel(key);
                 reasoningHtml += '<div class="mt-2 p-2 bg-light rounded-3 small border-start border-primary border-4">' +
                     '<strong class="text-primary">' + label + ':</strong> ' +
                     '<span class="text-secondary">' + c.aiReasoning + '</span>' +
@@ -454,42 +678,66 @@ function submitGrade() {
     const sectionScores = { LISTENING: 0, READING: 0, SPEAKING: 0, WRITING: 0 };
     let hasError = false;
 
+    // Handle normal teacher-score inputs
     document.querySelectorAll('.teacher-score').forEach(input => {
         if (hasError) return;
         const qId   = parseInt(input.dataset.questionId);
         const valStr = input.value.trim();
         
-        // Validation
         if (valStr === "" || isNaN(valStr)) {
             Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Vui lòng nhập điểm số hợp lệ cho câu hỏi số ${qId}.` });
-            hasError = true;
-            return;
+            hasError = true; return;
         }
 
         const score = parseFloat(valStr);
         const max   = parseFloat(input.dataset.max) || 0;
 
-        if (score < 0) {
-            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Điểm chấm cho câu số ${qId} không được là số âm.` });
-            hasError = true;
-            return;
-        }
-        if (score > max) {
-            Swal.fire({ icon: 'warning', title: 'Vượt quá điểm tối đa', text: `Điểm chấm cho câu số ${qId} không được vượt quá ${max} điểm.` });
-            hasError = true;
-            return;
+        if (score < 0 || score > max) {
+            Swal.fire({ icon: 'warning', title: 'Điểm không hợp lệ', text: `Điểm cho câu ${qId} phải từ 0 đến ${max}.` });
+            hasError = true; return;
         }
 
         const note  = document.querySelector(`.teacher-note[data-question-id="${qId}"]`)?.value || '';
         gradingItems.push({ questionId: qId, pointsAwarded: score, teacherNote: note });
+    });
 
-        // Map question to skill
+    // Handle WRITING criteria inputs
+    const writingQuestions = new Set();
+    document.querySelectorAll('.writing-ta').forEach(input => {
+        if (hasError) return;
+        const qId = parseInt(input.dataset.questionId);
+        writingQuestions.add(qId);
+        
+        const ta = parseFloat(input.value) || 0;
+        const cc = parseFloat(document.querySelector(`.writing-cc[data-question-id="${qId}"]`)?.value) || 0;
+        const lr = parseFloat(document.querySelector(`.writing-lr[data-question-id="${qId}"]`)?.value) || 0;
+        const gra = parseFloat(document.querySelector(`.writing-gra[data-question-id="${qId}"]`)?.value) || 0;
+        
+        const avg = (ta + cc + lr + gra) / 4;
+        const note = document.querySelector(`.teacher-note[data-question-id="${qId}"]`)?.value || '';
+        
+        gradingItems.push({
+            questionId: qId,
+            pointsAwarded: avg,
+            teacherNote: note,
+            writingTaskAchievement: ta,
+            writingCoherenceCohesion: cc,
+            writingLexicalResource: lr,
+            writingGrammarAccuracy: gra
+        });
+    });
+
+    if (hasError) return;
+
+    // Map questions to section scores
+    gradingItems.forEach(item => {
         const q = gradingData.sections
             .flatMap(s => s.questions)
-            .find(q => q.questionId === qId);
-        if (q) sectionScores[q.questionType === 'SPEAKING' ? 'SPEAKING' :
-                           q.questionType === 'WRITING'  ? 'WRITING'  :
-                           'LISTENING'] += score;
+            .find(q => q.questionId === item.questionId);
+        if (q) {
+            const skill = q.questionType === 'SPEAKING' ? 'SPEAKING' : (q.questionType === 'WRITING' ? 'WRITING' : 'LISTENING');
+            sectionScores[skill] += item.pointsAwarded;
+        }
     });
 
     if (hasError) return;

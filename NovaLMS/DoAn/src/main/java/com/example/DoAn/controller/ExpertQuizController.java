@@ -69,6 +69,16 @@ public class ExpertQuizController {
                 quizService.createQuiz(request, getEmail(principal)));
     }
 
+    @Operation(summary = "Kiểm tra tên Quiz đã tồn tại chưa")
+    @GetMapping("/validate-title")
+    public ResponseData<Boolean> checkTitleExists(
+            @RequestParam String title,
+            @RequestParam(required = false) Integer excludeId,
+            Principal principal) {
+        return ResponseData.success("Kiểm tra tên",
+                quizService.checkTitleExists(title, excludeId, getEmail(principal)));
+    }
+
     // ─── UPDATE ─────────────────────────────────────────────────────────────
 
     @Operation(summary = "Cập nhật Quiz config")

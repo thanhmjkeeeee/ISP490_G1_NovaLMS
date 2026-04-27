@@ -176,9 +176,23 @@
 <main class="dash-main d-flex flex-column py-4" id="dashMain">
     <div class="container-fluid">
 
-        <a href="/student/my-classes" class="btn-back">
-            <i class="bi bi-arrow-left"></i> Quay lại Danh sách
-        </a>
+        <div class="d-flex align-items-center justify-content-between flex-wrap mb-4">
+            <a href="/student/my-classes" class="btn-back mb-0">
+                <i class="bi bi-arrow-left"></i> Quay lại Danh sách
+            </a>
+
+            <!-- Class Switcher Dropdown -->
+            <div id="classSwitcherContainer" class="d-none">
+                <div class="dropdown">
+                    <button class="btn btn-white border rounded-pill px-4 fw-bold shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-arrow-left-right me-2 text-primary"></i> <span id="currentClassNameLabel">Đổi lớp học</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2" id="classSwitcherList" style="min-width: 250px;">
+                        <!-- List of other classes will be rendered here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
 
         <div id="classBannerContainer">
             <div class="text-center py-5 bg-white rounded-4 shadow-sm">
@@ -370,6 +384,7 @@
             renderInfoAndTeacher(classDetailData);
             renderMembers(classDetailData);
             renderAssignments(classDetailData);
+            renderClassSwitcher(classDetailData);
 
             // Initialize Timetable Selectors
             initTimetableSelectors();
@@ -643,6 +658,35 @@
                 window.location.href = url;
             }
         });
+    }
+
+    // --- CLASS SWITCHER LOGIC ---
+    function renderClassSwitcher(data) {
+        const switcherContainer = document.getElementById('classSwitcherContainer');
+        const switcherList = document.getElementById('classSwitcherList');
+        const currentNameLabel = document.getElementById('currentClassNameLabel');
+
+        if (!data.otherClasses || data.otherClasses.length <= 1) {
+            switcherContainer.classList.add('d-none');
+            return;
+        }
+
+        currentNameLabel.textContent = data.className;
+        switcherContainer.classList.remove('d-none');
+
+        let html = `<li><h6 class="dropdown-header text-uppercase small tracking-wider py-3">Lớp học của bạn</h6></li>`;
+        data.otherClasses.forEach(c => {
+            const isActive = c.classId == classIdFromUrl;
+            html += `
+                <li>
+                    <a class="dropdown-item py-2 px-4 d-flex align-items-center justify-content-between ${isActive ? 'active bg-primary text-white' : ''}" 
+                       href="/student/class/${c.classId}">
+                        <span class="fw-bold">${c.className}</span>
+                        ${isActive ? '<i class="bi bi-check2 ms-2"></i>' : ''}
+                    </a>
+                </li>`;
+        });
+        switcherList.innerHTML = html;
     }
 
     // --- DATE UTILS ---

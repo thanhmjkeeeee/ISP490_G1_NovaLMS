@@ -58,6 +58,7 @@ public class LearningServiceImpl implements LearningService {
             courseInfo.setTitle(course.getCourseName());
             courseInfo.setCourseName(course.getCourseName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
             courseInfo.setDescription(course.getDescription());
+            courseInfo.setIsSelfStudy(course.getIsSelfStudy());
 
             if (reg != null && reg.getClazz() != null) {
                 Clazz clazz = reg.getClazz();

@@ -2,6 +2,7 @@ package com.example.DoAn.service.impl;
 
 import com.example.DoAn.dto.request.QuestionGradingRequestDTO;
 import com.example.DoAn.dto.request.QuizGradingRequestDTO;
+import com.example.DoAn.dto.request.QuizItemGradingRequestDTO;
 import com.example.DoAn.dto.response.*;
 import com.example.DoAn.model.*;
 import com.example.DoAn.repository.*;
@@ -21,6 +22,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -49,11 +52,18 @@ public class QuizResultServiceImpl implements QuizResultService {
     private final ClazzRepository clazzRepository;
     private final ObjectMapper objectMapper;
     private final SessionQuizRepository sessionQuizRepository;
-    private final LessonQuizService lessonQuizService;
-    private final GroqGradingService groqGradingService;
     private final QuizQuestionRepository quizQuestionRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
+    private final com.example.DoAn.service.IAIPromptConfigService aiPromptConfigService;
+
+    @Autowired
+    @Lazy
+    private LessonQuizService lessonQuizService;
+
+    @Autowired
+    @Lazy
+    private GroqGradingService groqGradingService;
 
     @Override
     @Transactional(readOnly = true)
@@ -187,11 +197,14 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
 
         // CHẶN LÀM LẠI KHI ĐANG CHỜ CHẤM ĐIỂM
-        Optional<QuizResult> latestResultOpt = quizResultRepository.findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, user.getUserId());
+        Optional<QuizResult> latestResultOpt = quizResultRepository
+                .findFirstByQuizQuizIdAndUserUserIdOrderByStartedAtDesc(quizId, user.getUserId());
         if (latestResultOpt.isPresent()) {
             QuizResult latest = latestResultOpt.get();
-            if (latest.getPassed() == null && !"IN_PROGRESS".equals(latest.getStatus()) && !"LOCKED".equals(latest.getStatus())) {
-                throw new RuntimeException("Bài làm trước đó của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại.");
+            if (latest.getPassed() == null && !"IN_PROGRESS".equals(latest.getStatus())
+                    && !"LOCKED".equals(latest.getStatus())) {
+                throw new RuntimeException(
+                        "Bài làm trước đó của bạn đang chờ giáo viên chấm điểm. Vui lòng đợi kết quả trước khi làm lại.");
             }
         }
 
@@ -555,6 +568,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                         userAnswerDisplay = String.join(" | ", matchDisplays);
                     } else if ("SPEAKING".equals(qType) || "WRITING".equals(qType)) {
                         userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
+                        if (userAnswerDisplay == null)
+                            userAnswerDisplay = "";
                     } else {
                         userAnswerDisplay = rawJson;
                     }
@@ -649,6 +664,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .studentAudioUrl(userAns != null ? userAns.getAudioUrl() : null)
                     .aiGradingStatus(userAns != null ? userAns.getAiGradingStatus() : null)
                     .teacherOverrideScore(userAns != null ? userAns.getTeacherOverrideScore() : null)
+                    .writingTaskAchievement(userAns != null ? userAns.getWritingTaskAchievement() : null)
+                    .writingCoherenceCohesion(userAns != null ? userAns.getWritingCoherenceCohesion() : null)
+                    .writingLexicalResource(userAns != null ? userAns.getWritingLexicalResource() : null)
+                    .writingGrammarAccuracy(userAns != null ? userAns.getWritingGrammarAccuracy() : null)
                     .build());
         }
 
@@ -681,9 +700,13 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .quizId(quiz.getQuizId())
                 .quizTitle(quiz.getTitle())
                 .studentName(qr.getUser().getFullName())
-                .className(quiz.getClazz() != null ? quiz.getClazz().getClassName() : 
-                    registrationRepository.findByUser_UserIdAndCourse_CourseIdAndStatus(qr.getUser().getUserId(), quiz.getCourse().getCourseId(), "Approved")
-                        .map(reg -> reg.getClazz() != null ? reg.getClazz().getClassName() : "Lớp học đã đăng ký").orElse("Lớp học đã đăng ký"))
+                .className(quiz.getClazz() != null ? quiz.getClazz().getClassName()
+                        : registrationRepository
+                                .findByUser_UserIdAndCourse_CourseIdAndStatus(qr.getUser().getUserId(),
+                                        quiz.getCourse().getCourseId(), "Approved")
+                                .map(reg -> reg.getClazz() != null ? reg.getClazz().getClassName()
+                                        : "Lớp học đã đăng ký")
+                                .orElse("Lớp học đã đăng ký"))
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getTitle() : null)
                 .submittedAt(qr.getSubmittedAt())
                 .score(qr.getScore() != null ? qr.getScore().doubleValue() : 0.0)
@@ -693,8 +716,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .passed(qr.getPassed())
                 .showAnswer(showAnswer)
                 .passScoreDescription(
-                        quiz.getPassScore() != null ? "Passing score: " + quiz.getPassScore().toString() + "%"
-                                : "No passing score")
+                        quiz.getPassScore() != null ? "Điểm đạt: " + quiz.getPassScore().toString() + "%"
+                                : "Không yêu cầu điểm đạt")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)
                 .maxAttempts(quiz.getMaxAttempts())
@@ -704,12 +727,54 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .sectionScores(sectionScores)
                 .quizCategory(quiz.getQuizCategory())
                 .isAssignment(isAssignment)
+                .criteriaLabels(fetchCriteriaLabels((quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null)
+                        ? quiz.getCourse().getLevelTag()
+                        : "B2"))
                 .build();
+    }
+
+    private String mapCefrToBucket(String cefr) {
+        if (cefr == null)
+            return "advanced";
+        String c = cefr.toUpperCase();
+        if (c.contains("A1") || c.contains("A2") || c.contains("BEGINNER"))
+            return "beginner";
+        if (c.contains("B1") || c.contains("B2") || c.contains("INTERMEDIATE"))
+            return "intermediate";
+        return "advanced";
+    }
+
+    private Map<String, String> fetchCriteriaLabels(String cefrLevel) {
+        Map<String, String> labels = new LinkedHashMap<>();
+        // Defaults
+        labels.put("ta", "Task Achievement");
+        labels.put("cc", "Coherence and cohesion");
+        labels.put("lr", "Lexical resource");
+        labels.put("gra", "Grammatical range and accuracy");
+
+        try {
+            String bucket = mapCefrToBucket(cefrLevel);
+            AIPromptConfig config = aiPromptConfigService.getConfigByBucket(bucket);
+            if (config != null && config.getWritingRubricJson() != null) {
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(config.getWritingRubricJson());
+                if (root.has("task_achievement"))
+                    labels.put("ta", root.path("task_achievement").path("label").asText("Task Achievement"));
+                if (root.has("coherence_cohesion"))
+                    labels.put("cc", root.path("coherence_cohesion").path("label").asText("Coherence & Cohesion"));
+                if (root.has("lexical_resource"))
+                    labels.put("lr", root.path("lexical_resource").path("label").asText("Lexical Resource"));
+                if (root.has("grammatical_range"))
+                    labels.put("gra", root.path("grammatical_range").path("label").asText("Grammar Range & Accuracy"));
+            }
+        } catch (Exception e) {
+            // keep defaults
+        }
+        return labels;
     }
 
     @Override
     @Transactional(readOnly = true)
-        public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size) {
+    public PageResponse<QuizResultPendingDTO> getPendingGradingList(String email, Integer classId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<QuizResult> resultPage = quizResultRepository.findPendingGradingForTeacher(email, classId, pageable);
 
@@ -921,6 +986,31 @@ public class QuizResultServiceImpl implements QuizResultService {
                             if (item.getTeacherNote() != null) {
                                 ans.setTeacherNote(item.getTeacherNote());
                             }
+                            // Save Writing criteria if present
+                            if ("WRITING".equalsIgnoreCase(qType)) {
+                                ans.setWritingTaskAchievement(item.getWritingTaskAchievement());
+                                ans.setWritingCoherenceCohesion(item.getWritingCoherenceCohesion());
+                                ans.setWritingLexicalResource(item.getWritingLexicalResource());
+                                ans.setWritingGrammarAccuracy(item.getWritingGrammarAccuracy());
+
+                                // Auto-calculate average if criteria are provided but pointsAwarded is
+                                // null/handled elsewhere?
+                                // Actually, in this method, pointsAwarded is already in the map.
+                                // But if the teacher provided criteria, we might want to ensure pointsAwarded
+                                // matches the average.
+                                if (item.getWritingTaskAchievement() != null
+                                        && item.getWritingCoherenceCohesion() != null
+                                        && item.getWritingLexicalResource() != null
+                                        && item.getWritingGrammarAccuracy() != null) {
+                                    BigDecimal avg = item.getWritingTaskAchievement()
+                                            .add(item.getWritingCoherenceCohesion())
+                                            .add(item.getWritingLexicalResource())
+                                            .add(item.getWritingGrammarAccuracy())
+                                            .divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+                                    ans.setPointsAwarded(avg);
+                                    ans.setTeacherOverrideScore(avg.toString());
+                                }
+                            }
                         });
                 ans.setPendingAiReview(false);
                 quizAnswerRepository.save(ans);
@@ -1047,22 +1137,53 @@ public class QuizResultServiceImpl implements QuizResultService {
             String qType = ans.getQuestion().getQuestionType();
 
             // Apply teacher grading
-            if (item != null && item.getPointsAwarded() != null) {
+            if (item != null && (item.getPointsAwarded() != null
+                    || (item.getWritingTaskAchievement() != null && "WRITING".equalsIgnoreCase(qType)))) {
                 BigDecimal awarded = item.getPointsAwarded();
-                
+
+                // For Writing, if criteria are provided, pointsAwarded is the average
+                if ("WRITING".equalsIgnoreCase(qType) && item.getWritingTaskAchievement() != null) {
+                    BigDecimal ta = item.getWritingTaskAchievement() != null ? item.getWritingTaskAchievement()
+                            : BigDecimal.ZERO;
+                    BigDecimal cc = item.getWritingCoherenceCohesion() != null ? item.getWritingCoherenceCohesion()
+                            : BigDecimal.ZERO;
+                    BigDecimal lr = item.getWritingLexicalResource() != null ? item.getWritingLexicalResource()
+                            : BigDecimal.ZERO;
+                    BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy()
+                            : BigDecimal.ZERO;
+
+                    awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+
+                    ans.setWritingTaskAchievement(ta);
+                    ans.setWritingCoherenceCohesion(cc);
+                    ans.setWritingLexicalResource(lr);
+                    ans.setWritingGrammarAccuracy(gra);
+                }
+
                 // Fetch max points for this question in this quiz
-                BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId)
-                        .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                        .orElse(BigDecimal.ONE);
-                
-                if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
-                    throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + qId + " không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+                Optional<QuizQuestion> qqOpt = quizQuestionRepository
+                        .findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), qId);
+                BigDecimal maxPts;
+                if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
+                    maxPts = qqOpt.get().getPoints();
+                } else {
+                    maxPts = quizQuestionRepository.findByQuestion_QuestionId(qId)
+                            .map(it -> it.getPoints() != null ? it.getPoints() : BigDecimal.valueOf(9.0))
+                            .orElse(BigDecimal.valueOf(9.0));
+                }
+
+                // Respect the configured max points (e.g. 5.0) instead of hardcoding 9.0
+                BigDecimal maxAllowed = maxPts;
+
+                if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
+                    throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + qId
+                            + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + ".");
                 }
 
                 ans.setPointsAwarded(awarded);
                 ans.setTeacherOverrideScore(awarded.toString());
                 ans.setTeacherNote(item.getTeacherNote());
-                ans.setIsCorrect(item.getPointsAwarded().compareTo(BigDecimal.ZERO) > 0);
+                ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
                 ans.setPendingAiReview(false);
             } else if (("WRITING".equals(qType) || "SPEAKING".equals(qType)) && item != null
                     && item.getTeacherNote() != null) {
@@ -1287,24 +1408,33 @@ public class QuizResultServiceImpl implements QuizResultService {
             String skill = (q.getSkill() != null ? q.getSkill() : "DEFAULT").toUpperCase();
             String qType = q.getQuestionType();
 
-            double pts = quizQuestionRepository
-                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), q.getQuestionId())
-                    .map(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
-                    .orElse(1.0);
+            Optional<QuizQuestion> qqOpt = quizQuestionRepository
+                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), q.getQuestionId());
+            double pts;
+            if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
+                pts = qqOpt.get().getPoints().doubleValue();
+            } else {
+                pts = quizQuestionRepository.findByQuestion_QuestionId(q.getQuestionId())
+                        .map(it -> it.getPoints() != null ? it.getPoints().doubleValue() : 9.0)
+                        .orElse(9.0);
+            }
 
             skillMaxScore.put(skill, skillMaxScore.getOrDefault(skill, 0.0) + pts);
 
             // 1. Ưu tiên Teacher Override (Chuỗi hoặc BigDecimal)
             if (a.getTeacherOverrideScore() != null) {
                 try {
-                    double teacherPts = Double.parseDouble(a.getTeacherOverrideScore());
+                    double inputVal = Double.parseDouble(a.getTeacherOverrideScore());
+                    double teacherPts;
+
+                    // Sử dụng trực tiếp điểm giáo viên nhập (giả định là điểm Band đã nằm trong thang của pts)
+                    teacherPts = inputVal;
+
                     skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
 
-                    // Đồng bộ pointsAwarded nếu chưa có
-                    if (a.getPointsAwarded() == null) {
-                        a.setPointsAwarded(BigDecimal.valueOf(teacherPts));
-                        quizAnswerRepository.save(a);
-                    }
+                    // Đồng bộ pointsAwarded
+                    a.setPointsAwarded(BigDecimal.valueOf(teacherPts));
+                    quizAnswerRepository.save(a);
                     continue; // Đã xử lý xong câu này bằng điểm của giáo viên
                 } catch (Exception ignored) {
                 }
@@ -1346,10 +1476,11 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
-        // ── Tính band dựa theo cefrLevel của câu hỏi (không dùng bảng IELTS chuẩn) ──────────
+        // ── Tính band dựa theo cefrLevel của câu hỏi (không dùng bảng IELTS chuẩn)
+        // ──────────
         // Logic: achievedBand = avgCefrOfSkill × (rawScore / maxScore)
         // Ví dụ: câu hỏi Band 5.0, đúng 100% → Band 5.0 (không phải 9.0)
-        Map<String, Double> skillCefrSum   = new HashMap<>();
+        Map<String, Double> skillCefrSum = new HashMap<>();
         Map<String, Integer> skillCefrCount = new HashMap<>();
 
         for (QuizAnswer a : answers) {
@@ -1361,7 +1492,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     double cefrVal = Double.parseDouble(cefrRaw.trim());
                     skillCefrSum.put(skill, skillCefrSum.getOrDefault(skill, 0.0) + cefrVal);
                     skillCefrCount.put(skill, skillCefrCount.getOrDefault(skill, 0) + 1);
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                }
             }
         }
 
@@ -1371,27 +1503,47 @@ public class QuizResultServiceImpl implements QuizResultService {
             double max = skillMaxScore.get(skill);
             double ratio = max > 0 ? raw / max : 0.0;
 
-            // Lấy cefrLevel trung bình của skill này (ceiling của band đạt được)
-            double avgCefr = 9.0; // mặc định nếu câu hỏi không có cefrLevel
-            if (skillCefrCount.containsKey(skill) && skillCefrCount.get(skill) > 0) {
-                avgCefr = skillCefrSum.get(skill) / skillCefrCount.get(skill);
-            }
+            // Source of Truth for IELTS: Use cefrLevel if it's a numeric band (e.g. "4.0")
+            // We find the max numeric cefrLevel among questions in this skill.
+            double configuredMaxBand = answers.stream()
+                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                .mapToDouble(a -> {
+                    String cefr = a.getQuestion().getCefrLevel();
+                    if (cefr != null && !cefr.isBlank()) {
+                        try {
+                            double val = Double.parseDouble(cefr.trim());
+                            if (val > 0) return val;
+                        } catch (Exception ignored) {}
+                    }
+                    // Fallback to dominant points if cefrLevel is not numeric
+                    java.math.BigDecimal maxPts = quizQuestionRepository.findMaxPointsByQuestionId(a.getQuestion().getQuestionId());
+                    return (maxPts != null && maxPts.doubleValue() > 1.0) ? maxPts.doubleValue() : 9.0;
+                })
+                .max().orElse(9.0);
 
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
-                // Writing/Speaking: AI đã cho điểm band (0-9), nhân tỷ lệ rồi cap theo avgCefr
-                double rawBand = max > 0 ? (raw / max) * 9.0 : 0.0;
-                skillBands.put(skill, Math.min(rawBand, avgCefr));
+                // Writing/Speaking: Points awarded is already the band, average if multiple questions
+                long totalQs = answers.stream()
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                    .count();
+                double avgBand = (totalQs > 0) ? raw / totalQs : 0.0;
+                skillBands.put(skill, avgBand);
             } else {
-                // Reading/Listening/Grammar/Vocab: band = avgCefr × ratio
-                double achieved = avgCefr * ratio;
-                // Làm tròn theo quy tắc IELTS (bước 0.5)
+                // Reading/Listening: achieved = (CorrectCount / TotalQuestions) * configuredMaxBand
+                long correctCount = answers.stream()
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) && Boolean.TRUE.equals(a.getIsCorrect()))
+                    .count();
+                long totalQs = answers.stream()
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                    .count();
+                
+                double achieved = (totalQs > 0) ? ((double)correctCount / totalQs) * configuredMaxBand : 0.0;
                 skillBands.put(skill, IELTSScoreMapper.roundToIELTS(achieved));
             }
         }
 
         double overallBandScore = IELTSScoreMapper.calculateOverallBand(skillBands);
         result.setOverallBand(BigDecimal.valueOf(overallBandScore));
-
 
         double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
@@ -1401,22 +1553,35 @@ public class QuizResultServiceImpl implements QuizResultService {
             result.setCorrectRate(correctRate);
             result.setScore((int) Math.round(totalRaw));
 
-            // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as GRADED
+            // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
+            // GRADED
             Quiz quiz = result.getQuiz();
-            boolean hasManual = quiz.getQuizQuestions().stream()
-                    .anyMatch(qq -> {
-                        String skill = qq.getQuestion().getSkill();
-                        String qType = qq.getQuestion().getQuestionType();
-                        return "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)
-                                || "WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType);
+            // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
+            // GRADED
+            boolean hasManual = answers.stream()
+                    .anyMatch(a -> {
+                        String sk = a.getQuestion().getSkill();
+                        String qt = a.getQuestion().getQuestionType();
+                        return "WRITING".equalsIgnoreCase(sk) || "SPEAKING".equalsIgnoreCase(sk)
+                                || "WRITING".equalsIgnoreCase(qt) || "SPEAKING".equalsIgnoreCase(qt);
                     });
 
-            if (!"LOCKED".equals(result.getStatus())) {
-                if (!hasManual) {
+            if (!"LOCKED".equals(result.getStatus()) && !"PENDING_GRADING".equals(result.getStatus())) {
+                boolean allManualGraded = answers.stream()
+                    .filter(a -> {
+                        String sk = a.getQuestion().getSkill();
+                        String qt = a.getQuestion().getQuestionType();
+                        return "WRITING".equalsIgnoreCase(sk) || "SPEAKING".equalsIgnoreCase(sk)
+                                || "WRITING".equalsIgnoreCase(qt) || "SPEAKING".equalsIgnoreCase(qt);
+                    })
+                    .allMatch(a -> a.getTeacherOverrideScore() != null);
+
+                if (!hasManual || allManualGraded) {
                     result.setStatus("GRADED");
                 } else {
-                    // Nếu có câu tự luận, chỉ đặt SUBMITTED nếu chưa được chấm xong (GRADED)
-                    if (!"GRADED".equals(result.getStatus())) {
+                    // If has manual and not all are graded, it should be SUBMITTED or GRADING
+                    // This allows reverting from incorrectly set GRADED status
+                    if ("GRADED".equals(result.getStatus()) || result.getStatus() == null) {
                         result.setStatus("SUBMITTED");
                     }
                 }
@@ -1513,14 +1678,14 @@ public class QuizResultServiceImpl implements QuizResultService {
     public Double overrideScore(Integer answerId, String score, String teacherEmail) {
         QuizAnswer answer = quizAnswerRepository.findById(answerId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy câu trả lời."));
-        
+
         Quiz quiz = answer.getQuizResult().getQuiz();
         // Authorization check
         boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(teacherEmail);
         boolean isAssignedTeacher = quiz.getClazz() != null
                 && quiz.getClazz().getTeacher() != null
                 && quiz.getClazz().getTeacher().getEmail().equals(teacherEmail);
-        
+
         if (!isCreator && !isAssignedTeacher) {
             // Check course-level access
             User teacher = userRepository.findByEmail(teacherEmail).orElse(null);
@@ -1543,13 +1708,23 @@ public class QuizResultServiceImpl implements QuizResultService {
             throw new RuntimeException("Điểm số không hợp lệ: " + score);
         }
 
-        // Validate range
-        BigDecimal maxPts = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), answer.getQuestion().getQuestionId())
-                .map(qq -> qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE)
-                .orElse(BigDecimal.ONE);
-        
-        if (decimalScore.compareTo(BigDecimal.ZERO) < 0 || decimalScore.compareTo(maxPts) > 0) {
-            throw new RuntimeException("Số điểm chấm (" + decimalScore + ") không hợp lệ. Điểm phải nằm trong khoảng [0, " + maxPts + "].");
+        // Validate range: Respect the configured max points
+        Optional<QuizQuestion> qqOpt = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(),
+                answer.getQuestion().getQuestionId());
+        BigDecimal maxPts;
+        if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
+            maxPts = qqOpt.get().getPoints();
+        } else {
+            maxPts = quizQuestionRepository.findByQuestion_QuestionId(answer.getQuestion().getQuestionId())
+                    .map(it -> it.getPoints() != null ? it.getPoints() : BigDecimal.valueOf(9.0))
+                    .orElse(BigDecimal.valueOf(9.0));
+        }
+
+        BigDecimal maxAllowed = maxPts;
+
+        if (decimalScore.compareTo(BigDecimal.ZERO) < 0 || decimalScore.compareTo(maxAllowed) > 0) {
+            throw new RuntimeException(
+                    "Số điểm chấm (" + decimalScore + ") không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + ".");
         }
 
         answer.setTeacherOverrideScore(score);
@@ -1559,9 +1734,67 @@ public class QuizResultServiceImpl implements QuizResultService {
 
         // Recalculate
         recalculateQuizResult(answer.getQuizResult().getResultId());
-        
+
         // Return new total score
         QuizResult updated = quizResultRepository.findById(answer.getQuizResult().getResultId()).orElse(null);
         return (updated != null && updated.getScore() != null) ? updated.getScore().doubleValue() : 0.0;
+    }
+
+    @Override
+    @Transactional
+    public void gradeQuizItem(QuizItemGradingRequestDTO request, String email) {
+        QuizResult qr = quizResultRepository.findById(request.getResultId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
+
+        QuizAnswer ans = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(
+                request.getResultId(), request.getQuestionId());
+        if (ans == null) {
+            throw new RuntimeException("Không tìm thấy câu trả lời của học sinh");
+        }
+
+        BigDecimal awarded = request.getScore();
+        String qType = ans.getQuestion().getQuestionType();
+
+        // Writing criteria logic
+        if ("WRITING".equalsIgnoreCase(qType) && request.getWritingTaskAchievement() != null) {
+            BigDecimal ta = request.getWritingTaskAchievement();
+            BigDecimal cc = request.getWritingCoherenceCohesion() != null ? request.getWritingCoherenceCohesion()
+                    : BigDecimal.ZERO;
+            BigDecimal lr = request.getWritingLexicalResource() != null ? request.getWritingLexicalResource()
+                    : BigDecimal.ZERO;
+            BigDecimal gra = request.getWritingGrammarAccuracy() != null ? request.getWritingGrammarAccuracy()
+                    : BigDecimal.ZERO;
+
+            awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+
+            ans.setWritingTaskAchievement(ta);
+            ans.setWritingCoherenceCohesion(cc);
+            ans.setWritingLexicalResource(lr);
+            ans.setWritingGrammarAccuracy(gra);
+        }
+
+        if (awarded != null) {
+            // Validation (limit to 9.0 for Writing/Speaking)
+            BigDecimal maxAllowed = new BigDecimal("9.0");
+            if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
+                throw new RuntimeException("Số điểm không hợp lệ (0-9.0)");
+            }
+            ans.setPointsAwarded(awarded);
+            ans.setTeacherOverrideScore(awarded.toString());
+            ans.setIsCorrect(awarded.compareTo(BigDecimal.ZERO) > 0);
+        }
+
+        if (request.getNote() != null) {
+            ans.setTeacherNote(request.getNote());
+        }
+
+        ans.setPendingAiReview(false);
+        quizAnswerRepository.save(ans);
+
+        // Update status to indicate teacher has started grading
+        if (!"GRADED".equals(qr.getStatus())) {
+            qr.setStatus("GRADING");
+            quizResultRepository.save(qr);
+        }
     }
 }

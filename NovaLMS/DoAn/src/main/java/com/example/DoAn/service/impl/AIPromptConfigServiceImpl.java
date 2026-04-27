@@ -63,6 +63,8 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
                 .lexicalComplexity((String) cfg.get("lexical_complexity"))
                 .writingConstraint((String) cfg.get("writing_constraint"))
                 .speakingConstraint((String) cfg.get("speaking_constraint"))
+                .writingRubricJson(cfg.get("writing_rubric") != null ? objectMapper.writeValueAsString(cfg.get("writing_rubric")) : null)
+                .speakingRubricJson(cfg.get("speaking_rubric") != null ? objectMapper.writeValueAsString(cfg.get("speaking_rubric")) : null)
                 .build();
         repository.save(entity);
     }
@@ -96,6 +98,12 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
             map.put("lexical_complexity", entity.getLexicalComplexity());
             map.put("writing_constraint", entity.getWritingConstraint());
             map.put("speaking_constraint", entity.getSpeakingConstraint());
+            if (entity.getWritingRubricJson() != null) {
+                map.put("writing_rubric", objectMapper.readValue(entity.getWritingRubricJson(), Map.class));
+            }
+            if (entity.getSpeakingRubricJson() != null) {
+                map.put("speaking_rubric", objectMapper.readValue(entity.getSpeakingRubricJson(), Map.class));
+            }
         } catch (Exception e) {
             log.error("Lỗi đọc cấu hình AI từ CSDL (bucket {}): {}", bucket, e.getMessage());
         }
@@ -121,6 +129,8 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
                     entity.setLexicalComplexity((String) cfg.get("lexical_complexity"));
                     entity.setWritingConstraint((String) cfg.get("writing_constraint"));
                     entity.setSpeakingConstraint((String) cfg.get("speaking_constraint"));
+                    entity.setWritingRubricJson(cfg.get("writing_rubric") != null ? objectMapper.writeValueAsString(cfg.get("writing_rubric")) : null);
+                    entity.setSpeakingRubricJson(cfg.get("speaking_rubric") != null ? objectMapper.writeValueAsString(cfg.get("speaking_rubric")) : null);
                     repository.save(entity);
                 }
             }

@@ -28,7 +28,7 @@ public class Registration {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id", nullable = false)
+    @JoinColumn(name = "class_id", nullable = true)
     @JsonBackReference(value = "clazz-registrations")
     private Clazz clazz;
 

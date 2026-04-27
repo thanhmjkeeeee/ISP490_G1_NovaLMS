@@ -226,7 +226,30 @@
             </div>
         </div>
 
-        <!-- KHU VỰC BIỂU ĐỒ -->
+        <!-- KHU VỰC BIỂU ĐỒ TRUY CẬP (MỚI) -->
+        <div class="row mb-4 g-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 fw-bold" style="color: #223a58;">Lưu lượng truy cập (Guest Traffic - 30 ngày)</h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light border rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                Theo Ngày
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item active" href="#">Theo Ngày</a></li>
+                                <li><a class="dropdown-item" href="#">Theo Tháng</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="visitorChart" style="min-height: 250px; width: 100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KHU VỰC BIỂU ĐỒ DOANH THU & CHUYỂN ĐỔI -->
         <div class="row mb-4 g-4">
             <!-- Biểu đồ Doanh thu -->
             <div class="col-xl-8 col-lg-7">
@@ -534,6 +557,51 @@
                                     return context.label + ': ' + context.raw + ' (' + percent + '%)';
                                 }
                             }
+                        }
+                    }
+                }
+            });
+
+            // --- 4. BIỂU ĐỒ TRUY CẬP (Visitor Traffic Chart) ---
+            const visitorCtx = document.getElementById('visitorChart').getContext('2d');
+            const visitorLabels = /*[[${visitorLabels}]]*/ [];
+            const visitorValues = /*[[${visitorValues}]]*/ [];
+
+            // Tạo gradient cho biểu đồ visitor
+            const visitorGradient = visitorCtx.createLinearGradient(0, 0, 0, 400);
+            visitorGradient.addColorStop(0, 'rgba(13, 206, 253, 0.2)');
+            visitorGradient.addColorStop(1, 'rgba(13, 206, 253, 0)');
+
+            new Chart(visitorCtx, {
+                type: 'line',
+                data: {
+                    labels: visitorLabels,
+                    datasets: [{
+                        label: 'Lượt khách truy cập mới',
+                        data: visitorValues,
+                        borderColor: '#0dcefd',
+                        backgroundColor: visitorGradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#0dcefd'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [5, 5], color: '#f0f0f0' },
+                            ticks: { stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false }
                         }
                     }
                 }

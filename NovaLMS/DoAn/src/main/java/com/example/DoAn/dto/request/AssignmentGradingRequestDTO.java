@@ -24,5 +24,11 @@ public class AssignmentGradingRequestDTO {
         private Integer questionId;
         private BigDecimal pointsAwarded;
         private String teacherNote;
+
+        // Writing criteria
+        private BigDecimal writingTaskAchievement;
+        private BigDecimal writingCoherenceCohesion;
+        private BigDecimal writingLexicalResource;
+        private BigDecimal writingGrammarAccuracy;
     }
 }

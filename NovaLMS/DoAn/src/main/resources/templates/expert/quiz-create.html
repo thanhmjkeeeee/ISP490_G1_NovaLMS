@@ -158,6 +158,68 @@
             font-size: 2.5rem;
             color: #f59e0b;
         }
+
+        /* Searchable Select Premium Styles */
+        .searchable-select-container {
+            position: relative;
+        }
+        .searchable-select-input {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+        }
+        .searchable-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            margin-top: 5px;
+        }
+        .searchable-select-dropdown.show {
+            display: block;
+        }
+        .searchable-select-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .searchable-select-item:hover {
+            background: #f8faff;
+            color: #136ad5;
+        }
+        .searchable-select-item.active {
+            background: #eef4ff;
+            color: #136ad5;
+            font-weight: 600;
+        }
+        .searchable-select-no-results {
+            padding: 15px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .topic-suggestion {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .topic-suggestion:hover {
+            background-color: #136ad5 !important;
+            color: white !important;
+            border-color: #136ad5 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(19, 106, 213, 0.2);
+        }
     </style>
     <script>
         // ─── CRITICAL FUNCTIONS (loaded early to prevent ReferenceError on partial renders) ───
@@ -293,6 +355,7 @@
                                 <label class="form-label fw-bold">Tên Quiz <span class="text-danger">*</span></label>
                                 <input type="text" id="title" class="form-control form-control-lg border-2" required
                                     placeholder="VD: Entry Test IELTS A1">
+                                <div id="titleFeedback" class="small mt-1" style="display: none;"></div>
                             </div>
                             <div class="col-md-4" id="quizCategoryCol">
                                 <label class="form-label fw-bold">Loại Quiz <span class="text-danger">*</span></label>
@@ -308,12 +371,23 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-4" id="courseSection" style="display:none">
                                 <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
-                                <select id="courseId" class="form-select form-select-lg border-2"
-                                    onchange="onCourseChange()">
-                                    <option value="">-- Chọn khóa học --</option>
-                                    <option th:each="c : ${courses}" th:value="${c.courseId}" th:text="${c.courseName}">
-                                    </option>
-                                </select>
+                                <div class="searchable-select-container" id="courseSearchContainer">
+                                    <input type="text" id="courseDisplay" class="form-control form-control-lg border-2 searchable-select-input" 
+                                        placeholder="Chọn hoặc tìm khóa học..." onfocus="toggleSearchableSelect('courseSearchContainer', true)"
+                                        oninput="filterSearchableItems('courseSearchContainer', this.value); toggleSearchableSelect('courseSearchContainer', true)">
+                                    <div class="searchable-select-dropdown" id="courseDropdown">
+                                        <div class="p-2 border-bottom sticky-top bg-white">
+                                            <input type="text" class="form-control form-control-sm dropdown-search-input" 
+                                                placeholder="Tìm kiếm..." onkeyup="filterSearchableItems('courseSearchContainer', this.value)">
+                                        </div>
+                                        <div class="searchable-items-list">
+                                            <!-- Items will be loaded here -->
+                                        </div>
+                                    </div>
+                                    <select id="courseId" class="d-none" onchange="onCourseChange()">
+                                        <option value="">-- Chọn khóa học --</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="col-md-4" id="moduleSection" style="display:none">
                                 <label class="form-label fw-bold">Chương (Module)</label>
@@ -642,6 +716,14 @@
                                             class="text-danger">*</span></label>
                                     <input type="text" class="form-control rounded-3" id="adv-topic"
                                         placeholder="VD: Present Perfect, Workplace Communication...">
+                                    <div class="mt-2 d-flex flex-wrap gap-2">
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Education')">Education</span>
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Technology')">Technology</span>
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Environment')">Environment</span>
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Health')">Health</span>
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Work & Career')">Work & Career</span>
+                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Travel & Tourism')">Travel & Tourism</span>
+                                    </div>
                                 </div>
                                 <div class="row g-3 mb-4">
                                     <div class="col-12">
@@ -930,6 +1012,36 @@
                 const catCol = document.getElementById('quizCategoryCol');
                 if (catCol) catCol.style.display = 'none';
             }
+
+            // Real-time Title Validation
+            const titleInput = document.getElementById('title');
+            const feedback = document.getElementById('titleFeedback');
+            let timeout = null;
+
+            titleInput.addEventListener('input', function() {
+                const title = this.value.trim();
+                feedback.style.display = 'none';
+                
+                if (timeout) clearTimeout(timeout);
+                if (title.length < 3) return;
+
+                timeout = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/v1/expert/quizzes/validate-title?title=${encodeURIComponent(title)}`);
+                        const data = await res.json();
+                        if (data.data === true) {
+                            feedback.textContent = '⚠️ Bạn đã có một bài thi khác với tên này rồi!';
+                            feedback.className = 'small mt-1 text-danger fw-bold';
+                            feedback.style.display = 'block';
+                            titleInput.classList.add('is-invalid');
+                        } else {
+                            titleInput.classList.remove('is-invalid');
+                            titleInput.classList.add('is-valid');
+                            setTimeout(() => titleInput.classList.remove('is-valid'), 2000);
+                        }
+                    } catch (e) { console.error(e); }
+                }, 500);
+            });
         })();
 
         function toggleSkillInput(skill) {
@@ -1082,23 +1194,117 @@
             }
         }
 
+        function toggleSearchableSelect(containerId, forceShow = false) {
+            const dropdown = document.querySelector(`#${containerId} .searchable-select-dropdown`);
+            const isShown = dropdown.classList.contains('show');
+            
+            if (forceShow && isShown) return;
+
+            // Close others
+            document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
+            
+            if (forceShow || !isShown) {
+                dropdown.classList.add('show');
+                const searchInput = dropdown.querySelector('.dropdown-search-input');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                    filterSearchableItems(containerId, '');
+                }
+            }
+        }
+
+        function filterSearchableItems(containerId, keyword) {
+            const items = document.querySelectorAll(`#${containerId} .searchable-select-item`);
+            let hasResults = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const match = text.includes(keyword.toLowerCase());
+                item.style.display = match ? 'block' : 'none';
+                if (match) hasResults = true;
+            });
+
+            const noResults = document.querySelector(`#${containerId} .searchable-select-no-results`);
+            if (noResults) noResults.style.display = hasResults ? 'none' : 'block';
+        }
+
+        function selectSearchableItem(containerId, value, text) {
+            const container = document.getElementById(containerId);
+            const display = container.querySelector('.searchable-select-input');
+            const hiddenSelect = container.querySelector('select');
+            const dropdown = container.querySelector('.searchable-select-dropdown');
+
+            display.value = text;
+            hiddenSelect.value = value;
+            dropdown.classList.remove('show');
+
+            // Trigger onchange manually
+            const event = new Event('change');
+            hiddenSelect.dispatchEvent(event);
+
+            // Mark active
+            container.querySelectorAll('.searchable-select-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.value == value);
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.searchable-select-container')) {
+                document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
+            }
+        });
+
         async function loadCourses() {
-            const select = document.getElementById('courseId');
-            if (!select) return;
-            select.innerHTML = '<option value="">-- Đang tải danh sách... --</option>';
+            const container = document.getElementById('courseSearchContainer');
+            if (!container) return;
+            const hiddenSelect = document.getElementById('courseId');
+            const itemsList = container.querySelector('.searchable-items-list');
+            const currentVal = hiddenSelect.value;
+
+            itemsList.innerHTML = '<div class="p-3 text-center text-muted small">Đang tải...</div>';
             try {
-                const res = await fetch('/api/v1/expert/modules/courses?limit=100');
+                const res = await fetch('/api/v1/expert/modules/courses?limit=500');
                 const result = await res.json();
                 if (result.status === 200 && result.data && result.data.items) {
-                    select.innerHTML = '<option value="">-- Chọn khóa học --</option>';
+                    hiddenSelect.innerHTML = '<option value="">-- Chọn khóa học --</option>';
+                    itemsList.innerHTML = '';
+                    
                     result.data.items.forEach(c => {
-                        select.innerHTML += `<option value="${c.courseId}">${c.courseName || c.title}</option>`;
+                        const val = c.courseId;
+                        const text = c.courseName || c.title;
+
+                        // Add to hidden select
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = text;
+                        hiddenSelect.appendChild(opt);
+
+                        // Add to searchable list
+                        const item = document.createElement('div');
+                        item.className = 'searchable-select-item';
+                        item.dataset.value = val;
+                        item.textContent = text;
+                        item.onclick = () => selectSearchableItem('courseSearchContainer', val, text);
+                        itemsList.appendChild(item);
                     });
+
+                    const noRes = document.createElement('div');
+                    noRes.className = 'searchable-select-no-results';
+                    noRes.style.display = 'none';
+                    noRes.textContent = 'Không tìm thấy kết quả';
+                    itemsList.appendChild(noRes);
+
+                    if (currentVal) {
+                        hiddenSelect.value = currentVal;
+                        const selectedOpt = hiddenSelect.options[hiddenSelect.selectedIndex];
+                        if (selectedOpt) document.getElementById('courseDisplay').value = selectedOpt.textContent;
+                    }
                 } else {
-                    select.innerHTML = '<option value="">-- Không có khóa học nào --</option>';
+                    itemsList.innerHTML = '<div class="p-3 text-center text-danger small">Không có dữ liệu</div>';
                 }
             } catch (e) {
-                select.innerHTML = '<option value="">-- Lỗi tải danh sách --</option>';
+                itemsList.innerHTML = '<div class="p-3 text-center text-danger small">Lỗi tải dữ liệu</div>';
             }
         }
 
@@ -1173,6 +1379,13 @@
         function validateAndGoToStep2() {
             const title = document.getElementById('title').value;
             if (!title) { Swal.fire('Thông báo', 'Vui lòng nhập tên Quiz', 'info'); return; }
+            
+            const feedback = document.getElementById('titleFeedback');
+            if (feedback && feedback.style.display === 'block' && feedback.classList.contains('text-danger')) {
+                Swal.fire('Lỗi', 'Tên Quiz đã tồn tại. Vui lòng chọn tên khác.', 'error');
+                return;
+            }
+
             if (!_quizId) submitQuiz('DRAFT');
             else goToStep(2);
         }
@@ -1180,6 +1393,7 @@
         let _quizQuestions = [];
         let _currentBankPage = 0;
         let _lastBankResult = null;
+        let _quizBand = null; // Locked band for the current quiz
 
         function typeName(type) {
             const map = {
@@ -1198,8 +1412,25 @@
                 const result = await res.json();
                 if (result.status === 200 && result.data) {
                     _quizQuestions = result.data.questions || [];
+                    
+                    // Band Consistency Check
+                    if (_quizQuestions.length > 0) {
+                        _quizBand = _quizQuestions[0].cefrLevel;
+                        const cefrSelect = document.getElementById('modalCefr');
+                        if (cefrSelect) {
+                            cefrSelect.value = _quizBand;
+                            cefrSelect.disabled = true;
+                        }
+                    } else {
+                        _quizBand = null;
+                        const cefrSelect = document.getElementById('modalCefr');
+                        if (cefrSelect) {
+                            cefrSelect.disabled = false;
+                        }
+                    }
+
                     renderAddedQuestions();
-                    renderBankQuestions(_lastBankResult);
+                    loadBankQuestions(_currentBankPage);
                 }
             } catch (e) { console.error(e); }
         }
@@ -1277,8 +1508,6 @@
         }
 
         async function removeGroup(groupId) {
-            const result = await Swal.fire({ title: 'Xác nhận gỡ?', text: "Gỡ toàn bộ Passage này?", icon: 'warning', showCancelButton: true });
-            if (!result.isConfirmed) return;
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/groups/${groupId}`, { method: 'DELETE' });
                 if (res.ok) { loadQuizQuestions(); Toast.fire({ icon: 'success', title: 'Đã gỡ bộ câu hỏi' }); }
@@ -1289,7 +1518,17 @@
             _currentBankPage = page;
             const params = new URLSearchParams();
             const skill = document.getElementById('modalSkill').value;
-            const cefr = document.getElementById('modalCefr').value;
+            const cefrSelect = document.getElementById('modalCefr');
+            let cefr = cefrSelect.value;
+
+            if (_quizBand) {
+                cefr = _quizBand;
+                cefrSelect.value = _quizBand;
+                cefrSelect.disabled = true;
+            } else {
+                cefrSelect.disabled = false;
+            }
+
             const keyword = document.getElementById('modalKeyword').value;
             if (skill) params.append('skill', skill);
             if (cefr) params.append('cefrLevel', cefr);
@@ -1331,6 +1570,13 @@
 
         async function addToQuiz(id, type) {
             try {
+                // Find the question in the bank result to check its band
+                const qData = _lastBankResult.data.items.find(x => x.id === id);
+                if (qData && _quizBand && qData.cefrLevel !== _quizBand) {
+                    Swal.fire('Lỗi', `Câu hỏi này có Band ${qData.cefrLevel}, không khớp với Band ${_quizBand} của Quiz hiện tại!`, 'error');
+                    return;
+                }
+
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ questionId: id, itemType: type, points: 1.0 })
@@ -1340,11 +1586,16 @@
         }
 
         async function removeQuestion(id) {
-            if (!confirm('Gỡ câu hỏi này?')) return;
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions/${id}`, { method: 'DELETE' });
-                if (res.ok) loadQuizQuestions();
-            } catch (e) { alert('Lỗi: ' + e.message); }
+                if (res.ok) {
+                    loadQuizQuestions();
+                    Toast.fire({ icon: 'success', title: 'Đã gỡ câu hỏi' });
+                } else {
+                    const result = await res.json();
+                    Swal.fire('Lỗi', result.message || 'Không thể gỡ câu hỏi', 'error');
+                }
+            } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
         }
 
         async function initStep3() {
@@ -1417,8 +1668,11 @@
         let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], currentAudio = null;
         function openExpertAiModal() {
             if (!expertAiModal) expertAiModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
-            document.getElementById('adv-topic').value = document.getElementById('title').value;
             toggleAiAdvancedFields(); expertAiModal.show();
+        }
+
+        function setTopic(val) {
+            document.getElementById('adv-topic').value = val;
         }
         function updateAdvSkill(s) { document.getElementById('adv-skill').value = s; toggleAiAdvancedFields(); }
         function updateAdvCefr(v) { document.getElementById('adv-cefr').value = v; }
@@ -1449,11 +1703,33 @@
             const btn = document.getElementById('btn-run-ai');
             const spin = document.getElementById('ai-loading-spinner');
             btn.disabled = true; spin.style.display = 'inline-block';
+            const readLen = document.querySelector('input[name="adv-read-len"]:checked')?.value || 'MEDIUM';
+            const listenType = document.getElementById('adv-listen-type')?.value || 'Dialogue';
+
             try {
-                const res = await fetch('/api/v1/teacher/quizzes/ai/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, quantity: qty, skill, cefrLevel: cefr, questionTypes: types, mode: "ADVANCED" }) });
+                const endpoint = (skill === 'READING' || skill === 'LISTENING') ? '/api/v1/teacher/quizzes/ai/generate-group' : '/api/v1/teacher/quizzes/ai/generate';
+                
+                const res = await fetch(endpoint, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        topic, 
+                        quantity: qty, 
+                        skill, 
+                        cefrLevel: cefr, 
+                        questionTypes: types, 
+                        mode: "ADVANCED",
+                        advancedOptions: { readingLength: readLen, listeningType: listenType }
+                    }) 
+                });
                 const result = await res.json();
                 if (result.status === 200) {
-                    _generatedAiQuestions = result.data.questions; expertAiModal.hide();
+                    if (skill === 'READING' || skill === 'LISTENING') {
+                        _generatedAiQuestions = [result.data];
+                    } else {
+                        _generatedAiQuestions = result.data.questions;
+                    }
+                    expertAiModal.hide();
                     if (!wsAiResultModal) wsAiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
                     wsAiResultModal.show(); wsRenderAiResults();
                 }
@@ -1827,11 +2103,36 @@
             if (sel.length === 0) { Swal.fire('Thông báo', 'Chọn ít nhất 1 câu.', 'info'); return; }
             const btn = document.getElementById('wsBtnImportAi');
             btn.disabled = true;
+
             try {
-                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/ai/import`, {
+                // If we have a group (Reading/Listening passage)
+                let questionsToImport = [];
+                let passage = null;
+                let audioUrl = null;
+
+                sel.forEach(item => {
+                    if (item.passage) {
+                        // It's a group
+                        passage = item.passage;
+                        audioUrl = item.audioUrl || item.groupAudioUrl;
+                        questionsToImport = questionsToImport.concat(item.questions || []);
+                    } else {
+                        // Independent question
+                        questionsToImport.push(item);
+                    }
+                });
+
+                let url = `/api/v1/expert/quizzes/${_quizId}/ai/import`;
+                const params = new URLSearchParams();
+                if (passage) params.append('passage', passage);
+                if (audioUrl) params.append('audioUrl', audioUrl);
+                
+                if (params.toString()) url += `?${params.toString()}`;
+
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sel)
+                    body: JSON.stringify(questionsToImport)
                 });
                 if (res.ok) {
                     wsAiResultModal.hide();
@@ -1852,6 +2153,34 @@
             if (!text) return '';
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Real-time title validation
+        const titleInput = document.getElementById('title');
+        if (titleInput) {
+            titleInput.addEventListener('blur', async function() {
+                const title = this.value.trim();
+                const feedback = document.getElementById('titleFeedback');
+                if (!title) {
+                    if (feedback) feedback.style.display = 'none';
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/v1/expert/quizzes/check-title?title=${encodeURIComponent(title)}&excludeId=${_quizId || 0}`);
+                    const result = await res.json();
+                    if (feedback) {
+                        feedback.style.display = 'block';
+                        if (result.data === true) {
+                            feedback.textContent = '⚠️ Tên này đã tồn tại trong danh sách của bạn.';
+                            feedback.className = 'small mt-1 text-danger fw-bold';
+                        } else {
+                            feedback.textContent = '✓ Tên này có thể sử dụng.';
+                            feedback.className = 'small mt-1 text-success';
+                            setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            });
         }
     </script>
     <style>

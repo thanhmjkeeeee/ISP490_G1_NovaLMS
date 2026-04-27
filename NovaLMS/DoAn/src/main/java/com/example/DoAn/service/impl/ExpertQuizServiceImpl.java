@@ -67,6 +67,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         User expert = findExpert(email);
         validateQuizRequest(request);
 
+        if (quizRepository.existsByTitleAndUser_UserId(request.getTitle(), expert.getUserId())) {
+            throw new InvalidDataException("Bạn đã có Quiz với tên này rồi. Vui lòng chọn tên khác!");
+        }
+
         Quiz quiz = Quiz.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -211,6 +215,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         validateQuizRequest(request);
+
+        if (quizRepository.existsByTitleAndUser_UserIdAndQuizIdNot(request.getTitle(), quiz.getUser().getUserId(), quizId)) {
+            throw new InvalidDataException("Bạn đã có một Quiz/Assignment khác với tên này rồi!");
+        }
 
         quiz.setTitle(request.getTitle());
         quiz.setDescription(request.getDescription());
@@ -517,6 +525,27 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                         + question.getSkill() + "].");
             }
         }
+
+        // --- Self-Study Course Skill Restriction ---
+        if (quiz.getCourse() != null && Boolean.TRUE.equals(quiz.getCourse().getIsSelfStudy())) {
+            String skill = question.getSkill();
+            if (!("LISTENING".equals(skill) || "READING".equals(skill))) {
+                throw new InvalidDataException("Khóa học tự học chỉ hỗ trợ các kỹ năng Listening và Reading để hệ thống có thể tự động chấm điểm.");
+            }
+        }
+
+        // --- IELTS Band Level Consistency Check ---
+        String newQLevel = question.getCefrLevel();
+        if (newQLevel != null && !newQLevel.isBlank()) {
+            List<QuizQuestion> existingQQs = quizQuestionRepository.findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
+            if (!existingQQs.isEmpty()) {
+                String existingLevel = existingQQs.get(0).getQuestion().getCefrLevel();
+                if (existingLevel != null && !existingLevel.isBlank() && !existingLevel.equals(newQLevel)) {
+                    throw new InvalidDataException("Tất cả câu hỏi trong bài phải cùng một trình độ IELTS. Bài hiện tại đang có câu hỏi trình độ " 
+                            + existingLevel + ", không thể thêm câu trình độ " + newQLevel + ".");
+                }
+            }
+        }
     }
 
     @Override
@@ -731,15 +760,27 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             throw new InvalidDataException("Kỹ năng không hợp lệ: " + skill);
         }
         List<QuizQuestion> existing = quizQuestionRepository.findByQuizQuizIdAndSkill(quizId, skill);
+        List<QuizQuestion> allExisting = quizQuestionRepository.findByQuizQuizIdOrderByOrderIndexAsc(quizId);
+        String requiredLevel = allExisting.isEmpty() ? null : allExisting.get(0).getQuestion().getCefrLevel();
+
         Set<Integer> existingIds = new java.util.HashSet<>();
         for (QuizQuestion qq : existing)
             existingIds.add(qq.getQuestion().getQuestionId());
+        
         int nextOrder = existing.size() + 1;
         for (Integer questionId : dto.getQuestionIds()) {
             if (existingIds.contains(questionId))
                 continue;
             Question question = questionRepository.findById(questionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found: " + questionId));
+            
+            // Validate Band Consistency
+            if (requiredLevel != null && question.getCefrLevel() != null && !requiredLevel.equals(question.getCefrLevel())) {
+                 throw new InvalidDataException("Câu hỏi ID " + questionId + " có trình độ " + question.getCefrLevel() 
+                         + " không khớp với trình độ " + requiredLevel + " hiện tại của bài tập.");
+            }
+            if (requiredLevel == null) requiredLevel = question.getCefrLevel();
+
             QuizQuestion qq = QuizQuestion.builder()
                     .quiz(quiz).question(question).skill(skill)
                     .orderIndex(nextOrder++).points(BigDecimal.ONE)
@@ -962,5 +1003,14 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         return toResponseDTO(quiz);
+    }
+
+    @Override
+    public boolean checkTitleExists(String title, Integer excludeId, String email) {
+        User expert = findExpert(email);
+        if (excludeId != null && excludeId > 0) {
+            return quizRepository.existsByTitleAndUser_UserIdAndQuizIdNot(title, expert.getUserId(), excludeId);
+        }
+        return quizRepository.existsByTitleAndUser_UserId(title, expert.getUserId());
     }
 }

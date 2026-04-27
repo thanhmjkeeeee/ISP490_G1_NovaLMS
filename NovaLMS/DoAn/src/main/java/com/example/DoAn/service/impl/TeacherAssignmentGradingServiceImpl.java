@@ -34,6 +34,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private final INotificationService notificationService;
     private final RegistrationRepository registrationRepository;
     private final com.example.DoAn.service.QuizResultService quizResultService;
+    private final com.example.DoAn.service.IAIPromptConfigService aiPromptConfigService;
 
     // ─── Grading Queue ────────────────────────────────────────────────────────
 
@@ -211,12 +212,28 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     }
 
     private BigDecimal getQuestionMaxPoints(Integer quizId, Question q) {
-        // Try QuizQuestion for explicit points, else default to 1
-        return quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(
-                quizId, q.getQuestionId())
-                .filter(qq -> qq.getPoints() != null)
-                .map(QuizQuestion::getPoints)
-                .orElse(BigDecimal.ONE);
+        // Priority 1: Use cefrLevel if it's a numeric band (e.g. "4.0", "5.5")
+        String cefr = q.getCefrLevel();
+        if (cefr != null && !cefr.isBlank()) {
+            try {
+                double val = Double.parseDouble(cefr.trim());
+                if (val > 0) return BigDecimal.valueOf(val);
+            } catch (Exception ignored) {}
+        }
+
+        // Priority 2: Use the highest configured points across all quizzes (findMaxPointsByQuestionId)
+        BigDecimal maxPts = quizQuestionRepository.findMaxPointsByQuestionId(q.getQuestionId());
+        if (maxPts != null && maxPts.compareTo(BigDecimal.valueOf(1.0)) > 0) {
+            return maxPts;
+        }
+
+        // Priority 3: Specific quiz-question link
+        Optional<QuizQuestion> qq = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quizId, q.getQuestionId());
+        if (qq.isPresent() && qq.get().getPoints() != null) {
+            return qq.get().getPoints();
+        }
+
+        return BigDecimal.valueOf(9.0); // Default IELTS max band
     }
 
     private String deriveOverallStatus(AssignmentGradingQueueDTO dto) {
@@ -323,6 +340,12 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 item.setAudioUrl(q.getAudioUrl());
                 item.setTeacherScore(a.getPointsAwarded());
                 item.setTeacherNote(a.getTeacherNote());
+                
+                // Writing criteria
+                item.setWritingTaskAchievement(a.getWritingTaskAchievement());
+                item.setWritingCoherenceCohesion(a.getWritingCoherenceCohesion());
+                item.setWritingLexicalResource(a.getWritingLexicalResource());
+                item.setWritingGrammarAccuracy(a.getWritingGrammarAccuracy());
 
                 // Resolve student answer ID to text for Multiple Choice
                 String studentAns = a.getAnsweredOptions();
@@ -374,6 +397,24 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             }
 
             section.setQuestions(items);
+            
+            // For IELTS: section max should be the highest configured band (e.g. 4.0 or 5.0)
+            if (!items.isEmpty()) {
+                // Find the highest maxPoints among questions in this section
+                BigDecimal highestMax = items.stream()
+                    .<BigDecimal>map(it -> it.getMaxPoints() != null ? it.getMaxPoints() : BigDecimal.ZERO)
+                    .max(BigDecimal::compareTo)
+                    .orElse(BigDecimal.valueOf(9.0));
+                
+                sectionMax = highestMax;
+                
+                // sectionTeacherScore is the average band achieved
+                BigDecimal sumAwarded = items.stream()
+                    .<BigDecimal>map(it -> it.getTeacherScore() != null ? it.getTeacherScore() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                sectionTeacherScore = sumAwarded.divide(BigDecimal.valueOf(items.size()), 1, RoundingMode.HALF_UP);
+            }
+            
             section.setMaxScore(sectionMax);
             section.setTeacherScore(sectionTeacherScore.compareTo(BigDecimal.ZERO) > 0
                     ? sectionTeacherScore
@@ -399,17 +440,23 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             }
 
             sections.add(section);
-            totalMaxPoints = totalMaxPoints.add(sectionMax);
-            if (sectionTeacherScore != null) {
-                runningTotal = runningTotal.add(sectionTeacherScore);
-            }
         }
-
         dto.setSections(sections);
         dto.setAutoScore(autoScore);
         dto.setAllowExternalSubmission(quiz.getAllowExternalSubmission());
         dto.setExternalSubmissionLink(result.getExternalSubmissionLink());
         dto.setExternalSubmissionNote(result.getExternalSubmissionNote());
+
+        // For IELTS: totalMaxScore is the average of section maxes
+        if (!sections.isEmpty()) {
+            BigDecimal sumMax = sections.stream()
+                .map(s -> s.getMaxScore() != null ? s.getMaxScore() : BigDecimal.valueOf(9.0))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal avgMax = sumMax.divide(BigDecimal.valueOf(sections.size()), 1, RoundingMode.HALF_UP);
+            dto.setTotalMaxScore(avgMax);
+        } else {
+            dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
+        }
 
         if (result.getSectionScores() != null && !result.getSectionScores().isBlank()) {
             try {
@@ -421,13 +468,62 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 /* leave null */ }
         }
 
+        // Set Total Max Score (average of section max scores for IELTS overall band context)
+        List<BigDecimal> activeMaxScores = sections.stream()
+                .map(s -> s.getMaxScore())
+                .filter(m -> m != null && m.compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+
+        if (!activeMaxScores.isEmpty()) {
+            BigDecimal sum = activeMaxScores.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            dto.setTotalMaxScore(sum.divide(BigDecimal.valueOf(activeMaxScores.size()), 1, RoundingMode.HALF_UP));
+        } else {
+            dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
+        }
+
         if (result.getScore() != null) {
             dto.setTotalScore(BigDecimal.valueOf(result.getScore()));
-        } else {
+        } else if (runningTotal.compareTo(BigDecimal.ZERO) > 0) {
             dto.setTotalScore(runningTotal);
         }
-        dto.setTotalMaxScore(totalMaxPoints);
+
+        // Fetch dynamic criteria labels
+        String cefr = (quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null) ? quiz.getCourse().getLevelTag() : "B2";
+        dto.setCriteriaLabels(fetchCriteriaLabels(cefr));
+
         return dto;
+    }
+
+    private String mapCefrToBucket(String cefr) {
+        if (cefr == null) return "advanced";
+        String c = cefr.toUpperCase();
+        if (c.contains("A1") || c.contains("A2") || c.contains("BEGINNER")) return "beginner";
+        if (c.contains("B1") || c.contains("B2") || c.contains("INTERMEDIATE")) return "intermediate";
+        return "advanced";
+    }
+
+    private Map<String, String> fetchCriteriaLabels(String cefrLevel) {
+        Map<String, String> labels = new LinkedHashMap<>();
+        // Defaults
+        labels.put("ta", "Task Achievement");
+        labels.put("cc", "Coherence and cohesion");
+        labels.put("lr", "Lexical resource");
+        labels.put("gra", "Grammatical range and accuracy");
+
+        try {
+            String bucket = mapCefrToBucket(cefrLevel);
+            AIPromptConfig config = aiPromptConfigService.getConfigByBucket(bucket);
+            if (config != null && config.getWritingRubricJson() != null) {
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(config.getWritingRubricJson());
+                if (root.has("task_achievement")) labels.put("ta", root.path("task_achievement").path("label").asText("Task Achievement"));
+                if (root.has("coherence_cohesion")) labels.put("cc", root.path("coherence_cohesion").path("label").asText("Coherence & Cohesion"));
+                if (root.has("lexical_resource")) labels.put("lr", root.path("lexical_resource").path("label").asText("Lexical Resource"));
+                if (root.has("grammatical_range")) labels.put("gra", root.path("grammatical_range").path("label").asText("Grammar Range & Accuracy"));
+            }
+        } catch (Exception e) {
+            // keep defaults
+        }
+        return labels;
     }
 
     // ─── Submit Grading ───────────────────────────────────────────────────────
@@ -446,12 +542,35 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         item.getQuestionId());
                 if (answer != null) {
                     BigDecimal awarded = item.getPointsAwarded();
+                    
+                    // For Writing, if criteria are provided, pointsAwarded is the average
+                    String qType = answer.getQuestion().getQuestionType();
+                    if ("WRITING".equalsIgnoreCase(qType) && item.getWritingTaskAchievement() != null) {
+                        BigDecimal ta = item.getWritingTaskAchievement() != null ? item.getWritingTaskAchievement() : BigDecimal.ZERO;
+                        BigDecimal cc = item.getWritingCoherenceCohesion() != null ? item.getWritingCoherenceCohesion() : BigDecimal.ZERO;
+                        BigDecimal lr = item.getWritingLexicalResource() != null ? item.getWritingLexicalResource() : BigDecimal.ZERO;
+                        BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy() : BigDecimal.ZERO;
+                        
+                        awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+                        
+                        answer.setWritingTaskAchievement(ta);
+                        answer.setWritingCoherenceCohesion(cc);
+                        answer.setWritingLexicalResource(lr);
+                        answer.setWritingGrammarAccuracy(gra);
+                    }
+
                     if (awarded != null) {
                         // Validate points
                         BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), answer.getQuestion());
-                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxPts) > 0) {
+                        // For WRITING and SPEAKING, allow up to 9.0 (Standard IELTS Band)
+                        BigDecimal maxAllowed = maxPts;
+                        if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
+                            maxAllowed = new BigDecimal("9.0");
+                        }
+                        
+                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
                             throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId() 
-                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxPts + ".");
+                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + ".");
                         }
                         
                         answer.setPointsAwarded(awarded);

@@ -364,7 +364,7 @@ public class AIQuestionPromptBuilder {
                   {
                     "content": "...",
                     "questionType": "...",
-                    "skill": "...",
+                    "skill": "%s",
                     "cefrLevel": "%s",
                     "topic": "%s",
                     "explanation": "...",
@@ -385,7 +385,7 @@ public class AIQuestionPromptBuilder {
                         constraints,
                         writingConstraint,
                         speakingConstraint,
-                        cefrLevel, moduleName);
+                        targetSkill, cefrLevel, moduleName);
     }
 
     @SuppressWarnings("unchecked")
@@ -447,6 +447,10 @@ public class AIQuestionPromptBuilder {
             if ("LISTENING".equalsIgnoreCase(targetSkill)) {
                 taskTypeInstruction = "Generate independent LISTENING questions. For each question, you MUST provide a 'transcript' field containing a natural dialogue between 2-3 characters (2-4 lines) with REAL English names. " +
                     "FORBIDDEN: Man, Woman, Speaker. Use speaker labels with gender, e.g., 'Robert [Male]: ...' or 'Emily [Female]: ...'. The 'content' field should contain ONLY the actual question text.";
+            } else if ("WRITING".equalsIgnoreCase(targetSkill)) {
+                taskTypeInstruction = "Generate independent WRITING questions. For each question, provide a clear writing task prompt in the 'content' field (e.g., IELTS Writing Task 1 or Task 2 style).";
+            } else if ("SPEAKING".equalsIgnoreCase(targetSkill)) {
+                taskTypeInstruction = "Generate independent SPEAKING questions. For each question, provide a clear speaking prompt or topic in the 'content' field (e.g., IELTS Speaking Part 1, 2, or 3 style).";
             } else {
                 taskTypeInstruction = "Generate independent advanced English questions.";
             }
@@ -483,9 +487,9 @@ public class AIQuestionPromptBuilder {
                 """.formatted(targetSkill, cefrLevel, topic) : """
                 [
                   {
-                    "content": "...",
+                    "content": "The actual question text or writing/speaking prompt",
                     "questionType": "...",
-                    "skill": "...",
+                    "skill": "%s",
                     "cefrLevel": "%s",
                     "topic": "%s",
                     "explanation": "...",
@@ -496,7 +500,7 @@ public class AIQuestionPromptBuilder {
                     "correctPairs": [...]
                   }
                 ]
-                """.formatted(cefrLevel, topic);
+                """.formatted(targetSkill, cefrLevel, topic);
 
         return """
                 You are a professional English teacher specializing in advanced question design.

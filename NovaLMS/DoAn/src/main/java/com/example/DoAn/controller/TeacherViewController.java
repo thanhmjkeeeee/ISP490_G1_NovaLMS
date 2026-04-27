@@ -335,7 +335,8 @@ public class TeacherViewController {
 
             DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
             for (ClassSession s : sessions) {
-                if (s.getSessionDate() == null) continue;
+                if (s.getSessionDate() == null)
+                    continue;
 
                 int dayIndex = s.getSessionDate().getDayOfWeek().getValue();
                 Integer slotNum = s.getSlotNumber();
@@ -347,12 +348,14 @@ public class TeacherViewController {
                 summary.put("date", s.getSessionDate().format(dateFmt));
                 summary.put("time", (s.getStartTime() != null ? s.getStartTime() : "")
                         + (s.getEndTime() != null ? " - " + s.getEndTime() : ""));
-                
-                if (s.getClazz() == null) continue;
-                
+
+                if (s.getClazz() == null)
+                    continue;
+
                 summary.put("classId", s.getClazz().getClassId());
                 summary.put("className", s.getClazz().getClassName());
-                summary.put("courseName", s.getClazz().getCourse() != null ? s.getClazz().getCourse().getCourseName() : null);
+                summary.put("courseName",
+                        s.getClazz().getCourse() != null ? s.getClazz().getCourse().getCourseName() : null);
                 summary.put("topic", s.getTopic());
 
                 if (grid.containsKey(dayIndex) && grid.get(dayIndex).containsKey(slotIndex)) {
@@ -414,7 +417,8 @@ public class TeacherViewController {
 
             for (SessionLesson sl : sessionLessons) {
                 Lesson l = sl.getLesson();
-                if (l == null) continue;
+                if (l == null)
+                    continue;
 
                 LessonResponseDTO dto = LessonResponseDTO.builder()
                         .lessonId(l.getLessonId())
@@ -432,7 +436,8 @@ public class TeacherViewController {
             // Add actual SessionQuizzes linked to this session
             List<SessionQuiz> sessionQuizzes = sessionQuizRepository.findBySessionSessionIdWithQuiz(sessionId);
             for (SessionQuiz sq : sessionQuizzes) {
-                if (sq.getQuiz() == null) continue;
+                if (sq.getQuiz() == null)
+                    continue;
                 quizzes.add(LessonResponseDTO.builder()
                         .quizId(sq.getQuiz().getQuizId())
                         .lessonName(sq.getQuiz().getTitle())
@@ -448,8 +453,8 @@ public class TeacherViewController {
 
             SessionDetailDTO detail = SessionDetailDTO.builder()
                     .sessionId(session.getSessionId())
-                    .sessionNo(session.getSessionNumber())
-                    .date(session.getSessionDate() != null
+                    .sessionNumber(session.getSessionNumber())
+                    .sessionDate(session.getSessionDate() != null
                             ? session.getSessionDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                             : null)
                     .startTime(session.getStartTime())
@@ -459,8 +464,9 @@ public class TeacherViewController {
                     .meetLink(resolvedMeetLink)
                     .className(session.getClazz() != null ? session.getClazz().getClassName() : "N/A")
                     .courseName(
-                            (session.getClazz() != null && session.getClazz().getCourse() != null) 
-                                ? session.getClazz().getCourse().getCourseName() : "")
+                            (session.getClazz() != null && session.getClazz().getCourse() != null)
+                                    ? session.getClazz().getCourse().getCourseName()
+                                    : "")
                     .materials(materials)
                     .quizzes(quizzes)
                     .build();
@@ -482,8 +488,10 @@ public class TeacherViewController {
     }
 
     /**
-     * Các slot giờ bắt đầu (HH:mm) đã bận trong ngày — mọi lớp của GV + yêu cầu đổi lịch PENDING,
-     * trừ buổi {@code excludeSessionId} (buổi đang đổi lịch) để không tự khóa slot hiện tại của chính nó.
+     * Các slot giờ bắt đầu (HH:mm) đã bận trong ngày — mọi lớp của GV + yêu cầu đổi
+     * lịch PENDING,
+     * trừ buổi {@code excludeSessionId} (buổi đang đổi lịch) để không tự khóa slot
+     * hiện tại của chính nó.
      */
     @GetMapping("/api/reschedule/busy-slots")
     @ResponseBody

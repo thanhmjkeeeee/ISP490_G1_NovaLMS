@@ -19,6 +19,8 @@ public class AssignmentGradingDetailDTO {
     private String studentName;
     private String quizTitle;
     private String className;
+    private String quizCategory;
+    private Boolean isAssignment;
     private LocalDateTime submittedAt;
     private BigDecimal autoScore;        // LISTENING + READING sum
     private BigDecimal totalScore;       // final total (null if not yet graded)
@@ -30,6 +32,7 @@ public class AssignmentGradingDetailDTO {
     private Boolean allowExternalSubmission;
     private String externalSubmissionLink;
     private String externalSubmissionNote;
+    private Map<String, String> criteriaLabels; // Dynamic labels for writing/speaking criteria
 
     @Data
     @NoArgsConstructor
@@ -62,6 +65,12 @@ public class AssignmentGradingDetailDTO {
         private String teacherNote;
         private String audioUrl;          // for SPEAKING questions
         private List<OptionDTO> options;  // choices to resolve IDs
+
+        // Writing criteria breakdown
+        private BigDecimal writingTaskAchievement;
+        private BigDecimal writingCoherenceCohesion;
+        private BigDecimal writingLexicalResource;
+        private BigDecimal writingGrammarAccuracy;
 
         @Data
         @NoArgsConstructor

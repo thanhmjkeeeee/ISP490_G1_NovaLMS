@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('s1Skill')?.addEventListener('change', () => {
     step1Data.skill = document.getElementById('s1Skill').value;
     renderAITypeCheckboxes();
+    toggleWizardAiAdvancedFields();
   });
 
   document.getElementById('excelFile')?.addEventListener('change', (e) => {
@@ -245,6 +246,28 @@ function renderAITypeCheckboxes() {
       <label class="form-check-label small" for="aiType_${t}">${typeLabel(t)}</label>
     </div>
   `).join('');
+  toggleWizardAiAdvancedFields();
+}
+
+function toggleWizardAiAdvancedFields() {
+  const skill = step1Data.skill;
+  const advSection = document.getElementById('aiAdvancedOptions');
+  if (!advSection) return;
+
+  const readingSection = document.getElementById('aiReadingLengthSection');
+  const listeningSection = document.getElementById('aiListeningTypeSection');
+
+  if (skill === 'READING') {
+    advSection.style.display = 'block';
+    readingSection.style.display = 'block';
+    listeningSection.style.display = 'none';
+  } else if (skill === 'LISTENING') {
+    advSection.style.display = 'block';
+    readingSection.style.display = 'none';
+    listeningSection.style.display = 'block';
+  } else {
+    advSection.style.display = 'none';
+  }
 }
 
 function getTypesForSkill(skill) {
@@ -286,6 +309,9 @@ async function step2GenerateAI() {
   const qty = parseInt(document.getElementById('aiQty')?.value) || 5;
   const selectedTypes = Array.from(document.querySelectorAll('#aiTypeCheckboxes input:checked')).map(el => el.value);
   const mode = document.querySelector('input[name="aiMode"]:checked')?.value || 'NORMAL';
+  
+  const readingLength = document.querySelector('input[name="aiReadingLength"]:checked')?.value || 'MEDIUM';
+  const listeningType = document.getElementById('aiListeningType')?.value || 'Dialogue';
 
   if (!topic) { showError('aiStep2Error', 'Please enter a topic.'); return; }
   if (!qty || qty < 1 || qty > 50) { showError('aiStep2Error', 'Quantity must be between 1 and 50.'); return; }
@@ -314,16 +340,43 @@ async function step2GenerateAI() {
     formData.append('aiMode', mode);
     selectedTypes.forEach(t => formData.append('aiQuestionTypes', t));
 
+    // Send advanced options
+    if (step1Data.skill === 'READING') {
+      formData.append('aiAdvancedOptions[readingLength]', readingLength);
+    } else if (step1Data.skill === 'LISTENING') {
+      formData.append('aiAdvancedOptions[listeningType]', listeningType);
+    }
+
     const res = await fetch('/api/v1/expert/questions/wizard/step2', {
       method: 'POST',
       body: formData
     });
+
     const result = await res.json();
     loadingEl.style.display = 'none';
 
     if (!res.ok) {
       showError('aiStep2Error', result.message || result.error || 'Generation failed.');
       return;
+    }
+
+    // If passage was generated (Topic-based + Reading/Listening), update Step 1 data
+    if (result.data && result.data.passage) {
+      step1Data.passageContent = result.data.passage;
+      if (document.getElementById('passageContent')) {
+        document.getElementById('passageContent').value = result.data.passage;
+      }
+      if (result.data.audioUrl) {
+        step1Data.audioUrl = result.data.audioUrl;
+        if (document.getElementById('audioUrl')) {
+          document.getElementById('audioUrl').value = result.data.audioUrl;
+        }
+      }
+      // Switch mode to PASSAGE_BASED internally if it was TOPIC_BASED
+      // so if they go back they see the passage UI.
+      step1Data.mode = 'PASSAGE_BASED';
+      const cardPassage = document.getElementById('cardPassage');
+      if (cardPassage) selectGroupType('PASSAGE_BASED', cardPassage);
     }
 
     const data = result.data || {};

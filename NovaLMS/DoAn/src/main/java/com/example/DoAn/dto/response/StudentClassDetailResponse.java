@@ -30,4 +30,5 @@ public class StudentClassDetailResponse {
     // Các Tabs
     private List<MemberDTO> members;
     private List<SessionDetailDTO> sessions;
+    private List<ClassSelectionDTO> otherClasses;
 }

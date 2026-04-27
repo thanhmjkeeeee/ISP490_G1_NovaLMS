@@ -126,22 +126,13 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
      * Cùng một khóa học không được tham gia hai lớp song song: còn đăng ký hiệu lực ở lớp khác.
      * (Approved / chờ thanh toán Submitted / chờ PayOS PENDING — không tính Cancelled, Rejected)
      */
-    @Query("""
-            SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r
-            WHERE r.user.userId = :userId
-              AND r.course.courseId = :courseId
-              AND r.clazz.classId <> :classId
-              AND r.status IN ('Approved', 'Submitted', 'PENDING')
-            """)
-    boolean existsActiveRegistrationForSameCourseOtherClass(
-            @Param("userId") Integer userId,
-            @Param("courseId") Integer courseId,
-            @Param("classId") Integer classId);
+    // Method removed to allow multi-class registration per course
 
     // Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
     @Query("SELECT r FROM Registration r WHERE r.course.courseId = :courseId")
     List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
     Optional<Registration> findByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
+    List<Registration> findAllByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
 
     // Admin: Lấy tất cả đăng ký
     @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
@@ -180,6 +171,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
 
     // Bổ sung các phương thức thiếu cho StudentServiceImpl
     List<Registration> findByClazz_ClassIdAndStatus(Integer classId, String status);
+    List<Registration> findByClazz_ClassIdAndUser_UserIdAndStatus(Integer classId, Integer userId, String status);
 
     boolean existsByClazz_ClassIdAndUser_UserIdAndStatus(Integer classId, Integer userId, String status);
     @Query(value = """

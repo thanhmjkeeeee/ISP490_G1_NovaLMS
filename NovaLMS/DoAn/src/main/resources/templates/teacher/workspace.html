@@ -318,11 +318,48 @@
                                             <i class="bi bi-arrow-left"></i> Quay lại danh sách
                                         </button>
                                     </div>
-                                    <div class="alert alert-info mb-0 py-2 px-3 small">
-                                        <i class="bi bi-lightning-charge me-1"></i>
-                                        Điểm tự động: <strong id="ws-gd-autoScore">0</strong>
-                                        &nbsp;|&nbsp;
-                                        Điểm hiện tại: <strong id="ws-gd-totalScore">0</strong>
+                                    <div class="alert alert-info mb-0 py-3 px-3 shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                            <div class="d-flex align-items-center gap-4">
+                                                <div id="standard-score-area">
+                                                    <div class="d-flex gap-3">
+                                                        <div class="text-nowrap">
+                                                            <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+                                                            <span class="small text-muted fw-medium">Tự động:</span> <strong id="ws-gd-autoScore" class="text-primary fs-5">0</strong>
+                                                        </div>
+                                                        <div class="text-nowrap border-start ps-3">
+                                                            <span class="small text-muted fw-medium">Hiện tại:</span> <strong id="ws-gd-totalScore" class="text-primary fs-5">0</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div id="ielts-summary-area" class="d-none border-start ps-4">
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <div class="bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center" style="min-width: 120px;">
+                                                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Overall Band</span>
+                                                            <div class="d-flex align-items-baseline gap-1">
+                                                                <span id="ws-gd-overall-band" style="font-size: 1.4rem; line-height: 1.2;">0.0</span>
+                                                                <span id="ws-gd-overall-max" style="font-size: 0.8rem; opacity: 0.7;">/ 9.0</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex flex-column gap-1">
+                                                            <div class="small fw-bold text-dark d-flex gap-3" id="ws-gd-skill-breakdown">
+                                                                <!-- L | R | W | S Breakdown -->
+                                                            </div>
+                                                            <div class="progress" style="height: 4px; width: 150px; background: rgba(0,0,0,0.05);">
+                                                                <div id="ielts-progress-bar" class="progress-bar bg-primary" style="width: 0%"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div id="ielts-status-badge" class="d-none">
+                                                <span class="badge bg-white text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill fw-bold">
+                                                    <i class="bi bi-award-fill me-1"></i> IELTS MODE
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1391,7 +1428,8 @@
             currentWeek: 0,
             currentYear: 0,
             /** Buổi + quiz đã gắn (từ loadQuizzes) — dùng để ẩn quiz đã gắn khi mở modal Gắn Quiz */
-            lastLoadedSessions: []
+            lastLoadedSessions: [],
+            ieltsQuestions: []
         };
 
         /** Khóa slot theo mọi buổi dạy của GV trong ngày + yêu cầu đổi lịch PENDING (mọi lớp). */
@@ -5564,6 +5602,197 @@ window.wsSaveEditAi = function(index) {
         let wsCurrentResultId = null;
         let currentGradingSource = 'QUEUE';
 
+        function getCriterionLabel(key) {
+            if (wsGradingData && wsGradingData.criteriaLabels) {
+                if (key === 'ta') return '📝 ' + (wsGradingData.criteriaLabels.ta || 'Task Achievement');
+                if (key === 'lr') return '📖 ' + (wsGradingData.criteriaLabels.lr || 'Lexical Resource');
+                if (key === 'gra') return '🔤 ' + (wsGradingData.criteriaLabels.gra || 'Grammar Range & Accuracy');
+                if (key === 'cc') return '🔗 ' + (wsGradingData.criteriaLabels.cc || 'Coherence & Cohesion');
+            }
+            const labels = {
+                'ta': '📝 Task Achievement',
+                'lr': '📖 Lexical resource',
+                'gra': '🔤 Grammatical range and accuracy',
+                'cc': '🔗 Coherence and cohesion'
+            };
+            return labels[key] || key;
+        }
+
+        window.updateWritingOverall = function(qId) {
+            const inputs = [
+                document.querySelector(`.writing-ta[data-qid="${qId}"]`),
+                document.querySelector(`.writing-cc[data-qid="${qId}"]`),
+                document.querySelector(`.writing-lr[data-qid="${qId}"]`),
+                document.querySelector(`.writing-gra[data-qid="${qId}"]`)
+            ];
+
+            let sum = 0;
+            inputs.forEach(input => {
+                if (!input) return;
+                let val = parseFloat(input.value) || 0;
+                const max = parseFloat(input.getAttribute('data-max')) || 9;
+                
+                if (val > max) {
+                    val = max;
+                    input.value = max;
+                    // Visual feedback for violation
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.classList.remove('is-invalid'), 1500);
+                }
+                sum += val;
+            });
+
+            const avg = sum / 4;
+            const rounded = Math.round(avg * 2) / 2;
+            const overallEl = document.getElementById(`overall-writing-${qId}`);
+            if (overallEl) overallEl.textContent = rounded.toFixed(1);
+            
+            updateIeltSummary();
+        };
+
+        function pointsToBand(points, max) {
+            if (!max || max <= 0) return 0;
+            const ratio = points / max;
+            // Simple IELTS mapping logic for Reading/Listening
+            if (ratio >= 0.975) return 9.0;
+            if (ratio >= 0.925) return 8.5;
+            if (ratio >= 0.875) return 8.0;
+            if (ratio >= 0.825) return 7.5;
+            if (ratio >= 0.75)  return 7.0;
+            if (ratio >= 0.65)  return 6.5;
+            if (ratio >= 0.575) return 6.0;
+            if (ratio >= 0.5)   return 5.5;
+            if (ratio >= 0.4)   return 5.0;
+            if (ratio >= 0.3)   return 4.5;
+            if (ratio >= 0.2)   return 4.0;
+            return 0;
+        }
+
+        function updateIeltSummary() {
+            if (!wsGradingData) return;
+            const area = document.getElementById('ielts-summary-area');
+            const stdArea = document.getElementById('standard-score-area');
+            const statusBadge = document.getElementById('ielts-status-badge');
+            
+            const isIelts = (wsGradingData.quizCategory && wsGradingData.quizCategory.toUpperCase() === 'IELTS') || 
+                          (wsGradingData.quizTitle && wsGradingData.quizTitle.toUpperCase().includes('IELTS')) ||
+                          (wsGradingData.className && wsGradingData.className.toUpperCase().includes('IELTS'));
+            
+            if (!isIelts) {
+                if (area) area.classList.add('d-none');
+                if (stdArea) stdArea.classList.remove('d-none');
+                if (statusBadge) statusBadge.classList.add('d-none');
+                return;
+            }
+            
+            if (area) area.classList.remove('d-none');
+            if (stdArea) stdArea.classList.add('d-none'); // Hide raw score for IELTS
+            if (statusBadge) statusBadge.classList.remove('d-none');
+
+            const skillBands = { LISTENING: 0, READING: 0, WRITING: 0, SPEAKING: 0 };
+            const questions = wsGradingData.questions || [];
+            const sections = wsGradingData.sections || [];
+            const skills = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+
+            skills.forEach(s => {
+                let skillQs = [];
+                if (sections.length > 0) {
+                    skillQs = sections.find(sec => sec.skill === s)?.questions || [];
+                } else {
+                    skillQs = questions.filter(q => q.skill === s);
+                }
+                
+                if (skillQs.length === 0) return;
+
+                if (s === 'LISTENING' || s === 'READING') {
+                    let correctCount = 0; 
+                    let totalQs = skillQs.length;
+                    let maxBand = 9.0;
+                    
+                    // Determine maxBand from the highest maxPoints/cefrLevel in the set
+                    skillQs.forEach(q => {
+                        if (q.isCorrect) correctCount++;
+                        let qMax = q.maxPoints || q.points || 0;
+                        if (qMax > 0 && qMax > maxBand) maxBand = qMax;
+                        
+                        // Check if cefrLevel is a number
+                        if (q.cefrLevel && !isNaN(parseFloat(q.cefrLevel))) {
+                            let cVal = parseFloat(q.cefrLevel);
+                            if (cVal > 0 && (maxBand === 9.0 || cVal > maxBand)) maxBand = cVal;
+                        }
+                    });
+
+                    // If maxBand is still default 9.0 but we have a standard 40-question set, use mapping
+                    if (maxBand === 9.0 && totalQs >= 38) {
+                        skillBands[s] = pointsToBand(correctCount, totalQs);
+                    } else {
+                        // Proportional calculation
+                        skillBands[s] = totalQs > 0 ? (correctCount / totalQs) * (maxBand || 9.0) : 0;
+                    }
+                } else if (s === 'WRITING') {
+                    let sum = 0; let count = 0;
+                    skillQs.forEach(q => {
+                        const ta = parseFloat(document.querySelector(`.writing-ta[data-qid="${q.questionId}"]`)?.value) || q.writingTaskAchievement || 0;
+                        const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${q.questionId}"]`)?.value) || q.writingCoherenceCohesion || 0;
+                        const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${q.questionId}"]`)?.value) || q.writingLexicalResource || 0;
+                        const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${q.questionId}"]`)?.value) || q.writingGrammarAccuracy || 0;
+                        sum += (ta + cc + lr + gra) / 4;
+                        count++;
+                    });
+                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                } else if (s === 'SPEAKING') {
+                   let sum = 0; let count = 0;
+                   skillQs.forEach(q => {
+                       const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherScore || 0;
+                       sum += score; count++;
+                   });
+                   skillBands[s] = count > 0 ? (sum / count) : 0;
+                }
+            });
+
+            const breakdownEl = document.getElementById('ws-gd-skill-breakdown');
+            if (breakdownEl) {
+                breakdownEl.innerHTML = skills.filter(s => sections.some(sec => sec.skill === s) || questions.some(q => q.skill === s)).map(s => `
+                    <div class="d-flex flex-column align-items-center">
+                        <span class="extra-small text-muted fw-bold" style="font-size: 0.6rem;">${s.charAt(0)}</span>
+                        <span class="text-primary fw-bold" style="font-size: 0.9rem;">${skillBands[s].toFixed(1)}</span>
+                    </div>
+                `).join('<div class="vr mx-1" style="opacity: 0.1;"></div>');
+            }
+
+            const activeSkills = skills.filter(s => {
+                // Only include skills that have a score > 0 OR have a max points configuration > 0
+                const score = skillBands[s] || 0;
+                let skillMax = 0;
+                if (sections && sections.length > 0) {
+                    skillMax = sections.find(sec => sec.skill === s)?.maxScore || 0;
+                } else {
+                    const skillQs = questions.filter(q => q.skill === s);
+                    skillMax = skillQs.length > 0 ? (skillQs[0].maxPoints || skillQs[0].points || 0) : 0;
+                }
+                return score > 0 || skillMax > 0;
+            }).filter(s => skillBands[s] > 0);
+
+            const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skillBands[k], 0) / activeSkills.length : 0;
+            const overall = Math.round(avg * 2) / 2;
+            
+            const overallEl = document.getElementById('ws-gd-overall-band');
+            if (overallEl) {
+                overallEl.textContent = overall.toFixed(1);
+                // Color coding
+                if (overall >= 7) overallEl.parentElement.className = 'bg-success text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+                else if (overall >= 5) overallEl.parentElement.className = 'bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+                else overallEl.parentElement.className = 'bg-warning text-dark px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
+            }
+            const overallMaxEl = document.getElementById('ws-gd-overall-max');
+            if (overallMaxEl && wsGradingData.totalMaxScore) {
+                overallMaxEl.textContent = `/ ${parseFloat(wsGradingData.totalMaxScore).toFixed(1)}`;
+            }
+
+            const progressBar = document.getElementById('ielts-progress-bar');
+            if (progressBar) progressBar.style.width = (overall / 9 * 100) + '%';
+        }
+
         window.wsOpenGradingDetail = async function (resultId, type, source) {
             currentGradingSource = source || 'QUEUE';
             wsCurrentResultId = resultId;
@@ -5615,9 +5844,14 @@ window.wsSaveEditAi = function(index) {
 
         function renderWsGradingDetail(d) {
             document.getElementById('ws-gd-studentName').textContent = d.studentName || 'N/A';
-            document.getElementById('ws-gd-quizTitle').textContent = d.quizTitle || 'N/A';
+            const maxBandLabel = d.totalMaxScore ? ` (Max Band: ${parseFloat(d.totalMaxScore).toFixed(1)})` : '';
+            document.getElementById('ws-gd-quizTitle').textContent = (d.quizTitle || 'N/A') + maxBandLabel;
             document.getElementById('ws-gd-className').textContent = d.className || '—';
             document.getElementById('ws-gd-submittedAt').textContent = d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('vi-VN') : '—';
+            
+            // Populate state for IELTS summary calculation
+            state.ieltsQuestions = d.questions || (d.sections ? d.sections.flatMap(s => s.questions) : []);
+            setTimeout(updateIeltSummary, 100); // Small delay to ensure DOM elements are ready
             document.getElementById('ws-gd-autoScore').textContent = d.autoScore ?? d.score ?? 0;
             document.getElementById('ws-gd-totalScore').textContent = d.totalScore || d.totalPoints || '—';
 
@@ -5666,15 +5900,6 @@ window.wsSaveEditAi = function(index) {
                                             return `<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ${wsEscape(ans)}</div>`;
                                         })() : ''}
                                         
-                                        ${q.aiScore ? `
-                                            <div class="bg-primary bg-opacity-10 p-2 rounded-3 mb-2">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <span class="small fw-bold text-primary">🤖 AI Score: ${q.aiScore}</span>
-                                                    <span class="badge bg-primary" style="font-size:0.6rem;">IELTS</span>
-                                                </div>
-                                                ${q.aiFeedback ? `<div class="extra-small text-muted fst-italic">"${q.aiFeedback}"</div>` : ''}
-                                            </div>
-                                        ` : ''}
 
                                         ${(!isManual || isReadonly) ? `
                                             <div class="row g-2">
@@ -5683,18 +5908,190 @@ window.wsSaveEditAi = function(index) {
                                                     ${q.teacherNote ? `<div class="small text-muted mt-1 fst-italic">"${q.teacherNote}"</div>` : ''}
                                                 </div>
                                             </div>
+                                        ` : (q.questionType === 'WRITING' ? `
+                                            <div class="mt-4 grading-writing-container">
+                                                <!-- AI Proofreading Card -->
+                                                <div class="ai-proofreading-card mb-4 p-4 rounded-4 shadow-sm" style="background: #fff; border-left: 5px solid #ef4444;">
+                                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                                        <div class="bg-danger bg-opacity-10 p-2 rounded-3 text-danger">
+                                                            <i class="bi bi-magic"></i>
+                                                        </div>
+                                                        <div>
+                                                            <span class="fw-bold text-dark d-block">AI PROOFREADING & CORRECTIONS</span>
+                                                            <span class="extra-small text-muted">Hệ thống AI đã tìm thấy các lỗi sau trong bài làm</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ai-correction-content p-3 rounded-3 bg-light" style="font-size: 0.9rem; line-height: 1.6; color: #374151; border: 1px dashed #d1d5db;">
+                                                        ${q.aiFeedback || '<span class="text-muted fst-italic">AI đang phân tích các lỗi chính tả, ngữ pháp và từ vựng...</span>'}
+                                                    </div>
+                                                    <div class="mt-3 d-flex gap-3">
+                                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2">
+                                                            <i class="bi bi-spellcheck me-1"></i> Spelling & Grammar
+                                                        </span>
+                                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-3 py-2">
+                                                            <i class="bi bi-journal-text me-1"></i> Vocabulary Choice
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Max Band Warning -->
+                                                <div class="alert alert-info py-2 px-3 mb-4 rounded-3 border-0 bg-info bg-opacity-10 d-flex align-items-center gap-2" style="font-size: 0.8rem;">
+                                                    <i class="bi bi-exclamation-circle-fill text-info"></i>
+                                                    <span class="text-info fw-semibold">Lưu ý: Bài viết này được thiết kế tối đa cho Band ${q.maxPoints || q.points || 9.0}. Vui lòng không chấm quá giới hạn này.</span>
+                                                </div>
+
+                                                <!-- Criteria Grid -->
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                                                                    <i class="bi bi-bullseye"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Task Achievement</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 writing-ta text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.writingTaskAchievement || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                            <div class="mt-2 extra-small text-danger opacity-75 ai-reasoning" style="font-size: 0.65rem; line-height: 1.2;">
+                                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10" style="font-size: 0.6rem;">AI SUGGEST: BAND ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).task_achievement?.score || '0.0') : '0.0'}</span>
+                                                                </div>
+                                                                <i class="bi bi-info-circle me-1"></i> ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).task_achievement?.aiReasoning || 'Không tìm thấy lỗi cụ thể') : 'Đang chờ phân tích...'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 text-success">
+                                                                    <i class="bi bi-link-45deg"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Cohesion</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 writing-cc text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.writingCoherenceCohesion || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                            <div class="mt-2 extra-small text-danger opacity-75 ai-reasoning" style="font-size: 0.65rem; line-height: 1.2;">
+                                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10" style="font-size: 0.6rem;">AI SUGGEST: BAND ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).coherence_cohesion?.score || '0.0') : '0.0'}</span>
+                                                                </div>
+                                                                <i class="bi bi-info-circle me-1"></i> ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).coherence_cohesion?.aiReasoning || 'Không tìm thấy lỗi cụ thể') : 'Đang chờ phân tích...'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                                                                    <i class="bi bi-alphabet"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Lexical Resource</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 writing-lr text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.writingLexicalResource || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                            <div class="mt-2 extra-small text-danger opacity-75 ai-reasoning" style="font-size: 0.65rem; line-height: 1.2;">
+                                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10" style="font-size: 0.6rem;">AI SUGGEST: BAND ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).lexical_resource?.score || '0.0') : '0.0'}</span>
+                                                                </div>
+                                                                <i class="bi bi-info-circle me-1"></i> ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).lexical_resource?.aiReasoning || 'Không tìm thấy lỗi cụ thể') : 'Đang chờ phân tích...'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-danger bg-opacity-10 text-danger">
+                                                                    <i class="bi bi-spellcheck"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Grammar Range</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 writing-gra text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.writingGrammarAccuracy || ''}" oninput="updateWritingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                            <div class="mt-2 extra-small text-danger opacity-75 ai-reasoning" style="font-size: 0.65rem; line-height: 1.2;">
+                                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-10" style="font-size: 0.6rem;">AI SUGGEST: BAND ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).grammatical_range?.score || '0.0') : '0.0'}</span>
+                                                                </div>
+                                                                <i class="bi bi-info-circle me-1"></i> ${q.aiRubricJson ? (JSON.parse(q.aiRubricJson).grammatical_range?.aiReasoning || 'Không tìm thấy lỗi cụ thể') : 'Đang chờ phân tích...'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Summary & Feedback Footer -->
+                                                <div class="row g-3">
+                                                    <div class="col-lg-8">
+                                                        <div class="p-3 rounded-4 bg-white shadow-sm border-0 h-100" style="border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <label class="fw-bold text-muted small mb-2 text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">
+                                                                <i class="bi bi-chat-left-quote me-1"></i> Ghi chú & Nhận xét chi tiết
+                                                            </label>
+                                                            <textarea class="form-control border-0 bg-light rounded-3 ws-gd-note-input" 
+                                                                      style="height: 120px; resize: none; font-size: 0.9rem;" data-qid="${q.questionId}" placeholder="Viết nhận xét của bạn tại đây...">${q.teacherNote || ''}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="p-4 rounded-4 bg-primary text-white shadow-lg h-100 d-flex flex-column align-items-center justify-content-center text-center" 
+                                                             style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); min-height: 160px;">
+                                                            <span class="extra-small fw-bold text-uppercase opacity-75 mb-2" style="letter-spacing: 2px; font-size: 0.65rem;">Overall Writing</span>
+                                                            <div class="display-4 fw-bolder mb-1" id="overall-writing-${q.questionId}" style="font-size: 3.5rem;">
+                                                                ${(q.writingTaskAchievement != null) ? (Math.round(((parseFloat(q.writingTaskAchievement) + parseFloat(q.writingCoherenceCohesion) + parseFloat(q.writingLexicalResource) + parseFloat(q.writingGrammarAccuracy))/4) * 2) / 2).toFixed(1) : '0.0'}
+                                                            </div>
+                                                            <div class="small opacity-75 fw-medium" style="font-size: 0.75rem;">Arithmetic Mean Score</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <style>
+                                                .icon-circle {
+                                                    width: 32px;
+                                                    height: 32px;
+                                                    border-radius: 10px;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    font-size: 1.1rem;
+                                                }
+                                                .criteria-card {
+                                                    border: 1px solid rgba(0,0,0,0.05) !important;
+                                                }
+                                                .criteria-card:hover {
+                                                    transform: translateY(-5px);
+                                                    box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+                                                    border-color: #2563eb !important;
+                                                }
+                                                .transition-all {
+                                                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                                                }
+                                                .grading-writing-container input::-webkit-outer-spin-button,
+                                                .grading-writing-container input::-webkit-inner-spin-button {
+                                                    -webkit-appearance: none;
+                                                    margin: 0;
+                                                }
+                                            </style>
                                         ` : `
                                             <div class="row g-2 align-items-end">
                                                 <div class="col-md-3">
                                                     <label class="form-label extra-small fw-bold">Điểm</label>
-                                                    <input type="number" step="0.5" min="0" max="${maxVal}" class="form-control form-control-sm ws-gd-score-input" data-qid="${q.questionId}" value="${scoreVal}">
+                                                    <input type="number" step="0.5" min="0" max="${maxVal}" class="form-control form-control-sm ws-gd-score-input" 
+                                                           data-qid="${q.questionId}" value="${scoreVal}" oninput="updateIeltSummary()">
                                                 </div>
                                                 <div class="col-md-9">
                                                     <label class="form-label extra-small fw-bold">Nhận xét</label>
                                                     <input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="${q.questionId}" value="${q.teacherNote || ''}" placeholder="Ghi chú...">
                                                 </div>
                                             </div>
-                                        `}
+                                        `)}
                                     </div>`;
                                 }).join('')}
                             </div>
@@ -5703,17 +6100,42 @@ window.wsSaveEditAi = function(index) {
                 </div>`;
             }).join('');
 
+            // Update IELTS summary immediately
+            updateIeltSummary();
+
             const actionArea = document.getElementById('ws-gd-actionArea');
             if (actionArea) actionArea.style.display = isReadonly ? 'none' : 'block';
         }
 
         window.wsSubmitGrade = async function (isFinal) {
             const items = [];
+            // Handle standard manual grading
             document.querySelectorAll('.ws-gd-score-input').forEach(input => {
                 const qid = parseInt(input.dataset.qid);
                 const score = parseFloat(input.value) || 0;
                 const note = document.querySelector(`.ws-gd-note-input[data-qid="${qid}"]`)?.value || '';
                 items.push({ questionId: qid, pointsAwarded: score, teacherNote: note });
+            });
+
+            // Handle Writing Criteria grading
+            document.querySelectorAll('.writing-ta').forEach(input => {
+                const qid = parseInt(input.dataset.qid);
+                const ta = parseFloat(input.value) || 0;
+                const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${qid}"]`)?.value) || 0;
+                const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${qid}"]`)?.value) || 0;
+                const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${qid}"]`)?.value) || 0;
+                const note = document.querySelector(`.ws-gd-note-input[data-qid="${qid}"]`)?.value || '';
+                
+                const avg = (ta + cc + lr + gra) / 4;
+                items.push({ 
+                    questionId: qid, 
+                    pointsAwarded: avg, 
+                    teacherNote: note,
+                    writingTaskAchievement: ta,
+                    writingCoherenceCohesion: cc,
+                    writingLexicalResource: lr,
+                    writingGrammarAccuracy: gra
+                });
             });
 
             const btn = isFinal ? document.getElementById('ws-gd-finalBtn') : document.getElementById('ws-gd-draftBtn');

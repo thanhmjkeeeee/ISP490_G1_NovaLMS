@@ -21,6 +21,7 @@ public class CourseLearningInfoDTO {
 
     private String teacherName;
     private String teacherAvatar;
+    private Boolean isSelfStudy;
 
     private String className;
     private String schedule;

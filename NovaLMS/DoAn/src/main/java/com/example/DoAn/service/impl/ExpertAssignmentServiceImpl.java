@@ -55,6 +55,10 @@ public class ExpertAssignmentServiceImpl implements IExpertAssignmentService {
             throw new InvalidDataException("Loại bài tập không hợp lệ");
         }
 
+        if (quizRepository.existsByTitleAndUser_UserId(dto.getTitle(), expert.getUserId())) {
+            throw new InvalidDataException("Bạn đã có Assignment với tên này rồi. Vui lòng chọn tên khác!");
+        }
+
         Quiz quiz = new Quiz();
         quiz.setTitle(dto.getTitle());
         quiz.setDescription(dto.getDescription());

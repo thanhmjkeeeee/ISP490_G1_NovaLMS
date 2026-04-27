@@ -2,6 +2,7 @@ package com.example.DoAn.controller;
 
 import com.example.DoAn.dto.request.QuestionGradingRequestDTO;
 import com.example.DoAn.dto.request.QuizGradingRequestDTO;
+import com.example.DoAn.dto.request.QuizItemGradingRequestDTO;
 import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.dto.response.QuizResultDetailDTO;
 import com.example.DoAn.dto.response.QuizResultGradedDTO;
@@ -35,7 +36,7 @@ public class TeacherQuizGradingApiController {
         return principal.getName();
     }
 
-    @GetMapping("/pending")
+    @GetMapping({"/pending", "/grading"})
     public ResponseData<PageResponse<QuizResultPendingDTO>> getPendingGradingList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -102,6 +103,22 @@ public class TeacherQuizGradingApiController {
         try {
             Double score = quizResultService.gradeQuizResult(resultId, gradingItems, email);
             return ResponseData.success("Đã lưu điểm thành công! Tổng điểm: " + score);
+        } catch (Exception e) {
+            return ResponseData.error(500, e.getMessage());
+        }
+    }
+
+    @PostMapping("/grade-item")
+    public ResponseData<Void> gradeItem(
+            @RequestBody QuizItemGradingRequestDTO request,
+            Principal principal) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null)
+            return ResponseData.error(401, "Vui lòng đăng nhập.");
+
+        try {
+            quizResultService.gradeQuizItem(request, email);
+            return ResponseData.success("Đã lưu điểm câu hỏi thành công!");
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

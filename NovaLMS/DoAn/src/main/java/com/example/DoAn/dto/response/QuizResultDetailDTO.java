@@ -35,4 +35,5 @@ public class QuizResultDetailDTO {
     private Map<String, Double> sectionScores;
     private String quizCategory;
     private Boolean isAssignment;
+    private Map<String, String> criteriaLabels; // Dynamic labels for writing/speaking criteria
 }

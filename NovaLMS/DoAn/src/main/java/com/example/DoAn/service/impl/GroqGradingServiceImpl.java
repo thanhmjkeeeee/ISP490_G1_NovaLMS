@@ -153,11 +153,17 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             log.error("AI Grading Error for Q{}: {}", questionId, e.getMessage());
 
             // BƯỚC 3: FALLBACK - TẠO RUBRIC 0 ĐIỂM KHI CÓ LỖI
-            String errorMsg = e.getMessage().contains("401") ? "Lỗi xác thực dịch vụ chấm điểm." : "Lỗi hệ thống xử lý bài làm.";
+            String rawError = e.getMessage() != null ? e.getMessage() : "Unknown error";
+            String errorMsg;
+            if (rawError.contains("401")) errorMsg = "Lỗi xác thực (Kiểm tra API Key).";
+            else if (rawError.contains("429")) errorMsg = "Hết hạn mức sử dụng (Quota Exceeded) hoặc bị giới hạn tốc độ.";
+            else if (rawError.contains("timeout")) errorMsg = "Dịch vụ AI phản hồi quá chậm (Timeout).";
+            else errorMsg = "Lỗi xử lý: " + (rawError.length() > 100 ? rawError.substring(0, 100) + "..." : rawError);
+
             String dummyRubric = createZeroRubric(qType, errorMsg);
 
             answer.setAiScore("0/9");
-            answer.setAiFeedback("Hệ thống gặp sự cố khi chấm bài tự động. Giáo viên sẽ kiểm tra lại phần này. Chi tiết: " + errorMsg);
+            answer.setAiFeedback("AI tạm thời không thể chấm bài. Chi tiết: " + errorMsg);
             answer.setAiRubricJson(dummyRubric);
             answer.setAiGradingStatus("COMPLETED"); // Vẫn để COMPLETED để hiện lên UI
             answer.setPendingAiReview(false);

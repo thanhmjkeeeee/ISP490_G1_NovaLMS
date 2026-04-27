@@ -189,8 +189,24 @@
       }
 
       // 2. Render Teacher
-      document.getElementById('teacherName').textContent = course.teacherName || 'Hệ thống LMS';
-      if(course.teacherAvatar) document.getElementById('teacherAvatar').src = course.teacherAvatar;
+      const teacherCard = document.getElementById('teacherName').closest('.card');
+      if (course.isSelfStudy) {
+          document.getElementById('teacherName').textContent = 'Khóa học Tự học';
+          // Hide teacher avatar if it's self-study? Or keep it?
+          // The user said "ko cần giảng viên". Let's hide the card.
+          if (teacherCard) teacherCard.classList.add('d-none');
+          
+          // Hide Live Class tab
+          const liveTab = document.querySelector('button[data-bs-target="#liveclass"]')?.closest('li');
+          if (liveTab) liveTab.classList.add('d-none');
+      } else {
+          document.getElementById('teacherName').textContent = course.teacherName || 'Hệ thống LMS';
+          if(course.teacherAvatar) document.getElementById('teacherAvatar').src = course.teacherAvatar;
+          if (teacherCard) teacherCard.classList.remove('d-none');
+          
+          const liveTab = document.querySelector('button[data-bs-target="#liveclass"]')?.closest('li');
+          if (liveTab) liveTab.classList.remove('d-none');
+      }
 
       // 3. Render Live Class (Đã fix lỗi logic lồng ghép)
       const liveDiv = document.getElementById('liveClassInfo');

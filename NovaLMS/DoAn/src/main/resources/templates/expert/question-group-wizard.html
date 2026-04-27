@@ -215,6 +215,36 @@
                   </label>
                 </div>
               </div>
+              
+              <!-- Advanced AI Options -->
+              <div id="aiAdvancedOptions" class="p-3 rounded-3 bg-light border mt-3" style="display: none;">
+                <h6 class="small fw-bold text-primary mb-2"><i class="bi bi-gear-fill me-1"></i>Tùy chọn nâng cao</h6>
+                
+                <!-- Reading Length -->
+                <div id="aiReadingLengthSection" style="display: none;">
+                  <label class="form-label small fw-bold">Độ dài đoạn văn (Reading Passage)</label>
+                  <div class="d-flex gap-2 mb-2">
+                    <input type="radio" class="btn-check" name="aiReadingLength" id="aiLenShort" value="SHORT">
+                    <label class="btn btn-outline-secondary btn-sm rounded-3 flex-grow-1" for="aiLenShort">Ngắn<br><small>(100-150w)</small></label>
+
+                    <input type="radio" class="btn-check" name="aiReadingLength" id="aiLenMed" value="MEDIUM" checked>
+                    <label class="btn btn-outline-secondary btn-sm rounded-3 flex-grow-1" for="aiLenMed">Vừa<br><small>(200-300w)</small></label>
+
+                    <input type="radio" class="btn-check" name="aiReadingLength" id="aiLenLong" value="LONG">
+                    <label class="btn btn-outline-secondary btn-sm rounded-3 flex-grow-1" for="aiLenLong">Dài<br><small>(400-600w)</small></label>
+                  </div>
+                </div>
+
+                <!-- Listening Type -->
+                <div id="aiListeningTypeSection" style="display: none;">
+                    <label class="form-label small fw-bold">Loại kịch bản nghe</label>
+                    <select class="form-select form-select-sm rounded-3" id="aiListeningType">
+                        <option value="Dialogue">Dialogue (Hội thoại)</option>
+                        <option value="Monologue">Monologue (Độc thoại)</option>
+                        <option value="Announcement">Announcement (Thông báo)</option>
+                    </select>
+                </div>
+              </div>
             </div>
             <div id="aiStep2Error" class="alert alert-danger" style="display:none;"></div>
             <div id="aiStep2Loading" class="text-center py-3" style="display:none;">

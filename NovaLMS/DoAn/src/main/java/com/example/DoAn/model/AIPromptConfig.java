@@ -37,4 +37,10 @@ public class AIPromptConfig {
 
     @Column(columnDefinition = "TEXT")
     private String speakingConstraint;
+
+    @Column(columnDefinition = "TEXT")
+    private String writingRubricJson;
+
+    @Column(columnDefinition = "TEXT")
+    private String speakingRubricJson;
 }

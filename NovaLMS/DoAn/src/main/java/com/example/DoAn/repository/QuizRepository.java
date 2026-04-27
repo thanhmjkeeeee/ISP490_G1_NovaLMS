@@ -58,7 +58,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
            "AND (q.clazz IS NULL OR q.clazz.classId = :classId)")
     List<Quiz> findQuizzesForStudent(@Param("courseId") Integer courseId, @Param("classId") Integer classId);
 
-    @Query("SELECT DISTINCT q FROM Quiz q " +
+    @Query("SELECT q FROM Quiz q " +
            "JOIN q.course c " +
            "JOIN c.classes cl " +
            "LEFT JOIN FETCH q.module m " +
@@ -68,5 +68,9 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
            "AND q.user.role.value = 'ROLE_EXPERT' " +
            "AND q.quizCategory IN ('COURSE_ASSIGNMENT', 'COURSE_QUIZ', 'MODULE_QUIZ', 'LESSON_QUIZ', 'MODULE_ASSIGNMENT')")
     List<Quiz> findExpertQuizzesByClassId(@Param("classId") Integer classId);
+
+    boolean existsByTitleAndUser_UserId(String title, Integer userId);
+
+    boolean existsByTitleAndUser_UserIdAndQuizIdNot(String title, Integer userId, Integer quizId);
 
 }
