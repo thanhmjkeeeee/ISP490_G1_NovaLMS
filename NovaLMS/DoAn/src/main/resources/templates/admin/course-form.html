@@ -68,10 +68,8 @@
               <div class="col-md-4">
                 <label class="form-label fw-bold small">Trạng thái <span class="text-danger">*</span></label>
                 <select id="status" class="form-select" required>
-                  <option value="active">Hoạt động</option>
                   <option value="Published">Xuất bản</option>
                   <option value="draft">Bản nháp</option>
-                  <option value="inactive">Tạm dừng</option>
                 </select>
                 <div id="statusError" class="text-danger small mt-1"></div>
               </div>
@@ -388,11 +386,11 @@
               preview.style.display = 'block';
               placeholder.style.display = 'none';
             }
-            let statusVal = course.status || 'active';
-            if (typeof statusVal === 'string' && statusVal.toLowerCase() === 'published') {
-              statusVal = 'Published';
+            let statusVal = (course.status || 'draft').toLowerCase();
+            if (statusVal === 'published') {
+                document.getElementById('status').value = 'Published';
             } else {
-              statusVal = statusVal.toLowerCase();
+                document.getElementById('status').value = 'draft';
             }
             document.getElementById('status').value = statusVal;
             document.getElementById('description').value = course.description || '';

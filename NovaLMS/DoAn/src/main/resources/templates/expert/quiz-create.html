@@ -573,7 +573,7 @@
                         <div class="d-flex gap-2">
                             <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i
                                     class="bi bi-arrow-left me-1"></i> Quay lại</button>
-                            <button class="btn btn-light px-4" onclick="cancelAndExit()">Hủy và xóa</button>
+                            <button class="btn btn-light px-4" onclick="cancelAndExit()">Hủy</button>
                         </div>
                         <div class="small text-muted">Tự động lưu...</div>
                         <button class="btn btn-primary px-5 fw-bold" onclick="goToStep(3)">Tiếp theo: Xem trước & Hoàn
@@ -1655,6 +1655,41 @@
             if (progress) progress.parentElement.style.display = 'none';
         }
 
+        function matchingPreviewHtml(q) {
+            if (!q || q.questionType !== 'MATCHING') return '';
+            const left = Array.isArray(q.matchLeft) ? q.matchLeft : [];
+            const right = Array.isArray(q.matchRight) ? q.matchRight : [];
+            if (left.length === 0 && right.length === 0) return '';
+
+            function resolveRightIndex(p) {
+                if (typeof p !== 'number' || isNaN(p) || !right.length) return -1;
+                if (p >= 1 && p <= right.length) return p - 1;
+                if (p >= 0 && p < right.length) return p;
+                return -1;
+            }
+
+            let inner;
+            const pairs = Array.isArray(q.correctPairs) ? q.correctPairs : null;
+            if (pairs && pairs.length === left.length && left.length > 0) {
+                inner = '<ul class="list-unstyled small mb-0 mt-1">';
+                for (let idx = 0; idx < left.length; idx++) {
+                    const rj = resolveRightIndex(Number(pairs[idx]));
+                    const rtext = (rj >= 0 && right[rj] !== undefined) ? String(right[rj]) : '?';
+                    inner += '<li class="mb-1 d-flex align-items-start gap-2"><span class="badge bg-secondary flex-shrink-0">' + (idx + 1) + '</span>' +
+                        '<span><span class="fw-medium text-dark">' + escapeHtml(String(left[idx])) + '</span>' +
+                        ' <i class="bi bi-arrow-right text-muted mx-1"></i> ' +
+                        '<span class="fw-medium text-dark">' + escapeHtml(rtext) + '</span></span></li>';
+                }
+                inner += '</ul>';
+            } else {
+                inner = '<div class="row g-2 mt-1"><div class="col-md-6"><div class="text-muted small mb-1">Cột A</div><ol class="small mb-0 ps-3">' +
+                    left.map(l => '<li>' + escapeHtml(String(l)) + '</li>').join('') + '</ol></div>' +
+                    '<div class="col-md-6"><div class="text-muted small mb-1">Cột B</div><ol class="small mb-0 ps-3">' +
+                    right.map(r => '<li>' + escapeHtml(String(r)) + '</li>').join('') + '</ol></div></div>';
+            }
+            return '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25 bg-light-subtle p-2 rounded">' + inner + '</div>';
+        }
+
         // ===== [BẮT ĐẦU SỬA MỚI] =====
         function wsRenderAiResults() {
             const list = document.getElementById('wsAiList');
@@ -1741,14 +1776,18 @@
                         // NẾU XEM BÌNH THƯỜNG
                         else {
                             let ansHtml = '';
-                            const opts = subQ.options || subQ.answers || [];
-                            if (opts.length > 0) {
-                                ansHtml = '<div class="mt-2 ps-2 border-start border-2 border-primary border-opacity-25">';
-                                opts.forEach(a => {
-                                    const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '';
-                                    ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
-                                });
-                                ansHtml += '</div>';
+                            if (subQ.questionType === 'MATCHING') {
+                                ansHtml = matchingPreviewHtml(subQ);
+                            } else {
+                                const opts = subQ.options || subQ.answers || [];
+                                if (opts.length > 0) {
+                                    ansHtml = '<div class="mt-2 ps-2 border-start border-2 border-primary border-opacity-25">';
+                                    opts.forEach(a => {
+                                        const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '';
+                                        ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
+                                    });
+                                    ansHtml += '</div>';
+                                }
                             }
                             subQsHtml += `
                             <div class="p-3 border rounded-3 bg-white mb-2">
@@ -1827,14 +1866,18 @@
                     // B. XEM CÂU HỎI LẺ BÌNH THƯỜNG
                     else {
                         let ansHtml = '';
-                        const opts = q.options || q.answers || [];
-                        if (opts.length > 0) {
-                            ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
-                            opts.forEach(a => {
-                                const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
-                                ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
-                            });
-                            ansHtml += '</div>';
+                        if (q.questionType === 'MATCHING') {
+                            ansHtml = matchingPreviewHtml(q);
+                        } else {
+                            const opts = q.options || q.answers || [];
+                            if (opts.length > 0) {
+                                ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
+                                opts.forEach(a => {
+                                    const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
+                                    ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
+                                });
+                                ansHtml += '</div>';
+                            }
                         }
 
                         html += `
