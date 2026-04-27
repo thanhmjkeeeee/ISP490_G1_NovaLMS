@@ -25,8 +25,6 @@ public class QuizRequestDTO {
     private Integer classId;         // gắn quiz với lớp học (cho teacher tạo quiz)
     private Integer moduleId;        // cho MODULE_QUIZ
     private Integer lessonId;        // cho LESSON_QUIZ
-    @Min(value = 1, message = "Thời gian làm bài tối thiểu là 1 phút")
-    @Max(value = 300, message = "Thời gian làm bài tối đa là 300 phút")
     private Integer timeLimitMinutes;
 
     @Min(value = 0, message = "Điểm đạt tối thiểu là 0%")

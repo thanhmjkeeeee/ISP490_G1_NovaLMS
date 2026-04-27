@@ -577,8 +577,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     private Quiz findQuiz(Integer quizId) {
-        return quizRepository.findById(quizId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quiz với ID: " + quizId));
+        return quizRepository.findByIdWithDetails(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + quizId));
     }
 
     private boolean hasStudentAttempts(Integer quizId) {

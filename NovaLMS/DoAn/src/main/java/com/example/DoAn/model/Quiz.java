@@ -144,6 +144,27 @@ public class Quiz {
     @OrderBy("orderIndex ASC")
     private List<QuizQuestion> quizQuestions;
 
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<QuizAssignment> assignments;
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<QuizConfig> configs;
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<LessonQuizProgress> progresses;
+
+    @OneToMany(mappedBy = "quiz", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    private List<ClassSession> sessions;
+
+    @PreRemove
+    private void preRemove() {
+        if (sessions != null) {
+            for (ClassSession s : sessions) {
+                s.setQuiz(null);
+            }
+        }
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();

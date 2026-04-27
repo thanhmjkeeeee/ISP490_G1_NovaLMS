@@ -8,7 +8,7 @@ import java.util.List;
 @Repository
 public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Integer> {
 
-    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question WHERE qq.quiz.quizId = :quizId ORDER BY qq.orderIndex ASC")
+    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question LEFT JOIN FETCH qq.questionGroup WHERE qq.quiz.quizId = :quizId ORDER BY qq.orderIndex ASC")
     List<QuizQuestion> findByQuizQuizIdOrderByOrderIndexAsc(@org.springframework.data.repository.query.Param("quizId") Integer quizId);
 
     List<QuizQuestion> findByQuizQuizId(Integer quizId);

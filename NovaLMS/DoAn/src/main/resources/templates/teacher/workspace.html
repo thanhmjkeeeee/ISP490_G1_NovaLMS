@@ -1117,6 +1117,11 @@
                                     <label
                                         class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                         for="type-match">Nối cặp</label>
+
+                                    <input type="checkbox" class="btn-check" id="type-group" value="GROUP" onchange="toggleAiAdvancedFields()">
+                                    <label
+                                        class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                        for="type-group">Bộ câu hỏi</label>
                                 </div>
                             </div>
                             <div id="adv-skill-info-msg" class="mb-3" style="display:none;">
@@ -1137,16 +1142,6 @@
                             <label class="form-label fw-bold small text-uppercase text-primary">Tùy chọn nâng
                                 cao</label>
 
-                            <div id="field-layout-mode" class="mb-3" style="display:none;">
-                                <label class="form-label small fw-bold">Dạng bài</label>
-                                <div class="d-flex gap-2">
-                                    <input type="radio" class="btn-check" name="adv-layout" id="layout-grouped" value="GROUPED" checked>
-                                    <label class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-normal" for="layout-grouped">Theo đoạn văn/bài nghe</label>
-
-                                    <input type="radio" class="btn-check" name="adv-layout" id="layout-standalone" value="STANDALONE">
-                                    <label class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-normal" for="layout-standalone">Câu hỏi độc lập</label>
-                                </div>
-                            </div>
 
                             <!-- Listening Options -->
                             <div id="field-listening" class="mb-3">
@@ -3492,9 +3487,6 @@
             document.getElementById('field-listening').style.display = (skill === 'LISTENING') ? 'block' : 'none';
             document.getElementById('field-reading').style.display = (skill === 'READING') ? 'block' : 'none';
             document.getElementById('field-matching').style.display = (!isProductive && isMatchingChecked) ? 'block' : 'none';
-            
-            const layoutField = document.getElementById('field-layout-mode');
-            if (layoutField) layoutField.style.display = (skill === 'READING' || skill === 'LISTENING' ? 'block' : 'none');
         };
 
         window.runAdvancedAiGeneration = async function () {
@@ -3525,12 +3517,15 @@
                 advancedOptions.matchingPairs = parseInt(document.getElementById('adv-match-pairs').value);
             }
 
+            const isGroupSkill = (skill === 'READING' || skill === 'LISTENING') && document.getElementById('type-group').checked;
+            const cleanTypes = types.filter(t => t !== 'GROUP');
+            
             const payload = {
                 topic,
                 quantity: qty,
                 skill,
                 cefrLevel: cefr,
-                questionTypes: types,
+                questionTypes: cleanTypes,
                 mode: "ADVANCED",
                 advancedOptions
             };
@@ -3540,8 +3535,6 @@
             if (btn) btn.disabled = true;
             if (spinner) spinner.style.display = 'inline-block';
 
-            const layout = document.querySelector('input[name="adv-layout"]:checked')?.value || 'GROUPED';
-            const isGroupSkill = (skill === 'READING' || skill === 'LISTENING') && (layout === 'GROUPED');
             const aiEndpoint = isGroupSkill ? '/api/v1/teacher/quizzes/ai/generate-group' : '/api/v1/teacher/quizzes/ai/generate';
 
             try {
