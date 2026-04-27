@@ -72,6 +72,12 @@ public class AssignmentGradingDetailDTO {
         private BigDecimal writingLexicalResource;
         private BigDecimal writingGrammarAccuracy;
 
+        // Speaking criteria breakdown
+        private BigDecimal speakingFluencyCoherence;
+        private BigDecimal speakingLexicalResource;
+        private BigDecimal speakingPronunciation;
+        private BigDecimal speakingGrammarAccuracy;
+
         @Data
         @NoArgsConstructor
         @AllArgsConstructor

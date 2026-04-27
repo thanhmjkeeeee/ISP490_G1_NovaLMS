@@ -5641,6 +5641,35 @@ window.wsSaveEditAi = function(index) {
             if (overallEl) overallEl.textContent = rounded.toFixed(1);
             
             updateIeltSummary();
+        };        window.updateSpeakingOverall = function(qId) {
+            const inputs = [
+                document.querySelector(`.speaking-fc[data-qid="${qId}"]`),
+                document.querySelector(`.speaking-lr[data-qid="${qId}"]`),
+                document.querySelector(`.speaking-pr[data-qid="${qId}"]`),
+                document.querySelector(`.speaking-gra[data-qid="${qId}"]`)
+            ];
+
+            let sum = 0;
+            inputs.forEach(input => {
+                if (!input) return;
+                let val = parseFloat(input.value) || 0;
+                const max = parseFloat(input.getAttribute('data-max')) || 9;
+                
+                if (val > max) {
+                    val = max;
+                    input.value = max;
+                    input.classList.add('is-invalid');
+                    setTimeout(() => input.classList.remove('is-invalid'), 1500);
+                }
+                sum += val;
+            });
+
+            const avg = sum / 4;
+            const rounded = Math.round(avg * 2) / 2;
+            const overallEl = document.getElementById(`overall-speaking-${qId}`);
+            if (overallEl) overallEl.textContent = rounded.toFixed(1);
+            
+            updateIeltSummary();
         };
 
         function pointsToBand(points, max) {
@@ -5700,27 +5729,34 @@ window.wsSaveEditAi = function(index) {
                 if (s === 'LISTENING' || s === 'READING') {
                     let correctCount = 0; 
                     let totalQs = skillQs.length;
-                    let maxBand = 9.0;
                     
-                    // Determine maxBand from the highest maxPoints/cefrLevel in the set
+                    // Determine maxBand from assignment settings or questions
+                    let maxBand = parseFloat(wsGradingData.totalMaxScore) || 0;
+                    
                     skillQs.forEach(q => {
                         if (q.isCorrect) correctCount++;
-                        let qMax = q.maxPoints || q.points || 0;
-                        if (qMax > 0 && qMax > maxBand) maxBand = qMax;
                         
-                        // Check if cefrLevel is a number
-                        if (q.cefrLevel && !isNaN(parseFloat(q.cefrLevel))) {
-                            let cVal = parseFloat(q.cefrLevel);
-                            if (cVal > 0 && (maxBand === 9.0 || cVal > maxBand)) maxBand = cVal;
+                        // If maxBand is not set by assignment, try to get from questions
+                        if (parseFloat(wsGradingData.totalMaxScore) <= 0 || isNaN(parseFloat(wsGradingData.totalMaxScore))) {
+                            let qMax = q.maxPoints || q.points || 0;
+                            if (qMax > 0 && qMax > maxBand) maxBand = qMax;
+                            
+                            if (q.cefrLevel && !isNaN(parseFloat(q.cefrLevel))) {
+                                let cVal = parseFloat(q.cefrLevel);
+                                if (cVal > 0 && cVal > maxBand) maxBand = cVal;
+                            }
                         }
                     });
+                    
+                    if (maxBand <= 0) maxBand = 9.0;
 
                     // If maxBand is still default 9.0 but we have a standard 40-question set, use mapping
                     if (maxBand === 9.0 && totalQs >= 38) {
                         skillBands[s] = pointsToBand(correctCount, totalQs);
                     } else {
-                        // Proportional calculation
-                        skillBands[s] = totalQs > 0 ? (correctCount / totalQs) * (maxBand || 9.0) : 0;
+                        // Proportional calculation with IELTS rounding
+                        const rawBand = totalQs > 0 ? (correctCount / totalQs) * (maxBand || 9.0) : 0;
+                        skillBands[s] = Math.round(rawBand * 2) / 2;
                     }
                 } else if (s === 'WRITING') {
                     let sum = 0; let count = 0;
@@ -5732,14 +5768,26 @@ window.wsSaveEditAi = function(index) {
                         sum += (ta + cc + lr + gra) / 4;
                         count++;
                     });
-                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                    const avg = count > 0 ? (sum / count) : 0;
+                    skillBands[s] = Math.round(avg * 2) / 2;
                 } else if (s === 'SPEAKING') {
-                   let sum = 0; let count = 0;
-                   skillQs.forEach(q => {
-                       const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherScore || 0;
-                       sum += score; count++;
-                   });
-                   skillBands[s] = count > 0 ? (sum / count) : 0;
+                    let sum = 0; let count = 0;
+                    skillQs.forEach(q => {
+                        const fc = parseFloat(document.querySelector(`.speaking-fc[data-qid="${q.questionId}"]`)?.value) || q.speakingFluencyCoherence || 0;
+                        const lr = parseFloat(document.querySelector(`.speaking-lr[data-qid="${q.questionId}"]`)?.value) || q.speakingLexicalResource || 0;
+                        const pr = parseFloat(document.querySelector(`.speaking-pr[data-qid="${q.questionId}"]`)?.value) || q.speakingPronunciation || 0;
+                        const gra = parseFloat(document.querySelector(`.speaking-gra[data-qid="${q.questionId}"]`)?.value) || q.speakingGrammarAccuracy || 0;
+                        
+                        if (fc > 0 || lr > 0 || pr > 0 || gra > 0) {
+                            sum += (fc + lr + pr + gra) / 4;
+                        } else {
+                            const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherScore || 0;
+                            sum += score;
+                        }
+                        count++;
+                    });
+                    const avg = count > 0 ? (sum / count) : 0;
+                    skillBands[s] = Math.round(avg * 2) / 2;
                 }
             });
 
@@ -5879,7 +5927,7 @@ window.wsSaveEditAi = function(index) {
                                     return `
                                     <div class="border rounded-3 p-3 bg-white">
                                         <div class="d-flex justify-content-between mb-2">
-                                            <h6 class="mb-0 small fw-bold">Câu ${qi + 1} <span class="badge bg-light text-dark border ms-1">${maxVal}đ</span></h6>
+                                            <h6 class="mb-0 small fw-bold">Câu ${qi + 1} ${isManual ? `<span class="badge bg-light text-dark border ms-1">${maxVal}đ</span>` : ''}</h6>
                                             ${q.isCorrect ? '<span class="badge bg-success bg-opacity-10 text-success">Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger bg-opacity-10 text-danger">Sai</span>' : '')}
                                         </div>
                                         <p class="mb-2 small border-bottom pb-2">${q.content || '—'}</p>
@@ -5895,10 +5943,75 @@ window.wsSaveEditAi = function(index) {
                                         
 
                                         ${(!isManual || isReadonly) ? `
-                                            <div class="row g-2">
-                                                <div class="col-12 text-end">
-                                                    <div class="fw-bold text-primary small">Điểm: ${scoreVal} / ${maxVal}</div>
-                                                    ${q.teacherNote ? `<div class="small text-muted mt-1 fst-italic">"${q.teacherNote}"</div>` : ''}
+                                            <div class="row g-2 mt-3">
+                                                <div class="col-12">
+                                                    ${isManual ? `
+                                                        <div class="grading-review-container">
+                                                            <div class="row g-3 mb-3">
+                                                                ${q.questionType === 'WRITING' ? `
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Task Achievement</div>
+                                                                            <div class="h5 fw-bolder text-primary mb-0">${q.writingTaskAchievement || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Coherence & Cohesion</div>
+                                                                            <div class="h5 fw-bolder text-success mb-0">${q.writingCoherenceCohesion || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Lexical Resource</div>
+                                                                            <div class="h5 fw-bolder text-warning mb-0">${q.writingLexicalResource || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Grammar Range</div>
+                                                                            <div class="h5 fw-bolder text-danger mb-0">${q.writingGrammarAccuracy || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                ` : `
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Fluency & Coherence</div>
+                                                                            <div class="h5 fw-bolder text-primary mb-0">${q.speakingFluencyCoherence || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Lexical Resource</div>
+                                                                            <div class="h5 fw-bolder text-success mb-0">${q.speakingLexicalResource || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Pronunciation</div>
+                                                                            <div class="h5 fw-bolder text-warning mb-0">${q.speakingPronunciation || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6 col-md-3">
+                                                                        <div class="p-2 rounded-3 bg-white border shadow-sm text-center h-100">
+                                                                            <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.6rem;">Grammar & Accuracy</div>
+                                                                            <div class="h5 fw-bolder text-danger mb-0">${q.speakingGrammarAccuracy || 0}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                `}
+                                                            </div>
+                                                            <div class="d-flex justify-content-between align-items-center bg-white p-2 px-3 rounded-3 border">
+                                                                <span class="small fw-bold text-muted">OVERALL BAND</span>
+                                                                <span class="badge bg-primary fs-6">${scoreVal.toFixed(1)} / ${maxVal}</span>
+                                                            </div>
+                                                        </div>
+                                                    ` : ''}
+                                                    ${q.teacherNote ? `
+                                                        <div class="mt-3 p-3 rounded-4 bg-light border-start border-primary border-4">
+                                                            <div class="extra-small fw-bold text-primary text-uppercase mb-1" style="letter-spacing: 1px; font-size: 0.65rem;">Teacher's Feedback</div>
+                                                            <div class="small text-dark fst-italic">"${q.teacherNote}"</div>
+                                                        </div>
+                                                    ` : ''}
                                                 </div>
                                             </div>
                                         ` : (q.questionType === 'WRITING' ? `
@@ -6024,6 +6137,109 @@ window.wsSaveEditAi = function(index) {
                                                     margin: 0;
                                                 }
                                             </style>
+                                        ` : (q.questionType === 'SPEAKING' ? `
+                                            <div class="mt-4 grading-speaking-container">
+                                                <!-- Max Band Warning -->
+                                                <div class="alert alert-danger py-2 px-3 mb-4 rounded-3 border-0 bg-danger bg-opacity-10 d-flex align-items-center gap-2" style="font-size: 0.8rem;">
+                                                    <i class="bi bi-mic-fill text-danger"></i>
+                                                    <span class="text-danger fw-semibold">Chấm điểm Speaking: Vui lòng đánh giá dựa trên 4 tiêu chí IELTS.</span>
+                                                </div>
+
+                                                <!-- Criteria Grid -->
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-primary bg-opacity-10 text-primary">
+                                                                    <i class="bi bi-chat-dots"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Fluency & Coherence</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 speaking-fc text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.speakingFluencyCoherence || ''}" oninput="updateSpeakingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-success bg-opacity-10 text-success">
+                                                                    <i class="bi bi-journal-text"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Lexical Resource</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 speaking-lr text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.speakingLexicalResource || ''}" oninput="updateSpeakingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                                                                    <i class="bi bi-volume-up"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Pronunciation</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 speaking-pr text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.speakingPronunciation || ''}" oninput="updateSpeakingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6 col-lg-3">
+                                                        <div class="criteria-card p-3 rounded-4 shadow-sm border-0 h-100 transition-all" style="background: white; border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <div class="d-flex align-items-center gap-2 mb-3">
+                                                                <div class="icon-circle bg-danger bg-opacity-10 text-danger">
+                                                                    <i class="bi bi-spellcheck"></i>
+                                                                </div>
+                                                                <span class="extra-small fw-bold text-muted text-uppercase" style="letter-spacing: 0.5px; font-size: 0.65rem;">Grammar Range & Accuracy</span>
+                                                            </div>
+                                                            <div class="input-group input-group-lg">
+                                                                <input type="number" step="0.5" min="0" max="${q.maxPoints || q.points || 9}" class="form-control border-0 bg-light rounded-start-3 speaking-gra text-center" 
+                                                                       style="font-weight: 800; font-size: 1.25rem;" data-qid="${q.questionId}" data-max="${q.maxPoints || q.points || 9}" value="${q.speakingGrammarAccuracy || ''}" oninput="updateSpeakingOverall(${q.questionId})">
+                                                                <span class="input-group-text border-0 bg-dark bg-opacity-10 text-dark fw-bold" style="font-size: 0.85rem; min-width: 60px; justify-content: center;">/ ${q.maxPoints || q.points || 9.0}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Summary & Feedback Footer -->
+                                                <div class="row g-3">
+                                                    <div class="col-lg-8">
+                                                        <div class="p-3 rounded-4 bg-white shadow-sm border-0 h-100" style="border: 1px solid rgba(0,0,0,0.05) !important;">
+                                                            <label class="fw-bold text-muted small mb-2 text-uppercase" style="letter-spacing: 1px; font-size: 0.65rem;">
+                                                                <i class="bi bi-chat-left-quote me-1"></i> Ghi chú & Nhận xét Speaking
+                                                            </label>
+                                                            <textarea class="form-control border-0 bg-light rounded-3 ws-gd-note-input" 
+                                                                      style="height: 120px; resize: none; font-size: 0.9rem;" data-qid="${q.questionId}" placeholder="Viết nhận xét của bạn tại đây...">${q.teacherNote || ''}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="p-4 rounded-4 bg-danger text-white shadow-lg h-100 d-flex flex-column align-items-center justify-content-center text-center" 
+                                                             style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); min-height: 160px;">
+                                                            <span class="extra-small fw-bold text-uppercase opacity-75 mb-2" style="letter-spacing: 2px; font-size: 0.65rem;">Overall Speaking</span>
+                                                            <div class="display-4 fw-bolder mb-1" id="overall-speaking-${q.questionId}" style="font-size: 3.5rem;">
+                                                                ${(q.speakingFluencyCoherence != null) ? (Math.round(((parseFloat(q.speakingFluencyCoherence) + parseFloat(q.speakingLexicalResource) + parseFloat(q.speakingPronunciation) + parseFloat(q.speakingGrammarAccuracy))/4) * 2) / 2).toFixed(1) : '0.0'}
+                                                            </div>
+                                                            <div class="small opacity-75 fw-medium" style="font-size: 0.75rem;">IELTS Band Score</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <style>
+                                                .grading-speaking-container input::-webkit-outer-spin-button,
+                                                .grading-speaking-container input::-webkit-inner-spin-button {
+                                                    -webkit-appearance: none;
+                                                    margin: 0;
+                                                }
+                                            </style>
                                         ` : `
                                             <div class="row g-2 align-items-end">
                                                 <div class="col-md-3">
@@ -6036,7 +6252,7 @@ window.wsSaveEditAi = function(index) {
                                                     <input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="${q.questionId}" value="${q.teacherNote || ''}" placeholder="Ghi chú...">
                                                 </div>
                                             </div>
-                                        `)}
+                                        `))}
                                     </div>`;
                                 }).join('')}
                             </div>
@@ -6080,6 +6296,27 @@ window.wsSaveEditAi = function(index) {
                     writingCoherenceCohesion: cc,
                     writingLexicalResource: lr,
                     writingGrammarAccuracy: gra
+                });
+            });
+            
+            // Handle Speaking Criteria grading
+            document.querySelectorAll('.speaking-fc').forEach(input => {
+                const qid = parseInt(input.dataset.qid);
+                const fc = parseFloat(input.value) || 0;
+                const lr = parseFloat(document.querySelector(`.speaking-lr[data-qid="${qid}"]`)?.value) || 0;
+                const pr = parseFloat(document.querySelector(`.speaking-pr[data-qid="${qid}"]`)?.value) || 0;
+                const gra = parseFloat(document.querySelector(`.speaking-gra[data-qid="${qid}"]`)?.value) || 0;
+                const note = document.querySelector(`.ws-gd-note-input[data-qid="${qid}"]`)?.value || '';
+                
+                const avg = (fc + lr + pr + gra) / 4;
+                items.push({ 
+                    questionId: qid, 
+                    pointsAwarded: avg, 
+                    teacherNote: note,
+                    speakingFluencyCoherence: fc,
+                    speakingLexicalResource: lr,
+                    speakingPronunciation: pr,
+                    speakingGrammarAccuracy: gra
                 });
             });
 

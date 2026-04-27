@@ -30,5 +30,11 @@ public class AssignmentGradingRequestDTO {
         private BigDecimal writingCoherenceCohesion;
         private BigDecimal writingLexicalResource;
         private BigDecimal writingGrammarAccuracy;
+
+        // Speaking criteria
+        private BigDecimal speakingFluencyCoherence;
+        private BigDecimal speakingLexicalResource;
+        private BigDecimal speakingPronunciation;
+        private BigDecimal speakingGrammarAccuracy;
     }
 }

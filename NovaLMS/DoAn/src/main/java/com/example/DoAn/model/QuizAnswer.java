@@ -75,4 +75,17 @@ public class QuizAnswer {
 
     @Column(name = "writing_grammar_accuracy", precision = 5, scale = 2)
     private java.math.BigDecimal writingGrammarAccuracy;
+
+    // IELTS Speaking criteria
+    @Column(name = "speaking_fluency_coherence", precision = 5, scale = 2)
+    private java.math.BigDecimal speakingFluencyCoherence;
+
+    @Column(name = "speaking_lexical_resource", precision = 5, scale = 2)
+    private java.math.BigDecimal speakingLexicalResource;
+
+    @Column(name = "speaking_pronunciation", precision = 5, scale = 2)
+    private java.math.BigDecimal speakingPronunciation;
+
+    @Column(name = "speaking_grammar_accuracy", precision = 5, scale = 2)
+    private java.math.BigDecimal speakingGrammarAccuracy;
 }

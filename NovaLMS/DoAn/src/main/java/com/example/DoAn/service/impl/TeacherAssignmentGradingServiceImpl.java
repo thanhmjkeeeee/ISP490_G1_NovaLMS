@@ -346,6 +346,12 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 item.setWritingCoherenceCohesion(a.getWritingCoherenceCohesion());
                 item.setWritingLexicalResource(a.getWritingLexicalResource());
                 item.setWritingGrammarAccuracy(a.getWritingGrammarAccuracy());
+                
+                // Speaking criteria
+                item.setSpeakingFluencyCoherence(a.getSpeakingFluencyCoherence());
+                item.setSpeakingLexicalResource(a.getSpeakingLexicalResource());
+                item.setSpeakingPronunciation(a.getSpeakingPronunciation());
+                item.setSpeakingGrammarAccuracy(a.getSpeakingGrammarAccuracy());
 
                 // Resolve student answer ID to text for Multiple Choice
                 String studentAns = a.getAnsweredOptions();
@@ -551,12 +557,31 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         BigDecimal lr = item.getWritingLexicalResource() != null ? item.getWritingLexicalResource() : BigDecimal.ZERO;
                         BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy() : BigDecimal.ZERO;
                         
-                        awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+                        BigDecimal avg = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+                        // IELTS Rounding: round to nearest 0.5
+                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
                         
                         answer.setWritingTaskAchievement(ta);
                         answer.setWritingCoherenceCohesion(cc);
                         answer.setWritingLexicalResource(lr);
                         answer.setWritingGrammarAccuracy(gra);
+                    }
+
+                    // For Speaking
+                    if ("SPEAKING".equalsIgnoreCase(qType) && item.getSpeakingFluencyCoherence() != null) {
+                        BigDecimal fc = item.getSpeakingFluencyCoherence() != null ? item.getSpeakingFluencyCoherence() : BigDecimal.ZERO;
+                        BigDecimal lr = item.getSpeakingLexicalResource() != null ? item.getSpeakingLexicalResource() : BigDecimal.ZERO;
+                        BigDecimal pr = item.getSpeakingPronunciation() != null ? item.getSpeakingPronunciation() : BigDecimal.ZERO;
+                        BigDecimal gra = item.getSpeakingGrammarAccuracy() != null ? item.getSpeakingGrammarAccuracy() : BigDecimal.ZERO;
+                        
+                        BigDecimal avg = fc.add(lr).add(pr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+                        // IELTS Rounding: round to nearest 0.5
+                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
+                        
+                        answer.setSpeakingFluencyCoherence(fc);
+                        answer.setSpeakingLexicalResource(lr);
+                        answer.setSpeakingPronunciation(pr);
+                        answer.setSpeakingGrammarAccuracy(gra);
                     }
 
                     if (awarded != null) {
