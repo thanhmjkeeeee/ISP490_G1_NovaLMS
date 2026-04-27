@@ -13,6 +13,14 @@ import java.util.Optional;
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
+    @Query("SELECT q FROM Quiz q " +
+           "LEFT JOIN FETCH q.course " +
+           "LEFT JOIN FETCH q.module " +
+           "LEFT JOIN FETCH q.lesson " +
+           "LEFT JOIN FETCH q.user " +
+           "WHERE q.quizId = :quizId")
+    Optional<Quiz> findByIdWithDetails(@Param("quizId") Integer quizId);
+
     Optional<Quiz> findByQuizCategory(String quizCategory);
 
     List<Quiz> findByQuizCategoryAndStatus(String category, String status);
@@ -38,7 +46,11 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
            "ORDER BY q.createdAt DESC")
     List<Quiz> findAllVisibleForTeacher(@Param("courseIds") List<Integer> courseIds, @Param("userId") Integer userId);
 
-    @Query("SELECT q FROM Quiz q WHERE " +
+    @Query("SELECT q FROM Quiz q " +
+           "LEFT JOIN FETCH q.course " +
+           "LEFT JOIN FETCH q.module " +
+           "LEFT JOIN FETCH q.lesson " +
+           "WHERE " +
            "(:courseId IS NULL OR q.course.courseId = :courseId) AND " +
            "(:category IS NULL OR q.quizCategory = :category) AND " +
            "(:status IS NULL OR q.status = :status) AND " +

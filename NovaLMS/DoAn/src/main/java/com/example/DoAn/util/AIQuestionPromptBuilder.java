@@ -351,7 +351,7 @@ public class AIQuestionPromptBuilder {
                 - MULTIPLE_CHOICE_SINGLE: 4 options (ENGLISH text), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, 2-3 correct = true (but not all)
                 - FILL_IN_BLANK: content contains "___", correctAnswer required (For LISTENING, focus on short 1-3 word answers or numbers)
-                - MATCHING: matchLeft (3-5 English words), matchRight (3-5 meanings), correctPairs (1-based indices)
+                - MATCHING: matchLeft (3-5 items), matchRight (3-5 items), correctPairs (1-based index array). See CRITICAL RULE below.
                 - WRITING, SPEAKING: no options needed
 
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
@@ -359,20 +359,28 @@ public class AIQuestionPromptBuilder {
                 
                 CRITICAL: The field "cefrLevel" MUST contain a numerical IELTS Band (e.g. "6.0", "7.5"). DO NOT use "B2", "C1", etc.
 
+                CRITICAL RULE FOR 'MATCHING' QUESTIONS (PAY CLOSE ATTENTION):
+                1. The 'content' field MUST ONLY contain the instruction (e.g., "Match the following words with their definitions.").
+                2. YOU ARE STRICTLY FORBIDDEN from putting the terms, items, definitions, or pairs inside the 'content', 'options', or 'explanation' fields.
+                3. You MUST output EXACTLY two separate arrays: 'matchLeft' (Column A items) and 'matchRight' (Column B items).
+                4. 'options' MUST be null or empty [] for MATCHING questions.
+                5. 'correctPairs' MUST be an integer array mapping each left index to its correct right index (1-based).
+                MATCHING EXAMPLE: {"content":"Match the words with their definitions.","questionType":"MATCHING","matchLeft":["Abundant","Scarce","Thrive"],"matchRight":["Plentiful","Rare","Flourish"],"correctPairs":[1,2,3],"options":null}
+
                 Return ONLY a JSON array, no other text:
                 [
                   {
-                    "content": "...",
+                    "content": "The actual question text (For MATCHING, ONLY put the instruction here)",
                     "questionType": "...",
                     "skill": "%s",
                     "cefrLevel": "%s",
                     "topic": "%s",
                     "explanation": "...",
-                    "options": [...],
+                    "options": [{"title": "...", "correct": true}],
                     "correctAnswer": "...",
-                    "matchLeft": [...],
-                    "matchRight": [...],
-                    "correctPairs": [...]
+                    "matchLeft": ["Term 1", "Term 2", "Term 3"],
+                    "matchRight": ["Def 1", "Def 2", "Def 3"],
+                    "correctPairs": [1, 2, 3]
                   }
                 ]
                 """
@@ -469,17 +477,14 @@ public class AIQuestionPromptBuilder {
                   "explanation": "...",
                   "questions": [
                     {
-                      "content": "The actual question text (e.g. Where are they?)",
+                      "content": "The actual question text (For MATCHING, ONLY put the instruction here, e.g., 'Match the words to their definitions')",
                       "transcript": "Robert [Male]: Hello Sarah.\\nSarah [Female]: Hi Robert...",
                       "questionType": "...",
-                      "options": [
-                        { "title": "...", "correct": true },
-                        { "title": "...", "correct": false }
-                      ],
+                      "options": [{ "title": "...", "correct": true }],
                       "correctAnswer": "text for fill_in_blank",
-                      "matchLeft": ["item 1", "item 2"],
-                      "matchRight": ["match 1", "match 2"],
-                      "correctPairs": [1, 2],
+                      "matchLeft": ["Term 1", "Term 2", "Term 3"],
+                      "matchRight": ["Def 1", "Def 2", "Def 3"],
+                      "correctPairs": [1, 2, 3],
                       "explanation": "..."
                     }
                   ]
@@ -487,17 +492,17 @@ public class AIQuestionPromptBuilder {
                 """.formatted(targetSkill, cefrLevel, topic) : """
                 [
                   {
-                    "content": "The actual question text or writing/speaking prompt",
+                    "content": "The actual question text (For MATCHING, ONLY put the instruction here; for WRITING/SPEAKING, put the prompt here)",
                     "questionType": "...",
                     "skill": "%s",
                     "cefrLevel": "%s",
                     "topic": "%s",
                     "explanation": "...",
-                    "options": [...],
+                    "options": [{ "title": "...", "correct": true }],
                     "correctAnswer": "...",
-                    "matchLeft": [...],
-                    "matchRight": [...],
-                    "correctPairs": [...]
+                    "matchLeft": ["Term 1", "Term 2", "Term 3"],
+                    "matchRight": ["Def 1", "Def 2", "Def 3"],
+                    "correctPairs": [1, 2, 3]
                   }
                 ]
                 """.formatted(targetSkill, cefrLevel, topic);
@@ -538,7 +543,7 @@ public class AIQuestionPromptBuilder {
                 - MULTIPLE_CHOICE_SINGLE: 4 options (ENGLISH text), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, 2-3 correct = true (but not all)
                 - FILL_IN_BLANK: content contains "___", correctAnswer required (For LISTENING, focus on short 1-3 word answers or numbers)
-                - MATCHING: matchLeft (3-5 English words), matchRight (3-5 meanings), correctPairs (1-based indices)
+                - MATCHING: matchLeft (3-5 items), matchRight (3-5 items), correctPairs (1-based index array). See CRITICAL RULE below.
                 - WRITING, SPEAKING: no options needed
 
                 IMPORTANT: Every "title" field must contain real ENGLISH text, not null, empty, or just a number.
@@ -548,6 +553,14 @@ public class AIQuestionPromptBuilder {
                 CRITICAL: The field "cefrLevel" MUST be exactly "%s". DO NOT use any other value.
                 
                 %s
+
+                CRITICAL RULE FOR 'MATCHING' QUESTIONS (PAY CLOSE ATTENTION):
+                1. The 'content' field MUST ONLY contain the instruction (e.g., "Match the following words with their definitions.").
+                2. YOU ARE STRICTLY FORBIDDEN from putting the terms, items, definitions, or pairs inside the 'content', 'options', or 'explanation' fields.
+                3. You MUST output EXACTLY two separate arrays: 'matchLeft' (Column A items) and 'matchRight' (Column B items).
+                4. 'options' MUST be null or empty [] for MATCHING questions.
+                5. 'correctPairs' MUST be an integer array mapping each left index to its correct right index (1-based).
+                MATCHING EXAMPLE: {"content":"Match the words with their definitions.","questionType":"MATCHING","matchLeft":["Abundant","Scarce","Thrive"],"matchRight":["Plentiful","Rare","Flourish"],"correctPairs":[1,2,3],"options":null}
                 
                 Return ONLY the JSON, no other text.
                 """

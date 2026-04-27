@@ -12,7 +12,7 @@ import java.util.List;
 public interface QuestionGroupRepository extends JpaRepository<QuestionGroup, Integer> {
     List<QuestionGroup> findByUserEmail(String email);
 
-    @Query("SELECT g FROM QuestionGroup g WHERE " +
+    @Query("SELECT g FROM QuestionGroup g LEFT JOIN FETCH g.questions WHERE " +
            "(:skill IS NULL OR g.skill = :skill) AND " +
            "(:cefrLevel IS NULL OR g.cefrLevel = :cefrLevel) AND " +
            "(:topic IS NULL OR g.topic LIKE %:topic%) AND " +

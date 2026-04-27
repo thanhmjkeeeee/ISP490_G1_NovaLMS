@@ -186,7 +186,7 @@ async function loadQuizzes(page = 0) {
                     <td class="text-end px-4">
                         <a href="/expert/quiz-management/${q.quizId}/questions" class="btn btn-sm btn-outline-info me-1" title="Quản lý câu hỏi"><i class="bi bi-list-check"></i></a>
                         <a href="/expert/quiz-management/${q.quizId}/edit" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
-                        ${(!q.hasAttempts && (!q.registrationCount || q.registrationCount === 0)) ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuiz(${q.quizId})"><i class="bi bi-trash"></i></button>` : ''}
+                        ${!q.hasAttempts ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteQuiz(${q.quizId})"><i class="bi bi-trash"></i></button>` : ''}
                     </td>
                 </tr>
             `).join('');

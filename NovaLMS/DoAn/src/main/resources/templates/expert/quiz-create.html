@@ -532,7 +532,7 @@
 
                         <div class="d-flex justify-content-end gap-3 pt-3 border-top">
                             <button type="button" class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;"
-                                onclick="window.history.back()">Hủy</button>
+                                onclick="cancelAndExit()">Hủy</button>
                             <button type="button" id="btnNextStep" class="btn btn-lg text-white px-5 fw-bold"
                                 style="background-color: #136ad5; border-radius: 12px;"
                                 onclick="validateAndGoToStep2()">
@@ -644,8 +644,11 @@
                         </div>
                     </div>
                     <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
-                        <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i
-                                class="bi bi-arrow-left me-1"></i> Quay lại</button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary px-4" onclick="goToStep(1)"><i
+                                    class="bi bi-arrow-left me-1"></i> Quay lại</button>
+                            <button class="btn btn-light px-4" onclick="cancelAndExit()">Hủy</button>
+                        </div>
                         <div class="small text-muted">Tự động lưu...</div>
                         <button class="btn btn-primary px-5 fw-bold" onclick="goToStep(3)">Tiếp theo: Xem trước & Hoàn
                             thiện <i class="bi bi-arrow-right ms-1"></i></button>
@@ -675,10 +678,17 @@
                         <span class="small"></span>
                     </div>
 
-                    <div class="d-flex justify-content-center gap-3">
-                        <button class="btn btn-lg btn-outline-secondary px-5" onclick="goToStep(2)">Quay lại
-                            sửa</button>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-lg btn-outline-secondary px-4 fw-bold" style="border-radius: 12px;"
+                            onclick="goToStep(2)">
+                            <i class="bi bi-arrow-left me-2"></i> Quay lại
+                        </button>
+                        <button class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;"
+                            onclick="cancelAndExit()">
+                            Hủy và xóa
+                        </button>
                         <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal"
+                            style="border-radius: 12px;"
                             onclick="finalPublish()">
                             <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
                         </button>
@@ -709,11 +719,11 @@
                         <div class="row g-4">
                             <!-- Left: Base Config -->
                             <div class="col-md-6 border-end pe-md-4">
-                                <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ
-                                    bản</label>
+                                <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ bản</label>
+                                
+
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Chủ đề (Topic) <span
-                                            class="text-danger">*</span></label>
+                                    <label class="form-label small fw-bold">Chủ đề (Topic) <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control rounded-3" id="adv-topic"
                                         placeholder="VD: Present Perfect, Workplace Communication...">
                                     <div class="mt-2 d-flex flex-wrap gap-2">
@@ -858,6 +868,11 @@
                                         <label
                                             class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                             for="type-match">Nối cặp</label>
+
+                                        <input type="checkbox" class="btn-check" id="type-group" value="GROUP" onchange="toggleAiAdvancedFields()">
+                                        <label
+                                            class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
+                                            for="type-group">Bộ câu hỏi</label>
                                     </div>
                                 </div>
                                 <div id="adv-skill-info-msg" class="mb-3" style="display:none;">
@@ -968,6 +983,15 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-4">
+                        <div id="wsAiPassageArea" class="mb-4 d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-journal-text me-1"></i> ĐOẠN VĂN / KỊCH BẢN (PASSAGE)</h6>
+                                <div id="wsAiGroupAudio" class="d-none">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="wsSpeakGroup()"><i class="bi bi-play-fill"></i> Nghe hội thoại</button>
+                                </div>
+                            </div>
+                            <div id="wsAiPassageContent" class="p-4 bg-light rounded-4 border text-dark shadow-sm" style="max-height: 250px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; font-style: italic; border-left: 5px solid #0d6efd !important;"></div>
+                        </div>
                         <div id="wsAiList" class="list-group">
                             <div class="text-center py-5">
                                 <div class="spinner-border text-primary"></div>
@@ -1344,18 +1368,35 @@
             };
 
             try {
-                const res = await fetch('/api/v1/expert/quizzes', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                const url = _quizId ? `/api/v1/expert/quizzes/${_quizId}` : '/api/v1/expert/quizzes';
+                const method = _quizId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
                 const result = await res.json();
                 if (res.ok) {
                     _quizId = result.data.quizId;
-                    goToStep(2);
+                    if (status === 'DRAFT') {
+                        goToStep(2);
+                    } else {
+                        Swal.fire({
+                            title: 'Thành công!',
+                            text: status === 'PUBLISHED' ? 'Quiz đã được xuất bản.' : 'Đã lưu bản nháp.',
+                            icon: 'success',
+                            confirmButtonText: 'Về danh sách'
+                        }).then(() => {
+                            window.location.href = '/expert/quiz-management';
+                        });
+                    }
                 } else {
                     Swal.fire('Lỗi', result.message || 'Có lỗi xảy ra.', 'error');
                 }
-            } catch (e) { Swal.fire('Lỗi hệ thống', e.message, 'error'); }
+            } catch (e) {
+                Swal.fire('Lỗi hệ thống', e.message, 'error');
+            }
         }
 
         let _currentStep = 1;
@@ -1600,60 +1641,103 @@
 
         async function initStep3() {
             if (!_quizId) return;
-            let summaries = {};
-            try {
-                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/skills`);
-                const result = await res.json();
-                if (result.status === 200) summaries = result.data;
-            } catch (e) { console.error(e); }
-            const total = Object.values(summaries).reduce((s, x) => s + x.questionCount, 0);
-            document.getElementById('previewTitle').textContent = document.getElementById('title').value;
-            document.getElementById('previewSummary').textContent = `Tóm tắt: ${total} câu hỏi | ${document.getElementById('timeLimitMinutes').value || '?'} phút | Điểm đạt ${document.getElementById('passScore').value || 0}%`;
-            document.getElementById('previewQuestionCount').textContent = `${total} câu hỏi đã thêm`;
-            renderSkillStatusCards(summaries);
-            validateForPublish(summaries);
+            // Đảm bảo dữ liệu câu hỏi mới nhất được nạp
+            await loadQuizQuestions();
+            initPreview();
         }
 
-        function renderSkillStatusCards(summaries) {
+        function initPreview() {
+            const counts = { 'LISTENING': 0, 'READING': 0, 'SPEAKING': 0, 'WRITING': 0 };
+            _quizQuestions.forEach(q => {
+                const s = q.skill || 'OTHER';
+                if (counts.hasOwnProperty(s)) counts[s]++;
+            });
+
+            document.getElementById('previewTitle').textContent = document.getElementById('title').value;
+            const time = document.getElementById('timeLimitMinutes').value || '?';
+            const pass = document.getElementById('passScore').value || 0;
+            
+            document.getElementById('previewSummary').textContent = Object.entries(counts)
+                .filter(([s, c]) => c > 0)
+                .map(([s, c]) => `${c} ${s.charAt(0) + s.slice(1).toLowerCase()}`)
+                .join(', ') || 'Chưa có câu hỏi nào';
+            
+            document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút | Điểm đạt ${pass}%`;
+            
             const container = document.getElementById('skillStatusCards');
-            const cat = document.getElementById('quizCategory').value;
-            if (cat === 'ENTRY_TEST') {
-                const total = Object.values(summaries).reduce((s, x) => s + x.questionCount, 0);
-                container.innerHTML = `<div class="skill-status-card ready mx-auto" style="min-width:200px;"><div class="preview-icon-ok mb-2"><i class="bi bi-check-circle-fill"></i></div><div class="fw-bold">${total} câu hỏi đã thêm</div><div class="small text-muted">Entry Test — không bắt buộc 4 kỹ năng</div></div>`;
-                return;
-            }
             const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-            const icons = { LISTENING: 'bi-ear', READING: 'bi-book', SPEAKING: 'bi-mic', WRITING: 'bi-pen' };
+            const skillIcons = { 'LISTENING': 'headphones', 'READING': 'book', 'SPEAKING': 'mic', 'WRITING': 'pencil-square' };
+            
             container.innerHTML = skills.map(s => {
-                const count = (summaries[s] || { questionCount: 0 }).questionCount;
-                const ok = count > 0;
-                return `<div class="skill-status-card ${ok ? 'ready' : 'missing'}"><div class="${ok ? 'preview-icon-ok' : 'preview-icon-warn'} mb-1"><i class="bi ${ok ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i></div><div class="fw-bold" style="font-size:1.3rem; color:${ok ? '#10b981' : '#f59e0b'};">${count}</div><div class="small fw-bold mb-1"><i class="bi ${icons[s]} me-1"></i>${s}</div><div class="small text-muted">${ok ? 'Sẵn sàng' : 'Chưa có'}</div></div>`;
+                const count = counts[s];
+                const isReady = count > 0;
+                return `
+                    <div class="skill-status-card ${isReady ? 'ready' : 'missing'} shadow-sm">
+                        <div class="${isReady ? 'preview-icon-ok' : 'preview-icon-warn'} mb-2">
+                            <i class="bi bi-${isReady ? 'check-circle-fill' : 'exclamation-triangle-fill'}"></i>
+                        </div>
+                        <div class="fw-bold fs-4 mb-0">${count}</div>
+                        <div class="fw-bold small text-uppercase text-muted" style="font-size: 0.75rem;">
+                            <i class="bi bi-${skillIcons[s]} me-1"></i>${s}
+                        </div>
+                        <div class="extra-small ${isReady ? 'text-success' : 'text-warning'} mt-1 fw-bold">
+                            ${isReady ? 'Sẵn sàng' : 'Chưa có'}
+                        </div>
+                    </div>
+                `;
             }).join('');
+
+            validateForPublish(counts);
         }
 
         async function cancelAndExit() {
             if (!_quizId) { window.location.href = '/expert/quiz-management'; return; }
             const r = await Swal.fire({ title: 'Hủy tạo Quiz?', text: "Dữ liệu sẽ bị xóa.", icon: 'warning', showCancelButton: true });
             if (r.isConfirmed) {
-                try { await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' }); } catch (e) { }
+                try { 
+                    const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' }); 
+                    if (!res.ok) {
+                        const error = await res.json();
+                        console.error('Delete failed:', error);
+                    }
+                } catch (e) { console.error('Delete error:', e); }
                 window.location.href = '/expert/quiz-management';
             }
         }
 
-        function validateForPublish(summaries) {
+        function validateForPublish(counts) {
             const msg = document.getElementById('publishValidationMsg');
-            const btn = document.getElementById('btnPublishFinal');
-            const total = Object.values(summaries).reduce((s, x) => s + x.questionCount, 0);
-            let can = total > 0;
-            msg.style.display = 'flex';
-            if (can) {
-                msg.className = 'alert alert-success mx-auto mb-4';
-                msg.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Sẵn sàng xuất bản!';
+            const btn = document.getElementById('btnSubmitFinal');
+            const cat = document.getElementById('quizCategory').value;
+            const isAssignment = cat && cat.includes('ASSIGNMENT');
+            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+
+            msg.style.display = 'block';
+            if (isAssignment) {
+                const missing = skills.filter(s => (counts[s] || 0) === 0);
+                if (missing.length > 0) {
+                    msg.className = 'alert alert-danger mx-auto mb-4 border-0 shadow-sm';
+                    msg.innerHTML = `<i class="bi bi-x-circle-fill me-2"></i> Bài tập lớn cần đủ 4 kỹ năng. Còn thiếu: <strong>${missing.join(', ')}</strong>`;
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                } else {
+                    msg.className = 'alert alert-success mx-auto mb-4 border-0 shadow-sm';
+                    msg.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Đã đủ 4 kỹ năng. Sẵn sàng xuất bản!';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
             } else {
-                msg.className = 'alert alert-danger mx-auto mb-4';
-                msg.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>Cần ít nhất 1 câu hỏi.';
+                const total = _quizQuestions.length;
+                if (total === 0) {
+                    msg.className = 'alert alert-warning mx-auto mb-4 border-0 shadow-sm';
+                    msg.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i> Quiz chưa có câu hỏi nào.';
+                } else {
+                    msg.className = 'alert alert-success mx-auto mb-4 border-0 shadow-sm';
+                    msg.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> Sẵn sàng xuất bản!';
+                }
+                btn.disabled = false;
+                btn.style.opacity = '1';
             }
-            btn.disabled = !can;
         }
 
         async function finalPublish() {
@@ -1665,7 +1749,7 @@
         }
 
         // AI Logic
-        let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], currentAudio = null;
+        let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], _aiCurrentGroup = null, currentAudio = null;
         function openExpertAiModal() {
             if (!expertAiModal) expertAiModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
             toggleAiAdvancedFields(); expertAiModal.show();
@@ -1686,12 +1770,19 @@
             document.getElementById('field-matching').style.display = (!isP && document.getElementById('type-match').checked) ? 'block' : 'none';
         }
 
+        function toggleAiMode() {
+            // Deprecated, UI moved to type-group checkbox
+        }
+
         async function runExpertAiGeneration() {
             const topic = document.getElementById('adv-topic').value.trim();
             if (!topic) return Swal.fire('Lỗi', 'Nhập chủ đề', 'info');
             const skill = document.getElementById('adv-skill').value;
             const cefr = document.getElementById('adv-cefr').value;
             const qty = document.getElementById('adv-qty').value;
+            const isGroup = document.getElementById('type-group').checked;
+            const mode = isGroup ? 'GROUP' : 'LONE';
+            
             const types = [];
             if (skill === 'WRITING' || skill === 'SPEAKING') types.push(skill);
             else {
@@ -1700,6 +1791,7 @@
                 if (document.getElementById('type-fib').checked) types.push('FILL_IN_BLANK');
                 if (document.getElementById('type-match').checked) types.push('MATCHING');
             }
+
             const btn = document.getElementById('btn-run-ai');
             const spin = document.getElementById('ai-loading-spinner');
             btn.disabled = true; spin.style.display = 'inline-block';
@@ -1707,8 +1799,7 @@
             const listenType = document.getElementById('adv-listen-type')?.value || 'Dialogue';
 
             try {
-                const endpoint = (skill === 'READING' || skill === 'LISTENING') ? '/api/v1/teacher/quizzes/ai/generate-group' : '/api/v1/teacher/quizzes/ai/generate';
-                
+                const endpoint = mode === 'GROUP' ? '/api/v1/expert/quizzes/ai/generate-group' : '/api/v1/expert/quizzes/ai/generate';
                 const res = await fetch(endpoint, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
@@ -1722,18 +1813,32 @@
                         advancedOptions: { readingLength: readLen, listeningType: listenType }
                     }) 
                 });
+                
                 const result = await res.json();
                 if (result.status === 200) {
-                    if (skill === 'READING' || skill === 'LISTENING') {
-                        _generatedAiQuestions = [result.data];
+                    if (mode === 'GROUP') {
+                        _aiCurrentGroup = {
+                            passage: result.data.passage,
+                            audioUrl: result.data.audioUrl
+                        };
+                        _generatedAiQuestions = result.data.questions;
                     } else {
+                        _aiCurrentGroup = null;
                         _generatedAiQuestions = result.data.questions;
                     }
                     expertAiModal.hide();
                     if (!wsAiResultModal) wsAiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
-                    wsAiResultModal.show(); wsRenderAiResults();
+                    wsAiResultModal.show();
+                    wsRenderAiResults();
+                } else {
+                    Swal.fire('Lỗi', result.message || 'Lỗi sinh câu hỏi', 'error');
                 }
-            } catch (e) { Swal.fire('Lỗi', e.message, 'error'); } finally { btn.disabled = false; spin.style.display = 'none'; }
+            } catch (e) { 
+                Swal.fire('Lỗi', e.message, 'error'); 
+            } finally { 
+                btn.disabled = false; 
+                spin.style.display = 'none'; 
+            }
         }
 
         function wsSpeak(idx) {
@@ -1805,10 +1910,61 @@
             if (progress) progress.parentElement.style.display = 'none';
         }
 
+        function matchingPreviewHtml(q) {
+            if (!q || q.questionType !== 'MATCHING') return '';
+            const left = Array.isArray(q.matchLeft) ? q.matchLeft : [];
+            const right = Array.isArray(q.matchRight) ? q.matchRight : [];
+            if (left.length === 0 && right.length === 0) return '';
+
+            function resolveRightIndex(p) {
+                if (typeof p !== 'number' || isNaN(p) || !right.length) return -1;
+                if (p >= 1 && p <= right.length) return p - 1;
+                if (p >= 0 && p < right.length) return p;
+                return -1;
+            }
+
+            let inner;
+            const pairs = Array.isArray(q.correctPairs) ? q.correctPairs : null;
+            if (pairs && pairs.length === left.length && left.length > 0) {
+                inner = '<ul class="list-unstyled small mb-0 mt-1">';
+                for (let idx = 0; idx < left.length; idx++) {
+                    const rj = resolveRightIndex(Number(pairs[idx]));
+                    const rtext = (rj >= 0 && right[rj] !== undefined) ? String(right[rj]) : '?';
+                    inner += '<li class="mb-1 d-flex align-items-start gap-2"><span class="badge bg-secondary flex-shrink-0">' + (idx + 1) + '</span>' +
+                        '<span><span class="fw-medium text-dark">' + escapeHtml(String(left[idx])) + '</span>' +
+                        ' <i class="bi bi-arrow-right text-muted mx-1"></i> ' +
+                        '<span class="fw-medium text-dark">' + escapeHtml(rtext) + '</span></span></li>';
+                }
+                inner += '</ul>';
+            } else {
+                inner = '<div class="row g-2 mt-1"><div class="col-md-6"><div class="text-muted small mb-1">Cột A</div><ol class="small mb-0 ps-3">' +
+                    left.map(l => '<li>' + escapeHtml(String(l)) + '</li>').join('') + '</ol></div>' +
+                    '<div class="col-md-6"><div class="text-muted small mb-1">Cột B</div><ol class="small mb-0 ps-3">' +
+                    right.map(r => '<li>' + escapeHtml(String(r)) + '</li>').join('') + '</ol></div></div>';
+            }
+            return '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25 bg-light-subtle p-2 rounded">' + inner + '</div>';
+        }
+
         // ===== [BẮT ĐẦU SỬA MỚI] =====
         function wsRenderAiResults() {
             const list = document.getElementById('wsAiList');
+            const passageArea = document.getElementById('wsAiPassageArea');
+            const passageContent = document.getElementById('wsAiPassageContent');
+            const groupAudio = document.getElementById('wsAiGroupAudio');
+            
             document.getElementById('wsAiTotalCount').textContent = _generatedAiQuestions.length;
+
+            if (_aiCurrentGroup && _aiCurrentGroup.passage) {
+                passageArea.classList.remove('d-none');
+                passageContent.innerHTML = wsFormatTranscript(_aiCurrentGroup.passage);
+                if (_aiCurrentGroup.audioUrl) {
+                    groupAudio.classList.remove('d-none');
+                } else {
+                    groupAudio.classList.add('d-none');
+                }
+            } else {
+                passageArea.classList.add('d-none');
+            }
 
             let c = 0;
             _generatedAiQuestions.forEach(q => { if (q._selected !== false) { q._selected = true; c++; } });
@@ -1875,14 +2031,18 @@
                         // NẾU XEM BÌNH THƯỜNG
                         else {
                             let ansHtml = '';
-                            const opts = subQ.options || subQ.answers || [];
-                            if (opts.length > 0) {
-                                ansHtml = '<div class="mt-2 ps-2 border-start border-2 border-primary border-opacity-25">';
-                                opts.forEach(a => {
-                                    const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '';
-                                    ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
-                                });
-                                ansHtml += '</div>';
+                            if (subQ.questionType === 'MATCHING') {
+                                ansHtml = matchingPreviewHtml(subQ);
+                            } else {
+                                const opts = subQ.options || subQ.answers || [];
+                                if (opts.length > 0) {
+                                    ansHtml = '<div class="mt-2 ps-2 border-start border-2 border-primary border-opacity-25">';
+                                    opts.forEach(a => {
+                                        const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-1"></i>' : '';
+                                        ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
+                                    });
+                                    ansHtml += '</div>';
+                                }
                             }
                             subQsHtml += `
                             <div class="p-3 border rounded-3 bg-white mb-2">
@@ -1961,14 +2121,18 @@
                     // B. XEM CÂU HỎI LẺ BÌNH THƯỜNG
                     else {
                         let ansHtml = '';
-                        const opts = q.options || q.answers || [];
-                        if (opts.length > 0) {
-                            ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
-                            opts.forEach(a => {
-                                const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
-                                ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
-                            });
-                            ansHtml += '</div>';
+                        if (q.questionType === 'MATCHING') {
+                            ansHtml = matchingPreviewHtml(q);
+                        } else {
+                            const opts = q.options || q.answers || [];
+                            if (opts.length > 0) {
+                                ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
+                                opts.forEach(a => {
+                                    const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
+                                    ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
+                                });
+                                ansHtml += '</div>';
+                            }
                         }
 
                         html += `
@@ -2106,30 +2270,15 @@
 
             try {
                 // If we have a group (Reading/Listening passage)
-                let questionsToImport = [];
-                let passage = null;
-                let audioUrl = null;
+                let questionsToImport = sel;
+                let passage = (_aiCurrentGroup && _aiCurrentGroup.passage) ? _aiCurrentGroup.passage : null;
+                let audioUrl = (_aiCurrentGroup && _aiCurrentGroup.audioUrl) ? _aiCurrentGroup.audioUrl : null;
 
-                sel.forEach(item => {
-                    if (item.passage) {
-                        // It's a group
-                        passage = item.passage;
-                        audioUrl = item.audioUrl || item.groupAudioUrl;
-                        questionsToImport = questionsToImport.concat(item.questions || []);
-                    } else {
-                        // Independent question
-                        questionsToImport.push(item);
-                    }
-                });
-
-                let url = `/api/v1/expert/quizzes/${_quizId}/ai/import`;
                 const params = new URLSearchParams();
                 if (passage) params.append('passage', passage);
                 if (audioUrl) params.append('audioUrl', audioUrl);
-                
-                if (params.toString()) url += `?${params.toString()}`;
 
-                const res = await fetch(url, {
+                const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/ai/import?${params.toString()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(questionsToImport)
@@ -2137,6 +2286,7 @@
                 if (res.ok) {
                     wsAiResultModal.hide();
                     loadQuizQuestions();
+                    _aiCurrentGroup = null;
                     Toast.fire({ icon: 'success', title: 'Đã nhập thành công' });
                 } else {
                     const error = await res.json();
@@ -2146,6 +2296,13 @@
                 Swal.fire('Lỗi', e.message, 'error');
             } finally {
                 btn.disabled = false;
+            }
+        }
+
+        function wsSpeakGroup() {
+            if (_aiCurrentGroup && _aiCurrentGroup.audioUrl) {
+                const audio = new Audio(_aiCurrentGroup.audioUrl);
+                audio.play();
             }
         }
 

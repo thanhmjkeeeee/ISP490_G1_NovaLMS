@@ -606,8 +606,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     private Quiz findQuiz(Integer quizId) {
-        return quizRepository.findById(quizId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy quiz với ID: " + quizId));
+        return quizRepository.findByIdWithDetails(quizId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quiz not found: " + quizId));
     }
 
     private boolean hasStudentAttempts(Integer quizId) {
@@ -978,7 +978,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             questionRepository.save(question);
 
             // Options
-            if (q.getOptions() != null) {
+            if (q.getOptions() != null && !q.getOptions().isEmpty()) {
                 for (int i = 0; i < q.getOptions().size(); i++) {
                     com.example.DoAn.dto.response.AIGenerateResponseDTO.OptionDTO optDTO = q.getOptions().get(i);
                     AnswerOption opt = AnswerOption.builder()
@@ -988,6 +988,36 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                             .orderIndex(i + 1)
                             .build();
                     answerOptionRepository.save(opt);
+                }
+            } else if (q.getMatchLeft() != null && q.getMatchRight() != null && q.getCorrectPairs() != null) {
+                // Handle MATCHING questions
+                List<String> left = q.getMatchLeft();
+                List<String> right = q.getMatchRight();
+                List<Integer> pairs = q.getCorrectPairs();
+                
+                // Save unique right items first or just follow the pairs logic
+                // Using the same logic as ExpertQuestionServiceImpl.saveAIQuestions
+                for (int i = 0; i < left.size(); i++) {
+                    if (i >= left.size()) break;
+                    int rightIdx = pairs.get(i) - 1;
+                    if (rightIdx < 0 || rightIdx >= right.size()) continue;
+
+                    // Save Left Option (with matchTarget)
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(left.get(i))
+                            .correctAnswer(false)
+                            .orderIndex(i)
+                            .matchTarget(right.get(rightIdx))
+                            .build());
+
+                    // Save Right Option (as a possible target)
+                    answerOptionRepository.save(AnswerOption.builder()
+                            .question(question)
+                            .title(right.get(rightIdx))
+                            .correctAnswer(false)
+                            .orderIndex(left.size() + i)
+                            .build());
                 }
             }
 
