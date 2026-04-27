@@ -475,10 +475,10 @@
         if (!classDetailData || !classDetailData.sessions) return;
 
         classDetailData.sessions.forEach(session => {
-            if(!session.date) return;
+            if(!session.sessionDate) return;
             
             // Fix: Parse YYYY-MM-DD as local time instead of UTC to avoid timezone shifts
-            const dateParts = session.date.split('-');
+            const dateParts = session.sessionDate.split('-');
             const sDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
 
             // So sánh tuần và năm
@@ -492,7 +492,7 @@
                     // Xử lý an toàn chuỗi thời gian
                     const startTime = session.startTime ? session.startTime.substring(0, 5) : '--:--';
                     const endTime = session.endTime ? session.endTime.substring(0, 5) : '--:--';
-                    const topicStr = session.topic ? session.topic : `Chủ đề buổi ${session.sessionNo}`;
+                    const topicStr = session.topic ? session.topic : `Chủ đề buổi ${session.sessionNumber}`;
 
                     cell.innerHTML = `
                         <div class="session-badge shadow-sm" onclick="openSessionModal(${session.sessionId})">
@@ -513,7 +513,7 @@
         const modalEl = document.getElementById('sessionModal');
         const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-        document.getElementById('modalSessionNo').textContent = `BUỔI ${session.sessionNo < 10 ? '0'+session.sessionNo : session.sessionNo}`;
+        document.getElementById('modalSessionNo').textContent = `BUỔI ${session.sessionNumber < 10 ? '0'+session.sessionNumber : session.sessionNumber}`;
         document.getElementById('modalTopic').textContent = session.topic || 'Chưa cập nhật chủ đề';
 
         // Xử lý hiển thị Link Meet
@@ -800,7 +800,7 @@
         data.sessions.forEach(s => {
             if (s.quizzes) {
                 s.quizzes.forEach(q => {
-                    allQuizzes.push({ ...q, sessionNo: s.sessionNo, sessionId: s.sessionId });
+                    allQuizzes.push({ ...q, sessionNo: s.sessionNumber, sessionId: s.sessionId });
                 });
             }
         });

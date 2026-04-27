@@ -2,21 +2,24 @@ services:
   - type: web
     name: nova-lms-backend
     env: docker
-    plan: free # Change to starter or higher if needed
+    plan: pro
     dockerContext: .
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/v1/public/health # Adjust if you have a health check endpoint
+    healthCheckPath: /api/v1/public/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       - key: SPRING_DATASOURCE_URL
-        sync: false # Set this in Render Dashboard (e.g. jdbc:mysql://...)
+        value: jdbc:mysql://mysql-db:3306/novalms?useSSL=false&allowPublicKeyRetrieval=true
       - key: SPRING_DATASOURCE_USERNAME
-        sync: false
+        value: root
       - key: SPRING_DATASOURCE_PASSWORD
-        sync: false
+        fromService:
+          name: mysql-db
+          type: private-service
+          property: envVar:MYSQL_ROOT_PASSWORD
       - key: APP_URL
-        sync: false # Your Render URL (e.g. https://nova-lms-backend.onrender.com)
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
@@ -39,3 +42,18 @@ services:
         sync: false
       - key: PAYOS_CHECKSUM_KEY
         sync: false
+
+  - type: private-service
+    name: mysql-db
+    env: image
+    image: mysql:8.0
+    plan: starter
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+      - key: MYSQL_DATABASE
+        value: novalms
