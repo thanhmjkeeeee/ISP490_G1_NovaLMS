@@ -483,17 +483,17 @@
                         </div>
                     </div>
 
-                    <!-- Deadline field -->
-                    <div id="deadlineSection" class="mb-4" style="display:none">
-                        <label class="form-label fw-bold small text-primary">Hạn nộp (Deadline) <span
-                                class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-white border-primary border-opacity-25"><i
-                                    class="bi bi-calendar-event text-primary"></i></span>
-                            <input type="datetime-local" id="deadline"
-                                class="form-control border-primary border-opacity-25" style="max-width: 300px;">
-                        </div>
-                    </div>
+<!--                    &lt;!&ndash; Deadline field &ndash;&gt;-->
+<!--                    <div id="deadlineSection" class="mb-4" style="display:none">-->
+<!--                        <label class="form-label fw-bold small text-primary">Hạn nộp (Deadline) <span-->
+<!--                                class="text-danger">*</span></label>-->
+<!--                        <div class="input-group">-->
+<!--                            <span class="input-group-text bg-white border-primary border-opacity-25"><i-->
+<!--                                    class="bi bi-calendar-event text-primary"></i></span>-->
+<!--                            <input type="datetime-local" id="deadline"-->
+<!--                                class="form-control border-primary border-opacity-25" style="max-width: 300px;">-->
+<!--                        </div>-->
+<!--                    </div>-->
 
                     <!-- Per-skill time (with switches) -->
                     <div id="perSkillTimeSection" style="display:none;">
@@ -1071,7 +1071,7 @@
                 document.getElementById('maxAttempts').value = q.maxAttempts || '';
                 document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
                 document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit;
-                document.getElementById('deadline').value = q.deadline ? q.deadline.substring(0, 16) : '';
+<!--                document.getElementById('deadline').value = q.deadline ? q.deadline.substring(0, 16) : '';-->
 
                 // Real-time Title Validation
                 const titleInput = document.getElementById('title');
@@ -1211,7 +1211,7 @@
             const lessonSection = document.getElementById('lessonSection');
             const perSkillSection = document.getElementById('perSkillTimeSection');
             const timeLimitInput = document.getElementById('timeLimitMinutes');
-            const deadlineSection = document.getElementById('deadlineSection');
+<!--            const deadlineSection = document.getElementById('deadlineSection');-->
             const assignmentTimeMsg = document.getElementById('assignmentTimeMsg');
 
             // Hiển thị phần Khóa học/Chương/Buổi nếu là loại liên quan khóa học
@@ -1223,7 +1223,7 @@
             // Hiển thị thời gian từng phần cho tất cả các loại trừ Entry Test (nếu muốn đồng nhất)
             const showPerSkill = cat && cat !== 'ENTRY_TEST';
             if (perSkillSection) perSkillSection.style.display = showPerSkill ? 'block' : 'none';
-            if (deadlineSection) deadlineSection.style.display = (cat && cat.includes('ASSIGNMENT')) ? 'block' : 'none';
+<!--            if (deadlineSection) deadlineSection.style.display = (cat && cat.includes('ASSIGNMENT')) ? 'block' : 'none';-->
             if (assignmentTimeMsg) assignmentTimeMsg.style.display = showPerSkill ? 'block' : 'none';
 
             if (timeLimitInput) {
