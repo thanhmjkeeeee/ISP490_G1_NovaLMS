@@ -912,8 +912,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                             : null)
                     .quizCategory(qr.getQuiz() != null ? qr.getQuiz().getQuizCategory() : null)
                     .submittedAt(qr.getSubmittedAt())
+                    .startedAt(qr.getStartedAt())
                     .score(qr.getScore())
                     .maxScore(maxScore)
+                    .overallBand(qr.getOverallBand())
                     .passed(qr.getPassed())
                     .status(qr.getStatus())
                     .violationLog(qr.getViolationLog())
@@ -1427,8 +1429,13 @@ public class QuizResultServiceImpl implements QuizResultService {
                     double inputVal = Double.parseDouble(a.getTeacherOverrideScore());
                     double teacherPts;
 
-                    // Sử dụng trực tiếp điểm giáo viên nhập (giả định là điểm Band đã nằm trong thang của pts)
-                    teacherPts = inputVal;
+                    if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
+                        // Band scores: sử dụng trực tiếp (pts thường = 1.0, không cap)
+                        teacherPts = inputVal;
+                    } else {
+                        // MC / điền từ: cap tại điểm tối đa của câu hỏi
+                        teacherPts = Math.min(inputVal, pts);
+                    }
 
                     skillRawScore.put(skill, skillRawScore.getOrDefault(skill, 0.0) + teacherPts);
 
@@ -1592,7 +1599,14 @@ public class QuizResultServiceImpl implements QuizResultService {
             // 2. AND (No manual content (!hasManual) OR Teacher has finalized (GRADED))
             if (!anyPending && (!hasManual || "GRADED".equals(result.getStatus()))) {
                 if (quiz.getPassScore() != null) {
-                    result.setPassed(correctRate.compareTo(quiz.getPassScore()) >= 0);
+                    // For sequential (IELTS) assignments: compare overallBandScore vs expert-configured pass band
+                    // For regular quizzes: compare correctRate (%) vs passScore (%)
+                    boolean isSequential = Boolean.TRUE.equals(result.getQuiz().getIsSequential());
+                    if (isSequential) {
+                        result.setPassed(BigDecimal.valueOf(overallBandScore).compareTo(quiz.getPassScore()) >= 0);
+                    } else {
+                        result.setPassed(correctRate.compareTo(quiz.getPassScore()) >= 0);
+                    }
                 } else {
                     result.setPassed(true);
                 }

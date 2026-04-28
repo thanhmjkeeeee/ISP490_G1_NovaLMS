@@ -585,17 +585,14 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                     }
 
                     if (awarded != null) {
-                        // Validate points
+                        // Validate points against expert-configured max
                         BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), answer.getQuestion());
-                        // For WRITING and SPEAKING, allow up to 9.0 (Standard IELTS Band)
+                        // Use the expert-configured max for all question types (including WRITING/SPEAKING)
                         BigDecimal maxAllowed = maxPts;
-                        if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
-                            maxAllowed = new BigDecimal("9.0");
-                        }
                         
                         if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
                             throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId() 
-                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + ".");
+                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + " (theo cấu hình của Expert).");
                         }
                         
                         answer.setPointsAwarded(awarded);
