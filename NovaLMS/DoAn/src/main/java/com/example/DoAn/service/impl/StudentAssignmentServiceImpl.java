@@ -354,10 +354,15 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
         // Per-skill timer for ALL skills
         if (session.getQuiz().getTimeLimitPerSkill() != null) {
             try {
-                Map<String, Integer> limits = objectMapper.readValue(
+                Map<String, Integer> rawLimits = objectMapper.readValue(
                         session.getQuiz().getTimeLimitPerSkill(),
                         new TypeReference<Map<String, Integer>>() {});
-                Integer sectionMins = limits.get(skill);
+                
+                // Normalize keys to uppercase for case-insensitive lookup
+                Map<String, Integer> limits = new HashMap<>();
+                rawLimits.forEach((k, v) -> limits.put(k.toUpperCase(), v));
+
+                Integer sectionMins = limits.get(skill != null ? skill.toUpperCase() : null);
                 if (sectionMins != null) {
                     // Check if we already have an expiry for this section
                     Map<String, String> expiries = new HashMap<>();

@@ -1569,9 +1569,21 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
                     .count();
                 double avgBand = (totalQs > 0) ? raw / totalQs : 0.0;
-                skillBands.put(skill, avgBand);
+                // IELTS Rounding: round to nearest 0.5 (e.g. 6.25 -> 6.5)
+                skillBands.put(skill, IELTSScoreMapper.roundToIELTS(avgBand));
+            } else if ("READING".equalsIgnoreCase(skill) || "LISTENING".equalsIgnoreCase(skill)) {
+                // IELTS Reading/Listening: Use the standard non-linear mapping table (e.g. 39/40 -> 9.0)
+                long correctCount = answers.stream()
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) && Boolean.TRUE.equals(a.getIsCorrect()))
+                    .count();
+                long totalQs = answers.stream()
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                    .count();
+                
+                double achieved = IELTSScoreMapper.mapRawToBand(correctCount, totalQs, skill);
+                skillBands.put(skill, achieved);
             } else {
-                // Reading/Listening: achieved = (CorrectCount / TotalQuestions) * configuredMaxBand
+                // Generic skill: achieved = (CorrectCount / TotalQuestions) * configuredMaxBand
                 long correctCount = answers.stream()
                     .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) && Boolean.TRUE.equals(a.getIsCorrect()))
                     .count();

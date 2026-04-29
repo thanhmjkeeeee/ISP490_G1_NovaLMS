@@ -390,7 +390,10 @@ function buildSkills(quiz) {
   let skillTimeMap = {};
   if (quiz.timeLimitPerSkill) {
     try {
-      skillTimeMap = JSON.parse(quiz.timeLimitPerSkill);
+      const rawMap = JSON.parse(quiz.timeLimitPerSkill);
+      Object.keys(rawMap).forEach(k => {
+        skillTimeMap[k.toUpperCase()] = rawMap[k];
+      });
     } catch(e) { console.warn("Invalid timeLimitPerSkill JSON", e); }
   }
 

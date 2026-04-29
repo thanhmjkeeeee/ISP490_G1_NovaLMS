@@ -160,27 +160,14 @@
               <div id="classStatusError" class="text-danger small mt-1"></div>
             </div>
 
-            <!-- Row 3: Số buổi học + Ca học -->
-            <div class="col-md-4">
+            <!-- Row 3: Số buổi học + Link Meet -->
+            <div class="col-md-6">
               <label class="form-label small fw-bold text-secondary text-uppercase">Số buổi học <span class="text-danger">*</span></label>
               <input type="number" id="numberOfSessions" class="form-control" placeholder="Ví dụ: 30" min="1" max="100" required>
               <div id="numberOfSessionsError" class="text-danger small mt-1"></div>
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label small fw-bold text-secondary text-uppercase">Ca học <span class="text-danger">*</span></label>
-              <select id="slotTime" class="form-select" required onchange="onScheduleChange()">
-                <option value="">-- Chọn ca học --</option>
-                <option value="Sáng (7:00 - 9:00)">Sáng (7:00 - 9:00)</option>
-                <option value="Sáng (9:00 - 11:00)">Sáng (9:00 - 11:00)</option>
-                <option value="Chiều (13:00 - 15:00)">Chiều (13:00 - 15:00)</option>
-                <option value="Chiều (15:00 - 17:00)">Chiều (15:00 - 17:00)</option>
-                <option value="Tối (18:00 - 20:00)">Tối (18:00 - 20:00)</option>
-              </select>
-              <div id="slotTimeError" class="text-danger small mt-1"></div>
-            </div>
-
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label small fw-bold text-secondary text-uppercase">Link Google Meet <span class="text-danger">*</span></label>
               <input type="url" id="meetLink" class="form-control" placeholder="https://meet.google.com/..." required>
               <div id="meetLinkError" class="text-danger small mt-1"></div>
@@ -220,6 +207,20 @@
                 <label class="btn btn-outline-primary btn-sm" for="day8">Chủ nhật</label>
               </div>
               <div id="scheduleError" class="text-danger small mt-1"></div>
+            </div>
+
+            <!-- Row 6: Ca học -->
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-secondary text-uppercase">Ca học <span class="text-danger">*</span></label>
+              <select id="slotTime" class="form-select" required onchange="onScheduleChange()">
+                <option value="">-- Chọn ca học --</option>
+                <option value="Sáng (7:00 - 9:00)">Sáng (7:00 - 9:00)</option>
+                <option value="Sáng (9:00 - 11:00)">Sáng (9:00 - 11:00)</option>
+                <option value="Chiều (13:00 - 15:00)">Chiều (13:00 - 15:00)</option>
+                <option value="Chiều (15:00 - 17:00)">Chiều (15:00 - 17:00)</option>
+                <option value="Tối (18:00 - 20:00)">Tối (18:00 - 20:00)</option>
+              </select>
+              <div id="slotTimeError" class="text-danger small mt-1"></div>
             </div>
 
             <!-- Row 6: Mô tả lớp học -->
@@ -379,6 +380,7 @@
   }
 
   const classId = getCurrentId();
+  const courseDataMap = {};
   const path = window.location.pathname;
   const isEditMode = path.includes('/edit/');
   const isCreateMode = path === '/manager/class/create';
@@ -388,16 +390,28 @@
       'Chiều (13:00 - 15:00)', 'Chiều (15:00 - 17:00)', 'Tối (18:00 - 20:00)'
   ];
 
-  function renderSlotOptions(slots, selectedSlot = '') {
+  function renderSlotOptions(availableSlots = [], selectedSlot = '') {
       const slotSelect = document.getElementById('slotTime');
       if (!slotSelect) return;
-      const safeSlots = (slots && slots.length > 0) ? slots : ALL_SLOT_TIMES;
+      
+      const currentSelection = selectedSlot || slotSelect.value;
       slotSelect.innerHTML = '<option value="">-- Chọn ca học --</option>';
-      safeSlots.forEach(slot => {
+      
+      ALL_SLOT_TIMES.forEach(slot => {
           const option = document.createElement('option');
           option.value = slot;
           option.textContent = slot;
-          if (selectedSlot && slot.toLowerCase() === selectedSlot.toLowerCase()) option.selected = true;
+          
+          // Disable if not in available list
+          const isAvailable = availableSlots.length === 0 || availableSlots.some(s => s.toLowerCase().trim() === slot.toLowerCase().trim());
+          if (!isAvailable) {
+              option.disabled = true;
+              option.textContent += ' (Giảng viên đã có lịch)';
+          }
+          
+          if (currentSelection && slot.toLowerCase().trim() === currentSelection.toLowerCase().trim()) {
+              option.selected = true;
+          }
           slotSelect.appendChild(option);
       });
   }
@@ -405,29 +419,41 @@
   async function fetchAvailableSlots(selectedSlot = '') {
       const teacherId = document.getElementById('teacherId').value;
       const scheduleStr = buildScheduleString();
-      if (!teacherId || !scheduleStr) { renderSlotOptions(ALL_SLOT_TIMES, selectedSlot); return; }
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      if (!teacherId || !scheduleStr) { 
+          renderSlotOptions([], selectedSlot); 
+          return; 
+      }
+      
       try {
           const excludeClassId = classId ? `&excludeClassId=${classId}` : '';
-          const res = await fetch(`/api/v1/classes/available-slots?teacherId=${encodeURIComponent(teacherId)}&schedule=${encodeURIComponent(scheduleStr)}${excludeClassId}`);
+          // We pass dates too if available for better backend filtering
+          const url = `/api/v1/classes/available-slots?teacherId=${encodeURIComponent(teacherId)}&schedule=${encodeURIComponent(scheduleStr)}&startDate=${startDate}&endDate=${endDate}${excludeClassId}`;
+          const res = await fetch(url);
           const result = await res.json();
-          if (result.status === 200) renderSlotOptions(result.data || [], selectedSlot);
-          else renderSlotOptions(ALL_SLOT_TIMES, selectedSlot);
-      } catch (err) { renderSlotOptions(ALL_SLOT_TIMES, selectedSlot); }
+          if (result.status === 200) {
+              renderSlotOptions(result.data || [], selectedSlot);
+          } else {
+              renderSlotOptions([], selectedSlot);
+          }
+      } catch (err) { 
+          renderSlotOptions([], selectedSlot); 
+      }
   }
 
   function bindScheduleTeacherEvents() {
-      const getActiveSlot = () => document.getElementById('slotTime').value;
-      // Triggers for teacher list reload
-      const reloadTriggerIds = ['startDate', 'numberOfSessions', 'slotTime'];
+      // Triggers for full refresh
+      const reloadTriggerIds = ['startDate', 'numberOfSessions', 'slotTime', 'teacherId'];
       reloadTriggerIds.forEach(id => {
           const el = document.getElementById(id); 
-          if (el) el.addEventListener('change', loadTeachers);
+          if (el) el.addEventListener('change', refreshClassMetrics);
       });
 
       document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => {
           cb.addEventListener('change', () => {
               onScheduleChange();
-              loadTeachers();
           });
       });
   }
@@ -455,8 +481,13 @@
   }
 
   function onScheduleChange() {
+      refreshClassMetrics();
+  }
+
+  function refreshClassMetrics() {
       calculateEndDate();
       fetchAvailableSlots();
+      if (typeof loadTeachers === 'function') loadTeachers();
   }
 
   // Auto-calculate endDate
@@ -507,9 +538,12 @@
   function bindAutoEndDate() {
       ['startDate', 'numberOfSessions'].forEach(id => {
           const el = document.getElementById(id);
-          if (el) { el.addEventListener('input', calculateEndDate); el.addEventListener('change', calculateEndDate); }
+          if (el) { 
+              el.addEventListener('input', refreshClassMetrics); 
+              el.addEventListener('change', refreshClassMetrics); 
+          }
       });
-      setTimeout(calculateEndDate, 100);
+      setTimeout(refreshClassMetrics, 100);
   }
 
   function setupDateConstraints() {
@@ -703,6 +737,10 @@
                   opt.disabled = true; opt.textContent = '(Không có giảng viên nào trống lịch)';
                   select.appendChild(opt);
               }
+              // If previously selected teacher is no longer available, warn user
+              if (originalValue && select.value === "") {
+                  showToast('Giảng viên đã chọn không còn khả dụng cho lịch học này.', 'warning');
+              }
           }
       } catch (err) { console.error('Error loading available teachers', err); }
   }
@@ -832,63 +870,6 @@
       return days.join(', ');
   }
 
-  function buildScheduleString() {
-      const days = [];
-      document.querySelectorAll('.schedule-check input[type="checkbox"]:checked').forEach(cb => days.push(cb.value));
-      return days.join(', ');
-  }
-
-  async function updateEndDate() {
-      const schedule = buildScheduleString();
-      const slotTime = document.getElementById('slotTime').value;
-      const startDate = document.getElementById('startDate').value;
-      const numberOfSessions = document.getElementById('numberOfSessions').value;
-
-      if (!schedule || !slotTime || !startDate || !numberOfSessions) return;
-
-      try {
-          const res = await fetch(`/api/v1/classes/calculate-end-date?schedule=${encodeURIComponent(schedule)}&slotTime=${encodeURIComponent(slotTime)}&startDate=${startDate}&numberOfSessions=${numberOfSessions}`);
-          const result = await res.json();
-          if (result.status === 200 && result.data) {
-              document.getElementById('endDate').value = result.data.split('T')[0];
-          }
-      } catch (err) { console.error('Error calculating end date', err); }
-  }
-
-  function onScheduleChange() {
-      updateEndDate();
-  }
-
-  function parseScheduleToCheckboxes(schedule) {
-      document.querySelectorAll('.schedule-check input[type="checkbox"]').forEach(cb => cb.checked = false);
-      if (!schedule) return;
-      const s = schedule.toLowerCase().replaceAll('\\s+', '');
-      const numMap = { 'mon': '2', 'tue': '3', 'wed': '4', 'thu': '5', 'fri': '6', 'sat': '7', 'sun': '8' };
-      const dayNameMap = { 'thứ2': '2', 'thứ3': '3', 'thứ4': '4', 'thứ5': '5', 'thứ6': '6', 'thứ7': '7', 'chủnhật': '8' };
-
-      // Try numeric match first
-      const matches = s.match(/[2-8]/g);
-      if (matches) {
-          matches.forEach(m => {
-              const cb = document.getElementById('day' + m);
-              if (cb) cb.checked = true;
-          });
-      }
-      // Try name match
-      Object.keys(dayNameMap).forEach(key => {
-          if (s.includes(key)) {
-              const cb = document.getElementById('day' + dayNameMap[key]);
-              if (cb) cb.checked = true;
-          }
-      });
-      // Try alias match
-      Object.keys(numMap).forEach(key => {
-          if (s.includes(key)) {
-              const cb = document.getElementById('day' + numMap[key]);
-              if (cb) cb.checked = true;
-          }
-      });
-  }
 
   function renderStudents(list) {
       const tbody = document.getElementById('studentTableBody');

@@ -97,9 +97,11 @@ public class ManagerClassController {
     public ResponseData<java.util.List<String>> getAvailableSlots(
             @RequestParam Integer teacherId,
             @RequestParam String schedule,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(required = false) Integer excludeClassId) {
         try {
-            java.util.List<String> slots = classService.getAvailableSlotTimes(teacherId, schedule, excludeClassId);
+            java.util.List<String> slots = classService.getAvailableSlotTimes(teacherId, schedule, startDate, endDate, excludeClassId);
             return new ResponseData<>(HttpStatus.OK.value(), "Thành công", slots);
         } catch (Exception e) {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());

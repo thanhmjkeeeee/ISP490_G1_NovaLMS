@@ -94,21 +94,62 @@ public class ClassServiceImpl implements IClassService {
     private final TeacherScheduleConflictService teacherScheduleConflictService;
 
     @Override
-    public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId) {
+    public List<String> getAvailableSlotTimes(Integer teacherId, String schedule, String startDateStr, String endDateStr, Integer excludeClassId) {
         if (teacherId == null || schedule == null || schedule.isBlank()) {
             return ALL_SLOT_TIMES;
         }
 
-        List<Clazz> existingClasses = classRepository.findByTeacherAndSchedule(teacherId, schedule.trim(),
-                excludeClassId);
-        List<String> occupied = existingClasses.stream()
-                .map(Clazz::getSlotTime)
-                .filter(s -> s != null && !s.isBlank())
-                .map(this::normalizeSlot)
+        LocalDateTime startR = null;
+        LocalDateTime endR = null;
+        try {
+            if (startDateStr != null && !startDateStr.isBlank()) {
+                startR = parseDateTime(startDateStr, "Invalid start date");
+            }
+            if (endDateStr != null && !endDateStr.isBlank()) {
+                endR = parseDateTime(endDateStr, "Invalid end date");
+            }
+        } catch (Exception ignored) {}
+
+        List<Clazz> teacherClasses = classRepository.findAll().stream()
+                .filter(c -> c.getTeacher() != null && c.getTeacher().getUserId().equals(teacherId))
+                .filter(c -> !"Closed".equalsIgnoreCase(c.getStatus()) && !"Cancelled".equalsIgnoreCase(c.getStatus()))
+                .filter(c -> excludeClassId == null || !c.getClassId().equals(excludeClassId))
                 .toList();
 
+        List<Integer> occupiedSlotNumbers = new java.util.ArrayList<>();
+        List<DayOfWeekInfo> targetDays = parseScheduleDays(schedule);
+
+        for (Clazz c : teacherClasses) {
+            // Check for date overlap if possible
+            if (startR != null && endR != null && c.getStartDate() != null && c.getEndDate() != null) {
+                if (startR.isAfter(c.getEndDate()) || c.getStartDate().isAfter(endR)) {
+                    continue; // No date overlap, so this class doesn't block the slot
+                }
+            }
+
+            List<DayOfWeekInfo> existingDays = parseScheduleDays(c.getSchedule());
+            boolean daysOverlap = false;
+            for (DayOfWeekInfo d1 : targetDays) {
+                for (DayOfWeekInfo d2 : existingDays) {
+                    if (d1.targetDow == d2.targetDow) {
+                        daysOverlap = true;
+                        break;
+                    }
+                }
+                if (daysOverlap) break;
+            }
+
+            if (daysOverlap) {
+                Integer sn = getSlotNumberFromTime(c.getSlotTime());
+                if (sn != null) occupiedSlotNumbers.add(sn);
+            }
+        }
+
         return ALL_SLOT_TIMES.stream()
-                .filter(slot -> !occupied.contains(normalizeSlot(slot)))
+                .filter(slot -> {
+                    Integer sn = getSlotNumberFromTime(slot);
+                    return sn == null || !occupiedSlotNumbers.contains(sn);
+                })
                 .toList();
     }
 
@@ -174,8 +215,15 @@ public class ClassServiceImpl implements IClassService {
         }
 
         // 2. Slot overlap check
-        if (!normalizeSlot(slot1).equals(normalizeSlot(c2.getSlotTime()))) {
-            return false;
+        Integer sn1 = getSlotNumberFromTime(slot1);
+        Integer sn2 = getSlotNumberFromTime(c2.getSlotTime());
+        if (sn1 != null && sn2 != null) {
+            if (!sn1.equals(sn2)) return false;
+        } else {
+            // fallback to string comparison if not standard slots
+            if (!normalizeSlot(slot1).equals(normalizeSlot(c2.getSlotTime()))) {
+                return false;
+            }
         }
 
         // 3. Weekly schedule overlap (common days)
@@ -232,7 +280,7 @@ public class ClassServiceImpl implements IClassService {
 
         if (request.getTeacherId() != null && request.getSchedule() != null && !request.getSchedule().isBlank()) {
             List<String> availableSlots = getAvailableSlotTimes(request.getTeacherId(), request.getSchedule(),
-                    excludeClassId);
+                    request.getStartDate(), request.getEndDate(), excludeClassId);
             if (!availableSlots.stream().map(this::normalizeSlot).toList()
                     .contains(normalizeSlot(request.getSlotTime()))) {
                 throw new RuntimeException("Giáo viên đã có lớp trùng lịch học và ca học");

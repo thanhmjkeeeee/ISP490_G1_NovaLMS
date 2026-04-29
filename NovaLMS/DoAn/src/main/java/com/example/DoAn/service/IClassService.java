@@ -11,7 +11,7 @@ public interface IClassService {
     void updateClass(Integer id, ClassRequestDTO request);
     ClassDetailResponse getClassById(Integer id);
     PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className, String courseName, String teacherName, String status);
-    List<String> getAvailableSlotTimes(Integer teacherId, String schedule, Integer excludeClassId);
+    List<String> getAvailableSlotTimes(Integer teacherId, String schedule, String startDate, String endDate, Integer excludeClassId);
     List<com.example.DoAn.model.User> getAvailableTeachers(String startDate, String endDate, String schedule, String slotTime, Integer excludeClassId);
     void deleteClass(Integer id);
 }
