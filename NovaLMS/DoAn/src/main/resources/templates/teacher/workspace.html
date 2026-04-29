@@ -1433,7 +1433,7 @@
             const timeSelect = document.getElementById('res-newStartTime');
             if (!dateInput || !timeSelect) return;
 
-            const selectedDate = dateInput.value;
+            const selectedDate = dateInput.value; // Format: YYYY-MM-DD
             const originalDate = dateInput.dataset.originalDate || '';
             const originalTime = dateInput.dataset.originalTime || '';
             const sessionId = document.getElementById('res-sessionId')?.value || '';
@@ -1459,19 +1459,55 @@
                 const busyList = (json.status === 200 && Array.isArray(json.data)) ? json.data : [];
                 const busy = new Set(busyList);
 
+                // --- LOGIC MỚI: LẤY THỜI GIAN HIỆN TẠI ĐỂ CHECK SLOT TRONG NGÀY ---
+                const now = new Date();
+                // Lấy ngày hôm nay theo format YYYY-MM-DD (Local time)
+                const todayStr = now.getFullYear() + '-' +
+                                 String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                                 String(now.getDate()).padStart(2, '0');
+
+                const isSelectedToday = (selectedDate === todayStr);
+                const currentHour = now.getHours();
+                const currentMin = now.getMinutes();
+                // -----------------------------------------------------------------
+
                 Array.from(timeSelect.options).forEach(opt => {
                     if (!opt.value) return;
+
                     const takenElsewhere = busy.has(opt.value);
                     const sameAsCurrentSlot = selectedDate === originalDate && opt.value === originalTime;
-                    opt.disabled = takenElsewhere || sameAsCurrentSlot;
+
+                    // --- LOGIC MỚI: KIỂM TRA SLOT ĐÃ QUA TRONG HÔM NAY ---
+                    let isPastSlotToday = false;
+                    if (isSelectedToday) {
+                        const optParts = opt.value.split(':');
+                        const optHour = parseInt(optParts[0], 10);
+                        const optMin = parseInt(optParts[1], 10);
+
+                        // Nếu giờ của Slot < giờ hiện tại, hoặc bằng giờ nhưng phút < phút hiện tại
+                        if (optHour < currentHour || (optHour === currentHour && optMin < currentMin)) {
+                            isPastSlotToday = true;
+                        }
+                    }
+                    // -----------------------------------------------------
+
+                    // Disable nếu: Bị trùng lịch KHÁC || Trùng lịch HIỆN TẠI || Đã quá giờ HÔM NAY
+                    opt.disabled = takenElsewhere || sameAsCurrentSlot || isPastSlotToday;
+
                     if (opt.disabled) {
-                        opt.title = sameAsCurrentSlot && !takenElsewhere
-                            ? 'Trùng lịch buổi học hiện tại'
-                            : 'Đã có buổi dạy hoặc yêu cầu đổi lịch chờ duyệt ở lớp khác';
+                        if (isPastSlotToday) {
+                            opt.title = 'Khung giờ này đã trôi qua trong ngày hôm nay';
+                        } else if (sameAsCurrentSlot && !takenElsewhere) {
+                            opt.title = 'Trùng lịch buổi học hiện tại';
+                        } else {
+                            opt.title = 'Đã có buổi dạy hoặc yêu cầu đổi lịch chờ duyệt ở lớp khác';
+                        }
                     } else {
                         opt.title = '';
                     }
                 });
+
+                // Tự động clear value nếu người dùng chọn trúng option đã bị disable
                 const sel = timeSelect.selectedOptions[0];
                 if (sel && sel.disabled) {
                     timeSelect.value = '';
@@ -1957,7 +1993,7 @@
                 document.getElementById('m-className').textContent = d.className || 'Detail';
                 document.getElementById('m-courseName').textContent = d.courseName || '';
                 document.getElementById('m-sessionNo').textContent = d.sessionNo || '—';
-                document.getElementById('m-date').textContent = d.date || '—';
+                document.getElementById('m-date').textContent = d.date || d.sessionDate || '—';
                 document.getElementById('m-time').textContent = `${d.startTime || ''} - ${d.endTime || ''}`;
                 document.getElementById('m-topic').textContent = d.topic || 'Chưa cập nhật';
                 document.getElementById('m-meetLink').value = d.meetLink || '';
@@ -2011,28 +2047,62 @@
                 }
 
                 // --- 2. CHẶN ĐỔI LỊCH BUỔI HỌC QUÁ KHỨ ---
-                const [dd, mm, yyyy] = d.date.split('/');
-                const [h, min] = (d.startTime || "00:00").split(':');
-                const sessionTime = new Date(yyyy, mm - 1, dd, h, min);
-                const isPast = sessionTime < new Date();
+                let isPast = false;
+                // Bắt đúng trường ngày tháng từ API (hỗ trợ cả d.date và d.sessionDate)
+                let rawDate = d.date || d.sessionDate;
 
-                const resTab = document.getElementById('m-reschedule-tab');
+                if (rawDate) {
+                    // Xử lý nếu ngày có chứa thời gian (ISO 8601: 2026-04-27T00:00:00)
+                    if (String(rawDate).includes('T')) {
+                        rawDate = String(rawDate).split('T')[0];
+                    }
+
+                    let yyyy = "", mm = "", dd = "";
+                    if (rawDate.includes('/')) {
+                        const parts = rawDate.split('/');
+                        dd = parts[0]; mm = parts[1]; yyyy = parts[2];
+                    } else if (rawDate.includes('-')) {
+                        const parts = rawDate.split('-');
+                        yyyy = parts[0]; mm = parts[1]; dd = parts[2];
+                    }
+
+                    const timeParts = (d.startTime || "00:00").split(':');
+                    const h = parseInt(timeParts[0] || 0, 10);
+                    const min = parseInt(timeParts[1] || 0, 10);
+
+                    if (yyyy && mm && dd) {
+                        const sessionTime = new Date(yyyy, mm - 1, dd, h, min);
+                        const now = new Date();
+                        isPast = sessionTime.getTime() < now.getTime();
+                    }
+                }
+
+                const resTabBtn = document.getElementById('m-reschedule-tab');
+
                 if (isPast) {
-                    resTab.innerHTML = '<i class="bi bi-lock-fill me-2"></i>Đã diễn ra';
-                    resTab.classList.add('disabled', 'text-muted');
-                    document.getElementById('rescheduleFormContainer').style.display = 'none';
-                    document.getElementById('reschedulePendingMsg').innerHTML = `
-                    <div class="alert alert-warning border-warning p-4 rounded-4">
-                        <i class="bi bi-exclamation-triangle-fill fs-2 mb-2 d-block"></i>
-                        <h6 class="fw-bold">Không thể đổi lịch</h6>
-                        <p class="small mb-0">Buổi học này đã diễn ra hoặc đang diễn ra, hệ thống không cho phép đổi lịch cho các buổi trong quá khứ.</p>
-                    </div>`;
-                    document.getElementById('reschedulePendingMsg').style.display = 'block';
-                } else {
-                    resTab.innerHTML = '<i class="bi bi-calendar-event me-2"></i>Đổi lịch dạy';
-                    resTab.classList.remove('disabled', 'text-muted');
+                    // 1. Khóa UI Tab
+                    resTabBtn.innerHTML = '<i class="bi bi-calendar-x-fill me-2"></i>Đã qua lịch dạy';
+                    resTabBtn.classList.add('disabled', 'text-muted');
+                    resTabBtn.classList.remove('fw-bold');
+                    resTabBtn.disabled = true;
 
-                    // Lưu thông tin gốc để so sánh khi chọn ngày mới (chuẩn HH:mm khớp <select>)
+                    // 2. Chặn event của Bootstrap 5
+                    resTabBtn.removeAttribute('data-bs-toggle');
+                    resTabBtn.removeAttribute('data-bs-target');
+
+                    // 3. Ép switch sang tab Nội Dung (để user không kẹt ở tab đổi lịch)
+                    const contentTab = new bootstrap.Tab(document.getElementById('m-content-tab'));
+                    contentTab.show();
+                } else {
+                    // Phục hồi lại Tab nếu là tương lai
+                    resTabBtn.innerHTML = '<i class="bi bi-calendar-event me-2"></i>Đổi lịch dạy';
+                    resTabBtn.classList.remove('disabled', 'text-muted');
+                    resTabBtn.classList.add('fw-bold');
+                    resTabBtn.disabled = false;
+                    resTabBtn.setAttribute('data-bs-toggle', 'tab');
+                    resTabBtn.setAttribute('data-bs-target', '#m-reschedule-pane');
+
+                    // --- Chuẩn bị dữ liệu cho Form Đổi Lịch ---
                     const newDateInput = document.getElementById('res-newDate');
                     const toSlotVal = (t) => {
                         if (!t || String(t).indexOf(':') < 0) return String(t || '');
@@ -2041,22 +2111,34 @@
                         const mi = parseInt((p[1] || '0').replace(/\D/g, '').substring(0, 2) || '0', 10);
                         return String(h).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
                     };
-                    newDateInput.dataset.originalDate = `${yyyy}-${mm}-${dd}`;
+
+                    const parts = (d.date || d.sessionDate || "").split(/-|\//);
+                    let finalY = "", finalM = "", finalD = "";
+                    if (String(d.date || d.sessionDate).includes('/')) {
+                        finalD = parts[0]; finalM = parts[1]; finalY = parts[2];
+                    } else {
+                        finalY = parts[0]; finalM = parts[1]; finalD = parts[2];
+                    }
+
+                    newDateInput.dataset.originalDate = (finalY && finalM && finalD) ? `${finalY}-${finalM}-${finalD}` : '';
                     newDateInput.dataset.originalTime = toSlotVal(d.startTime);
 
-                    // Check Reschedule Status
+                    // Check Reschedule Status (Có đang chờ duyệt không)
                     const stRes = await fetch(`/teacher/api/session/${id}/reschedule-status`);
                     const stJson = await stRes.json();
+
                     if (stJson.status === 200 && stJson.data.hasPending) {
                         document.getElementById('rescheduleFormContainer').style.display = 'none';
-                        document.getElementById('reschedulePendingMsg').innerHTML = `
+                        const pendingMsg = document.getElementById('reschedulePendingMsg');
+                        pendingMsg.innerHTML = `
                         <div class="bg-warning bg-opacity-10 text-warning p-4 rounded-4 border border-warning border-opacity-25 text-center">
                             <i class="bi bi-hourglass-split fs-1 mb-3 d-block"></i>
                             <h6 class="fw-bold mb-2">Đang chờ phê duyệt</h6>
                             <p class="small mb-0 text-dark">Bạn đã gửi yêu cầu đổi lịch cho buổi này. Vui lòng chờ Manager phản hồi trước khi gửi yêu cầu mới.</p>
                         </div>`;
-                        document.getElementById('reschedulePendingMsg').style.display = 'block';
+                        pendingMsg.style.display = 'block';
                     } else {
+                        // Mở form điền lý do
                         document.getElementById('rescheduleFormContainer').style.display = 'block';
                         document.getElementById('reschedulePendingMsg').style.display = 'none';
                         newDateInput.value = '';
