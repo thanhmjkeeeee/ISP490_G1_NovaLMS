@@ -426,7 +426,7 @@ public class ClassServiceImpl implements IClassService {
      * endDate
      */
     private List<ClassSession> generateSessions(Clazz clazz, String schedule, String slotTime,
-            String startDateStr, Integer numberOfSessions) {
+                                                String startDateStr, Integer numberOfSessions) {
 
         List<ClassSession> sessions = new ArrayList<>();
         if (numberOfSessions == null || numberOfSessions <= 0)
@@ -764,7 +764,7 @@ public class ClassServiceImpl implements IClassService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ClassDetailResponse> getAllClasses(int pageNo, int pageSize, String className,
-            String courseName, String teacherName, String status) {
+                                                           String courseName, String teacherName, String status) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("classId").descending());
 
         Specification<Clazz> spec = (root, query, cb) -> {
@@ -860,16 +860,18 @@ public class ClassServiceImpl implements IClassService {
                 .className(clazz.getClassName() != null ? clazz.getClassName() : "N/A")
                 .courseId(clazz.getCourse() != null ? clazz.getCourse().getCourseId() : null)
                 .courseName(clazz.getCourse() != null ? clazz.getCourse().getCourseName() : "N/A")
-                .courseImageUrl(clazz.getCourse() != null ? clazz.getCourse().getImageUrl() : null)
+                .courseImageUrl(clazz.getCourse() != null ?
+                        (clazz.getCourse().getAvatar() != null && !clazz.getCourse().getAvatar().isBlank() ? clazz.getCourse().getAvatar() : clazz.getCourse().getImageUrl()) : null)
                 .courseDescription(clazz.getCourse() != null ? clazz.getCourse().getDescription() : null)
                 .coursePrice(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getPrice() : null))
                 .courseSale(safeToDecimal(clazz.getCourse() != null ? clazz.getCourse().getSale() : null))
                 .expertAvatar(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
-                        ? clazz.getCourse().getExpert().getAvatarUrl()
-                        : null)
+                        ? (clazz.getCourse().getExpert().getAvatarUrl() != null && !clazz.getCourse().getExpert().getAvatarUrl().isBlank()
+                        ? clazz.getCourse().getExpert().getAvatarUrl() : "/assets/img/default-avatar.png")
+                        : "/assets/img/default-avatar.png")
                 .expertName(clazz.getCourse() != null && clazz.getCourse().getExpert() != null
                         ? clazz.getCourse().getExpert().getFullName()
-                        : null)
+                        : "Expert")
                 .teacherId(clazz.getTeacher() != null ? clazz.getTeacher().getUserId() : null)
                 .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Not assigned")
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
