@@ -60,10 +60,14 @@ public class Course {
     @JoinColumn(name = "category_id") // Khớp với tên cột trong file abc.sql
     private Setting category;
 
-    // KẾT NỐI VỚI GIẢNG VIÊN (Bảng user)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expert_id") // Khớp với tên cột trong file abc.sql
     private User expert;
+
+    // KẾT NỐI VỚI GIẢNG VIÊN DẠY (Sử dụng manager_id làm teacher_id trong DB)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private User teacher;
 
     // Nếu bạn muốn đếm số học viên, có thể thêm map với bảng registration
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
@@ -120,6 +124,9 @@ public class Course {
 
     public User getExpert() { return expert; }
     public void setExpert(User expert) { this.expert = expert; }
+
+    public User getTeacher() { return teacher; }
+    public void setTeacher(User teacher) { this.teacher = teacher; }
 
     public List<Registration> getRegistrations() { return registrations; }
     public void setRegistrations(List<Registration> registrations) { this.registrations = registrations; }

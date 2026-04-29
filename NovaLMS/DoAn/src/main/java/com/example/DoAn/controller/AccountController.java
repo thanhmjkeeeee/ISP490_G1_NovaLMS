@@ -96,4 +96,15 @@ public class AccountController {
             return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
         }
     }
+
+    @Operation(summary = "Get all teachers (role = Teacher)")
+    @GetMapping("/teachers")
+    public ResponseData<List<?>> getTeachers() {
+        try {
+            PageResponse<?> response = accountService.getAllAccountsByRoleValue("ROLE_TEACHER");
+            return new ResponseData<>(HttpStatus.OK.value(), "Danh sách giảng viên", (List<?>) response.getItems());
+        } catch (Exception e) {
+            return new ResponseError(HttpStatus.BAD_REQUEST.value(), e.getMessage());
+        }
+    }
 }

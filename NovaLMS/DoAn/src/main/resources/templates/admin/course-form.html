@@ -92,8 +92,8 @@
                 </button>
               </div>
 
-              <!-- Expert field (Only for Teacher-led courses) -->
-              <div class="col-md-12" id="expertContainerCol" style="display: none;">
+              <!-- Expert field -->
+              <div class="col-md-12" id="expertContainerCol">
                 <label class="form-label fw-bold small">Chuyên gia (Expert) <span class="text-danger">*</span></label>
                 <div class="searchable-dropdown" id="expertContainer">
                   <input type="text" id="expertSearch" class="form-control" placeholder="Tìm chuyên gia..." autocomplete="off">
@@ -101,6 +101,17 @@
                   <div class="dropdown-results shadow-sm border" id="expertResults"></div>
                 </div>
                 <div id="expertIdError" class="text-danger small mt-1"></div>
+              </div>
+
+              <!-- Teacher field (Only for Teacher-led courses) -->
+              <div class="col-md-12" id="teacherContainerCol" style="display: none;">
+                <label class="form-label fw-bold small">Giảng viên (Teacher)</label>
+                <div class="searchable-dropdown" id="teacherContainer">
+                  <input type="text" id="teacherSearch" class="form-control" placeholder="Tìm giảng viên..." autocomplete="off">
+                  <input type="hidden" id="teacherId">
+                  <div class="dropdown-results shadow-sm border" id="teacherResults"></div>
+                </div>
+                <div id="teacherIdError" class="text-danger small mt-1"></div>
               </div>
 
               <div class="col-md-6">
@@ -279,11 +290,30 @@
     }
   }
 
+  async function loadTeachers() {
+    try {
+      const res = await fetch('/api/v1/accounts/teachers');
+      const result = await res.json();
+      if (result.data) {
+        const teachers = result.data.map(t => ({
+          ...t,
+          displayName: t.fullName + ' (' + (t.email || '') + ')'
+        }));
+        window.allTeachers = teachers;
+        initializeSearchableDropdown('teacher', teachers, 'displayName', 'userId');
+      }
+    } catch (err) {
+      console.error('Error loading teachers:', err);
+    }
+  }
+
   function updateExpertLabel() {
+    // Luôn hiện Expert (Chuyên gia quản lý nội dung)
     const isSelfStudy = document.getElementById('isSelfStudy').value === 'true';
-    const expertCol = document.getElementById('expertContainerCol');
-    if (expertCol) {
-      expertCol.style.display = isSelfStudy ? 'none' : 'block';
+    const teacherCol = document.getElementById('teacherContainerCol');
+    if (teacherCol) {
+      // Chỉ hiện Giảng viên cho khóa học có người giảng
+      teacherCol.style.display = isSelfStudy ? 'none' : 'block';
     }
   }
 
@@ -360,6 +390,7 @@
   document.addEventListener("DOMContentLoaded", function() {
     loadCategories();
     loadExperts();
+    loadTeachers();
 
     const pathSegments = window.location.pathname.split('/');
     const courseIdFromUrl = pathSegments[pathSegments.length - 1];
@@ -411,6 +442,15 @@
                 }
               });
             }
+            if (course.teacherId) {
+              waitForData('allTeachers', () => {
+                const tea = window.allTeachers.find(t => t.userId == course.teacherId);
+                if (tea) {
+                  document.getElementById('teacherSearch').value = tea.displayName;
+                  document.getElementById('teacherId').value = tea.userId;
+                }
+              });
+            }
             document.querySelector('.fw-bold.m-0').innerText = "Chỉnh sửa khóa học";
           }
         });
@@ -443,14 +483,15 @@
         status: document.getElementById('status').value,
         description: document.getElementById('description').value.trim(),
         categoryId: parseInt(document.getElementById('categoryId').value),
-        expertId: isSelfStudy ? null : (parseInt(document.getElementById('expertId').value) || null),
+        expertId: document.getElementById('expertId').value ? parseInt(document.getElementById('expertId').value) : null,
+        teacherId: document.getElementById('teacherId').value ? parseInt(document.getElementById('teacherId').value) : null,
         isSelfStudy: isSelfStudy
       };
 
       let hasError = false;
       if (!formData.courseName) { setError('courseName', 'Vui lòng nhập tên khóa học.'); hasError = true; }
       if (!formData.categoryId) { setError('categoryId', 'Vui lòng chọn chương trình.'); hasError = true; }
-      if (!isSelfStudy && !formData.expertId) { setError('expertId', 'Vui lòng chọn chuyên gia.'); hasError = true; }
+      if (!formData.expertId) { setError('expertId', 'Vui lòng chọn chuyên gia quản lý.'); hasError = true; }
       if (!formData.avatar) { setError('avatar', 'Vui lòng tải ảnh lên.'); hasError = true; }
       if (!formData.description) { setError('description', 'Vui lòng nhập mô tả.'); hasError = true; }
 

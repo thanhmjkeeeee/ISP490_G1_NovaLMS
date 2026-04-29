@@ -65,10 +65,19 @@ public class SettingService {
     }
 
     public Setting createSetting(String type, String name, String value, String description, Integer orderIndex) {
+        String finalType = (type != null && !type.isEmpty()) ? type : "COURSE_CATEGORY";
+        
+        if (settingRepository.existsBySettingTypeAndName(finalType, name)) {
+            throw new RuntimeException("Tên '" + name + "' đã tồn tại trong loại " + finalType);
+        }
+        if (value != null && !value.isEmpty() && settingRepository.existsBySettingTypeAndValue(finalType, value)) {
+            throw new RuntimeException("Giá trị (Value) '" + value + "' đã tồn tại trong loại " + finalType);
+        }
+
         Setting setting = Setting.builder()
                 .name(name)
                 .value(value)
-                .settingType((type != null && !type.isEmpty()) ? type : "COURSE_CATEGORY")
+                .settingType(finalType)
                 .status("Active")
                 .description(description)
                 .orderIndex(orderIndex != null ? orderIndex : 0)
@@ -77,6 +86,9 @@ public class SettingService {
     }
 
     public Setting createCourseCategory(String name, String value, String description, Integer orderIndex) {
+        if (settingRepository.existsBySettingTypeAndName("COURSE_CATEGORY", name)) {
+            throw new RuntimeException("Tên chương trình '" + name + "' đã tồn tại.");
+        }
         Setting setting = Setting.builder()
                 .name(name)
                 .value(value)
@@ -104,9 +116,15 @@ public class SettingService {
         }
 
         if (name != null) {
+            if (settingRepository.existsBySettingTypeAndNameAndSettingIdNot(setting.getSettingType(), name, id)) {
+                throw new RuntimeException("Tên '" + name + "' đã tồn tại trong loại " + setting.getSettingType());
+            }
             setting.setName(name);
         }
         if (value != null && !value.isEmpty()) {
+            if (settingRepository.existsBySettingTypeAndValueAndSettingIdNot(setting.getSettingType(), value, id)) {
+                throw new RuntimeException("Giá trị (Value) '" + value + "' đã tồn tại trong loại " + setting.getSettingType());
+            }
             setting.setValue(value);
         }
         if (description != null) {

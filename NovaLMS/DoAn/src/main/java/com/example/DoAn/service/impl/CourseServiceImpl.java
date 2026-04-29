@@ -43,6 +43,10 @@ public class CourseServiceImpl implements ICourseService {
         if (request.getExpertId() != null) {
             expert = userRepository.findById(request.getExpertId()).orElse(null);
         }
+        User teacher = null;
+        if (request.getTeacherId() != null) {
+            teacher = userRepository.findById(request.getTeacherId()).orElse(null);
+        }
 
         Course course = Course.builder()
                 .title(request.getCourseName())
@@ -55,6 +59,7 @@ public class CourseServiceImpl implements ICourseService {
                 .status(request.getStatus() != null ? request.getStatus() : "Published")
                 .category(category)
                 .expert(expert)
+                .teacher(teacher)
                 .isSelfStudy(request.getIsSelfStudy() != null ? request.getIsSelfStudy() : false)
                 .build();
 
@@ -99,6 +104,12 @@ public class CourseServiceImpl implements ICourseService {
         if (request.getExpertId() != null) {
             User expert = userRepository.findById(request.getExpertId()).orElse(null);
             course.setExpert(expert);
+        }
+
+        // Update teacher if provided
+        if (request.getTeacherId() != null) {
+            User teacher = userRepository.findById(request.getTeacherId()).orElse(null);
+            course.setTeacher(teacher);
         }
 
         courseRepository.save(course);
@@ -215,6 +226,8 @@ public class CourseServiceImpl implements ICourseService {
                 .categoryName(course.getCategory() != null ? course.getCategory().getName() : null)
                 .expertId(course.getExpert() != null ? course.getExpert().getUserId() : null)
                 .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
+                .teacherId(course.getTeacher() != null ? course.getTeacher().getUserId() : null)
+                .teacherName(course.getTeacher() != null ? course.getTeacher().getFullName() : null)
                 .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
                 .numberOfSessions(course.getNumberOfSessions())
                 .classCount(course.getClasses() != null ? (long) course.getClasses().size() : 0L)

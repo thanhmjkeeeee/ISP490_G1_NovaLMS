@@ -30,6 +30,7 @@ public class CourseRequestDTO implements Serializable {
     private Integer categoryId;
 
     private Integer expertId;
+    private Integer teacherId;
 
     private Boolean isSelfStudy;
 }

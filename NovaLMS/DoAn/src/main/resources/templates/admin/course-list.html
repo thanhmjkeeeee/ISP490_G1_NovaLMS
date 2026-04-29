@@ -261,6 +261,7 @@
                                 <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
                                 <th class="py-3 text-uppercase small text-muted">Thông tin khóa học</th>
                                 <th class="py-3 text-uppercase small text-muted">Chuyên gia</th>
+                                <th class="py-3 text-uppercase small text-muted">Giảng viên</th>
                                 <th class="py-3 text-uppercase small text-muted">Học phí</th>
                                 <th class="py-3 text-uppercase small text-muted" style="width: 100px;">Học viên</th>
                                 <th class="py-3 text-uppercase small text-muted">Trạng thái</th>
@@ -579,6 +580,16 @@
                                    ${course.expertName.charAt(0)}
                                </div>
                                <span class="small fw-500 text-dark">${course.expertName}</span>
+                           </div>`
+                        : '<span class="text-muted small">—</span>'}
+                </td>
+                <td>
+                    ${course.teacherName
+                        ? `<div class="d-flex align-items-center gap-2">
+                               <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width:24px; height:24px; font-size: 0.7rem;">
+                                   ${course.teacherName.charAt(0)}
+                               </div>
+                               <span class="small fw-500 text-dark">${course.teacherName}</span>
                            </div>`
                         : '<span class="text-muted small">—</span>'}
                 </td>

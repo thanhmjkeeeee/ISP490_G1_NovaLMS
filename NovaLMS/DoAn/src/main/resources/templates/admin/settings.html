@@ -418,10 +418,15 @@
                 form.reportValidity();
                 return;
             }
+
+            const nameVal = $('#name').val().trim();
+            if (nameVal.length < 2) {
+                toastr.warning('Tên hiển thị phải có ít nhất 2 ký tự');
+                return;
+            }
             
             const settingIdRaw = $('#settingId').val();
             const isEditing = !!settingIdRaw;
-            const nameVal = $('#name').val();
             const data = {
                 settingType: currentType, // luôn dùng current tab, không lấy từ dropdown
                 name: nameVal,

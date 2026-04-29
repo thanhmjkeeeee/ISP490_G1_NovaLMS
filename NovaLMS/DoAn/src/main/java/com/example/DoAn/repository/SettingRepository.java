@@ -26,4 +26,9 @@ public interface SettingRepository extends JpaRepository<Setting, Integer> {
 
     @Query("SELECT s FROM Setting s WHERE s.settingType IN :types AND s.status = :status")
     List<Setting> findBySettingTypeInAndStatus(@Param("types") List<String> types, @Param("status") String status);
+
+    boolean existsBySettingTypeAndName(String settingType, String name);
+    boolean existsBySettingTypeAndValue(String settingType, String value);
+    boolean existsBySettingTypeAndNameAndSettingIdNot(String settingType, String name, Integer settingId);
+    boolean existsBySettingTypeAndValueAndSettingIdNot(String settingType, String value, Integer settingId);
 }
