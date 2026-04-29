@@ -386,7 +386,15 @@ function buildSkills(quiz) {
   const questions = quiz.questions;
   const totalMins = parseInt(quiz.timeLimitMinutes) || 0;
 
-  /* Derive skill order from question sequence (q.skill, not q.skillType!) */
+  /* Parse per-skill time config if any */
+  let skillTimeMap = {};
+  if (quiz.timeLimitPerSkill) {
+    try {
+      skillTimeMap = JSON.parse(quiz.timeLimitPerSkill);
+    } catch(e) { console.warn("Invalid timeLimitPerSkill JSON", e); }
+  }
+
+  /* Derive skill order from question sequence */
   const seen = [];
   questions.forEach(q => {
     const k = (q.skill || 'DEFAULT').toUpperCase();
@@ -404,10 +412,22 @@ function buildSkills(quiz) {
   ES.skills = skillOrder.map(key => {
     const meta  = SKILL_META[key] || SKILL_META.DEFAULT;
     const qs    = grouped[key] || [];
+    
+    // Priority: 
+    // 1. timeLimitPerSkill config (JSON)
+    // 2. Fallback division of total time
+    const configSecs = (skillTimeMap[key] || 0) * 60;
     const secsPerSkill = totalMins > 0 ? Math.round((totalMins * 60) / skillOrder.length) : 0;
-    const timeSecs = (qs[0]?.skillTimeLimitSeconds > 0 ? qs[0].skillTimeLimitSeconds : secsPerSkill);
+    
+    const timeSecs = configSecs > 0 ? configSecs : secsPerSkill;
+    
     return { key, ...meta, questions: qs, timeSecs };
   }).filter(s => s.questions.length > 0);
+  
+  /* Initial remaining time for the whole exam if not sequential */
+  if (totalMins > 0) {
+    ES.remaining = totalMins * 60;
+  }
 }
 
 function renderTopSub(quiz) {
@@ -646,8 +666,15 @@ function activateSkill(idx) {
 
   renderQGrid(idx);
   updateSidebar(idx);
-  startTimer(skill.timeSecs, idx);
 
+  // If sequential, we use the skill-specific time
+  // If NOT sequential, we keep using the total remaining time
+  if (RAW_QUIZ.isSequential) {
+      startTimer(skill.timeSecs, idx);
+  } else if (idx === 0) {
+      // Start global timer once at the beginning
+      startTimer(ES.remaining, idx);
+  }
 
   /* Update submit button text and action based on whether it is the last section */
   const isLast = idx >= ES.skills.length - 1;

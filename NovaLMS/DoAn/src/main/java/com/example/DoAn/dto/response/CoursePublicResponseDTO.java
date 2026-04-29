@@ -14,6 +14,7 @@ public record CoursePublicResponseDTO(
         String imageUrl,
         String levelTag,
         String status,
+        Boolean isSelfStudy,
         ExpertResponseDTO expert,
         List<ModuleResponseDTO> curriculum,
         List<ClassResponseDTO> activeClasses

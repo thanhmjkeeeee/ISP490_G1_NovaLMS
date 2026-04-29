@@ -29,8 +29,20 @@ public class CourseLearningInfoDTO {
     private String liveMeetingLabel;
 
     private List<ModuleDTO> modules;
-
     private List<QuizInfoDTO> quizzes;
+    
+    private List<RegisteredClassDTO> registeredClasses;
+    private Integer currentClassId;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RegisteredClassDTO {
+        private Integer classId;
+        private String className;
+    }
+
 
     @Data
     @Builder

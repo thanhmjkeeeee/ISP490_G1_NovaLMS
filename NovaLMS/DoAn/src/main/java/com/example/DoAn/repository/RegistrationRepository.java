@@ -17,9 +17,10 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r FROM Registration r " +
            "JOIN FETCH r.user u " +
            "JOIN FETCH r.course c " +
-           "JOIN FETCH r.clazz cl " +
+           "LEFT JOIN FETCH r.clazz cl " +
            "WHERE r.registrationId = :id")
     Optional<Registration> findWithAssociationsById(@Param("id") Integer id);
+
 
 
     // Lấy lịch sử đăng ký của user (Mới nhất lên đầu) - Dùng cho màn My Enrollments
@@ -49,7 +50,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query(value = """
     SELECT r FROM Registration r 
     JOIN FETCH r.course c
-    JOIN FETCH r.clazz cl
+    LEFT JOIN FETCH r.clazz cl
     LEFT JOIN FETCH cl.teacher t
     WHERE r.user.userId = :userId 
       AND r.status = 'Approved'
@@ -74,7 +75,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query(value = """
         SELECT r FROM Registration r 
         JOIN FETCH r.course c
-        JOIN FETCH r.clazz cl
+        LEFT JOIN FETCH r.clazz cl
         LEFT JOIN FETCH c.category cat
         WHERE r.user.userId = :userId 
           AND r.status = 'Approved'
@@ -122,6 +123,14 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("status") String status
     );
 
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.course.courseId = :courseId AND r.clazz IS NULL AND r.status = :status")
+    boolean existsByUser_UserIdAndCourse_CourseIdAndClazzIsNullAndStatus(
+            @Param("userId") Integer userId,
+            @Param("courseId") Integer courseId,
+            @Param("status") String status
+    );
+
+
     /**
      * Cùng một khóa học không được tham gia hai lớp song song: còn đăng ký hiệu lực ở lớp khác.
      * (Approved / chờ thanh toán Submitted / chờ PayOS PENDING — không tính Cancelled, Rejected)
@@ -131,17 +140,16 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     // Lấy danh sách đăng ký theo Khóa học (Dùng cho Admin/Manager quản lý)
     @Query("SELECT r FROM Registration r WHERE r.course.courseId = :courseId")
     List<Registration> findByCourse_CourseId(@Param("courseId") Integer courseId);
-    Optional<Registration> findByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
     List<Registration> findAllByUser_UserIdAndCourse_CourseIdAndStatus(Integer userId, Integer courseId, String status);
 
     // Admin: Lấy tất cả đăng ký
-    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat LEFT JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
     List<Registration> findAllRegistrations();
 
     @Query("SELECT COUNT(r) FROM Registration r WHERE r.course.courseId = :courseId OR :courseId IS NULL")
     long countAll(@Param("courseId") Integer courseId);
 
-    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
+    @Query("SELECT r FROM Registration r JOIN FETCH r.user u JOIN FETCH r.course c LEFT JOIN FETCH c.category cat LEFT JOIN FETCH r.clazz cl ORDER BY r.registrationTime DESC")
     List<Registration> findRecentRegistrationsWithAssociations(Pageable pageable);
 
     List<Registration> findTop10ByOrderByRegistrationTimeDesc();

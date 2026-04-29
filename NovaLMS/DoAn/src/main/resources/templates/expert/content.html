@@ -32,10 +32,9 @@
                 <div class="col-md-3">
                     <select id="statusFilter" class="form-select">
                         <option value="all">Tất cả trạng thái</option>
-                        <option value="Published">Published</option>
-                        <option value="Active">Active</option>
-                        <option value="Draft">Draft</option>
-                        <option value="Closed">Closed</option>
+                        <option value="Published">Đã xuất bản</option>
+                        <option value="Draft">Bản nháp</option>
+                        <option value="Inactive">Tạm dừng</option>
                     </select>
                 </div>
                 <div class="col-md-4 text-md-end">
@@ -112,9 +111,9 @@ async function loadCourses(page = 0) {
             const statusUpper = statusStr.toUpperCase();
             let badgeClass = 'bg-secondary-subtle text-secondary';
             
-            if (statusUpper === 'PUBLISHED' || statusUpper === 'ACTIVE') badgeClass = 'bg-success-subtle text-success';
+            if (statusUpper === 'PUBLISHED') badgeClass = 'bg-primary-subtle text-primary';
             else if (statusUpper === 'DRAFT') badgeClass = 'bg-warning-subtle text-warning-emphasis';
-            else if (statusUpper === 'CLOSED') badgeClass = 'bg-danger-subtle text-danger';
+            else if (statusUpper === 'INACTIVE') badgeClass = 'bg-secondary-subtle text-secondary';
             
             const statusBadge = `<span class="badge rounded-pill ${badgeClass} px-3 text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">${statusStr}</span>`;
 

@@ -144,8 +144,8 @@ async function loadSection() {
         const section = result.data;
         currentQuestionIds = (section.questions || []).map(q => q.questionId);
 
-        // Speaking timer
-        speakingSeconds = section.speakingTimerSeconds || 120;
+        // Speaking timer: sectionTimerSeconds (per-skill) or timerSeconds (global) or 120 fallback
+        speakingSeconds = section.sectionTimerSeconds || section.timerSeconds || 120;
         updateSpeakingTimerDisplay();
 
         renderProgressSteps(section);

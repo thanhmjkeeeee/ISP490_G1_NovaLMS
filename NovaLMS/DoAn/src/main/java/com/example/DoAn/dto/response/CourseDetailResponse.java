@@ -24,4 +24,5 @@ public class CourseDetailResponse implements Serializable {
     private Integer numberOfSessions;
     private Long classCount;
     private List<String> teacherNames;
+    private Boolean isSelfStudy;
 }

@@ -6,10 +6,7 @@ import com.example.DoAn.dto.response.PageResponse;
 import com.example.DoAn.model.Course;
 import com.example.DoAn.model.Setting;
 import com.example.DoAn.model.User;
-import com.example.DoAn.repository.CourseRepository;
-import com.example.DoAn.repository.RegistrationRepository;
-import com.example.DoAn.repository.SettingRepository;
-import com.example.DoAn.repository.UserRepository;
+import com.example.DoAn.repository.*;
 import com.example.DoAn.service.ICourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
+@Service("courseService")
 @Slf4j
 @RequiredArgsConstructor
 public class CourseServiceImpl implements ICourseService {
@@ -31,10 +28,10 @@ public class CourseServiceImpl implements ICourseService {
     private final RegistrationRepository registrationRepository;
     private final SettingRepository settingRepository;
     private final UserRepository userRepository;
-    private final com.example.DoAn.repository.LessonRepository lessonRepository;
-    private final com.example.DoAn.repository.QuizRepository quizRepository;
-    private final com.example.DoAn.repository.ClazzRepository clazzRepository;
-    private final com.example.DoAn.repository.ModuleRepository moduleRepository;
+    private final LessonRepository lessonRepository;
+    private final QuizRepository quizRepository;
+    private final ClazzRepository clazzRepository;
+    private final ModuleRepository moduleRepository;
 
     @Override
     public Integer saveCourse(CourseRequestDTO request) {
@@ -55,9 +52,10 @@ public class CourseServiceImpl implements ICourseService {
                 .sale(request.getSale())
                 .numberOfSessions(request.getNumberOfSessions())
                 .avatar(request.getAvatar())
-                .status(request.getStatus() != null ? request.getStatus() : "Active")
+                .status(request.getStatus() != null ? request.getStatus() : "Published")
                 .category(category)
                 .expert(expert)
+                .isSelfStudy(request.getIsSelfStudy() != null ? request.getIsSelfStudy() : false)
                 .build();
 
         courseRepository.save(course);
@@ -77,7 +75,19 @@ public class CourseServiceImpl implements ICourseService {
         course.setSale(request.getSale());
         course.setNumberOfSessions(request.getNumberOfSessions());
         course.setAvatar(request.getAvatar());
-        course.setStatus(request.getStatus());
+        
+        String newStatus = request.getStatus();
+        if (newStatus == null) newStatus = course.getStatus();
+        if ("draft".equalsIgnoreCase(newStatus)) {
+            long classCount = clazzRepository.countByCourse_CourseId(id);
+            if (classCount > 0) {
+                newStatus = "Inactive";
+            }
+        }
+        course.setStatus(newStatus);
+        if (request.getIsSelfStudy() != null) {
+            course.setIsSelfStudy(request.getIsSelfStudy());
+        }
 
         // Update category if provided
         if (request.getCategoryId() != null) {
@@ -215,6 +225,7 @@ public class CourseServiceImpl implements ICourseService {
                             .distinct()
                             .toList()
                         : java.util.Collections.emptyList())
+                .isSelfStudy(course.getIsSelfStudy())
                 .build();
     }
 
@@ -223,7 +234,14 @@ public class CourseServiceImpl implements ICourseService {
     public void updateCourseStatus(Integer id, String status) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
-        course.setStatus(status);
+        String newStatus = status;
+        if ("draft".equalsIgnoreCase(newStatus)) {
+            long classCount = clazzRepository.countByCourse_CourseId(id);
+            if (classCount > 0) {
+                newStatus = "Inactive";
+            }
+        }
+        course.setStatus(newStatus);
         courseRepository.save(course);
         log.info("Course status updated to {} for id={}", status, id);
     }

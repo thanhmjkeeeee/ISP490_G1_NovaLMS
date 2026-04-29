@@ -91,14 +91,16 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             } else if (quiz.getCourse() != null && r.getUser() != null) {
                 // Fallback: find class from registration
                 registrationRepository
-                        .findByUser_UserIdAndCourse_CourseIdAndStatus(r.getUser().getUserId(),
+                        .findAllByUser_UserIdAndCourse_CourseIdAndStatus(r.getUser().getUserId(),
                                 quiz.getCourse().getCourseId(), "Approved")
+                        .stream().findFirst()
                         .ifPresent(reg -> {
                             if (reg.getClazz() != null) {
                                 dto.setClassId(Long.valueOf(reg.getClazz().getClassId()));
                                 dto.setClassName(reg.getClazz().getClassName());
                             }
                         });
+
             }
         }
 
@@ -340,14 +342,16 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             dto.setClassName(quiz.getClazz().getClassName());
         } else if (quiz.getCourse() != null && result.getUser() != null) {
             registrationRepository
-                    .findByUser_UserIdAndCourse_CourseIdAndStatus(result.getUser().getUserId(),
+                    .findAllByUser_UserIdAndCourse_CourseIdAndStatus(result.getUser().getUserId(),
                             quiz.getCourse().getCourseId(), "Approved")
+                    .stream().findFirst()
                     .ifPresent(reg -> {
                         if (reg.getClazz() != null) {
                             dto.setClassName(reg.getClazz().getClassName());
                         }
                     });
         }
+
         if (dto.getClassName() == null)
             dto.setClassName("Lớp học đã đăng ký");
         dto.setSubmittedAt(result.getSubmittedAt());

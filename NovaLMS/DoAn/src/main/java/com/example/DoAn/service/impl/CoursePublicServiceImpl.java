@@ -101,6 +101,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 imgUrl,
                 course.getLevelTag(),
                 course.getStatus(),
+                course.getIsSelfStudy(),
                 expertDTO,
                 List.of(), // No curriculum
                 List.of() // No classes
@@ -183,6 +184,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 imgUrl,
                 course.getLevelTag(),
                 course.getStatus(),
+                course.getIsSelfStudy(),
                 expertDTO,
                 curriculum,
                 classes);

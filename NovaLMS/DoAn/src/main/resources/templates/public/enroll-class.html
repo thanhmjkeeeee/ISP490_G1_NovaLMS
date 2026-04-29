@@ -4,7 +4,18 @@
 
 <head th:replace="~{fragments/head :: common-head('Đăng ký khóa học')}"></head>
 
-<body class="enroll-page">
+<body class="enroll-page" th:with="
+    finalCourseId=${course != null ? course.courseId : (classInfo != null ? classInfo.courseId : 0)},
+    finalCourseName=${course != null ? (course.courseName ?: course.title) : (classInfo != null ? classInfo.courseName : 'Khóa học')},
+    finalCourseImg=${course != null ? (course.avatar ?: course.imageUrl) : (classInfo != null ? classInfo.courseImageUrl : '/assets/img/default-course.png')},
+    finalCourseDesc=${course != null ? course.description : (classInfo != null ? classInfo.courseDescription : 'Chưa có mô tả.')},
+    finalCoursePrice=${course != null ? (course.price != null ? T(java.math.BigDecimal).valueOf(course.price) : T(java.math.BigDecimal).ZERO) : (classInfo != null ? classInfo.coursePrice : T(java.math.BigDecimal).ZERO)},
+    finalCourseSale=${course != null ? (course.sale != null ? T(java.math.BigDecimal).valueOf(course.sale) : T(java.math.BigDecimal).ZERO) : (classInfo != null ? classInfo.courseSale : T(java.math.BigDecimal).ZERO)},
+    finalExpertName=${course != null and course.expert != null ? course.expert.fullName : (classInfo != null ? classInfo.expertName : null)},
+    finalExpertAvatar=${course != null and course.expert != null ? course.expert.avatarUrl : (classInfo != null ? classInfo.expertAvatar : null)},
+    isAlreadyEnrolled=${isAlreadyEnrolled ?: false}
+">
+
 
 <header th:replace="~{fragments/header :: header-fragment(currentPage='enroll')}"></header>
 
@@ -14,11 +25,11 @@
             <div class="col-lg-10">
 
                 <!-- Breadcrumb -->
-                <nav aria-label="breadcrumb" class="mb-3">
+                <nav aria-label="breadcrumb" class="mb-4">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
                         <li class="breadcrumb-item"><a th:href="@{/courses}">Khóa học</a></li>
-                        <li class="breadcrumb-item"><a th:href="@{'/course/details/' + ${classInfo.courseId}}" th:text="${classInfo.courseName}">Khóa học</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{'/course/details/' + ${finalCourseId}}" th:text="${finalCourseName}">Khóa học</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Đăng ký</li>
                     </ol>
                 </nav>
@@ -28,108 +39,118 @@
                     <!-- LEFT: Thông tin khóa học -->
                     <div class="col-lg-5">
                         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                            <img th:src="${classInfo.courseImageUrl ?: '/assets/img/course-default.jpg'}"
+                            <img th:src="${finalCourseImg ?: '/assets/img/default-course.png'}"
+
                                  class="img-fluid w-100" style="height: 220px; object-fit: cover;"
                                  alt="Course Image">
                             <div class="card-body p-4">
-                                <h5 class="fw-bold mb-3" style="color: #1a237e;" th:text="${classInfo.courseName}">Tên khóa học</h5>
+                                <h5 class="fw-bold mb-3" style="color: #1a237e;" th:text="${finalCourseName}">Tên khóa học</h5>
 
                                 <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;"
-                                   th:text="${classInfo.courseDescription != null ? classInfo.courseDescription : 'Chưa có mô tả.'}">
+                                   th:text="${finalCourseDesc != null ? finalCourseDesc : 'Chưa có mô tả.'}">
                                 </p>
 
                                 <!-- Expert -->
-                                <div class="d-flex align-items-center mb-3" th:if="${classInfo.expertName != null}">
-                                    <img th:src="${classInfo.expertAvatar ?: '/assets/img/default-avatar.png'}"
+                                <div class="d-flex align-items-center mb-3" th:if="${finalExpertName != null}">
+                                    <img th:src="${finalExpertAvatar ?: '/assets/img/default-avatar.png'}"
                                          alt="Expert" class="rounded-circle me-2"
                                          style="width: 36px; height: 36px; object-fit: cover;">
                                     <div>
                                         <small class="text-muted d-block" style="font-size: 11px;">Giảng viên</small>
-                                        <strong class="small" th:text="${classInfo.expertName}">Expert Name</strong>
+                                        <strong class="small" th:text="${finalExpertName}">Expert Name</strong>
                                     </div>
                                 </div>
 
                                 <!-- Giá -->
                                 <div class="border-top pt-3">
-                                    <th:block th:if="${classInfo?.coursePrice != null and classInfo.coursePrice.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
-                                        <th:block th:with="saleAmount=${classInfo?.courseSale != null ? classInfo.courseSale : T(java.math.BigDecimal).ZERO}">
+                                    <th:block th:if="${!isAlreadyEnrolled and finalCoursePrice != null and finalCoursePrice.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                                        <th:block th:with="saleAmount=${finalCourseSale != null ? finalCourseSale : T(java.math.BigDecimal).ZERO}">
                                             <th:block th:if="${saleAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
                                                 <span class="text-decoration-line-through text-muted small"
-                                                      th:text="${#numbers.formatDecimal(classInfo.coursePrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                                                      th:text="${#numbers.formatDecimal(finalCoursePrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                                 </span>
                                                 <span class="badge bg-danger ms-1 small"
                                                       th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                                 </span>
                                             </th:block>
                                             <h4 class="text-primary fw-bold mb-0"
-                                                th:text="${#numbers.formatDecimal(classInfo.coursePrice.subtract(saleAmount), 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                                                th:text="${#numbers.formatDecimal(finalCoursePrice.subtract(saleAmount), 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                             </h4>
                                         </th:block>
                                     </th:block>
                                     <h4 class="text-success fw-bold mb-0"
-                                        th:if="${classInfo?.coursePrice == null or classInfo.coursePrice.compareTo(T(java.math.BigDecimal).ZERO) <= 0}">
-                                        Miễn phí
+                                        th:if="${isAlreadyEnrolled or finalCoursePrice == null or finalCoursePrice.compareTo(T(java.math.BigDecimal).ZERO) <= 0}">
+                                        0 đ (Đã sở hữu nội dung)
                                     </h4>
+
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT: Thông tin lớp + form đăng ký -->
+                    <!-- RIGHT: Chọn lớp + form đăng ký -->
                     <div class="col-lg-7">
                         <div class="card border-0 shadow-sm rounded-4">
                             <div class="card-body p-4 p-lg-5">
-                                <h4 class="fw-bold mb-4" style="color: #1a237e;">
-                                    <i class="bi bi-calendar-event me-2 text-primary"></i>Thông tin lớp học
-                                </h4>
-
-                                <!-- Thông tin lớp -->
-                                <div class="class-info-card bg-light rounded-3 p-4 mb-4">
-                                    <div class="row">
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Lớp</label>
-                                            <span class="fw-bold" th:text="${classInfo.className}">Tên lớp</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Giảng viên</label>
-                                            <span class="fw-bold" th:text="${classInfo.teacherName}">Tên giảng viên</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Lịch học</label>
-                                            <span class="fw-bold" th:text="${classInfo.schedule}">Thứ 2, 4, 6</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Giờ học</label>
-                                            <span class="fw-bold" th:text="${classInfo.slotTime}">18:00 - 21:00</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Ngày khai giảng</label>
-                                            <span class="fw-bold" th:text="${classInfo.startDate}">01/01/2025</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Số buổi</label>
-                                            <span class="fw-bold" th:text="${classInfo.numberOfSessions != null ? classInfo.numberOfSessions + ' buổi' : 'N/A'}">N/A</span>
+                                <!-- Course Level Enrollment -->
+                                    <!-- Class Selection (Only if classes are available) -->
+                                    <div th:if="${classes != null and !#lists.isEmpty(classes)}" class="mb-4">
+                                        <label class="form-label fw-bold d-block mb-3">
+                                            Chọn lớp học phù hợp với lịch của bạn:
+                                        </label>
+                                        <div class="row g-3">
+                                            <div class="col-12" th:each="c : ${classes}">
+                                                <input type="radio" class="btn-check" name="classSelection" 
+                                                       th:id="'class_' + ${c.classId}" th:value="${c.classId}"
+                                                       autocomplete="off">
+                                                <label class="btn btn-outline-light text-dark w-100 p-3 text-start border-2 rounded-4 transition-all hover-shadow" 
+                                                       th:for="'class_' + ${c.classId}">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <div class="fw-bold fs-5 text-primary mb-1" th:text="${c.className}">Class Name</div>
+                                                            <div class="small text-muted mb-1">
+                                                                <i class="bi bi-calendar3 me-2"></i>
+                                                                <span th:text="${c.schedule}">Lịch học</span>
+                                                                <span class="mx-2">|</span>
+                                                                <i class="bi bi-clock me-2"></i>
+                                                                <span th:text="${c.slotTime}">Giờ học</span>
+                                                            </div>
+                                                            <div class="small text-muted">
+                                                                <i class="bi bi-person-circle me-2"></i>
+                                                                Giảng viên: <span class="fw-semibold text-dark" th:text="${c.teacher != null ? c.teacher.fullName : 'Chưa có GV'}">Giảng viên</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <div class="badge bg-success rounded-pill px-3 py-2" th:text="${c.status}">Open</div>
+                                                            <div class="mt-2 small text-muted">
+                                                                Bắt đầu: <span th:text="${#temporals.format(c.startDate, 'dd/MM/yyyy')}">Date</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+
+                                    <!-- Hidden input for selected classId -->
+                                    <input type="hidden" id="classId" value="">
 
                                 <div id="enrollAlert" class="alert d-none" role="alert"></div>
 
                                 <form id="enrollForm">
-                                    <input type="hidden" id="classId" th:value="${classInfo.classId}">
-                                    <input type="hidden" id="courseId" th:value="${classInfo.courseId}">
+                                    <input type="hidden" id="courseId" th:value="${finalCourseId}">
 
-                                    <div class="mb-3">
+                                    <div class="mb-4">
                                         <label class="form-label fw-semibold">Ghi chú (tùy chọn)</label>
                                         <textarea class="form-control" id="note" rows="3"
                                                   placeholder="Nhập ghi chú nếu có..."></textarea>
                                     </div>
 
                                     <div class="d-grid gap-2">
-                                        <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold">
+                                        <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold py-3">
                                             <i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán
                                         </button>
-                                        <a th:href="@{'/course/details/' + ${classInfo.courseId}}"
+                                        <a th:href="@{'/course/details/' + ${finalCourseId}}"
                                            class="btn btn-outline-secondary rounded-pill">
                                             <i class="bi bi-arrow-left me-2"></i>Quay lại chi tiết khóa học
                                         </a>
@@ -147,6 +168,20 @@
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
+<style>
+    .hover-shadow:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd !important;
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+    }
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
+    .form-check-input:checked + .form-check-label {
+        color: #0d6efd;
+    }
+</style>
+
 <script th:inline="javascript">
     var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
 
@@ -158,7 +193,27 @@
 
         const btn = this;
         const alertBox = document.getElementById('enrollAlert');
-        const classId = document.getElementById('classId').value;
+        
+        // Check if class selection is required
+        let classIdVal = null;
+        const classRadios = document.getElementsByName('classSelection');
+        if (classRadios.length > 0) {
+            for (const radio of classRadios) {
+                if (radio.checked) {
+                    classIdVal = radio.value;
+                    break;
+                }
+            }
+            if (!classIdVal) {
+                alertBox.className = 'alert alert-warning';
+                alertBox.textContent = 'Vui lòng chọn một lớp học để tiếp tục.';
+                alertBox.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán';
+                return;
+            }
+        }
+
         const courseId = document.getElementById('courseId').value;
         const note = document.getElementById('note').value;
 
@@ -171,7 +226,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    classId: parseInt(classId),
+                    classId: classIdVal ? parseInt(classIdVal) : null,
                     courseId: courseId ? parseInt(courseId) : null,
                     note: note
                 })

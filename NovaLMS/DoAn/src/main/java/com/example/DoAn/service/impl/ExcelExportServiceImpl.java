@@ -72,7 +72,7 @@ public class ExcelExportServiceImpl implements ExcelExportService {
                     row.createCell(2).setCellValue(enrollment.getUser().getFullName());
                     row.createCell(3).setCellValue(enrollment.getUser().getEmail());
                     row.createCell(4).setCellValue(enrollment.getCourse().getCourseName());
-                    row.createCell(5).setCellValue(enrollment.getClazz().getClassName());
+                    row.createCell(5).setCellValue(enrollment.getClazz() != null ? enrollment.getClazz().getClassName() : "Học tự do");
                 } else {
                     row.createCell(2).setCellValue("N/A");
                     row.createCell(3).setCellValue("N/A");
@@ -136,7 +136,7 @@ public class ExcelExportServiceImpl implements ExcelExportService {
                 row.createCell(1).setCellValue(r.getUser() != null ? r.getUser().getFullName() : "N/A");
                 row.createCell(2).setCellValue(r.getUser() != null ? r.getUser().getEmail() : "N/A");
                 row.createCell(3).setCellValue(r.getCourse() != null ? r.getCourse().getCourseName() : "N/A");
-                row.createCell(4).setCellValue(r.getClazz() != null ? r.getClazz().getClassName() : "N/A");
+                row.createCell(4).setCellValue(r.getClazz() != null ? r.getClazz().getClassName() : "Học tự do");
                 row.createCell(5)
                         .setCellValue(r.getRegistrationPrice() != null ? r.getRegistrationPrice().doubleValue() : 0.0);
                 row.createCell(6)

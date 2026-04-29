@@ -33,10 +33,21 @@
 
         <div class="row align-items-center position-relative z-1">
           <div class="col-lg-8 mb-4 mb-lg-0">
-            <span id="bannerClassName" class="badge bg-white text-primary mb-3 px-3 py-2 rounded-pill fw-bold shadow-sm d-none"></span>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span id="bannerClassName" class="badge bg-white text-primary px-3 py-2 rounded-pill fw-bold shadow-sm d-none"></span>
+              <div id="classSwitcherWrapper" class="dropdown d-none">
+                <button class="btn btn-sm btn-light rounded-pill dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-arrow-left-right me-1"></i> Đổi lớp
+                </button>
+                <ul class="dropdown-menu shadow border-0 rounded-3" id="classListDropdown">
+                  <!-- Dynamic items -->
+                </ul>
+              </div>
+            </div>
             <h1 id="bannerTitle" class="fw-bolder mb-3" style="font-size: 2.2rem;">Đang tải...</h1>
             <p id="bannerDesc" class="mb-0 text-white-50 lead fs-6" style="max-width: 90%;"></p>
           </div>
+
 
           <div class="col-lg-4 text-lg-end">
             <div class="bg-white bg-opacity-10 p-4 rounded-4 backdrop-blur">
@@ -136,10 +147,17 @@
       }
 
       try {
-          const response = await fetch(`/api/v1/learning/course/${courseId}`);
+          const urlParams = new URLSearchParams(window.location.search);
+          const classId = urlParams.get('classId');
+          
+          let apiUrl = `/api/v1/learning/course/${courseId}`;
+          if (classId) apiUrl += `?classId=${classId}`;
+
+          const response = await fetch(apiUrl);
           if (!response.ok) throw new Error('Phản hồi từ máy chủ không hợp lệ');
 
           const result = await response.json();
+
 
           if(result.status === 200) {
               renderCourseData(result.data);
@@ -188,9 +206,28 @@
           }
       }
 
-      // 2. Render Teacher
+      // 2. Render Teacher & Class Switcher
       const teacherCard = document.getElementById('teacherName').closest('.card');
+      const classSwitcherWrapper = document.getElementById('classSwitcherWrapper');
+      const classListDropdown = document.getElementById('classListDropdown');
+
+      // Dropdown logic
+      if (course.registeredClasses && course.registeredClasses.length > 1) {
+          classSwitcherWrapper.classList.remove('d-none');
+          classListDropdown.innerHTML = course.registeredClasses.map(cl => `
+              <li>
+                <a class="dropdown-item ${cl.classId === course.currentClassId ? 'active disabled' : ''}" 
+                   href="javascript:void(0)" onclick="switchClass(${cl.classId})">
+                  <i class="bi bi-people-fill me-2"></i> ${cl.className}
+                </a>
+              </li>
+          `).join('');
+      } else {
+          classSwitcherWrapper.classList.add('d-none');
+      }
+
       if (course.isSelfStudy) {
+
           document.getElementById('teacherName').textContent = 'Khóa học Tự học';
           // Hide teacher avatar if it's self-study? Or keep it?
           // The user said "ko cần giảng viên". Let's hide the card.
@@ -476,6 +513,13 @@
           }).join('');
       }
   };
+
+  const switchClass = (classId) => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('classId', classId);
+      window.location.href = url.toString();
+  };
+
 </script>
 
 </body>

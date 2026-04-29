@@ -16,4 +16,6 @@ import java.util.List;
 public class EnrollPageResponseDTO {
     private Course course;
     private List<Clazz> classes;
+    private boolean isAlreadyEnrolled;
+
 }

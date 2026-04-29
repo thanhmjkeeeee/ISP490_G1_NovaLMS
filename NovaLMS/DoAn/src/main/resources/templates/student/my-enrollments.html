@@ -148,7 +148,7 @@
                 tbody.innerHTML = result.data.map(reg => `
                     <tr>
                         <td class="py-3 fw-bold text-dark">${reg.courseName || 'N/A'}</td>
-                        <td class="text-muted">${reg.className || 'N/A'}</td>
+                        <td class="text-muted">${reg.className || 'Học tự do'}</td>
                         <td class="fw-medium">${formatCurrency(reg.registrationPrice)}</td>
                         <td>${getStatusBadge(reg.status, reg.paymentStatus, reg.registrationPrice)}</td>
                         <td>${getActionBtn(reg)}</td>

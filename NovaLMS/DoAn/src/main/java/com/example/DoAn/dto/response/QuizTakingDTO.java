@@ -18,6 +18,8 @@ public class QuizTakingDTO {
     private Integer classId; // dùng để redirect về lớp học sau khi submit
     private Integer sessionId; // dùng để auto-open modal session khi redirect về class
     private Boolean canRetake;
+    private Boolean isSequential;
+    private String timeLimitPerSkill; // JSON string
     private Integer attemptsLeft;
     private Integer maxAttempts;
 }

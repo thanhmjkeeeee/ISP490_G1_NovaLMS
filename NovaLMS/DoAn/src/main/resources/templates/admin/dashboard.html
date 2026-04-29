@@ -411,7 +411,7 @@
                                 <td>
                                     <div th:text="${reg.course.courseName}" class="text-truncate"
                                         style="max-width: 200px;">Tên khóa học</div>
-                                    <div class="small text-muted" th:text="${reg.clazz.className}">Tên lớp</div>
+                                    <div class="small text-muted" th:text="${reg.clazz != null ? reg.clazz.className : 'Học tự do'}">Tên lớp</div>
                                 </td>
                                 <td th:text="${#temporals.format(reg.registrationTime, 'dd/MM/yyyy HH:mm')}">01/01/2026
                                 </td>

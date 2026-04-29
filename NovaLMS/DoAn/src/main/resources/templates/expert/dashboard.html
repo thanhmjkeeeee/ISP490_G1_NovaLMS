@@ -131,7 +131,7 @@
                         <td><span class="badge bg-secondary">${course.moduleCount || 0}</span></td>
                         <td><span class="badge bg-secondary">${course.lessonCount || 0}</span></td>
                         <td><span class="badge bg-secondary">${course.questionCount || 0}</span></td>
-                        <td><span class="badge ${course.status === 'Active' ? 'bg-success' : 'bg-warning'}">${course.status || '—'}</span></td>
+                        <td><span class="badge ${course.status === 'Published' ? 'bg-primary' : (course.status === 'Inactive' ? 'bg-secondary' : 'bg-warning')}">${course.status || '—'}</span></td>
                         <td class="text-end px-4 py-3">
                             <a href="/expert/content/course/${course.courseId}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Quản lý

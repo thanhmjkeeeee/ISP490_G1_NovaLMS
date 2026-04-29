@@ -208,7 +208,7 @@
                 <td class="fw-bold text-primary" title="${r.userName || r.userEmail}">${r.userName || r.userEmail || 'N/A'}</td>
                 <td class="fw-medium text-info">${r.categoryName || 'N/A'}</td>
                 <td class="fw-medium text-dark" title="${r.courseName}">${r.courseName || 'N/A'}</td>
-                <td><span class="badge bg-light text-dark border">${r.className || 'N/A'}</span></td>
+                <td><span class="badge bg-light text-dark border">${r.className || 'Học tự do'}</span></td>
                 <td class="fw-bold ${r.registrationPrice && r.registrationPrice > 0 ? 'text-danger' : 'text-success'}">${r.registrationPrice && r.registrationPrice > 0 ? r.registrationPrice.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}</td>
                 <td><span class="badge ${getRegStatusBadge(r.status, r.paymentStatus)} px-2 py-1">${getRegStatusLabel(r.status, r.paymentStatus)}</span></td>
                 <td class="text-end pe-4">

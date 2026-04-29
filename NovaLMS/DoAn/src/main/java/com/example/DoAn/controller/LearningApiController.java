@@ -27,11 +27,15 @@ public class LearningApiController {
     }
 
     @GetMapping("/course/{courseId}")
-    public ResponseEntity<ResponseData<CourseLearningInfoDTO>> getCourseInfo(@PathVariable Long courseId, Principal principal) {
+    public ResponseEntity<ResponseData<CourseLearningInfoDTO>> getCourseInfo(
+            @PathVariable Long courseId,
+            @RequestParam(required = false) Integer classId,
+            Principal principal) {
         String email = getEmailFromPrincipal(principal);
         if (email == null) return ResponseEntity.status(401).body(ResponseData.error(401, "Vui lòng đăng nhập."));
 
-        ResponseData<CourseLearningInfoDTO> response = learningService.getCourseLearningInfo(courseId, email);
+        ResponseData<CourseLearningInfoDTO> response = learningService.getCourseLearningInfo(courseId, classId, email);
+
         if (response.getStatus() != 200) {
             return ResponseEntity.status(response.getStatus()).body(response);
         }

@@ -32,170 +32,172 @@
 
         <div class="col-lg-8">
 
+          <!-- Hero Content (Udemy Style) -->
           <div class="course-hero mb-4">
-            <div class="hero-content p-4 border rounded bg-white shadow-sm">
+            <div class="hero-content p-4 border-0 rounded-4 bg-white shadow-sm">
               <div class="course-badge mb-3">
-                <span class="badge bg-primary me-2" th:text="${course.categoryName ?: 'Uncategorized'}">Category</span>
-                <span class="badge bg-info text-dark" th:text="${course.status ?: 'N/A'}">Status</span>
+                <span class="badge bg-primary me-2 px-3 py-2 rounded-pill" th:text="${course.categoryName ?: 'Uncategorized'}">Category</span>
+                <span class="badge bg-soft-info text-info border border-info px-3 py-2 rounded-pill" 
+                      th:text="${course.isSelfStudy ? 'Học Online' : 'Có người hướng dẫn'}">Type</span>
               </div>
-              <h2 class="fw-bold mb-3" th:text="${course.courseName}">Course Title</h2>
-
-              <div class="instructor-info d-flex align-items-center mt-4" th:if="${course.expert != null}">
-                <img th:src="${course.expert.avatarUrl ?: '/assets/img/default-avatar.png'}"
-                     alt="Instructor" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+              <h1 class="fw-bold mb-3 display-6" th:text="${course.courseName}">Course Title</h1>
+              <p class="lead text-muted mb-4" th:text="${course.description != null && course.description.length() > 150 ? course.description.substring(0, 150) + '...' : course.description}"></p>
+              
+              <div class="instructor-info d-flex align-items-center mt-4">
+                <img th:src="${course.expert != null ? (course.expert.avatarUrl ?: '/assets/img/default-avatar.png') : '/assets/img/logo-sm.png'}"
+                     alt="Instructor" class="rounded-circle me-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid #3b82f6;">
                 <div>
-                  <h6 class="mb-0 fw-bold" th:text="${course.expert.fullName}">Expert Name</h6>
-                  <small class="text-muted">Giảng viên hướng dẫn</small>
+                  <h6 class="mb-0 fw-bold fs-5" th:text="${course.expert != null ? course.expert.fullName : 'NovaLMS Team'}">Expert Name</h6>
+                  <small class="text-muted" th:text="${course.isSelfStudy ? 'Khóa học tự học online' : 'Chuyên gia hướng dẫn'}">Giảng viên hướng dẫn</small>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="course-tabs mt-4">
-            <ul class="nav nav-tabs border-bottom-0" id="courseTab" role="tablist">
-              <li class="nav-item">
-                <button class="nav-link active fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Tổng quan</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link fw-bold" id="curriculum-tab" data-bs-toggle="tab" data-bs-target="#curriculum" type="button">Chương trình giảng dạy</button>
-              </li>
-              <li class="nav-item">
-                <button class="nav-link fw-bold text-primary" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button">Lớp học</button>
-              </li>
-            </ul>
+          <!-- Section: Overview -->
+          <div class="section-container mb-5 p-4 bg-white rounded-4 shadow-sm border">
+            <h4 class="fw-bold mb-4 border-start border-4 border-primary ps-3">Mô tả khóa học</h4>
+            <div class="course-description" style="white-space: pre-line; line-height: 1.8;" th:text="${course.description ?: 'Chưa có thông tin mô tả cho khóa học này.'}"></div>
+          </div>
 
-            <div class="tab-content border p-4 bg-white rounded-bottom shadow-sm" id="courseTabContent">
-
-              <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <h4 class="fw-bold mb-3">Thông tin về khóa học</h4>
-                <p style="white-space: pre-line;" th:text="${course.description ?: 'Chưa có thông tin mô tả cho khóa học này.'}"></p>
-              </div>
-
-              <div class="tab-pane fade" id="curriculum" role="tabpanel">
-                <h4 class="fw-bold mb-4">Nội dung khóa học</h4>
-                <div class="accordion" id="accordionCurriculum">
-                  <div class="accordion-item" th:each="module, state : ${course.curriculum}">
-                    <h2 class="accordion-header">
-                      <button class="accordion-button collapsed fw-bold" type="button"
-                              data-bs-toggle="collapse" th:data-bs-target="'#mod' + ${module.moduleId}">
-                        <span th:text="'Module ' + ${state.index + 1} + ': ' + ${module.moduleName ?: 'Untitled Module'}"></span>
-                      </button>
-                    </h2>
-                    <div th:id="'mod' + ${module.moduleId}" class="accordion-collapse collapse" data-bs-parent="#accordionCurriculum">
-                      <div class="accordion-body p-0">
-                        <ul class="list-group list-group-flush">
-                          <li class="list-group-item d-flex justify-content-between align-items-center py-3" th:each="lesson : ${module.lessons}">
-                            <div>
-                              <i class="bi bi-play-circle me-2 text-primary"></i>
-                              <span th:text="${lesson.lessonName ?: 'Untitled Lesson'}"></span>
-                            </div>
-                            <small class="text-muted" th:text="${lesson.duration != null ? lesson.duration + ' mins' : '0 mins'}"></small>
-                          </li>
-                        </ul>
-                      </div>
+          <!-- Section: Curriculum (Accordion Style like Udemy) -->
+          <div class="section-container mb-5 p-4 bg-white rounded-4 shadow-sm border">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h4 class="fw-bold m-0 border-start border-4 border-primary ps-3">Nội dung khóa học</h4>
+              <span class="badge bg-light text-dark border px-3 py-2 rounded-pill" 
+                    th:text="${course.curriculum != null ? #lists.size(course.curriculum) : 0} + ' Chương mục'">0 Modules</span>
+            </div>
+            
+            <div class="accordion accordion-flush custom-curriculum" id="accordionCurriculum">
+              <div class="accordion-item border rounded-3 mb-2 overflow-hidden" th:each="module, state : ${course.curriculum}">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed fw-bold bg-light py-3" type="button"
+                          data-bs-toggle="collapse" th:data-bs-target="'#mod' + ${module.moduleId}">
+                    <div class="d-flex w-100 justify-content-between align-items-center pe-3">
+                        <span th:text="'Phần ' + ${state.index + 1} + ': ' + ${module.moduleName ?: 'Untitled Module'}"></span>
+                        <small class="text-muted fw-normal" th:text="${module.lessons != null ? #lists.size(module.lessons) : 0} + ' bài học'"></small>
                     </div>
-                  </div>
-                  <div th:if="${#lists.isEmpty(course.curriculum)}" class="text-center py-4">
-                    <p class="text-muted">Chương trình giảng dạy đang được cập nhật...</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="tab-pane fade" id="classes" role="tabpanel">
-                <h4 class="fw-bold mb-4">Lớp học đang mở</h4>
-                <div th:if="${#lists.isEmpty(course.activeClasses)}" class="alert alert-warning">
-                  Hiện tại không có lớp học nào đang mở đăng ký.
-                </div>
-
-                <div class="class-item border rounded p-3 mb-3 shadow-sm" th:each="clazz : ${course.activeClasses}">
-                  <div class="row align-items-center">
-                    <div class="col-md-12">
-                      <h5 class="fw-bold text-primary mb-2" th:text="${clazz.className}">Class Name</h5>
-
-                      <div class="class-info small text-muted">
-                        <p class="mb-1" th:if="${clazz.teacherName != null}">
-                          <i class="bi bi-person-fill me-2"></i>
-                          <strong>Giảng viên:</strong> <span th:text="${clazz.teacherName}"></span>
-                        </p>
-
-                        <p class="mb-0 d-flex flex-wrap align-items-center">
-                          <span class="me-4">
-                              <i class="bi bi-calendar3 me-2"></i>
-                              <strong>Lịch học:</strong>
-                              <span th:text="${clazz.schedule}"></span>
-                              <span class="badge bg-light text-dark border ms-1" th:text="${clazz.slotTime}"></span>
-                          </span>
-                          <span>
-                              <i class="bi bi-clock-history me-2"></i>
-                              <strong>Thời gian:</strong>
-                              <span th:text="${clazz.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : 'N/A'}"></span>
-                              <span class="mx-1">—</span>
-                              <span th:text="${clazz.endDate != null ? #temporals.format(clazz.endDate, 'dd/MM/yyyy') : 'N/A'}"></span>
-                          </span>
-                        </p>
-                      </div>
-
-                      <a th:href="@{'/enroll/' + ${clazz.classId}}"
-                         class="btn btn-success mt-3"
-                         sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">
-                        <i class="bi bi-cart-check me-1"></i> Mua khóa học — xác nhận
-                      </a>
-                      <p class="text-muted small mt-2 mb-0"
-                         sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')">
-                        Chỉ học viên mới đăng ký lớp được.
-                      </p>
-                    </div>
+                  </button>
+                </h2>
+                <div th:id="'mod' + ${module.moduleId}" class="accordion-collapse collapse" data-bs-parent="#accordionCurriculum">
+                  <div class="accordion-body p-0">
+                    <ul class="list-group list-group-flush">
+                      <li class="list-group-item d-flex justify-content-between align-items-center py-3 border-bottom-0 hover-bg-light" 
+                          th:each="lesson : ${module.lessons}">
+                        <div class="ps-3">
+                          <i class="bi bi-play-circle me-3 text-primary"></i>
+                          <span th:text="${lesson.lessonName ?: 'Untitled Lesson'}"></span>
+                        </div>
+                        <div class="pe-3">
+                            <span class="badge bg-soft-primary text-primary rounded-pill small me-3" th:if="${lesson.isTrial}">Học thử</span>
+                            <small class="text-muted" th:text="${lesson.duration != null ? lesson.duration + ' phút' : '0 phút'}"></small>
+                        </div>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
-
+              <div th:if="${#lists.isEmpty(course.curriculum)}" class="text-center py-5">
+                <i class="bi bi-journal-x display-4 text-muted mb-3 d-block"></i>
+                <p class="text-muted">Chương trình giảng dạy đang được cập nhật...</p>
+              </div>
             </div>
           </div>
+
+          <!-- Section: Classes (Only for Instructor-led courses) -->
+          <div class="section-container mb-5 p-4 bg-white rounded-4 shadow-sm border" th:if="${!course.isSelfStudy}">
+            <h4 class="fw-bold mb-4 border-start border-4 border-primary ps-3">Lớp học đang mở</h4>
+            
+            <div th:if="${#lists.isEmpty(course.activeClasses)}" class="alert alert-soft-warning border-warning border-start border-4 rounded-3 d-flex align-items-center">
+              <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+              <div>Hiện tại không có lớp học nào đang mở đăng ký. Vui lòng quay lại sau.</div>
+            </div>
+
+            <div class="class-card border rounded-4 p-4 mb-3 transition-all hover-shadow" th:each="clazz : ${course.activeClasses}">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                            <h5 class="fw-bold text-primary mb-0" th:text="${clazz.className}">Class Name</h5>
+                            <span class="badge bg-success ms-2 rounded-pill">Đang tuyển sinh</span>
+                        </div>
+                        <div class="class-meta d-flex flex-wrap gap-3 text-muted small">
+                            <span th:if="${clazz.teacherName != null}"><i class="bi bi-person me-1"></i><strong>GV:</strong> <span th:text="${clazz.teacherName}"></span></span>
+                            <span><i class="bi bi-calendar3 me-1"></i><strong>Lịch:</strong> <span th:text="${clazz.schedule}"></span> (<span th:text="${clazz.slotTime}"></span>)</span>
+                            <span><i class="bi bi-clock me-1"></i><strong>Bắt đầu:</strong> <span th:text="${clazz.startDate != null ? #temporals.format(clazz.startDate, 'dd/MM/yyyy') : 'N/A'}"></span></span>
+                        </div>
+                    </div>
+                    <a th:href="@{'/enroll/' + ${clazz.classId}}"
+                       class="btn btn-outline-success rounded-pill px-4 fw-bold"
+                       sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">
+                       Chọn lớp này
+                    </a>
+                </div>
+            </div>
+          </div>
+
         </div>
 
+        <!-- Sidebar (Sticky like Udemy) -->
         <div class="col-lg-4 mt-4 mt-lg-0">
-          <div class="card shadow-sm border-0 mb-4 sticky-top" style="top: 100px;">
-            <img th:src="${course.imageUrl ?: '/assets/img/default-course.png'}" 
-                 onerror="this.onerror=null;this.src='/assets/img/default-course.png'"
-                 class="card-img-top p-2 rounded" alt="Course Image">
-            <div class="card-body text-center">
-
-              <div class="mb-3">
+          <div class="card shadow-lg border-0 rounded-4 sticky-top overflow-hidden" style="top: 100px; z-index: 100;">
+            <div class="position-relative">
+                <img th:src="${course.imageUrl ?: '/assets/img/default-course.png'}" 
+                     onerror="this.onerror=null;this.src='/assets/img/default-course.png'"
+                     class="card-img-top w-100" alt="Course Image" style="height: 200px; object-fit: cover;">
+                <div class="position-absolute top-50 left-50 translate-middle" th:if="${course.curriculum != null && !#lists.isEmpty(course.curriculum)}">
+                    <button class="btn btn-white rounded-circle shadow-lg" style="width: 60px; height: 60px;">
+                        <i class="bi bi-play-fill text-primary fs-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+              <div class="price-section mb-4 text-center">
                 <div th:if="${course.price != null && course.price > 0}">
                   <th:block th:with="saleAmount=${course.sale != null ? course.sale : 0}">
-                    <span class="text-decoration-line-through text-muted small"
-                          th:if="${saleAmount > 0}"
-                          th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                    </span>
-                    <span class="badge bg-danger ms-1"
-                          th:if="${saleAmount > 0}"
-                          th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                    </span>
-                    <h3 class="text-primary fw-bold mb-0"
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                        <span class="text-decoration-line-through text-muted fs-5"
+                              th:if="${saleAmount > 0}"
+                              th:text="${#numbers.formatDecimal(course.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                        </span>
+                        <span class="badge bg-soft-danger text-danger border border-danger small"
+                              th:if="${saleAmount > 0}"
+                              th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                        </span>
+                    </div>
+                    <h2 class="text-primary fw-bold display-5 mb-0"
                         th:text="${#numbers.formatDecimal(course.price - saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                    </h3>
+                    </h2>
                   </th:block>
                 </div>
-                <h3 class="text-success fw-bold mb-0"
+                <h2 class="text-success fw-bold display-5 mb-0"
                     th:if="${course.price == null || course.price == 0}">
                   Miễn phí
-                </h3>
+                </h2>
               </div>
-              <div class="course-specs mt-4 text-start">
-                <div class="d-flex justify-content-between border-bottom py-2">
-                  <span class="text-muted"><i class="bi bi-people me-2"></i>Học viên</span>
-                  <span class="fw-bold" th:text="${course.studentCount ?: 0}">0</span>
-                </div>
-                <div class="d-flex justify-content-between border-bottom py-2">
-                  <span class="text-muted"><i class="bi bi-layers me-2"></i>Số bài giảng</span>
-                  <span class="fw-bold" th:text="${course.curriculum != null ? #lists.size(course.curriculum) : 0}">0</span>
-                </div>
-                <div class="d-flex justify-content-between py-2">
-                  <span class="text-muted"><i class="bi bi-clock me-2"></i>Thời lượng</span>
-                  <span class="fw-bold" th:text="${course.getCourseDuration()}">90 ngày</span>
-                </div>
+              
+              <div class="d-grid gap-3 mb-4">
+                <a th:href="@{'/student/enroll/' + ${course.courseId}}" 
+                   class="btn btn-primary btn-lg rounded-3 fw-bold py-3 shadow-sm"
+                   sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">
+                  Đăng ký ngay
+                </a>
+                <p class="text-danger small text-center fw-bold" sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')">
+                  Vui lòng dùng tài khoản học viên để đăng ký.
+                </p>
+                <div class="text-center small text-muted">Bảo hành hoàn tiền trong 30 ngày</div>
               </div>
 
+              <div class="course-includes mt-4">
+                <h6 class="fw-bold mb-3">Khóa học bao gồm:</h6>
+                <ul class="list-unstyled mb-0">
+                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-collection-play me-3 text-primary"></i> <span th:text="${course.curriculum != null ? #lists.size(course.curriculum) : 0} + ' Chương mục'">0 Modules</span></li>
+                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-infinity me-3 text-primary"></i> <span>Truy cập trọn đời</span></li>
+                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-phone me-3 text-primary"></i> <span>Học trên di động & TV</span></li>
+                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-trophy me-3 text-primary"></i> <span>Giấy chứng nhận hoàn thành</span></li>
+                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-people me-3 text-primary"></i> <span th:text="${course.studentCount ?: 0} + ' Học viên đã tham gia'">0</span></li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -205,10 +207,34 @@
   </section>
 </main>
 
-
-
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
+
+<style>
+    .bg-soft-info { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1); }
+    .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); }
+    .text-info { color: #0dcaf0 !important; }
+    .hover-bg-light:hover { background-color: #f8f9fa; }
+    .hover-shadow:hover { 
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important;
+        transform: translateY(-2px);
+    }
+    .transition-all { transition: all 0.3s ease; }
+    .btn-white { background: #fff; border: 1px solid #ddd; }
+    .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa;
+        color: #3b82f6;
+    }
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+    .section-container {
+        border: 1px solid #eee;
+    }
+</style>
 
 </body>
 </html>

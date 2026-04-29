@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head th:with="isDashboard=true">
-  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Thêm khóa học mới')}"></th:block>
+  <th:block th:replace="~{fragments/head :: common-head(pageTitle='Quản lý khóa học')}"></th:block>
   <style>
     .searchable-dropdown {
       position: relative;
@@ -37,9 +37,9 @@
     }
   </style>
 </head>
-<html class="dashboard-body">
+<body class="dashboard-body">
 
-<header th:replace="~{fragments/header :: dash-header(pageTitle='Thêm khóa học', breadcrumb='Khóa học / Tạo mới')}"></header>
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Thông tin khóa học', breadcrumb='Khóa học / Chi tiết')}"></header>
 
 <aside id="dashSidebar" class="dash-sidebar">
   <div th:replace="~{fragments/sidebar :: dash-sidebar(activePage='courses')}"></div>
@@ -70,13 +70,12 @@
                 <select id="status" class="form-select" required>
                   <option value="draft">Bản nháp</option>
                   <option value="Published">Xuất bản</option>
-                  <option value="Active">Hoạt động</option>
                   <option value="Inactive">Tạm dừng</option>
                 </select>
                 <div id="statusError" class="text-danger small mt-1"></div>
               </div>
 
-              <div class="col-md-4">
+              <div class="col-md-8">
                 <label class="form-label fw-bold small">Chương trình (Category) <span class="text-danger">*</span></label>
                 <div class="searchable-dropdown" id="categoryContainer">
                   <input type="text" id="categorySearch" class="form-control" placeholder="Tìm chương trình..." autocomplete="off">
@@ -93,7 +92,8 @@
                 </button>
               </div>
 
-              <div class="col-md-4">
+              <!-- Expert field (Only for Teacher-led courses) -->
+              <div class="col-md-12" id="expertContainerCol" style="display: none;">
                 <label class="form-label fw-bold small">Chuyên gia (Expert) <span class="text-danger">*</span></label>
                 <div class="searchable-dropdown" id="expertContainer">
                   <input type="text" id="expertSearch" class="form-control" placeholder="Tìm chuyên gia..." autocomplete="off">
@@ -115,7 +115,9 @@
                 <div id="saleError" class="text-danger small mt-1"></div>
               </div>
 
-              <div class="col-md-6">
+              <input type="hidden" id="isSelfStudy">
+
+              <div class="col-12">
                 <label class="form-label fw-bold small">Số buổi học</label>
                 <input type="number" id="numberOfSessions" class="form-control" placeholder="Ví dụ: 30" min="1" max="200">
                 <div class="form-text small">Số buổi học mặc định cho lớp thuộc khóa học này.</div>
@@ -215,17 +217,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // ============================================================
-  //  HELPERS (defined outside DOMContentLoaded so modal can call)
-  // ============================================================
-
-  function showAddCategoryModal() {
-    document.getElementById('newCategoryName').value = '';
-    document.getElementById('newCategoryValue').value = '';
-    document.getElementById('categoryError').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
-  }
-
   // Utility function for searchable dropdowns
   function initializeSearchableDropdown(idPrefix, data, labelField, valueField) {
     const searchInput = document.getElementById(idPrefix + 'Search');
@@ -262,8 +253,6 @@
         item[labelField].toLowerCase().includes(val)
       );
       renderResults(filtered);
-      // Clear ID if value doesn't match exactly? optional, but safer to let user select
-      // hiddenInput.value = ''; 
     });
 
     document.addEventListener('click', (e) => {
@@ -271,6 +260,31 @@
         resultsContainer.classList.remove('show');
       }
     });
+  }
+
+  async function loadExperts() {
+    try {
+      const res = await fetch('/api/v1/accounts/experts');
+      const result = await res.json();
+      if (result.data) {
+        const experts = result.data.map(exp => ({
+          ...exp,
+          displayName: exp.fullName + ' (' + (exp.email || '') + ')'
+        }));
+        window.allExperts = experts;
+        initializeSearchableDropdown('expert', experts, 'displayName', 'userId');
+      }
+    } catch (err) {
+      console.error('Error loading experts:', err);
+    }
+  }
+
+  function updateExpertLabel() {
+    const isSelfStudy = document.getElementById('isSelfStudy').value === 'true';
+    const expertCol = document.getElementById('expertContainerCol');
+    if (expertCol) {
+      expertCol.style.display = isSelfStudy ? 'none' : 'block';
+    }
   }
 
   async function loadCategories() {
@@ -286,22 +300,11 @@
     }
   }
 
-  async function loadExperts() {
-    try {
-      const res = await fetch('/api/v1/accounts/experts');
-      const result = await res.json();
-      if (result.data) {
-        // Prepare label for experts (Name + Email)
-        const experts = result.data.map(exp => ({
-          ...exp,
-          displayName: exp.fullName + ' (' + (exp.email || '') + ')'
-        }));
-        window.allExperts = experts;
-        initializeSearchableDropdown('expert', experts, 'displayName', 'userId');
-      }
-    } catch (err) {
-      console.error('Error loading experts:', err);
-    }
+  function showAddCategoryModal() {
+    document.getElementById('newCategoryName').value = '';
+    document.getElementById('newCategoryValue').value = '';
+    document.getElementById('categoryError').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
   }
 
   async function saveCategory() {
@@ -327,7 +330,6 @@
         bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
         await loadCategories();
         if (result.data && result.data.settingId) {
-          // Update searchable input
           const cat = window.allCategories.find(c => c.settingId == result.data.settingId);
           if (cat) {
             document.getElementById('categorySearch').value = cat.name;
@@ -344,7 +346,6 @@
     }
   }
 
-  // Chờ data load xong (dùng cho edit mode)
   function waitForData(globalVar, callback) {
     const check = () => {
       if (window[globalVar] && window[globalVar].length > 0) {
@@ -356,16 +357,10 @@
     check();
   }
 
-  // ============================================================
-  //  DOMContentLoaded — tất cả code chạy khi DOM sẵn sàng
-  // ============================================================
   document.addEventListener("DOMContentLoaded", function() {
-
-    // 1. Load dropdowns
     loadCategories();
     loadExperts();
 
-    // 2. Load course data nếu đang ở trang edit
     const pathSegments = window.location.pathname.split('/');
     const courseIdFromUrl = pathSegments[pathSegments.length - 1];
 
@@ -388,19 +383,16 @@
               preview.style.display = 'block';
               placeholder.style.display = 'none';
             }
-            let statusVal = (course.status || 'draft').toLowerCase();
-            if (statusVal === 'published') {
-                document.getElementById('status').value = 'Published';
-            } else {
-                document.getElementById('status').value = 'draft';
-            }
-            document.getElementById('status').value = statusVal;
+            document.getElementById('status').value = (course.status || 'draft');
             document.getElementById('description').value = course.description || '';
             if (course.numberOfSessions) {
               document.getElementById('numberOfSessions').value = course.numberOfSessions;
             }
+            if (course.isSelfStudy !== undefined) {
+              document.getElementById('isSelfStudy').value = course.isSelfStudy.toString();
+              updateExpertLabel();
+            }
 
-            // Chờ data load xong rồi set giá trị hiển thị cho search input
             if (course.categoryId) {
               waitForData('allCategories', () => {
                 const cat = window.allCategories.find(c => c.settingId == course.categoryId);
@@ -419,14 +411,18 @@
                 }
               });
             }
-
             document.querySelector('.fw-bold.m-0').innerText = "Chỉnh sửa khóa học";
           }
-        })
-        .catch(err => console.error("Lỗi khi nạp dữ liệu cũ:", err));
+        });
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const selfStudyParam = urlParams.get('selfStudy');
+      if (selfStudyParam !== null) {
+        document.getElementById('isSelfStudy').value = selfStudyParam;
+        updateExpertLabel();
+      }
     }
 
-    // 3. Form submit — POST tạo mới / PUT cập nhật
     document.getElementById('courseForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -435,81 +431,32 @@
         if (errorEl) errorEl.textContent = message || '';
       };
 
+      const isSelfStudy = document.getElementById('isSelfStudy').value === 'true';
       ['courseName', 'price', 'sale', 'categoryId', 'expertId', 'status', 'avatar', 'description'].forEach(id => setError(id, ''));
 
-      const courseId = document.getElementById('courseId').value;
-      const categoryId = document.getElementById('categoryId').value;
-      const categorySearch = document.getElementById('categorySearch').value;
-      const expertId = document.getElementById('expertId').value;
-      const expertSearch = document.getElementById('expertSearch').value;
-      const status = document.getElementById('status').value;
-      const courseName = document.getElementById('courseName').value.trim();
-      const price = parseFloat(document.getElementById('price').value);
-      const salePercent = parseFloat(document.getElementById('sale').value);
-      const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value) || null;
-      const avatar = document.getElementById('avatar').value.trim();
-      const description = document.getElementById('description').value.trim();
-
-      let hasError = false;
-
-      if (!courseName) {
-        setError('courseName', 'Vui lòng nhập tên khóa học.');
-        hasError = true;
-      }
-
-      if (isNaN(price) || price < 0) {
-        setError('price', 'Học phí phải là số lớn hơn hoặc bằng 0.');
-        hasError = true;
-      }
-
-      if (isNaN(salePercent) || salePercent < 0 || salePercent > 100) {
-        setError('sale', 'Phần trăm giảm phải nằm trong khoảng 0-100.');
-        hasError = true;
-      }
-
-      if (!categoryId || !categorySearch) {
-        setError('categoryId', 'Vui lòng chọn chương trình từ danh sách.');
-        hasError = true;
-      }
-
-      if (!expertId || !expertSearch) {
-        setError('expertId', 'Vui lòng chọn chuyên gia từ danh sách.');
-        hasError = true;
-      }
-
-      if (!status) {
-        setError('status', 'Vui lòng chọn trạng thái.');
-        hasError = true;
-      }
-
-      if (!avatar) {
-        setError('avatar', 'Vui lòng tải lên ảnh đại diện.');
-        hasError = true;
-      }
-
-      if (!description) {
-        setError('description', 'Vui lòng nhập mô tả khóa học.');
-        hasError = true;
-      }
-
-      if (hasError) {
-        return;
-      }
-
-      const saleAmount = ((price || 0) * salePercent) / 100;
-
       const formData = {
-        courseName: courseName,
-        price: price || 0,
-        sale: saleAmount,
-        numberOfSessions: numberOfSessions,
-        avatar: avatar,
-        status: status,
-        description: description,
-        categoryId: parseInt(categoryId),
-        expertId: parseInt(expertId)
+        courseName: document.getElementById('courseName').value.trim(),
+        price: parseFloat(document.getElementById('price').value) || 0,
+        sale: (parseFloat(document.getElementById('price').value) * parseFloat(document.getElementById('sale').value)) / 100 || 0,
+        numberOfSessions: parseInt(document.getElementById('numberOfSessions').value) || null,
+        avatar: document.getElementById('avatar').value.trim(),
+        status: document.getElementById('status').value,
+        description: document.getElementById('description').value.trim(),
+        categoryId: parseInt(document.getElementById('categoryId').value),
+        expertId: isSelfStudy ? null : (parseInt(document.getElementById('expertId').value) || null),
+        isSelfStudy: isSelfStudy
       };
 
+      let hasError = false;
+      if (!formData.courseName) { setError('courseName', 'Vui lòng nhập tên khóa học.'); hasError = true; }
+      if (!formData.categoryId) { setError('categoryId', 'Vui lòng chọn chương trình.'); hasError = true; }
+      if (!isSelfStudy && !formData.expertId) { setError('expertId', 'Vui lòng chọn chuyên gia.'); hasError = true; }
+      if (!formData.avatar) { setError('avatar', 'Vui lòng tải ảnh lên.'); hasError = true; }
+      if (!formData.description) { setError('description', 'Vui lòng nhập mô tả.'); hasError = true; }
+
+      if (hasError) return;
+
+      const courseId = document.getElementById('courseId').value;
       const url = courseId ? `/api/v1/courses/${courseId}` : '/api/v1/courses/';
       const method = courseId ? 'PUT' : 'POST';
 
@@ -521,71 +468,45 @@
       .then(res => res.json())
       .then(res => {
         if (res.status === 200 || res.status === 201 || res.status === 202) {
-          const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-          document.getElementById('successTitle').innerText = "Thành công!";
-          document.getElementById('successMessage').innerText = courseId ? "Khóa học đã được cập nhật thành công." : "Khóa học mới đã được tạo thành công.";
-          successModal.show();
+          new bootstrap.Modal(document.getElementById('successModal')).show();
         } else {
-          setError('courseName', res.message || 'Thao tác thất bại.');
+          alert(res.message || 'Thao tác thất bại');
         }
-      })
-      .catch(err => {
-        console.error("Lỗi kết nối API:", err);
-        setError('courseName', 'Không thể kết nối tới máy chủ!');
       });
     });
+  });
 
-  }); // end DOMContentLoaded
-
-  // --- Upload Avatar Function ---
   async function uploadCourseAvatar() {
-      const fileInput = document.getElementById('avatarFile');
-      const hiddenInput = document.getElementById('avatar');
-      const preview = document.getElementById('avatarPreview');
-      const placeholder = document.getElementById('avatarPlaceholder');
-      const status = document.getElementById('avatarStatus');
-      const errorEl = document.getElementById('avatarError');
+    const fileInput = document.getElementById('avatarFile');
+    const hiddenInput = document.getElementById('avatar');
+    const preview = document.getElementById('avatarPreview');
+    const placeholder = document.getElementById('avatarPlaceholder');
+    const status = document.getElementById('avatarStatus');
+    
+    if (!fileInput.files || fileInput.files.length === 0) return;
 
-      if (!fileInput.files || fileInput.files.length === 0) return;
+    status.style.display = 'block';
+    status.innerHTML = 'Đang tải...';
 
-      const file = fileInput.files[0];
-      
-      // Reset status
-      status.style.display = 'block';
-      status.className = 'small mt-1 text-primary';
-      status.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tải ảnh lên...';
-      errorEl.textContent = '';
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
 
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-          const res = await fetch('/api/v1/upload/image', {
-              method: 'POST',
-              body: formData
-          });
-          const result = await res.json();
-
-          if (result.status === 200 || result.status === 201) {
-              const url = result.data;
-              hiddenInput.value = url;
-              
-              // Update Preview
-              preview.src = url;
-              preview.style.display = 'block';
-              placeholder.style.display = 'none';
-
-              status.className = 'small mt-1 text-success';
-              status.innerHTML = '<i class="bi bi-check-circle me-1"></i> Tải lên thành công.';
-          } else {
-              status.style.display = 'none';
-              errorEl.textContent = result.message || 'Lỗi tải ảnh.';
-          }
-      } catch (err) {
-          status.style.display = 'none';
-          errorEl.textContent = 'Lỗi kết nối upload.';
-          console.error(err);
+    try {
+      const res = await fetch('/api/v1/upload/image', { method: 'POST', body: formData });
+      const result = await res.json();
+      if (result.status === 200 || result.status === 201) {
+        hiddenInput.value = result.data;
+        preview.src = result.data;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        status.innerHTML = 'Tải lên thành công';
+      } else {
+        status.innerHTML = 'Lỗi tải ảnh';
       }
+    } catch (err) {
+      status.innerHTML = 'Lỗi kết nối';
+    }
   }
 </script>
+</body>
 </html>

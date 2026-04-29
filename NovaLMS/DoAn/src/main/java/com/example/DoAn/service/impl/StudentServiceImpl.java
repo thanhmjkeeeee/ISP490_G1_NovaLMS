@@ -55,7 +55,26 @@ public class StudentServiceImpl implements StudentService {
             if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học.");
 
             List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
-            return ResponseData.success("Thành công", new EnrollPageResponseDTO(course, openClasses));
+            
+            // Eagerly initialize lazy relations to avoid LazyInitializationException in template
+            if (course.getExpert() != null) {
+                course.getExpert().getFullName();
+            }
+            openClasses.forEach(c -> {
+                if (c.getTeacher() != null) {
+                    c.getTeacher().getFullName();
+                }
+            });
+
+            boolean alreadyEnrolled = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), courseId, "Approved");
+
+            return ResponseData.success("Thành công", EnrollPageResponseDTO.builder()
+                    .course(course)
+                    .classes(openClasses)
+                    .isAlreadyEnrolled(alreadyEnrolled)
+                    .build());
+
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
@@ -84,28 +103,41 @@ public class StudentServiceImpl implements StudentService {
 
             if (course == null) return ResponseData.error(400, "Không xác định được khóa học.");
 
+            // Kiểm tra trạng thái khóa học
+            if (!"Published".equalsIgnoreCase(course.getStatus())) {
+                return ResponseData.error(400, "Khóa học này hiện đang tạm dừng hoặc chưa được xuất bản.");
+            }
+
+            // Kiểm tra trạng thái lớp học (nếu có chọn lớp)
+            if (clazz != null && "Closed".equalsIgnoreCase(clazz.getStatus())) {
+                return ResponseData.error(400, "Lớp học này đã đóng đăng ký.");
+            }
+
             // Removed: check for other class registration to allow multi-class enrollment
 
             if (clazz != null) {
-                boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
+                boolean existsInClass = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
                         user.getUserId(), request.getClassId(), "Cancelled");
-                if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
+                if (existsInClass) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
             } else {
                 // For course-only (self-study), check if already has a course-only registration
-                boolean exists = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                boolean existsCourseOnly = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndClazzIsNullAndStatus(
                         user.getUserId(), course.getCourseId(), "Approved");
-                // Wait, if it's self-study, maybe we only allow one "Active" enrollment for the content.
-                // But the user said "0, 1 hoặc nhiều Class". 0 class means content-only.
-                // If they already have an approved registration (either class or content), should they be allowed another content-only one?
-                // Usually content-only is just one per course.
-                if (exists) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
+                if (existsCourseOnly) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
             }
 
-            // Tính giá: price - sale
+
+            // Check if student is already enrolled in the COURSE (any class or content-only)
+            boolean alreadyEnrolledInCourse = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), course.getCourseId(), "Approved");
+
+
+            // Tính giá: price - sale (If already enrolled in course, price is 0)
             Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
             Double saleAmount = course.getSale() != null ? course.getSale() : 0.0;
-            Double finalPrice = originalPrice - saleAmount;
+            Double finalPrice = alreadyEnrolledInCourse ? 0.0 : (originalPrice - saleAmount);
             if (finalPrice < 0) finalPrice = 0.0;
+
 
             // Status: Submitted — chờ thanh toán PayOS (hoặc Approved nếu free)
             Registration reg = Registration.builder()

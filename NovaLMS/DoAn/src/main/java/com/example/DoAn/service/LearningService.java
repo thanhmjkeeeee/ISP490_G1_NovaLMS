@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface LearningService {
-    ResponseData<CourseLearningInfoDTO> getCourseLearningInfo(Long courseId, String email);
+    ResponseData<CourseLearningInfoDTO> getCourseLearningInfo(Long courseId, Integer classId, String email);
     ResponseData<Map<String, Object>> getLessonViewData(Integer lessonId, String email);
     ResponseData<Void> markLessonCompleted(Integer lessonId, String email);
     Integer getLessonIdToContinue(Integer courseId, String email);

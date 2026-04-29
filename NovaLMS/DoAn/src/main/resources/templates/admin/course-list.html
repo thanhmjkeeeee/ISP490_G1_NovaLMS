@@ -208,10 +208,10 @@
                 <h3 class="fw-bold text-dark m-0">Quản lý khóa học</h3>
                 <p class="text-muted small m-0">Quản lý các khóa học, phân công chuyên gia/quản lý & nội dung.</p>
             </div>
-            <a th:href="@{/admin/courses/new}" class="btn btn-primary shadow-sm fw-bold rounded-pill px-4"
-                style="background-color: #3b82f6; border: none;">
+            <button class="btn btn-primary shadow-sm fw-bold rounded-pill px-4"
+                style="background-color: #3b82f6; border: none;" onclick="openCourseTypeModal()">
                 <i class="bi bi-plus-lg me-1"></i> Tạo khóa học mới
-            </a>
+            </button>
         </div>
 
         <div class="card mb-4 border-0 shadow-sm filter-section">
@@ -243,8 +243,9 @@
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="statusFilter" class="form-select bg-light">
                             <option value="">Tất cả trạng thái</option>
-                            <option value="active">Đang hoạt động</option>
+                            <option value="published">Đã xuất bản</option>
                             <option value="draft">Bản nháp</option>
+                            <option value="inactive">Tạm dừng</option>
                         </select>
                     </div>
                 </div>
@@ -379,6 +380,74 @@
         </div>
     </div>
 
+    <!-- Modal Chọn loại khóa học -->
+    <div class="modal fade" id="courseTypeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 550px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+                <div class="modal-header border-0 p-4 pb-2">
+                    <h5 class="modal-title fw-bold text-dark">Chọn loại khóa học</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-4">Vui lòng chọn hình thức giảng dạy cho khóa học mới của bạn.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="type-option p-4 text-center cursor-pointer h-100" onclick="redirectToCreateForm(false)">
+                                <div class="icon-box mx-auto mb-3" style="background: #e0f2fe; color: #0369a1;">
+                                    <i class="bi bi-person-video3 fs-2"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Có người giảng</h6>
+                                <p class="text-muted small m-0">Giáo viên trực tiếp giảng dạy theo lịch.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="type-option p-4 text-center cursor-pointer h-100" onclick="redirectToCreateForm(true)">
+                                <div class="icon-box mx-auto mb-3" style="background: #f0fdf4; color: #15803d;">
+                                    <i class="bi bi-laptop fs-2"></i>
+                                </div>
+                                <h6 class="fw-bold mb-1">Không người giảng</h6>
+                                <p class="text-muted small m-0">Khóa học tự học qua video và tài liệu.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .type-option {
+            border: 2px solid #f1f5f9;
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .type-option:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.1);
+        }
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cursor-pointer { cursor: pointer; }
+    </style>
+
+    <script>
+        function openCourseTypeModal() {
+            new bootstrap.Modal(document.getElementById('courseTypeModal')).show();
+        }
+        function redirectToCreateForm(isSelfStudy) {
+            window.location.href = `/admin/courses/new?selfStudy=${isSelfStudy}`;
+        }
+    </script>
+
     <!-- Modal Xác nhận xóa -->
     <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
@@ -476,17 +545,14 @@
                 const status = (course.status || 'draft').toLowerCase();
 
                 let badgeClass = 'bg-warning bg-opacity-10 text-warning';
-                if (status === 'active') {
-                    badgeClass = 'bg-success bg-opacity-10 text-success';
-                } else if (status === 'published') {
+                if (status === 'published') {
                     badgeClass = 'bg-primary bg-opacity-10 text-primary';
                 } else if (status === 'inactive') {
                     badgeClass = 'bg-secondary bg-opacity-10 text-secondary';
                 }
 
                 const statusLabel =
-                    status === 'active' ? 'Hoạt động'
-                    : status === 'published' ? 'Đã xuất bản'
+                    status === 'published' ? 'Đã xuất bản'
                     : status === 'inactive' ? 'Tạm dừng'
                     : 'Bản nháp';
 
@@ -537,9 +603,6 @@
                             </a></li>
                             <li><a class="dropdown-item rounded-3 py-2 mb-1 text-primary" href="#" onclick="changeStatus(${course.courseId}, 'Published')">
                                 <i class="bi bi-cloud-arrow-up me-2"></i> Xuất bản
-                            </a></li>
-                            <li><a class="dropdown-item rounded-3 py-2 mb-1 text-success" href="#" onclick="changeStatus(${course.courseId}, 'Active')">
-                                <i class="bi bi-play-circle me-2"></i> Hoạt động
                             </a></li>
                             <li><a class="dropdown-item rounded-3 py-2 text-secondary" href="#" onclick="changeStatus(${course.courseId}, 'Inactive')">
                                 <i class="bi bi-pause-circle me-2"></i> Tạm dừng

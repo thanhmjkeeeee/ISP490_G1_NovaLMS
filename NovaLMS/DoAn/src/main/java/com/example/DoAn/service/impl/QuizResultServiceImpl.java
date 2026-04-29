@@ -292,6 +292,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .classId(classId)
                 .sessionId(sessionId)
                 .canRetake(maxAttempts == 0 || attemptCount < maxAttempts)
+                .isSequential(quiz.getIsSequential())
+                .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
                 .attemptsLeft(attemptsLeft)
                 .maxAttempts(maxAttempts > 0 ? maxAttempts : null)
                 .build();
@@ -704,11 +706,14 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .studentName(qr.getUser().getFullName())
                 .className(quiz.getClazz() != null ? quiz.getClazz().getClassName()
                         : registrationRepository
-                                .findByUser_UserIdAndCourse_CourseIdAndStatus(qr.getUser().getUserId(),
+                                .findAllByUser_UserIdAndCourse_CourseIdAndStatus(qr.getUser().getUserId(),
                                         quiz.getCourse().getCourseId(), "Approved")
+                                .stream()
                                 .map(reg -> reg.getClazz() != null ? reg.getClazz().getClassName()
                                         : "Lớp học đã đăng ký")
+                                .findFirst()
                                 .orElse("Lớp học đã đăng ký"))
+
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getTitle() : null)
                 .submittedAt(qr.getSubmittedAt())
                 .score(qr.getScore() != null ? qr.getScore().doubleValue() : 0.0)

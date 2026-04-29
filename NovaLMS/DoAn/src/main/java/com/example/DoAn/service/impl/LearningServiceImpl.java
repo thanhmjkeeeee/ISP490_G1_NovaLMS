@@ -36,7 +36,7 @@ public class LearningServiceImpl implements LearningService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResponseData<CourseLearningInfoDTO> getCourseLearningInfo(Long courseId, String email) {
+    public ResponseData<CourseLearningInfoDTO> getCourseLearningInfo(Long courseId, Integer classId, String email) {
         try {
             User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
@@ -44,8 +44,30 @@ public class LearningServiceImpl implements LearningService {
             Course course = courseRepository.getCourseLearningData(courseId.intValue()).orElse(null);
             if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học");
 
-            Registration reg = registrationRepository.findByUser_UserIdAndCourse_CourseIdAndStatus(
-                    user.getUserId(), course.getCourseId(), "Approved").orElse(null);
+            // Fetch all approved registrations for this user and course
+            List<Registration> registrations = registrationRepository.findAllByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), course.getCourseId(), "Approved");
+
+            if (registrations.isEmpty()) {
+                return ResponseData.error(403, "Bạn chưa đăng ký khóa học này.");
+            }
+
+            // Determine the "current" registration
+            Registration currentReg = null;
+            if (classId != null) {
+                currentReg = registrations.stream()
+                        .filter(r -> r.getClazz() != null && r.getClazz().getClassId().equals(classId))
+                        .findFirst().orElse(null);
+            }
+            
+            // If classId not found or not provided, pick the latest registration with a class, or the course-only one
+            if (currentReg == null) {
+                currentReg = registrations.stream()
+                        .filter(r -> r.getClazz() != null)
+                        .max(Comparator.comparing(Registration::getRegistrationTime))
+                        .orElse(registrations.get(0)); // Fallback to first (could be course-only)
+            }
+
 
             List<UserLesson> userLessons = userLessonRepository.findByUser_UserId(user.getUserId());
             Set<Integer> completedLessonIds = userLessons.stream()
@@ -56,12 +78,16 @@ public class LearningServiceImpl implements LearningService {
             CourseLearningInfoDTO courseInfo = new CourseLearningInfoDTO();
             courseInfo.setCourseId(course.getCourseId().longValue());
             courseInfo.setTitle(course.getCourseName());
-            courseInfo.setCourseName(course.getCourseName()); // 🟢 THÊM DÒNG NÀY: Đồng bộ DTO
+            courseInfo.setCourseName(course.getCourseName()); 
             courseInfo.setDescription(course.getDescription());
-            courseInfo.setIsSelfStudy(course.getIsSelfStudy());
+            
+            // Set isSelfStudy if NO class is associated with CURRENT registration
+            courseInfo.setIsSelfStudy(currentReg.getClazz() == null);
 
-            if (reg != null && reg.getClazz() != null) {
-                Clazz clazz = reg.getClazz();
+            if (currentReg.getClazz() != null) {
+                Clazz clazz = currentReg.getClazz();
+                courseInfo.setCurrentClassId(clazz.getClassId());
+
                 courseInfo.setClassName(clazz.getClassName());
                 courseInfo.setSchedule(clazz.getSchedule());
 
@@ -183,8 +209,20 @@ public class LearningServiceImpl implements LearningService {
             int progress = totalLessonsCount == 0 ? 0 : Math.round(((float) completedCount / totalLessonsCount) * 100);
             courseInfo.setProgressPercent(progress);
 
+            // Populate all registered classes for the dropdown
+            List<CourseLearningInfoDTO.RegisteredClassDTO> registeredClasses = registrations.stream()
+                    .filter(r -> r.getClazz() != null)
+                    .map(r -> CourseLearningInfoDTO.RegisteredClassDTO.builder()
+                            .classId(r.getClazz().getClassId())
+                            .className(r.getClazz().getClassName())
+                            .build())
+                    .distinct()
+                    .collect(Collectors.toList());
+            courseInfo.setRegisteredClasses(registeredClasses);
+
             // Lấy tất cả quiz COURSE_QUIZ (Global + Class-specific)
-            Integer targetClassId = (reg != null && reg.getClazz() != null) ? reg.getClazz().getClassId() : null;
+            Integer targetClassId = currentReg.getClazz() != null ? currentReg.getClazz().getClassId() : null;
+
             List<Quiz> studentQuizzes = quizRepository.findQuizzesForStudent(course.getCourseId(), targetClassId);
 
             // Optimization: Load all session-specific settings for this class to avoid N+1 query
@@ -294,7 +332,8 @@ public class LearningServiceImpl implements LearningService {
             if (currentLesson == null) return ResponseData.error(404, "Không tìm thấy bài học");
 
             Long courseId = currentLesson.getModule().getCourse().getCourseId().longValue();
-            ResponseData<CourseLearningInfoDTO> courseInfoResult = getCourseLearningInfo(courseId, email);
+            ResponseData<CourseLearningInfoDTO> courseInfoResult = getCourseLearningInfo(courseId, null, email);
+
 
             // Check if current lesson is actually completed by this user
             User currentUser = userRepository.findByEmail(email).orElse(null);
