@@ -85,7 +85,7 @@
                 <i class="bi bi-calendar-range"></i><span>Duyệt đổi lịch</span>
                 <span id="rescheduleBadge" class="badge rounded-pill bg-danger ms-auto" style="display:none; font-size: 0.65rem;">0</span>
             </a>
-            <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/admin/registrations}" th:classappend="${activePage == 'registrations'} ? ' active'" class="dash-nav-item">
+            <a sec:authorize="hasRole('ROLE_MANAGER')" th:href="@{/manager/registrations}" th:classappend="${activePage == 'registrations'} ? ' active'" class="dash-nav-item">
                 <i class="bi bi-clipboard-check"></i><span>Duyệt đăng ký</span>
             </a>
         </div>

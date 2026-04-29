@@ -19,10 +19,35 @@ import java.util.Collection;
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
+    private final com.example.DoAn.repository.VisitorLogRepository visitorLogRepository;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
+                                         Authentication authentication) throws IOException, ServletException {
+        // --- LIÊN KẾT VISITOR TOKEN (GUEST CONVERSION) ---
+        if (authentication.getPrincipal() instanceof OAuth2User oauthUser) {
+            String email = oauthUser.getAttribute("email");
+            if (email != null) {
+                userRepository.findByEmail(email).ifPresent(user -> {
+                    jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+                    if (cookies != null) {
+                        for (jakarta.servlet.http.Cookie cookie : cookies) {
+                            if ("nova_visitor_token".equals(cookie.getName())) {
+                                String token = cookie.getValue();
+                                visitorLogRepository.findByVisitorToken(token).ifPresent(visitor -> {
+                                    if (visitor.getUser() == null) {
+                                        visitor.setUser(user);
+                                        visitorLogRepository.save(visitor);
+                                    }
+                                });
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         String targetUrl = "/index";
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();

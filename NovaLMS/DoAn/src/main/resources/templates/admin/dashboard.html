@@ -566,6 +566,7 @@
             const visitorCtx = document.getElementById('visitorChart').getContext('2d');
             const visitorLabels = /*[[${visitorLabels}]]*/ [];
             const visitorValues = /*[[${visitorValues}]]*/ [];
+            const conversionValues = /*[[${conversionValues}]]*/ [];
 
             // Tạo gradient cho biểu đồ visitor
             const visitorGradient = visitorCtx.createLinearGradient(0, 0, 0, 400);
@@ -576,23 +577,40 @@
                 type: 'line',
                 data: {
                     labels: visitorLabels,
-                    datasets: [{
-                        label: 'Lượt khách truy cập mới',
-                        data: visitorValues,
-                        borderColor: '#0dcefd',
-                        backgroundColor: visitorGradient,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#0dcefd'
-                    }]
+                    datasets: [
+                        {
+                            label: 'Lượt khách truy cập mới',
+                            data: visitorValues,
+                            borderColor: '#0dcefd',
+                            backgroundColor: visitorGradient,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#0dcefd'
+                        },
+                        {
+                            label: 'Chuyển đổi thành Student',
+                            data: conversionValues,
+                            borderColor: '#198754',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#198754'
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { 
+                            display: true,
+                            position: 'top',
+                            labels: { usePointStyle: true, font: { size: 11 } }
+                        }
                     },
                     scales: {
                         y: {

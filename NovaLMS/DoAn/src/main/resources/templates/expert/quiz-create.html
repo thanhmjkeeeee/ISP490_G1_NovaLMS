@@ -240,12 +240,56 @@
             if (totalInput) totalInput.value = total > 0 ? total : '';
         }
 
+        function syncSkillFilters() {
+            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+            const enabledSkills = skills.filter(s => document.getElementById('enable_' + s)?.checked);
+            
+            // 1. Update Question Bank Filter (modalSkill)
+            const modalSkill = document.getElementById('modalSkill');
+            if (modalSkill) {
+                const options = modalSkill.options;
+                for (let i = 0; i < options.length; i++) {
+                    const opt = options[i];
+                    if (!opt.value) continue; // Skip "All"
+                    const isEnabled = enabledSkills.includes(opt.value);
+                    opt.disabled = !isEnabled;
+                    opt.style.display = isEnabled ? 'block' : 'none';
+                }
+                // If current selected is disabled, reset to "All"
+                if (modalSkill.value && !enabledSkills.includes(modalSkill.value)) {
+                    modalSkill.value = "";
+                    if (typeof loadBankQuestions === 'function') loadBankQuestions(0);
+                }
+            }
+
+            // 2. Update AI Generator Modal (adv-skill-radio)
+            const aiRadios = document.querySelectorAll('input[name="adv-skill-radio"]');
+            aiRadios.forEach(radio => {
+                const skill = radio.value;
+                const isEnabled = enabledSkills.includes(skill);
+                radio.disabled = !isEnabled;
+                const label = document.querySelector(`label[for="${radio.id}"]`);
+                if (label) label.style.display = isEnabled ? 'block' : 'none';
+            });
+            // If current checked is disabled, find first enabled or uncheck
+            const checkedRadio = document.querySelector('input[name="adv-skill-radio"]:checked');
+            if (checkedRadio && checkedRadio.disabled) {
+                checkedRadio.checked = false;
+                const firstEnabled = document.querySelector('input[name="adv-skill-radio"]:not(:disabled)');
+                if (firstEnabled) {
+                    firstEnabled.checked = true;
+                    if (typeof updateAdvSkill === 'function') updateAdvSkill(firstEnabled.value);
+                }
+            }
+        }
+
         function toggleSkillInput(skill) {
             const enabled = document.getElementById('enable_' + skill).checked;
             const input = document.getElementById('timeLimit_' + skill);
             input.disabled = !enabled;
             if (!enabled) input.value = '';
             calculateTotalTime(input);
+            syncSkillFilters();
         }
 
         function onCategoryChange() {
@@ -253,26 +297,73 @@
             const courseSection = document.getElementById('courseSection');
             const perSkillSection = document.getElementById('perSkillTimeSection');
             const timeLimitInput = document.getElementById('timeLimitMinutes');
-            const deadlineSection = document.getElementById('deadlineSection');
+
+            const isAssignment = cat && cat.includes('ASSIGNMENT');
+            const isCourseLevel = (cat === 'COURSE_QUIZ' || isAssignment);
 
             if (courseSection) {
-                const isCourseLevel = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT');
                 courseSection.style.display = isCourseLevel ? 'block' : 'none';
                 const moduleSection = document.getElementById('moduleSection');
                 if (moduleSection) moduleSection.style.display = isCourseLevel ? 'block' : 'none';
             }
 
-            if (deadlineSection) deadlineSection.style.display = 'none';
 
-            if (cat && (cat.includes('ASSIGNMENT') || cat === 'COURSE_QUIZ')) {
-                if (perSkillSection) perSkillSection.style.display = 'block';
+
+            if (cat && (isAssignment || cat === 'COURSE_QUIZ' || cat === 'MODULE_QUIZ' || cat === 'MODULE_ASSIGNMENT')) {
+                if (perSkillSection) {
+                    perSkillSection.style.display = 'block';
+                    if (isAssignment) perSkillSection.classList.add('assignment-mode');
+                    else perSkillSection.classList.remove('assignment-mode');
+                }
+                
                 if (timeLimitInput) {
                     timeLimitInput.readOnly = true;
                     timeLimitInput.style.backgroundColor = '#e9ecef';
                     timeLimitInput.placeholder = 'Tự động tính';
-                    calculateTotalTime();
                 }
+
+                const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+                if (isAssignment) {
+                    skills.forEach(s => {
+                        const col = document.getElementById('skill-col-' + s);
+                        if (col) {
+                            const timeVal = document.getElementById('timeLimit_' + s)?.value || '';
+                            let title = s;
+                            if (s === 'WRITING') title += ' <span class="extra-small text-primary">(Dài nhất)</span>';
+                            col.innerHTML = `
+                                <label class="form-label fw-bold small text-muted mb-1">${title}</label>
+                                <input type="hidden" id="enable_${s}" value="on">
+                                <input type="text" id="timeLimit_${s}" class="form-control" placeholder="Tối đa 100" value="${timeVal}" oninput="calculateTotalTime(this)">
+                            `;
+                            document.getElementById('enable_' + s).checked = true; // For JS logic
+                        }
+                    });
+                } else {
+                    skills.forEach(s => {
+                        const col = document.getElementById('skill-col-' + s);
+                        if (col && !col.querySelector('.form-switch')) {
+                            const timeVal = document.getElementById('timeLimit_' + s)?.value || '';
+                            let title = s;
+                            if (s === 'WRITING') title += ' <span class="extra-small text-primary">(Dài nhất)</span>';
+                            col.innerHTML = `
+                                <div class="form-check form-switch mb-1 skill-switch-wrapper">
+                                    <input class="form-check-input" type="checkbox" id="enable_${s}" checked onchange="toggleSkillInput('${s}')">
+                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_${s}">${title}</label>
+                                </div>
+                                <input type="text" id="timeLimit_${s}" class="form-control" placeholder="Tối đa 100" value="${timeVal}" oninput="calculateTotalTime(this)">
+                            `;
+                        } else {
+                            const cb = document.getElementById('enable_' + s);
+                            if (cb) cb.disabled = false;
+                        }
+                    });
+                }
+                calculateTotalTime();
             } else {
+                if (perSkillSection) {
+                    perSkillSection.style.display = 'none';
+                    perSkillSection.classList.remove('assignment-mode');
+                }
                 if (perSkillSection) perSkillSection.style.display = 'none';
                 if (timeLimitInput) {
                     timeLimitInput.readOnly = false;
@@ -293,11 +384,11 @@
             const entryTestWarning = document.getElementById('entryTestWarning');
             if (entryTestWarning) entryTestWarning.style.display = (cat === 'ENTRY_TEST') ? 'block' : 'none';
 
-            if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
+            if (cat === 'COURSE_QUIZ' || isAssignment || cat === 'ENTRY_TEST') {
                 const btnNext = document.getElementById('btnNextStep');
                 if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
                 if (cat !== 'ENTRY_TEST') {
-                    if (typeof loadCourses === 'function') loadCourses();
+                    loadCourses();
                 } else {
                     if (courseSection) courseSection.style.display = 'none';
                 }
@@ -445,19 +536,6 @@
                             </div>
                         </div>
 
-                        <div id="deadlineSection" class="mb-4" style="display:none">
-                            <label class="form-label fw-bold small text-primary">Hạn nộp (Deadline) <span
-                                    class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-primary border-opacity-25"><i
-                                        class="bi bi-calendar-event text-primary"></i></span>
-                                <input type="datetime-local" id="deadline"
-                                    class="form-control border-primary border-opacity-25 shadow-sm"
-                                    style="max-width: 300px;">
-                            </div>
-                            <div class="form-text text-muted small">Học viên phải nộp bài trước thời gian này.</div>
-                        </div>
-
                         <div class="mb-4">
                             <label class="toggle-container">
                                 <div class="toggle-switch">
@@ -475,8 +553,8 @@
                                 Thời gian từng phần (phút) <span class="text-danger">*</span>
                             </h6>
                             <div class="row g-3">
-                                <div class="col-md-3">
-                                    <div class="form-check form-switch mb-1">
+                                <div class="col-md-3" id="skill-col-LISTENING">
+                                    <div class="form-check form-switch mb-1 skill-switch-wrapper">
                                         <input class="form-check-input" type="checkbox" id="enable_LISTENING" checked
                                             onchange="toggleSkillInput('LISTENING')">
                                         <label class="form-label fw-bold small text-muted mb-0"
@@ -485,8 +563,8 @@
                                     <input type="text" id="timeLimit_LISTENING" class="form-control"
                                         placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-check form-switch mb-1">
+                                <div class="col-md-3" id="skill-col-READING">
+                                    <div class="form-check form-switch mb-1 skill-switch-wrapper">
                                         <input class="form-check-input" type="checkbox" id="enable_READING" checked
                                             onchange="toggleSkillInput('READING')">
                                         <label class="form-label fw-bold small text-muted mb-0"
@@ -495,8 +573,8 @@
                                     <input type="text" id="timeLimit_READING" class="form-control"
                                         placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-check form-switch mb-1">
+                                <div class="col-md-3" id="skill-col-SPEAKING">
+                                    <div class="form-check form-switch mb-1 skill-switch-wrapper">
                                         <input class="form-check-input" type="checkbox" id="enable_SPEAKING" checked
                                             onchange="toggleSkillInput('SPEAKING')">
                                         <label class="form-label fw-bold small text-muted mb-0"
@@ -505,12 +583,12 @@
                                     <input type="text" id="timeLimit_SPEAKING" class="form-control"
                                         placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-check form-switch mb-1">
+                                <div class="col-md-3" id="skill-col-WRITING">
+                                    <div class="form-check form-switch mb-1 skill-switch-wrapper">
                                         <input class="form-check-input" type="checkbox" id="enable_WRITING" checked
                                             onchange="toggleSkillInput('WRITING')">
                                         <label class="form-label fw-bold small text-muted mb-0"
-                                            for="enable_WRITING">WRITING</label>
+                                            for="enable_WRITING">WRITING <span class="extra-small text-primary">(Dài nhất)</span></label>
                                     </div>
                                     <input type="text" id="timeLimit_WRITING" class="form-control"
                                         placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
@@ -1068,31 +1146,6 @@
             });
         })();
 
-        function toggleSkillInput(skill) {
-            const enabled = document.getElementById('enable_' + skill).checked;
-            const input = document.getElementById('timeLimit_' + skill);
-            input.disabled = !enabled;
-            if (!enabled) input.value = '';
-            calculateTotalTime(input);
-        }
-
-        function calculateTotalTime(input) {
-            if (input && input.value) {
-                input.value = input.value.replace(/[^0-9]/g, '');
-                if (parseInt(input.value) > 100) input.value = '100';
-            }
-            let total = 0;
-            ['LISTENING', 'READING', 'SPEAKING', 'WRITING'].forEach(skill => {
-                const checkbox = document.getElementById('enable_' + skill);
-                if (checkbox && checkbox.checked) {
-                    let val = parseInt(document.getElementById('timeLimit_' + skill).value) || 0;
-                    total += val;
-                }
-            });
-            const totalInput = document.getElementById('timeLimitMinutes');
-            if (totalInput) totalInput.value = total > 0 ? total : '';
-        }
-
         function buildTimeLimitPerSkill() {
             const result = {};
             let hasActive = false;
@@ -1107,63 +1160,6 @@
                 }
             });
             return hasActive ? result : null;
-        }
-
-        function onCategoryChange() {
-            const cat = document.getElementById('quizCategory').value;
-            const courseSection = document.getElementById('courseSection');
-            const perSkillSection = document.getElementById('perSkillTimeSection');
-            const timeLimitInput = document.getElementById('timeLimitMinutes');
-            const deadlineSection = document.getElementById('deadlineSection');
-
-            if (courseSection) {
-                const isCourseLevel = (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT');
-                courseSection.style.display = isCourseLevel ? 'block' : 'none';
-                document.getElementById('moduleSection').style.display = isCourseLevel ? 'block' : 'none';
-                document.getElementById('lessonSection').style.display = isCourseLevel ? 'block' : 'none';
-            }
-
-            if (deadlineSection) deadlineSection.style.display = 'none';
-
-            if (cat && (cat.includes('ASSIGNMENT') || cat === 'COURSE_QUIZ')) {
-                if (perSkillSection) perSkillSection.style.display = 'block';
-                if (timeLimitInput) {
-                    timeLimitInput.readOnly = true;
-                    timeLimitInput.style.backgroundColor = '#e9ecef';
-                    timeLimitInput.placeholder = 'Tự động tính';
-                    calculateTotalTime();
-                }
-            } else {
-                if (perSkillSection) perSkillSection.style.display = 'none';
-                if (timeLimitInput) {
-                    timeLimitInput.readOnly = false;
-                    timeLimitInput.style.backgroundColor = '';
-                    if (cat === 'ENTRY_TEST') {
-                        timeLimitInput.value = 20;
-                        document.getElementById('passScore').value = 40;
-                        document.getElementById('maxAttempts').value = 1;
-                    } else {
-                        timeLimitInput.value = '';
-                        timeLimitInput.placeholder = 'Không giới hạn';
-                    }
-                }
-            }
-
-            if (cat === 'ENTRY_TEST') {
-                document.getElementById('entryTestWarning').style.display = 'block';
-            } else {
-                document.getElementById('entryTestWarning').style.display = 'none';
-            }
-
-            if (cat === 'COURSE_QUIZ' || cat === 'COURSE_ASSIGNMENT' || cat === 'ENTRY_TEST') {
-                const btnNext = document.getElementById('btnNextStep');
-                if (btnNext) btnNext.innerHTML = 'Tiếp theo: Chọn câu hỏi <i class="bi bi-arrow-right ms-2"></i>';
-                if (cat !== 'ENTRY_TEST') {
-                    loadCourses();
-                } else {
-                    if (courseSection) courseSection.style.display = 'none';
-                }
-            }
         }
 
         async function onCourseChange() {
@@ -1413,7 +1409,10 @@
                 if (idx + 1 === step) item.classList.add('active');
             });
             _currentStep = step;
-            if (step === 2) initStep2();
+            if (step === 2) {
+                syncSkillFilters();
+                initStep2();
+            }
             if (step === 3) initStep3();
         }
 
@@ -1425,6 +1424,47 @@
             if (feedback && feedback.style.display === 'block' && feedback.classList.contains('text-danger')) {
                 Swal.fire('Lỗi', 'Tên Quiz đã tồn tại. Vui lòng chọn tên khác.', 'error');
                 return;
+            }
+
+            const cat = document.getElementById('quizCategory').value;
+            const isAssignment = cat && cat.includes('ASSIGNMENT');
+            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+            const enabledSkills = skills.filter(s => document.getElementById('enable_' + s).checked);
+
+            if (cat && cat !== 'ENTRY_TEST') {
+                if (enabledSkills.length === 0) {
+                    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn ít nhất một kỹ năng và cấu hình thời gian.' });
+                    return;
+                }
+
+                if (isAssignment && enabledSkills.length < 4) {
+                    Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Bài tập lớn (Assignment) 4 kỹ năng nên bật đủ cả 4 kỹ năng LISTENING, READING, WRITING, SPEAKING.' });
+                }
+
+                let maxOtherTime = 0;
+                let writingTime = 0;
+
+                for (const s of enabledSkills) {
+                    const val = parseInt(document.getElementById('timeLimit_' + s).value) || 0;
+                    if (val <= 0) {
+                        Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: `Vui lòng nhập thời gian làm bài cho kỹ năng ${s}.` });
+                        return;
+                    }
+                    if (s === 'WRITING') writingTime = val;
+                    else {
+                        if (val > maxOtherTime) maxOtherTime = val;
+                    }
+                }
+
+                // Rule: Writing time must be the longest
+                if (document.getElementById('enable_WRITING').checked && writingTime < maxOtherTime) {
+                    Swal.fire({ 
+                        icon: 'warning', 
+                        title: 'Quy tắc thời gian', 
+                        text: 'Thời gian kỹ năng WRITING phải là dài nhất (hoặc bằng các kỹ năng khác). Vui lòng điều chỉnh lại.' 
+                    });
+                    return;
+                }
             }
 
             if (!_quizId) submitQuiz('DRAFT');
@@ -1665,11 +1705,22 @@
             document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút | Điểm đạt ${pass}%`;
             
             const container = document.getElementById('skillStatusCards');
-            const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+            const allSkills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
             const skillIcons = { 'LISTENING': 'headphones', 'READING': 'book', 'SPEAKING': 'mic', 'WRITING': 'pencil-square' };
             
-            container.innerHTML = skills.map(s => {
-                const count = counts[s];
+            const cat = document.getElementById('quizCategory').value;
+            const isAssignment = cat && cat.includes('ASSIGNMENT');
+            
+            let displaySkills = allSkills;
+            if (!isAssignment) {
+                displaySkills = allSkills.filter(s => {
+                    const cb = document.getElementById('enable_' + s);
+                    return cb && cb.checked;
+                });
+            }
+            
+            container.innerHTML = displaySkills.map(s => {
+                const count = counts[s] || 0;
                 const isReady = count > 0;
                 return `
                     <div class="skill-status-card ${isReady ? 'ready' : 'missing'} shadow-sm">
@@ -2323,7 +2374,7 @@
                     return;
                 }
                 try {
-                    const res = await fetch(`/api/v1/expert/quizzes/check-title?title=${encodeURIComponent(title)}&excludeId=${_quizId || 0}`);
+                    const res = await fetch(`/api/v1/expert/quizzes/validate-title?title=${encodeURIComponent(title)}&excludeId=${_quizId || 0}`);
                     const result = await res.json();
                     if (feedback) {
                         feedback.style.display = 'block';
@@ -2339,6 +2390,10 @@
                 } catch (e) { console.error(e); }
             });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            onCategoryChange();
+        });
     </script>
     <style>
         .bg-light-subtle { background-color: #f0f7ff !important; }

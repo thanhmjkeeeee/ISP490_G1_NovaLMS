@@ -85,4 +85,5 @@ public interface QuizRepository extends JpaRepository<Quiz, Integer> {
 
     boolean existsByTitleAndUser_UserIdAndQuizIdNot(String title, Integer userId, Integer quizId);
 
+    long countByCourse_CourseId(Integer courseId);
 }

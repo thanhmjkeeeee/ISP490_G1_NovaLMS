@@ -32,6 +32,9 @@ public class CourseServiceImpl implements ICourseService {
     private final SettingRepository settingRepository;
     private final UserRepository userRepository;
     private final com.example.DoAn.repository.LessonRepository lessonRepository;
+    private final com.example.DoAn.repository.QuizRepository quizRepository;
+    private final com.example.DoAn.repository.ClazzRepository clazzRepository;
+    private final com.example.DoAn.repository.ModuleRepository moduleRepository;
 
     @Override
     public Integer saveCourse(CourseRequestDTO request) {
@@ -93,6 +96,7 @@ public class CourseServiceImpl implements ICourseService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public CourseDetailResponse getById(Integer id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
@@ -117,12 +121,41 @@ public class CourseServiceImpl implements ICourseService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void deleteCourse(Integer id) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+        // Check if published
+        if ("Published".equalsIgnoreCase(course.getStatus())) {
+            throw new RuntimeException("Không thể xóa khóa học ở trạng thái 'Xuất bản'. Vui lòng chuyển sang 'Nháp' trước khi xóa.");
+        }
+
+        // Check for registrations
         long registrationCount = registrationRepository.countByCourse_CourseId(id);
         if (registrationCount > 0) {
-            throw new RuntimeException("Không thể xóa khóa học đã có học viên đăng ký");
+            throw new RuntimeException("Không thể xóa khóa học đã có học viên đăng ký (" + registrationCount + ")");
         }
-        courseRepository.deleteById(id);
+
+        // Check for classes
+        long classCount = clazzRepository.countByCourse_CourseId(id);
+        if (classCount > 0) {
+            throw new RuntimeException("Không thể xóa khóa học đang có lớp học (" + classCount + ")");
+        }
+
+        // Check for quizzes
+        long quizCount = quizRepository.countByCourse_CourseId(id);
+        if (quizCount > 0) {
+            throw new RuntimeException("Không thể xóa khóa học đang có bài kiểm tra/assignment (" + quizCount + ")");
+        }
+
+        // Check for modules
+        long moduleCount = moduleRepository.countByCourse_CourseId(id);
+        if (moduleCount > 0) {
+            throw new RuntimeException("Không thể xóa khóa học đang có module/chương trình học (" + moduleCount + ")");
+        }
+
+        courseRepository.delete(course);
         log.info("Course deleted successfully, id={}", id);
     }
 
@@ -174,7 +207,25 @@ public class CourseServiceImpl implements ICourseService {
                 .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
                 .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
                 .numberOfSessions(course.getNumberOfSessions())
+                .classCount(course.getClasses() != null ? (long) course.getClasses().size() : 0L)
+                .teacherNames(course.getClasses() != null 
+                        ? course.getClasses().stream()
+                            .filter(c -> c.getTeacher() != null)
+                            .map(c -> c.getTeacher().getFullName())
+                            .distinct()
+                            .toList()
+                        : java.util.Collections.emptyList())
                 .build();
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void updateCourseStatus(Integer id, String status) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        course.setStatus(status);
+        courseRepository.save(course);
+        log.info("Course status updated to {} for id={}", status, id);
     }
 
     @Override

@@ -21,11 +21,6 @@
                 <h2 class="fw-bold m-0" style="color: #1e293b;">Báo Cáo Thống Kê</h2>
                 <p class="text-muted m-0">Trích xuất dữ liệu hoạt động của trung tâm.</p>
             </div>
-            <div class="col-auto">
-                <a href="/api/v1/manager/reports/export/registrations" class="btn export-btn shadow-sm">
-                    <i class="bi bi-download me-2"></i> Xuất Báo Cáo CSV
-                </a>
-            </div>
         </div>
 
         <div class="row g-4">
@@ -46,23 +41,34 @@
                         <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Thời gian đăng ký và trạng thái thanh toán</li>
                     </ul>
                     <div class="mt-auto">
-                        <a href="/api/v1/manager/reports/export/registrations" class="btn btn-outline-primary rounded-pill w-100 fw-bold">Tải File Ngay</a>
+                        <a href="/api/v1/manager/reports/export/registrations" class="btn btn-outline-primary rounded-pill w-100 fw-bold">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Xuất File Excel
+                        </a>
                     </div>
                 </div>
             </div>
 
             <div class="col-md-6">
-                <div class="card report-card p-4 h-100" style="background: #f8fafc; border: 2px dashed #e2e8f0;">
-                    <div class="d-flex align-items-center mb-3 opacity-50">
-                        <div class="bg-secondary bg-opacity-10 text-secondary rounded-3 p-3 me-3">
+                <div class="card report-card p-4 h-100">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
                             <i class="bi bi-graph-up fs-3"></i>
                         </div>
                         <div>
-                            <h5 class="fw-bold m-0">Báo Cáo Doanh Thu (Sắp có)</h5>
-                            <p class="small text-muted m-0">Phân tích dòng tiền và lợi nhuận.</p>
+                            <h5 class="fw-bold m-0">Báo Cáo Doanh Thu</h5>
+                            <p class="small text-muted m-0">Phân tích dòng tiền và lợi nhuận từ học phí.</p>
                         </div>
                     </div>
-                    <p class="small text-muted fst-italic">Tính năng này đang được phát triển và sẽ sớm ra mắt trong các bản cập nhật tới.</p>
+                    <ul class="list-group list-group-flush small mb-4">
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Mã đơn hàng PayOS</li>
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Số tiền thực thu (VNĐ)</li>
+                        <li class="list-group-item px-0 border-0 text-muted"><i class="bi bi-check2-circle text-success me-2"></i>Thời gian thanh toán thành công</li>
+                    </ul>
+                    <div class="mt-auto">
+                        <a href="/api/v1/manager/reports/export/revenue" class="btn btn-outline-success rounded-pill w-100 fw-bold">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Xuất File Excel
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

@@ -14,7 +14,7 @@ public class ManagerViewController {
 
 
 
-    @GetMapping("/registrations/pending")
+    @GetMapping("/registrations")
     public String viewPendingRegistrations(Model model) {
         model.addAttribute("pageTitle", "Duyệt Đăng Ký");
         model.addAttribute("isDashboard", true);

@@ -57,6 +57,7 @@ public class DashboardResponseDTO {
         private String submittedAt;    // formatted: "HH:mm dd/MM/yyyy"
         private Integer score;
         private Integer maxScore;
+        private Double bandScore;
         private String statusLabel;    // "Chờ chấm điểm" | "Đạt" | "Không đạt"
         private String statusClass;    // "badge-warn" | "badge-success" | "badge-danger"
         private String iconBg;         // "#eff6ff" | "#dcfce7" | "#fee2e2"

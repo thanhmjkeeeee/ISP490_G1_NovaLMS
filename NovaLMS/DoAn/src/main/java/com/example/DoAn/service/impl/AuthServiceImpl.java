@@ -72,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String token = jwtUtil.generateToken(user);
+        linkVisitorToUser(user);
 
         return ResponseData.success("Đăng nhập thành công",
                 LoginResponse.builder()
@@ -127,19 +128,7 @@ public class AuthServiceImpl implements AuthService {
         verificationRepository.deleteByEmail(request.getEmail());
 
         // --- LIÊN KẾT VISITOR TOKEN (GUEST CONVERSION) ---
-        jakarta.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
-        if (cookies != null) {
-            for (jakarta.servlet.http.Cookie cookie : cookies) {
-                if ("nova_visitor_token".equals(cookie.getName())) {
-                    String token = cookie.getValue();
-                    visitorLogRepository.findByVisitorToken(token).ifPresent(visitor -> {
-                        visitor.setUser(savedUser);
-                        visitorLogRepository.save(visitor);
-                    });
-                    break;
-                }
-            }
-        }
+        linkVisitorToUser(savedUser);
 
         return ResponseData.success("Đăng ký tài khoản thành công!", null);
     }
@@ -242,5 +231,23 @@ public class AuthServiceImpl implements AuthService {
         message.setSubject(subject);
         message.setText(content);
         mailSender.send(message);
+    }
+
+    private void linkVisitorToUser(User user) {
+        jakarta.servlet.http.Cookie[] cookies = httpServletRequest.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if ("nova_visitor_token".equals(cookie.getName())) {
+                    String token = cookie.getValue();
+                    visitorLogRepository.findByVisitorToken(token).ifPresent(visitor -> {
+                        if (visitor.getUser() == null) {
+                            visitor.setUser(user);
+                            visitorLogRepository.save(visitor);
+                        }
+                    });
+                    break;
+                }
+            }
+        }
     }
 }

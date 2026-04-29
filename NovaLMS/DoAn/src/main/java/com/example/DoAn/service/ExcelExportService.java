@@ -4,4 +4,5 @@ import java.io.ByteArrayInputStream;
 
 public interface ExcelExportService {
     ByteArrayInputStream exportRevenueToExcel();
+    ByteArrayInputStream exportRegistrationsToExcel();
 }

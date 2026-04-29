@@ -27,6 +27,8 @@ public class AssignmentGradingQueueDTO {
     private SectionStatus writing;
     private BigDecimal autoScore;    // LISTENING + READING sum
     private BigDecimal totalScore;   // final (null if not yet graded)
+    private BigDecimal overallBand;
+    private BigDecimal totalMaxScore; // Added for band scale display
     private Boolean isGraded;        // teacher submitted final grade
 
     @Data

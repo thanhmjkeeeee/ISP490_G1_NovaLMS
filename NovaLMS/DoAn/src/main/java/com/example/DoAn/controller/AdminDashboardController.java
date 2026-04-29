@@ -107,6 +107,21 @@ public class AdminDashboardController {
         model.addAttribute("visitorLabels", visitorLabels);
         model.addAttribute("visitorValues", visitorValues);
 
+        // --- DỮ LIỆU BIỂU ĐỒ CHUYỂN ĐỔI (Conversion Traffic) ---
+        List<Object[]> conversionData = visitorLogRepository.getDailyConversions();
+        // Để đảm bảo label khớp với visitor chart, ta dùng chung visitorLabels nếu có thể, 
+        // hoặc mapping theo Map để điền giá trị 0 cho các ngày không có conversion.
+        Map<String, Long> conversionMap = new HashMap<>();
+        for (Object[] row : conversionData) {
+            java.sql.Date sqlDate = (java.sql.Date) row[0];
+            conversionMap.put(sqlDate.toLocalDate().format(dtf), ((Number) row[1]).longValue());
+        }
+        List<Long> conversionValues = new ArrayList<>();
+        for (String label : visitorLabels) {
+            conversionValues.add(conversionMap.getOrDefault(label, 0L));
+        }
+        model.addAttribute("conversionValues", conversionValues);
+
         // --- DỮ LIỆU BIỂU ĐỒ DOANH THU ---
         List<Object[]> revenueData = paymentRepository.getMonthlyRevenue();
         List<Integer> revenueLabels = new ArrayList<>();

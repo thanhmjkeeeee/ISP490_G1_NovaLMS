@@ -27,6 +27,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -860,6 +862,32 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
+            boolean isSequential = qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential());
+            double totalMaxBand = 9.0;
+            if (isSequential && qr.getQuiz() != null) {
+                Map<String, List<QuizQuestion>> bySkill = qr.getQuiz().getQuizQuestions().stream()
+                        .filter(qq -> qq.getQuestion() != null)
+                        .collect(Collectors.groupingBy(qq -> {
+                            String sk = qq.getQuestion().getSkill();
+                            return sk != null ? sk.toUpperCase() : "OTHER";
+                        }));
+                
+                List<Double> skillMaxes = new ArrayList<>();
+                for (String skill : bySkill.keySet()) {
+                    if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                        skillMaxes.add(9.0);
+                    } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
+                        double avg = bySkill.get(skill).stream()
+                                .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
+                                .average().orElse(9.0);
+                        skillMaxes.add(avg);
+                    }
+                }
+                if (!skillMaxes.isEmpty()) {
+                    totalMaxBand = skillMaxes.stream().mapToDouble(d -> d).average().orElse(9.0);
+                }
+            }
+
             return QuizResultGradedDTO.builder()
                     .resultId(qr.getResultId())
                     .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
@@ -873,6 +901,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .quizType(quizType)
                     .score(score)
                     .maxScore(maxScore)
+                    .overallBand(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
+                    .totalMaxScore(isSequential ? totalMaxBand : (double)maxScore)
                     .percentage(Math.round(percentage * 10.0) / 10.0)
                     .passed(qr.getPassed())
                     .build();
@@ -1645,6 +1675,36 @@ public class QuizResultServiceImpl implements QuizResultService {
         List<Registration> registrations = registrationRepository.findApprovedByClassId(classId);
         List<Map<String, Object>> list = new ArrayList<>();
 
+        Quiz quiz = quizRepository.findById(quizId).orElse(null);
+        double quizMaxBand = 9.0;
+        boolean isSequential = quiz != null && Boolean.TRUE.equals(quiz.getIsSequential());
+        if (isSequential && quiz != null) {
+            Map<String, List<QuizQuestion>> bySkill = quiz.getQuizQuestions().stream()
+                    .filter(qq -> qq.getQuestion() != null)
+                    .collect(Collectors.groupingBy(qq -> {
+                        String sk = qq.getQuestion().getSkill();
+                        return sk != null ? sk.toUpperCase() : "OTHER";
+                    }));
+            List<Double> skillMaxes = new ArrayList<>();
+            for (String skill : bySkill.keySet()) {
+                if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                    skillMaxes.add(9.0);
+                } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
+                    double avg = bySkill.get(skill).stream()
+                            .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
+                            .average().orElse(9.0);
+                    skillMaxes.add(avg);
+                }
+            }
+            if (!skillMaxes.isEmpty()) {
+                quizMaxBand = skillMaxes.stream().mapToDouble(d -> d).average().orElse(9.0);
+            }
+        } else if (quiz != null) {
+            quizMaxBand = quiz.getQuizQuestions().stream()
+                    .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
+                    .sum();
+        }
+
         for (Registration reg : registrations) {
             User student = reg.getUser();
             Map<String, Object> m = new LinkedHashMap<>();
@@ -1662,6 +1722,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 m.put("status", r.getStatus());
                 m.put("score", r.getScore());
                 m.put("overallBand", r.getOverallBand());
+                m.put("totalMaxScore", quizMaxBand);
                 m.put("submittedAt", r.getSubmittedAt());
                 m.put("startedAt", r.getStartedAt());
                 m.put("violationCount", r.getViolationCount());

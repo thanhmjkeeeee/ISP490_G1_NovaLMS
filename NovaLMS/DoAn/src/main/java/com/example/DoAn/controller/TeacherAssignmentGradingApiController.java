@@ -103,7 +103,7 @@ public class TeacherAssignmentGradingApiController {
 
         try {
             Double score = gradingService.gradeAssignment(resultId, request, email);
-            return ResponseData.success("Đã lưu điểm chấm thành công! Tổng điểm: " + score);
+            return ResponseData.success("Đã lưu điểm chấm thành công! Điểm band: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

@@ -21,4 +21,5 @@ public class MyCourseDTO {
     private Integer completedQuizzes;
     private Integer totalQuizzes;
     private Double averageScore;
+    private Double averageBand;
 }

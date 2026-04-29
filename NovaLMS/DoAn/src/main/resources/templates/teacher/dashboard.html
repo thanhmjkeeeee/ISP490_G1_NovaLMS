@@ -8,6 +8,193 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --primary-blue: #0ea5e9;
+      --stat-green: #10b981;
+      --stat-orange: #f59e0b;
+      --stat-red: #ef4444;
+      --bg-slate: #f8fafc;
+    }
+    
+    .dash-main { background-color: var(--bg-slate); }
+    
+    .welcome-banner {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border-radius: 16px;
+      padding: 2rem;
+      color: white;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .welcome-banner::after {
+      content: '';
+      position: absolute;
+      top: -50%; right: -10%;
+      width: 300px; height: 300px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1.5rem;
+    }
+    .si-blue { background: #e0f2fe; color: #0369a1; }
+    .si-green { background: #dcfce7; color: #15803d; }
+    .si-orange { background: #fef3c7; color: #b45309; }
+    .si-red { background: #fee2e2; color: #b91c1c; }
+    
+    .stat-lbl { color: #64748b; font-size: 0.875rem; font-weight: 500; }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+    
+    .dash-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .card-title-row {
+      padding: 1.25rem;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title-row h5 { margin: 0; font-weight: 700; color: #1e293b; font-size: 1.1rem; }
+    
+    .alert-section {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 1.25rem;
+      height: 100%;
+    }
+    .alert-section-title { font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+    
+    .student-alert-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .sa-card {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid #f1f5f9;
+    }
+    .sa-av {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: white; font-size: 0.8rem;
+    }
+    .av-red { background: #ef4444; }
+    .av-orange { background: #f59e0b; }
+    .av-yellow { background: #eab308; }
+    .av-purple { background: #a855f7; }
+    
+    .sa-name { font-weight: 600; font-size: 0.875rem; color: #1e293b; }
+    .sa-reason { font-size: 0.75rem; color: #64748b; }
+    .sa-badge {
+      margin-left: auto;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: white;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .todo-alert {
+      padding: 1.25rem;
+      border-radius: 12px;
+      margin: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .todo-alert.warn { background: #fffbeb; border: 1px solid #fde68a; }
+    .todo-alert.dang { background: #fef2f2; border: 1px solid #fecaca; }
+    
+    .tb-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; }
+    .tb-desc { font-size: 0.8rem; color: #64748b; }
+    .btn-todo {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-todo.warn { background: #f59e0b; color: white; }
+    .btn-todo.dang { background: #ef4444; color: white; }
+    
+    .table-custom thead th {
+      background: #f8fafc;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+      color: #64748b;
+      padding: 1rem;
+      border: none;
+    }
+    .table-custom tbody td { padding: 1rem; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+    
+    .grade-av {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: #e0f2fe; color: #0369a1;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.75rem;
+    }
+    
+    .badge-pill {
+      padding: 0.35rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .bp-warn { background: #fef3c7; color: #92400e; }
+    .bp-success { background: #dcfce7; color: #166534; }
+    .bp-danger { background: #fee2e2; color: #991b1b; }
+    
+    .btn-detail {
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #0ea5e9;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-detail:hover { background: #0ea5e9; color: white; border-color: #0ea5e9; }
+  </style>
 </head>
 
 
@@ -107,14 +294,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!list || list.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Chưa có bài nộp.</td></tr>`; return; }
     tbody.innerHTML = list.map(item => {
       const isPending = !item.status || item.status.includes('PENDING');
-      const isPassed = item.status === 'ALL_GRADED' && (item.score / (item.totalScore || 8) >= 0.5);
-      const statusBadge = isPending ? '<span class="badge-pill bp-warn">Chờ chấm</span>' : (isPassed ? '<span class="badge-pill bp-success">Đạt</span>' : '<span class="badge-pill bp-danger">Không đạt</span>');
+      const isPassed = item.status === 'ALL_GRADED' && (item.totalScore > 0 ? (item.score / item.totalScore >= 0.5) : false);
+      const statusBadge = isPending ? '<span class="badge-pill bp-warn">Chờ chấm</span>' : (isPassed ? '<span class="badge-pill bp-success">Đạt</span>' : '<span class="badge-pill bp-danger">Chưa đạt</span>');
       return `
         <tr>
           <td><div class="d-flex align-items-center gap-2"><div class="grade-av">${item.initials||'?'}</div><span>${item.studentName}</span></div></td>
           <td>${item.quizTitle}</td><td>${item.className}</td>
           <td class="text-muted small">${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString() : '—'}</td>
-          <td><span class="${isPending?'':'fw-bold '+(isPassed?'text-success':'text-danger')}">${isPending ? '--' : item.score}</span> / ${item.totalScore||8}</td>
+          <td>
+            <span class="${isPending?'':'fw-bold '+(isPassed?'text-success':'text-danger')}">
+              ${isPending ? '--' : (item.bandScore ? `Band ${item.bandScore}` : `${item.score} / ${item.totalScore || 0}`)}
+            </span>
+          </td>
           <td>${statusBadge}</td>
           <td class="text-end"><a href="/teacher/quiz/grading/${item.resultId}" class="btn-detail">${isPending?'Chấm':'Xem'}</a></td>
         </tr>`;

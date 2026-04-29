@@ -219,6 +219,11 @@ public class StudentServiceImpl implements StudentService {
                         .filter(qr -> qr.getCorrectRate() != null)
                         .mapToDouble(qr -> qr.getCorrectRate().doubleValue() / 10.0)
                         .average().orElse(0.0);
+                
+                double avgBand = quizResults.stream()
+                        .filter(qr -> qr.getOverallBand() != null)
+                        .mapToDouble(qr -> qr.getOverallBand().doubleValue())
+                        .average().orElse(0.0);
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
                         ? reg.getClazz().getTeacher().getFullName() 
@@ -238,6 +243,7 @@ public class StudentServiceImpl implements StudentService {
                         .completedQuizzes((int) passedQuizzes)
                         .totalQuizzes((int) totalQuizzesInCourse)
                         .averageScore(Math.round(avgScore * 10.0) / 10.0)
+                        .averageBand(avgBand > 0 ? Math.round(avgBand * 10.0) / 10.0 : null)
                         .build();
             }).collect(Collectors.toList());
 
@@ -415,6 +421,7 @@ public class StudentServiceImpl implements StudentService {
                             .submittedAt(qr.getSubmittedAt() != null ? qr.getSubmittedAt().format(fmt) : "")
                             .score(qr.getScore())
                             .maxScore(maxScore)
+                            .bandScore(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
                             .statusLabel(statusLabel)
                             .statusClass(statusClass)
                             .iconBg(iconBg)

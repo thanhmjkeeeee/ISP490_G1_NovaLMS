@@ -27,6 +27,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
     private final RegistrationRepository registrationRepository;
     private final QuizResultRepository quizResultRepository;
     private final UserRepository userRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
 
     @Override
     public TeacherDashboardResponseDTO getDashboardData(String email) {
@@ -129,9 +130,12 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
             // Điều này tránh việc fetch hàng ngàn object rồi mới sort trong RAM
             Pageable pageable = PageRequest.of(0, 5);
 
-            // Loop is still here due to Repo structure, but we limit aggressive fetching
+            // Map classId to className for quick lookup
+            java.util.Map<Integer, String> classNameMap = activeClasses.stream()
+                    .collect(Collectors.toMap(Clazz::getClassId, Clazz::getClassName, (a, b) -> a));
+
             for (Integer classId : classIds) {
-                if (recentSubmissions.size() >= 5) break; // Thoát sớm nếu đã lấy đủ 5 bài
+                if (recentSubmissions.size() >= 10) break; // Fetch more to allow better sorting later
 
                 List<QuizResult> classResults = quizResultRepository.findRecentSubmissionsByClassId(classId, pageable);
 
@@ -143,19 +147,29 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
                             item.setStudentEmail(qr.getUser() != null ? qr.getUser().getEmail() : "");
                             item.setInitials(getInitials(fullName));
                             item.setQuizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "Unknown");
-                            item.setClassName(qr.getQuiz() != null && qr.getQuiz().getClazz() != null ? qr.getQuiz().getClazz().getClassName() : "Unknown");
+                            
+                            // 🔥 FIX: Lấy tên lớp từ map thay vì qr.getQuiz().getClazz() (có thể null)
+                            item.setClassName(classNameMap.getOrDefault(classId, "Unknown"));
+                            
                             item.setSubmittedAt(qr.getSubmittedAt());
 
                             // 1. Xử lý điểm
                             item.setScore(qr.getScore() != null ? qr.getScore().doubleValue() : null);
-                            item.setTotalScore(8); // Default
-
-                            // 🔥 2. BẢN VÁ LỖI TRẠNG THÁI HIỂN THỊ 🔥
-                            // Bỏ qua cột status của DB, dựa vào cờ 'passed' làm nguồn chân lý tuyệt đối
-                            if (qr.getPassed() != null || "GRADED".equalsIgnoreCase(qr.getStatus()) || "ALL_GRADED".equalsIgnoreCase(qr.getStatus())) {
-                                item.setStatus("ALL_GRADED"); // Báo cho JS biết là đã chấm xong
+                            item.setBandScore(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null);
+                            
+                            // 🔥 FIX: Lấy điểm tổng thực tế từ QuizQuestionRepository
+                            if (qr.getQuiz() != null) {
+                                java.math.BigDecimal total = quizQuestionRepository.sumPointsByQuizId(qr.getQuiz().getQuizId());
+                                item.setTotalScore(total != null ? total.intValue() : 0);
                             } else {
-                                item.setStatus("PENDING");    // Báo cho JS biết là cần chấm
+                                item.setTotalScore(0);
+                            }
+
+                            // 2. Trạng thái hiển thị
+                            if (qr.getPassed() != null || "GRADED".equalsIgnoreCase(qr.getStatus()) || "ALL_GRADED".equalsIgnoreCase(qr.getStatus())) {
+                                item.setStatus("ALL_GRADED"); 
+                            } else {
+                                item.setStatus("PENDING");    
                             }
 
                             item.setResultId(qr.getResultId());

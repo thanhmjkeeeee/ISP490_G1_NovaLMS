@@ -23,6 +23,8 @@ public class QuizResultGradedDTO {
     private String quizType;     // LESSON_QUIZ | ASSIGNMENT
     private Integer score;
     private Integer maxScore;
+    private Double overallBand;
+    private Double totalMaxScore; // Added for band scale display
     private Double percentage;
     private Boolean passed;
 

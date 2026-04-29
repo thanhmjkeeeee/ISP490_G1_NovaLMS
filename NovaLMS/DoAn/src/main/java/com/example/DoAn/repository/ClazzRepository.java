@@ -14,4 +14,6 @@ public interface ClazzRepository extends JpaRepository<Clazz, Integer> {
     // Lấy tất cả lớp mà giáo viên (theo email) đang phụ trách
     @Query("SELECT c FROM Clazz c JOIN FETCH c.course WHERE c.teacher.userId = :teacherId")
     List<Clazz> findAllByTeacher_UserId(@Param("teacherId") Integer teacherId);
+
+    long countByCourse_CourseId(Integer courseId);
 }

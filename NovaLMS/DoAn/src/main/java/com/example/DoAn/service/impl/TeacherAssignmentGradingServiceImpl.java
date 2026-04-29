@@ -124,6 +124,39 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         if (r.getScore() != null) {
             dto.setTotalScore(BigDecimal.valueOf(r.getScore()));
         }
+        dto.setOverallBand(r.getOverallBand());
+        
+        // Calculate totalMaxScore (average of skill maxes)
+        boolean isSequential = quiz != null && Boolean.TRUE.equals(quiz.getIsSequential());
+        if (isSequential) {
+            List<BigDecimal> skillMaxes = new ArrayList<>();
+            if (dto.getListening() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
+            if (dto.getReading() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
+            
+            // For Speaking/Writing, the skill max is the average of the questions' max points
+            if (dto.getSpeaking() != null) {
+                BigDecimal m = getAverageMaxPoints(answers, "SPEAKING", quiz.getQuizId());
+                if (m != null) skillMaxes.add(m);
+            }
+            if (dto.getWriting() != null) {
+                BigDecimal m = getAverageMaxPoints(answers, "WRITING", quiz.getQuizId());
+                if (m != null) skillMaxes.add(m);
+            }
+            
+            if (!skillMaxes.isEmpty()) {
+                BigDecimal sumMax = skillMaxes.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+                dto.setTotalMaxScore(sumMax.divide(BigDecimal.valueOf(skillMaxes.size()), 1, RoundingMode.HALF_UP));
+            } else {
+                dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
+            }
+        } else {
+            // Non-IELTS: total raw score
+            BigDecimal totalRawMax = BigDecimal.ZERO;
+            for (QuizAnswer a : answers) {
+                totalRawMax = totalRawMax.add(getQuestionMaxPoints(quiz.getQuizId(), a.getQuestion()));
+            }
+            dto.setTotalMaxScore(totalRawMax);
+        }
 
         // Overall status
         dto.setOverallStatus(deriveOverallStatus(dto));
@@ -209,6 +242,19 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         s.setAiScore(aiScore);
         s.setAiFeedback(aiFeedback);
         return s;
+    }
+
+    private BigDecimal getAverageMaxPoints(List<QuizAnswer> answers, String skill, Integer quizId) {
+        List<QuizAnswer> skillQs = answers.stream()
+                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) || skill.equalsIgnoreCase(a.getQuestion().getQuestionType()))
+                .toList();
+        if (skillQs.isEmpty()) return null;
+        
+        BigDecimal sum = BigDecimal.ZERO;
+        for (QuizAnswer a : skillQs) {
+            sum = sum.add(getQuestionMaxPoints(quizId, a.getQuestion()));
+        }
+        return sum.divide(BigDecimal.valueOf(skillQs.size()), 1, RoundingMode.HALF_UP);
     }
 
     private BigDecimal getQuestionMaxPoints(Integer quizId, Question q) {
@@ -406,13 +452,17 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             
             // For IELTS: section max should be the highest configured band (e.g. 4.0 or 5.0)
             if (!items.isEmpty()) {
-                // Find the highest maxPoints among questions in this section
-                BigDecimal highestMax = items.stream()
-                    .<BigDecimal>map(it -> it.getMaxPoints() != null ? it.getMaxPoints() : BigDecimal.ZERO)
-                    .max(BigDecimal::compareTo)
-                    .orElse(BigDecimal.valueOf(9.0));
-                
-                sectionMax = highestMax;
+                if ("LISTENING".equalsIgnoreCase(skill) || "READING".equalsIgnoreCase(skill)) {
+                    sectionMax = BigDecimal.valueOf(9.0);
+                } else {
+                    // Find the highest maxPoints among questions in this section
+                    BigDecimal highestMax = items.stream()
+                        .<BigDecimal>map(it -> it.getMaxPoints() != null ? it.getMaxPoints() : BigDecimal.ZERO)
+                        .max(BigDecimal::compareTo)
+                        .orElse(BigDecimal.valueOf(9.0));
+                    
+                    sectionMax = highestMax;
+                }
                 
                 // sectionTeacherScore is the average band achieved
                 BigDecimal sumAwarded = items.stream()

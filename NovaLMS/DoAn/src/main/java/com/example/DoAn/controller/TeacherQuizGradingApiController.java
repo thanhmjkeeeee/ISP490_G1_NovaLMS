@@ -102,7 +102,7 @@ public class TeacherQuizGradingApiController {
 
         try {
             Double score = quizResultService.gradeQuizResult(resultId, gradingItems, email);
-            return ResponseData.success("Đã lưu điểm thành công! Tổng điểm: " + score);
+            return ResponseData.success("Đã lưu điểm thành công! Điểm band: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }
@@ -139,7 +139,7 @@ public class TeacherQuizGradingApiController {
 
         try {
             Double score = quizResultService.gradeQuizResult(resultId, request, email);
-            return ResponseData.success("Đã lưu điểm chấm thành công! Tổng điểm: " + score);
+            return ResponseData.success("Đã lưu điểm chấm thành công! Điểm band: " + score);
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());
         }

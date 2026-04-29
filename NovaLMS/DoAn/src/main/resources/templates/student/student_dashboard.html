@@ -399,7 +399,11 @@
               </td>
               <td>${q.courseName || '—'}</td>
               <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>${q.submittedAt}</td>
-              <td><span class="${scoreClass}">${scoreDisplay}</span> <span class="score-total">/ ${maxScoreDisplay}</span></td>
+              <td class="fw-bold">
+                ${q.bandScore != null 
+                    ? `<span class="text-primary">Band ${q.bandScore}</span>` 
+                    : `<span class="${scoreClass}">${scoreDisplay}</span> <span class="score-total">/ ${maxScoreDisplay}</span>`}
+              </td>
               <td><span class="${q.statusClass}">${q.statusLabel}</span></td>
               <td class="text-end"><button class="btn-detail" onclick="window.location.href='/student/quiz/result/${q.resultId}'">Chi tiết <i class="bi bi-arrow-right ms-1"></i></button></td>
             </tr>`;

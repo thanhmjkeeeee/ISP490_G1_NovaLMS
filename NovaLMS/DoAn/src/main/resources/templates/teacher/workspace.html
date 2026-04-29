@@ -4783,8 +4783,8 @@ window.wsSaveEditAi = function(index) {
                                     `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Đã đóng</span>`;
                         }
 
-                        const scoreDisplay = s.score !== null ? `<span class="fw-bold">${s.score}</span>` : `<span class="text-muted">—</span>`;
-                        const bandDisplay = s.overallBand ? `<span class="badge bg-info text-white ms-1">${s.overallBand}</span>` : '';
+                        const scoreValue = s.overallBand != null ? `<span class="fw-bold">${parseFloat(s.overallBand).toFixed(1)} / ${(s.totalMaxScore || 9.0).toFixed(1)}</span>` : (s.score !== null ? `<span class="fw-bold">${s.score}</span>` : `<span class="text-muted">—</span>`);
+                        const bandLabel = s.overallBand != null ? '<span class="badge bg-info text-white ms-1">Band</span>' : '';
 
                         return `
                         <tr>
@@ -4793,7 +4793,7 @@ window.wsSaveEditAi = function(index) {
                                 <div class="small text-muted">${wsEscape(s.email)}</div>
                             </td>
                             <td class="text-center">${statusBadge}</td>
-                            <td class="text-center">${scoreDisplay}${bandDisplay}</td>
+                            <td class="text-center">${scoreValue}${bandLabel}</td>
                             <td class="text-center">
                                 ${s.violationCount > 0 ? `<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>${s.violationCount}</span>` : '<span class="text-muted">—</span>'}
                             </td>
@@ -5325,6 +5325,8 @@ window.wsSaveEditAi = function(index) {
                                 quizTitle: i.quizTitle,
                                 submittedAt: i.submittedAt || i.startedAt,
                                 totalScore: (i.score !== undefined ? i.score : i.totalScore) || 0,
+                                overallBand: i.overallBand,
+                                totalMaxScore: i.totalMaxScore,
                                 type: 'QUIZ',
                                 badgeClass: 'bg-primary'
                             });
@@ -5361,7 +5363,7 @@ window.wsSaveEditAi = function(index) {
                                 <th>Học viên</th>
                                 <th>Bài thi / Bài tập</th>
                                 <th>Ngày nộp</th>
-                                <th class="text-center">Điểm</th>
+                                <th class="text-center">Điểm band</th>
                                 <th class="text-end">Hành động</th>
                             </tr>
                         </thead>
@@ -5373,7 +5375,11 @@ window.wsSaveEditAi = function(index) {
                                     <td><strong>${item.studentName}</strong><br><small class="text-muted">${item.studentEmail}</small></td>
                                     <td><span class="fw-bold text-dark">${item.quizTitle}</span></td>
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
-                                    <td class="text-center"><span class="badge bg-primary bg-opacity-10 text-primary border px-3">${item.totalScore ?? 0}</span></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border px-3">
+                                            ${item.overallBand != null ? `${parseFloat(item.overallBand).toFixed(1)} / ${(item.totalMaxScore || 9.0).toFixed(1)}` : (item.totalScore ?? 0)}
+                                        </span>
+                                    </td>
                                     <td class="text-end">
                                         <button onclick="wsOpenGradingDetail(${item.resultId}, '${item.type}', 'GRADED')" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
                                             Xem lại <i class="bi bi-chevron-right ms-1"></i>
@@ -6560,7 +6566,7 @@ window.wsSaveEditAi = function(index) {
                                 <tr>
                                     <th class="ps-4">Học viên</th>
                                     <th class="text-center">Trạng thái</th>
-                                    <th class="text-center">Điểm / Band</th>
+                                    <th class="text-center">Điểm band</th>
                                     <th class="text-center">Vi phạm</th>
                                     <th class="text-end pe-4">Thao tác</th>
                                 </tr>

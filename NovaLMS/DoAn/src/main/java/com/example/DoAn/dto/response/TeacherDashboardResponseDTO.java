@@ -49,6 +49,7 @@ public class TeacherDashboardResponseDTO {
         private Double score;
         private Integer totalScore;
         private String status;
+        private Double bandScore;
         private Integer resultId;
     }
 }

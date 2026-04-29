@@ -81,7 +81,18 @@ public class CourseManagementController {
             courseService.deleteCourse(id);
             return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "Course deleted");
         } catch (Exception e) {
-            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Delete fail");
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Delete fail: " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Update course status")
+    @PatchMapping("/{id}/status")
+    public ResponseData<Void> updateStatus(@PathVariable Integer id, @RequestParam String status) {
+        try {
+            courseService.updateCourseStatus(id, status);
+            return new ResponseData<>(HttpStatus.OK.value(), "Status updated successfully");
+        } catch (Exception e) {
+            return ResponseData.error(HttpStatus.BAD_REQUEST.value(), "Update status fail: " + e.getMessage());
         }
     }
 
