@@ -40,7 +40,7 @@ public class StudentViewController {
 
         model.addAttribute("course", result.getData().getCourse());
         model.addAttribute("classes", result.getData().getClasses());
-        return "student/enroll-class";
+        return "public/enroll-class";
     }
 
     @GetMapping("/my-enrollments")

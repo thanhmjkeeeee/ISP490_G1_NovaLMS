@@ -87,25 +87,28 @@ public class StudentServiceImpl implements StudentService {
             // Removed: check for other class registration to allow multi-class enrollment
 
             if (clazz != null) {
-                boolean exists = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
+                boolean existsInClass = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
                         user.getUserId(), request.getClassId(), "Cancelled");
-                if (exists) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
+                if (existsInClass) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
             } else {
                 // For course-only (self-study), check if already has a course-only registration
-                boolean exists = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
-                        user.getUserId(), course.getCourseId(), "Approved");
-                // Wait, if it's self-study, maybe we only allow one "Active" enrollment for the content.
-                // But the user said "0, 1 hoặc nhiều Class". 0 class means content-only.
-                // If they already have an approved registration (either class or content), should they be allowed another content-only one?
-                // Usually content-only is just one per course.
-                if (exists) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
+                boolean existsCourseOnly = registrationRepository.findFirstByUserIdAndCourseIdAndStatus(
+                        user.getUserId(), course.getCourseId(), "Approved")
+                        .filter(r -> r.getClazz() == null).isPresent();
+                if (existsCourseOnly) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
             }
 
-            // Tính giá: price - sale
+            // Check if student is already enrolled in the COURSE (any class or content-only)
+            boolean alreadyEnrolledInCourse = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
+                    user.getUserId(), course.getCourseId(), "Approved");
+
+
+            // Tính giá: price - sale (If already enrolled in course, price is 0)
             Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
             Double saleAmount = course.getSale() != null ? course.getSale() : 0.0;
-            Double finalPrice = originalPrice - saleAmount;
+            Double finalPrice = alreadyEnrolledInCourse ? 0.0 : (originalPrice - saleAmount);
             if (finalPrice < 0) finalPrice = 0.0;
+
 
             // Status: Submitted — chờ thanh toán PayOS (hoặc Approved nếu free)
             Registration reg = Registration.builder()

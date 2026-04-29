@@ -181,7 +181,21 @@
                   Miễn phí
                 </h3>
               </div>
+              
+              <div class="d-grid gap-2 mb-4">
+                <a th:href="@{'/student/enroll/' + ${course.courseId}}" 
+                   class="btn btn-primary btn-lg rounded-pill fw-bold"
+                   sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">
+                  <i class="bi bi-cart-plus me-2"></i>Đăng ký ngay
+                </a>
+                <p class="text-muted small" sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')">
+                  Chỉ học viên mới đăng ký được.
+                </p>
+              </div>
+
+
               <div class="course-specs mt-4 text-start">
+
                 <div class="d-flex justify-content-between border-bottom py-2">
                   <span class="text-muted"><i class="bi bi-people me-2"></i>Học viên</span>
                   <span class="fw-bold" th:text="${course.studentCount ?: 0}">0</span>

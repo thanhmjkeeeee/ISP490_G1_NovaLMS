@@ -4,7 +4,16 @@
 
 <head th:replace="~{fragments/head :: common-head('Đăng ký khóa học')}"></head>
 
-<body class="enroll-page">
+<body class="enroll-page" th:with="
+    finalCourseId=${classInfo != null ? classInfo.courseId : course.courseId},
+    finalCourseName=${classInfo != null ? classInfo.courseName : (course.courseName ?: course.title)},
+    finalCourseImg=${classInfo != null ? classInfo.courseImageUrl : course.imageUrl},
+    finalCourseDesc=${classInfo != null ? classInfo.courseDescription : course.description},
+    finalCoursePrice=${classInfo != null ? classInfo.coursePrice : (course.price != null ? T(java.math.BigDecimal).valueOf(course.price) : T(java.math.BigDecimal).ZERO)},
+    finalCourseSale=${classInfo != null ? classInfo.courseSale : (course.sale != null ? T(java.math.BigDecimal).valueOf(course.sale) : T(java.math.BigDecimal).ZERO)},
+    finalExpertName=${classInfo != null ? classInfo.expertName : (course.expert != null ? course.expert.fullName : null)},
+    finalExpertAvatar=${classInfo != null ? classInfo.expertAvatar : (course.expert != null ? course.expert.avatarUrl : null)}
+">
 
 <header th:replace="~{fragments/header :: header-fragment(currentPage='enroll')}"></header>
 
@@ -14,11 +23,11 @@
             <div class="col-lg-10">
 
                 <!-- Breadcrumb -->
-                <nav aria-label="breadcrumb" class="mb-3">
+                <nav aria-label="breadcrumb" class="mb-4">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
                         <li class="breadcrumb-item"><a th:href="@{/courses}">Khóa học</a></li>
-                        <li class="breadcrumb-item"><a th:href="@{'/course/details/' + ${classInfo.courseId}}" th:text="${classInfo.courseName}">Khóa học</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{'/course/details/' + ${finalCourseId}}" th:text="${finalCourseName}">Khóa học</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Đăng ký</li>
                     </ol>
                 </nav>
@@ -28,46 +37,46 @@
                     <!-- LEFT: Thông tin khóa học -->
                     <div class="col-lg-5">
                         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                            <img th:src="${classInfo.courseImageUrl ?: '/assets/img/course-default.jpg'}"
+                            <img th:src="${finalCourseImg ?: '/assets/img/course-default.jpg'}"
                                  class="img-fluid w-100" style="height: 220px; object-fit: cover;"
                                  alt="Course Image">
                             <div class="card-body p-4">
-                                <h5 class="fw-bold mb-3" style="color: #1a237e;" th:text="${classInfo.courseName}">Tên khóa học</h5>
+                                <h5 class="fw-bold mb-3" style="color: #1a237e;" th:text="${finalCourseName}">Tên khóa học</h5>
 
                                 <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;"
-                                   th:text="${classInfo.courseDescription != null ? classInfo.courseDescription : 'Chưa có mô tả.'}">
+                                   th:text="${finalCourseDesc != null ? finalCourseDesc : 'Chưa có mô tả.'}">
                                 </p>
 
                                 <!-- Expert -->
-                                <div class="d-flex align-items-center mb-3" th:if="${classInfo.expertName != null}">
-                                    <img th:src="${classInfo.expertAvatar ?: '/assets/img/default-avatar.png'}"
+                                <div class="d-flex align-items-center mb-3" th:if="${finalExpertName != null}">
+                                    <img th:src="${finalExpertAvatar ?: '/assets/img/default-avatar.png'}"
                                          alt="Expert" class="rounded-circle me-2"
                                          style="width: 36px; height: 36px; object-fit: cover;">
                                     <div>
                                         <small class="text-muted d-block" style="font-size: 11px;">Giảng viên</small>
-                                        <strong class="small" th:text="${classInfo.expertName}">Expert Name</strong>
+                                        <strong class="small" th:text="${finalExpertName}">Expert Name</strong>
                                     </div>
                                 </div>
 
                                 <!-- Giá -->
                                 <div class="border-top pt-3">
-                                    <th:block th:if="${classInfo?.coursePrice != null and classInfo.coursePrice.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
-                                        <th:block th:with="saleAmount=${classInfo?.courseSale != null ? classInfo.courseSale : T(java.math.BigDecimal).ZERO}">
+                                    <th:block th:if="${finalCoursePrice != null and finalCoursePrice.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                                        <th:block th:with="saleAmount=${finalCourseSale != null ? finalCourseSale : T(java.math.BigDecimal).ZERO}">
                                             <th:block th:if="${saleAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
                                                 <span class="text-decoration-line-through text-muted small"
-                                                      th:text="${#numbers.formatDecimal(classInfo.coursePrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                                                      th:text="${#numbers.formatDecimal(finalCoursePrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                                 </span>
                                                 <span class="badge bg-danger ms-1 small"
                                                       th:text="'-' + ${#numbers.formatDecimal(saleAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                                 </span>
                                             </th:block>
                                             <h4 class="text-primary fw-bold mb-0"
-                                                th:text="${#numbers.formatDecimal(classInfo.coursePrice.subtract(saleAmount), 0, 'COMMA', 0, 'POINT')} + ' đ'">
+                                                th:text="${#numbers.formatDecimal(finalCoursePrice.subtract(saleAmount), 0, 'COMMA', 0, 'POINT')} + ' đ'">
                                             </h4>
                                         </th:block>
                                     </th:block>
                                     <h4 class="text-success fw-bold mb-0"
-                                        th:if="${classInfo?.coursePrice == null or classInfo.coursePrice.compareTo(T(java.math.BigDecimal).ZERO) <= 0}">
+                                        th:if="${finalCoursePrice == null or finalCoursePrice.compareTo(T(java.math.BigDecimal).ZERO) <= 0}">
                                         Miễn phí
                                     </h4>
                                 </div>
@@ -75,61 +84,94 @@
                         </div>
                     </div>
 
-                    <!-- RIGHT: Thông tin lớp + form đăng ký -->
+                    <!-- RIGHT: Chọn lớp + form đăng ký -->
                     <div class="col-lg-7">
                         <div class="card border-0 shadow-sm rounded-4">
                             <div class="card-body p-4 p-lg-5">
-                                <h4 class="fw-bold mb-4" style="color: #1a237e;">
-                                    <i class="bi bi-calendar-event me-2 text-primary"></i>Thông tin lớp học
-                                </h4>
-
-                                <!-- Thông tin lớp -->
-                                <div class="class-info-card bg-light rounded-3 p-4 mb-4">
-                                    <div class="row">
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Lớp</label>
-                                            <span class="fw-bold" th:text="${classInfo.className}">Tên lớp</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Giảng viên</label>
-                                            <span class="fw-bold" th:text="${classInfo.teacherName}">Tên giảng viên</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Lịch học</label>
-                                            <span class="fw-bold" th:text="${classInfo.schedule}">Thứ 2, 4, 6</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Giờ học</label>
-                                            <span class="fw-bold" th:text="${classInfo.slotTime}">18:00 - 21:00</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Ngày khai giảng</label>
-                                            <span class="fw-bold" th:text="${classInfo.startDate}">01/01/2025</span>
-                                        </div>
-                                        <div class="col-6 mb-3">
-                                            <label class="small text-muted fw-semibold d-block mb-1">Số buổi</label>
-                                            <span class="fw-bold" th:text="${classInfo.numberOfSessions != null ? classInfo.numberOfSessions + ' buổi' : 'N/A'}">N/A</span>
+                                
+                                <!-- Case 1: Specific Class provided -->
+                                <div th:if="${classInfo != null}">
+                                    <h4 class="fw-bold mb-4" style="color: #1a237e;">
+                                        <i class="bi bi-calendar-event me-2 text-primary"></i>Thông tin lớp học
+                                    </h4>
+                                    <div class="class-info-card bg-light rounded-3 p-4 mb-4">
+                                        <div class="row">
+                                            <div class="col-6 mb-3">
+                                                <label class="small text-muted fw-semibold d-block mb-1">Lớp</label>
+                                                <span class="fw-bold" th:text="${classInfo.className}">Tên lớp</span>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="small text-muted fw-semibold d-block mb-1">Giảng viên</label>
+                                                <span class="fw-bold" th:text="${classInfo.teacherName}">Tên giảng viên</span>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="small text-muted fw-semibold d-block mb-1">Lịch học</label>
+                                                <span class="fw-bold" th:text="${classInfo.schedule}">Thứ 2, 4, 6</span>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="small text-muted fw-semibold d-block mb-1">Giờ học</label>
+                                                <span class="fw-bold" th:text="${classInfo.slotTime}">18:00 - 21:00</span>
+                                            </div>
+                                            <div class="col-6 mb-3">
+                                                <label class="small text-muted fw-semibold d-block mb-1">Ngày khai giảng</label>
+                                                <span class="fw-bold" th:text="${classInfo.startDate}">01/01/2025</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <input type="hidden" id="classId" th:value="${classInfo.classId}">
+                                </div>
+
+                                <!-- Case 2: Generic Enrollment (Course Level) -->
+                                <div th:if="${classInfo == null}">
+                                    <h4 class="fw-bold mb-4" style="color: #1a237e;">
+                                        <i class="bi bi-person-workspace me-2 text-primary"></i>Chọn hình thức học
+                                    </h4>
+                                    
+                                    <div class="mb-4">
+                                        <div class="form-check p-3 border rounded-3 mb-3 hover-shadow transition-all" 
+                                             style="cursor: pointer;" onclick="document.getElementById('noClass').click()">
+                                            <input class="form-check-input ms-0 me-3" type="radio" name="classSelection" id="noClass" value="" checked>
+                                            <label class="form-check-label fw-bold" for="noClass">
+                                                Tự học qua nội dung khóa học
+                                                <small class="text-muted d-block fw-normal">Học theo tiến độ cá nhân, không có lịch cố định.</small>
+                                            </label>
+                                        </div>
+
+                                        <div th:if="${not #lists.isEmpty(classes)}">
+                                            <p class="small fw-bold text-muted mb-2">Hoặc chọn một lớp học:</p>
+                                            <div th:each="c : ${classes}" class="form-check p-3 border rounded-3 mb-2 hover-shadow transition-all"
+                                                 style="cursor: pointer;" th:onclick="'document.getElementById(\'class' + ${c.classId} + '\').click()'">
+                                                <input class="form-check-input ms-0 me-3" type="radio" name="classSelection" th:id="'class' + ${c.classId}" th:value="${c.classId}">
+                                                <label class="form-check-label" th:for="'class' + ${c.classId}">
+                                                    <span class="fw-bold text-primary" th:text="${c.className}">Tên lớp</span>
+                                                    <small class="text-muted d-block">
+                                                        <i class="bi bi-calendar3 me-1"></i> [[${c.schedule}]] | 
+                                                        <i class="bi bi-clock me-1"></i> [[${c.slotTime}]] |
+                                                        GV: [[${c.teacher != null ? c.teacher.fullName : 'Chưa cập nhật'}]]
+                                                    </small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="classId" value="">
                                 </div>
 
                                 <div id="enrollAlert" class="alert d-none" role="alert"></div>
 
                                 <form id="enrollForm">
-                                    <input type="hidden" id="classId" th:value="${classInfo.classId}">
-                                    <input type="hidden" id="courseId" th:value="${classInfo.courseId}">
+                                    <input type="hidden" id="courseId" th:value="${finalCourseId}">
 
-                                    <div class="mb-3">
+                                    <div class="mb-4">
                                         <label class="form-label fw-semibold">Ghi chú (tùy chọn)</label>
                                         <textarea class="form-control" id="note" rows="3"
                                                   placeholder="Nhập ghi chú nếu có..."></textarea>
                                     </div>
 
                                     <div class="d-grid gap-2">
-                                        <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold">
+                                        <button type="button" id="btnEnroll" class="btn btn-primary btn-lg rounded-pill fw-bold py-3">
                                             <i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán
                                         </button>
-                                        <a th:href="@{'/course/details/' + ${classInfo.courseId}}"
+                                        <a th:href="@{'/course/details/' + ${finalCourseId}}"
                                            class="btn btn-outline-secondary rounded-pill">
                                             <i class="bi bi-arrow-left me-2"></i>Quay lại chi tiết khóa học
                                         </a>
@@ -147,6 +189,20 @@
 <footer th:replace="~{fragments/footer :: common-footer}"></footer>
 <th:block th:replace="~{fragments/footer :: common-scripts}"></th:block>
 
+<style>
+    .hover-shadow:hover {
+        background-color: #f8f9fa;
+        border-color: #0d6efd !important;
+        box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+    }
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
+    .form-check-input:checked + .form-check-label {
+        color: #0d6efd;
+    }
+</style>
+
 <script th:inline="javascript">
     var isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
 
@@ -158,7 +214,22 @@
 
         const btn = this;
         const alertBox = document.getElementById('enrollAlert');
-        const classId = document.getElementById('classId').value;
+        
+        // Handle class selection logic
+        let classIdVal = null;
+        const classHidden = document.getElementById('classId');
+        if (classHidden && classHidden.value) {
+            classIdVal = classHidden.value;
+        } else {
+            const radios = document.getElementsByName('classSelection');
+            for (let r of radios) {
+                if (r.checked && r.value) {
+                    classIdVal = r.value;
+                    break;
+                }
+            }
+        }
+
         const courseId = document.getElementById('courseId').value;
         const note = document.getElementById('note').value;
 
@@ -171,7 +242,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    classId: parseInt(classId),
+                    classId: classIdVal ? parseInt(classIdVal) : null,
                     courseId: courseId ? parseInt(courseId) : null,
                     note: note
                 })

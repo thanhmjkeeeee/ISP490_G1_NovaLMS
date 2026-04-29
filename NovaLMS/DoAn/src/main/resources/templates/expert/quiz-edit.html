@@ -158,6 +158,7 @@
         .assignment-mode .skill-switch-wrapper {
             display: none !important;
         }
+
         .assignment-mode .skill-static-label {
             display: block !important;
         }
@@ -533,8 +534,8 @@
                                 <div class="form-check form-switch mb-1 skill-switch-wrapper">
                                     <input class="form-check-input" type="checkbox" id="enable_WRITING"
                                         onchange="toggleSkillInput('WRITING')">
-                                    <label class="form-label fw-bold small text-muted mb-0"
-                                        for="enable_WRITING">WRITING <span class="extra-small text-primary">(Dài nhất)</span></label>
+                                    <label class="form-label fw-bold small text-muted mb-0" for="enable_WRITING">WRITING
+                                        <span class="extra-small text-primary">(Dài nhất)</span></label>
                                 </div>
                                 <input type="text" id="timeLimit_WRITING" class="form-control skill-time-input"
                                     placeholder="Tối đa 100" disabled oninput="calculateTotalTime(this)">
@@ -1198,7 +1199,7 @@
         function syncSkillFilters() {
             const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
             const enabledSkills = skills.filter(s => document.getElementById('enable_' + s)?.checked);
-            
+
             // 1. Update Question Bank Filter (modalSkill)
             const modalSkill = document.getElementById('modalSkill');
             if (modalSkill) {
@@ -1259,7 +1260,7 @@
 
             const isAssignment = cat && cat.includes('ASSIGNMENT');
             const isCourseLevel = (cat === 'COURSE_QUIZ' || isAssignment || cat === 'MODULE_QUIZ' || cat === 'MODULE_ASSIGNMENT');
-            
+
             if (courseSection) courseSection.style.display = isCourseLevel ? 'block' : 'none';
             if (moduleSection) moduleSection.style.display = isCourseLevel ? 'block' : 'none';
             if (lessonSection) lessonSection.style.display = isCourseLevel ? 'block' : 'none';
@@ -1758,10 +1759,10 @@
 
                 // Rule: Writing time must be the longest
                 if (document.getElementById('enable_WRITING').checked && writingTime < maxOtherTime) {
-                    Swal.fire({ 
-                        icon: 'warning', 
-                        title: 'Quy tắc thời gian', 
-                        text: 'Thời gian kỹ năng WRITING phải là dài nhất (hoặc bằng các kỹ năng khác). Vui lòng điều chỉnh lại.' 
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Quy tắc thời gian',
+                        text: 'Thời gian kỹ năng WRITING phải là dài nhất (hoặc bằng các kỹ năng khác). Vui lòng điều chỉnh lại.'
                     });
                     return false;
                 }
@@ -1873,7 +1874,7 @@
 
             const cat = document.getElementById('quizCategory').value;
             const isAssignment = cat && cat.includes('ASSIGNMENT');
-            
+
             let displaySkills = allSkills;
             if (!isAssignment) {
                 displaySkills = allSkills.filter(s => {
@@ -1901,12 +1902,12 @@
                 `;
             }).join('');
 
+            // Validation message check
             const validationMsg = document.getElementById('publishValidationMsg');
-            const cat = _currentCategory || '';
-            const isAssignment = cat.includes('ASSIGNMENT');
+
 
             if (isAssignment) {
-                const missing = skills.filter(s => (counts[s] || 0) === 0);
+                const missing = allSkills.filter(s => (counts[s] || 0) === 0);
                 if (missing.length > 0) {
                     validationMsg.style.display = 'block';
                     validationMsg.className = 'alert alert-danger mx-auto mb-4 border-0 shadow-sm';
@@ -2412,65 +2413,65 @@
 
 
         function wsSpeakGroup() {
-                if (_aiCurrentGroup && _aiCurrentGroup.audioUrl) {
-                    if (window._currentAudio) window._currentAudio.pause();
-                    window._currentAudio = new Audio(_aiCurrentGroup.audioUrl);
-                    window._currentAudio.play();
-                }
+            if (_aiCurrentGroup && _aiCurrentGroup.audioUrl) {
+                if (window._currentAudio) window._currentAudio.pause();
+                window._currentAudio = new Audio(_aiCurrentGroup.audioUrl);
+                window._currentAudio.play();
             }
+        }
 
-            function escapeHtml(text) {
-                if (!text) return '';
-                return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-            }
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
 
-            function typeName(type) {
-                const map = {
-                    MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm đơn',
-                    MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm nhiều',
-                    FILL_IN_BLANK: 'Điền từ',
-                    MATCHING: 'Nối cặp',
-                    WRITING: 'Viết',
-                    SPEAKING: 'Nói'
-                };
-                return map[type] || type || '—';
-            }
+        function typeName(type) {
+            const map = {
+                MULTIPLE_CHOICE_SINGLE: 'Trắc nghiệm đơn',
+                MULTIPLE_CHOICE_MULTI: 'Trắc nghiệm nhiều',
+                FILL_IN_BLANK: 'Điền từ',
+                MATCHING: 'Nối cặp',
+                WRITING: 'Viết',
+                SPEAKING: 'Nói'
+            };
+            return map[type] || type || '—';
+        }
 
-            document.addEventListener('DOMContentLoaded', () => {
-                if (window.NovaQuestionFormSettings) {
-                    NovaQuestionFormSettings.load().then(() => {
-                        // Cập nhật các dropdown nếu có
-                    });
-                }
-                loadQuiz();
-            });
-            // Real-time title validation
-            const titleInput = document.getElementById('title');
-            if (titleInput) {
-                titleInput.addEventListener('blur', async function () {
-                    const title = this.value.trim();
-                    const feedback = document.getElementById('titleFeedback');
-                    if (!title) {
-                        if (feedback) feedback.style.display = 'none';
-                        return;
-                    }
-                    try {
-                        const res = await fetch(`/api/v1/expert/quizzes/validate-title?title=${encodeURIComponent(title)}&excludeId=${quizId || 0}`);
-                        const result = await res.json();
-                        if (feedback) {
-                            feedback.style.display = 'block';
-                            if (result.data === true) {
-                                feedback.textContent = '⚠️ Tên này đã tồn tại trong danh sách của bạn.';
-                                feedback.className = 'small mt-1 text-danger fw-bold';
-                            } else {
-                                feedback.textContent = '✓ Tên này có thể sử dụng.';
-                                feedback.className = 'small mt-1 text-success';
-                                setTimeout(() => { feedback.style.display = 'none'; }, 3000);
-                            }
-                        }
-                    } catch (e) { console.error(e); }
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.NovaQuestionFormSettings) {
+                NovaQuestionFormSettings.load().then(() => {
+                    // Cập nhật các dropdown nếu có
                 });
             }
+            loadQuiz();
+        });
+        // Real-time title validation
+        const titleInput = document.getElementById('title');
+        if (titleInput) {
+            titleInput.addEventListener('blur', async function () {
+                const title = this.value.trim();
+                const feedback = document.getElementById('titleFeedback');
+                if (!title) {
+                    if (feedback) feedback.style.display = 'none';
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/v1/expert/quizzes/validate-title?title=${encodeURIComponent(title)}&excludeId=${quizId || 0}`);
+                    const result = await res.json();
+                    if (feedback) {
+                        feedback.style.display = 'block';
+                        if (result.data === true) {
+                            feedback.textContent = '⚠️ Tên này đã tồn tại trong danh sách của bạn.';
+                            feedback.className = 'small mt-1 text-danger fw-bold';
+                        } else {
+                            feedback.textContent = '✓ Tên này có thể sử dụng.';
+                            feedback.className = 'small mt-1 text-success';
+                            setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            });
+        }
 
     </script>
 </body>

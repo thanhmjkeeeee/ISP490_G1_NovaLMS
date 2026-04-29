@@ -97,9 +97,23 @@ public class EnrollmentController {
 
         // ── Kiểm tra đăng ký đang chờ (PENDING/Submitted) — cho phép retry thanh toán ──
         // Nếu user back trình duyệt rồi đăng ký lại, vẫn redirect về PayOS thay vì chặn
-        Optional<Registration> existingReg = registrationRepository
-                .findByUser_UserIdAndClazz_ClassIdAndStatusIn(
-                        user.getUserId(), request.getClassId(), java.util.List.of("PENDING", "Submitted"));
+        Optional<Registration> existingReg;
+        if (request.getClassId() != null) {
+            existingReg = registrationRepository
+                    .findByUser_UserIdAndClazz_ClassIdAndStatusIn(
+                            user.getUserId(), request.getClassId(), java.util.List.of("PENDING", "Submitted"));
+        } else {
+            // For course-only enrollment
+            existingReg = registrationRepository
+                    .findAllByUser_UserIdAndCourse_CourseIdAndStatus(user.getUserId(), request.getCourseId(), "Submitted")
+                    .stream().filter(r -> r.getClazz() == null).findFirst();
+            if (existingReg.isEmpty()) {
+                existingReg = registrationRepository
+                        .findAllByUser_UserIdAndCourse_CourseIdAndStatus(user.getUserId(), request.getCourseId(), "PENDING")
+                        .stream().filter(r -> r.getClazz() == null).findFirst();
+            }
+        }
+
         if (existingReg.isPresent()) {
             Registration reg = existingReg.get();
             // Sync PayOS trạng thái mới nhất
