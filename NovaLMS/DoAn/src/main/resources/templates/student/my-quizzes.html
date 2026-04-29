@@ -94,21 +94,29 @@
         border-radius: 6px;
         font-weight: 500;
     }
-
-    /* Vùng hiển thị điểm số (Score Display) */
     .score-display {
-        background: #f8fafc;
-        padding: 12px 20px;
+        background: #f8fafc !important;
+        padding: 10px 12px;
         border-radius: 12px;
         text-align: center;
-        min-width: 100px;
-        border: 1px solid #f1f5f9;
+        width: 110px; /* ÉP CỨNG CHIỀU RỘNG ĐỂ CÁC Ô BẰNG NHAU CHẰN CHẶN */
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
-    /* Vùng Nút bấm */
     .quiz-action-col {
-        min-width: 140px;
+        width: 140px;
         text-align: right;
+    }
+    .score-display .score-label {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important; /* Đè mọi hiệu ứng gradient chữ */
+    }
+    .score-display .score-value {
+        color: #000000 !important; /* Đen tuyệt đối 100% */
+        -webkit-text-fill-color: #000000 !important;
     }
 
     /* Search bar */
@@ -453,23 +461,23 @@ function loadHistory(page) {
                     ${violationHtml}
                 </div>
 
-                <div class="score-display flex-shrink-0">
+               <div class="score-display flex-shrink-0">
                     ${item.overallBand != null ? `
-                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 10px;">IELTS Band</span>
-                        <div class="d-flex align-items-baseline gap-1 mt-1">
-                            <span class="fs-4 fw-bold text-primary">${item.overallBand}</span>
-                            <span class="text-muted small">/${item.maxScore || 9}</span>
+                        <span class="score-label small text-uppercase fw-bold" style="font-size: 10px;">IELTS Band</span>
+                        <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
+                            <span class="score-value fs-5 fw-bold">${item.overallBand}</span>
+                            <span class="score-value fs-5 fw-bold">/ ${item.maxScore || 9}</span>
                         </div>
                     ` : item.score != null ? `
-                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
-                        <div class="d-flex align-items-baseline gap-1 mt-1">
-                            <span class="fs-4 fw-bold text-primary">${item.score}</span>
-                            <span class="text-muted small">/${item.maxScore || 0}</span>
+                        <span class="score-label small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
+                        <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
+                            <span class="score-value fs-5 fw-bold">${item.score}</span>
+                            <span class="score-value fs-5 fw-bold">/ ${item.maxScore || 0}</span>
                         </div>
                     ` : `
-                        <span class="text-muted small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
-                        <div class="d-flex align-items-baseline gap-1 mt-1">
-                            <span class="fs-4 fw-bold text-muted">—</span>
+                        <span class="score-label small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>
+                        <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
+                            <span class="score-value fs-5 fw-bold">—</span>
                         </div>
                     `}
                 </div>
@@ -477,14 +485,14 @@ function loadHistory(page) {
                 <div class="quiz-action-col flex-shrink-0">
                     ${isLocked ? `
                         ${item.isUnlockRequested
-                            ? '<div class="action-status-label text-info small fw-bold py-2"><i class="bi bi-send-check me-1"></i>Đã gửi yêu cầu</div>'
-                            : `<button onclick="requestUnlock(${item.resultId})" class="btn btn-sm btn-warning rounded-pill fw-bold shadow-sm py-2">
-                                 <i class="bi bi-shield-exclamation me-1"></i>Giải trình bài bị khóa
+                            ? '<div class="action-status-label text-info small fw-bold py-1"><i class="bi bi-send-check me-1"></i>Đã gửi yêu cầu</div>'
+                            : `<button onclick="requestUnlock(${item.resultId})" class="btn btn-sm btn-warning rounded-pill fw-bold shadow-sm px-3 w-100">
+                                 <i class="bi bi-shield-exclamation"></i> Giải trình
                                </button>`
                         }
                     ` : `
-                    <a href="/student/quiz/result/${item.resultId}" class="btn btn-primary rounded-pill shadow-sm py-2 w-100">
-                        Xem kết quả <i class="bi bi-chevron-right ms-1" style="font-size: 0.8rem;"></i>
+                    <a href="/student/quiz/result/${item.resultId}" class="btn btn-sm btn-primary rounded-pill shadow-sm px-3 w-100">
+                        Xem kết quả <i class="bi bi-chevron-right ms-1" style="font-size: 0.7rem;"></i>
                     </a>
                     `}
                 </div>

@@ -492,7 +492,6 @@
                     </div>
 
 
-
                     <!-- Per-skill time (with switches) -->
                     <div id="perSkillTimeSection" style="display:none;">
                         <h6 class="fw-bold mt-4 mb-3"
@@ -1312,6 +1311,8 @@
                     }
                 });
             }
+
+            if (assignmentTimeMsg) assignmentTimeMsg.style.display = showPerSkill ? 'block' : 'none';
 
             if (timeLimitInput) {
                 if (showPerSkill) {
