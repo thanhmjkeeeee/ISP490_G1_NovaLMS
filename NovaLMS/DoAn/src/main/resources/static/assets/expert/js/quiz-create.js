@@ -315,9 +315,9 @@ async function loadSkillSummaryBadges() {
 // ── Helper: submit quiz (create or update) ─────────────────────────────────────
 async function submitQuiz(status) {
     const cat = document.getElementById('quizCategory')?.value;
-    if (!cat) { alert('Vui lòng chọn loại quiz.'); return; }
+    if (!cat) { alert('Vui lòng chọn loại Assessment.'); return; }
     const title = document.getElementById('title')?.value;
-    if (!title) { alert('Vui lòng nhập tên Quiz'); return; }
+    if (!title) { alert('Vui lòng nhập tên Assessment'); return; }
 
     const body = {
         title,

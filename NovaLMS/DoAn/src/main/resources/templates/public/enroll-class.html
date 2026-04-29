@@ -40,7 +40,7 @@
                     <div class="col-lg-5">
                         <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                             <img th:src="${finalCourseImg ?: '/assets/img/default-course.png'}"
-
+                                 onerror="this.onerror=null;this.src='/assets/img/default-course.png'"
                                  class="img-fluid w-100" style="height: 220px; object-fit: cover;"
                                  alt="Course Image">
                             <div class="card-body p-4">
@@ -53,6 +53,7 @@
                                 <!-- Expert -->
                                 <div class="d-flex align-items-center mb-3" th:if="${finalExpertName != null}">
                                     <img th:src="${finalExpertAvatar ?: '/assets/img/default-avatar.png'}"
+                                         onerror="this.onerror=null;this.src='/assets/img/default-avatar.png'"
                                          alt="Expert" class="rounded-circle me-2"
                                          style="width: 36px; height: 36px; object-fit: cover;">
                                     <div>

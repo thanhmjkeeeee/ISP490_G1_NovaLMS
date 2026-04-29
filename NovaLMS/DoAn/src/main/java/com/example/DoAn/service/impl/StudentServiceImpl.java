@@ -125,8 +125,6 @@ public class StudentServiceImpl implements StudentService {
                         user.getUserId(), course.getCourseId(), "Approved");
                 if (existsCourseOnly) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
             }
-
-
             // Check if student is already enrolled in the COURSE (any class or content-only)
             boolean alreadyEnrolledInCourse = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
                     user.getUserId(), course.getCourseId(), "Approved");

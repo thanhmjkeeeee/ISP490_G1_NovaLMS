@@ -180,12 +180,27 @@
                 <a th:href="@{'/student/enroll/' + ${course.courseId}}" 
                    class="btn btn-primary btn-lg rounded-3 fw-bold py-3 shadow-sm"
                    sec:authorize="isAnonymous() or hasRole('ROLE_STUDENT')">
-                  Đăng ký ngay
+                   <i class="bi bi-cart-plus me-2"></i>Đăng ký ngay
                 </a>
                 <p class="text-danger small text-center fw-bold" sec:authorize="isAuthenticated() and !hasRole('ROLE_STUDENT')">
                   Vui lòng dùng tài khoản học viên để đăng ký.
                 </p>
                 <div class="text-center small text-muted">Bảo hành hoàn tiền trong 30 ngày</div>
+              </div>
+
+              <div class="course-specs mt-4 text-start">
+                <div class="d-flex justify-content-between border-bottom py-2">
+                  <span class="text-muted"><i class="bi bi-people me-2"></i>Học viên</span>
+                  <span class="fw-bold" th:text="${course.studentCount ?: 0}">0</span>
+                </div>
+                <div class="d-flex justify-content-between border-bottom py-2">
+                  <span class="text-muted"><i class="bi bi-layers me-2"></i>Số bài giảng</span>
+                  <span class="fw-bold" th:text="${course.curriculum != null ? #lists.size(course.curriculum) : 0}">0</span>
+                </div>
+                <div class="d-flex justify-content-between py-2">
+                  <span class="text-muted"><i class="bi bi-clock me-2"></i>Thời lượng</span>
+                  <span class="fw-bold" th:text="${course.getCourseDuration()}">90 ngày</span>
+                </div>
               </div>
 
               <div class="course-includes mt-4">
