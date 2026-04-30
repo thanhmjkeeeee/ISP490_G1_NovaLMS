@@ -23,6 +23,8 @@ public class QuizResultHistoryDTO {
     private Integer score;
     private Integer maxScore;
     private BigDecimal overallBand;   // IELTS band score (e.g., 4.5, 7.0)
+    private BigDecimal maxBand;       // Max band from quiz config (e.g., 9.0)
+    private Boolean isSequential;
     private Boolean passed;
     private String status;
     private String violationLog;

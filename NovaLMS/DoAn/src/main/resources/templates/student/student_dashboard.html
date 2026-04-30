@@ -255,13 +255,18 @@
           if (Array.isArray(d.recentQuizScores) && d.recentQuizScores.length > 0) {
             const reversedScores = [...d.recentQuizScores].reverse();
             const labels = reversedScores.map(q => q.quizName || "Quiz");
-            const data = reversedScores.map(q => q.score || 0);
+            const data = reversedScores.map(q => q.bandScore != null ? q.bandScore : (q.score || 0));
 
             window.miniScoreChart.data.labels = labels.map(l => l.length > 8 ? l.substring(0, 6) + '..' : l);
             window.miniScoreChart.data.datasets[0].data = data;
 
             window.miniScoreChart.options.plugins.tooltip.callbacks.title = (context) => {
                return labels[context[0].dataIndex];
+            };
+            window.miniScoreChart.options.plugins.tooltip.callbacks.label = (context) => {
+                const item = reversedScores[context.dataIndex];
+                if (item.bandScore != null) return 'Band ' + item.bandScore;
+                return item.score + ' điểm';
             };
             window.miniScoreChart.update();
           } else {

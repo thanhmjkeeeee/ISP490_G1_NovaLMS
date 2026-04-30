@@ -951,6 +951,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(qr.getScore())
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand())
+                    .maxBand(qr.getQuiz() != null ? (qr.getQuiz().getOverallBand() != null ? qr.getQuiz().getOverallBand() : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : null)) : null)
+                    .isSequential(qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential()))
                     .passed(qr.getPassed())
                     .status(qr.getStatus())
                     .violationLog(qr.getViolationLog())
@@ -1432,6 +1434,7 @@ public class QuizResultServiceImpl implements QuizResultService {
     private void recalculateQuizResult(QuizResult result) {
         if (result == null)
             return;
+        Quiz quiz = result.getQuiz();
         Integer resultId = result.getResultId();
 
         List<QuizAnswer> answers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(resultId);
@@ -1547,6 +1550,9 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             // Source of Truth for IELTS: Use cefrLevel if it's a numeric band (e.g. "4.0")
             // We find the max numeric cefrLevel among questions in this skill.
+            // Dynamic Max Band from Quiz configuration, fallback to 9.0
+            double quizMaxBand = (quiz.getOverallBand() != null) ? quiz.getOverallBand().doubleValue() : 9.0;
+
             double configuredMaxBand = answers.stream()
                 .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
                 .mapToDouble(a -> {
@@ -1559,9 +1565,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     }
                     // Fallback to dominant points if cefrLevel is not numeric
                     java.math.BigDecimal maxPts = quizQuestionRepository.findMaxPointsByQuestionId(a.getQuestion().getQuestionId());
-                    return (maxPts != null && maxPts.doubleValue() > 1.0) ? maxPts.doubleValue() : 9.0;
+                    return (maxPts != null && maxPts.doubleValue() > 1.0) ? maxPts.doubleValue() : quizMaxBand;
                 })
-                .max().orElse(9.0);
+                .max().orElse(quizMaxBand);
 
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
                 // Writing/Speaking: Points awarded is already the band, average if multiple questions
@@ -1609,7 +1615,6 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
             // GRADED
-            Quiz quiz = result.getQuiz();
             // Finalize status: If no manual questions (WRITING/SPEAKING) exist, mark as
             // GRADED
             boolean hasManual = answers.stream()

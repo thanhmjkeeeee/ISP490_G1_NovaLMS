@@ -89,6 +89,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .openAt(request.getOpenAt())
                 .closeAt(request.getCloseAt())
                 .deadline(request.getDeadline())
+                .overallBand(request.getOverallBand())
                 .build();
 
         // Set sequential + skill fields for COURSE_QUIZ and assignment types
@@ -302,6 +303,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         quiz.setOpenAt(request.getOpenAt());
         quiz.setCloseAt(request.getCloseAt());
         quiz.setDeadline(request.getDeadline());
+        quiz.setOverallBand(request.getOverallBand());
 
         if (request.getIsSequential() != null) {
             quiz.setIsSequential(request.getIsSequential());
@@ -719,6 +721,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                         : null)
                 .isSequential(quiz.getIsSequential())
                 .skillOrder(quiz.getSkillOrder())
+                .overallBand(quiz.getOverallBand())
                 .questions(questionDTOs)
                 .build();
     }

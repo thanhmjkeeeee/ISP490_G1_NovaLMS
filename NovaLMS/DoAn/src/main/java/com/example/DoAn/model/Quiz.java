@@ -140,6 +140,13 @@ public class Quiz {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /**
+     * Maximum possible band score for this quiz (if applicable).
+     * If set (e.g., 9.0), the quiz is treated as an IELTS-style quiz.
+     */
+    @Column(name = "overall_band", precision = 3, scale = 1)
+    private BigDecimal overallBand;
+
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("orderIndex ASC")
     private List<QuizQuestion> quizQuestions;

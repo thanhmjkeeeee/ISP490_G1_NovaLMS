@@ -51,4 +51,5 @@ public class QuizRequestDTO {
     private LocalDateTime deadline; // bắt buộc cho assignment
     private Boolean allowExternalSubmission;
     private String externalSubmissionInstruction;
+    private BigDecimal overallBand;
 }

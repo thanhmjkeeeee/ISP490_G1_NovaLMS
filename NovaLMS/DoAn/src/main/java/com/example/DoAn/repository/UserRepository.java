@@ -41,8 +41,8 @@ public interface UserRepository extends JpaRepository<User, Integer>, JpaSpecifi
 
     long countByRole_SettingId(Integer roleSettingId);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role.name = :roleName")
-    long countByRoleName(@Param("roleName") String roleName);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role.value = :roleValue")
+    long countByRoleName(@Param("roleValue") String roleValue);
 
     // thông tin role
     @Transactional

@@ -637,6 +637,18 @@ public class StudentAssignmentServiceImpl implements IStudentAssignmentService {
                 item.setTeacherScore(a.getPointsAwarded());
                 item.setTeacherNote(a.getTeacherNote());
 
+                // Populate Writing criteria
+                item.setWritingTaskAchievement(a.getWritingTaskAchievement());
+                item.setWritingCoherenceCohesion(a.getWritingCoherenceCohesion());
+                item.setWritingLexicalResource(a.getWritingLexicalResource());
+                item.setWritingGrammarAccuracy(a.getWritingGrammarAccuracy());
+
+                // Populate Speaking criteria
+                item.setSpeakingFluencyCoherence(a.getSpeakingFluencyCoherence());
+                item.setSpeakingLexicalResource(a.getSpeakingLexicalResource());
+                item.setSpeakingPronunciation(a.getSpeakingPronunciation());
+                item.setSpeakingGrammarAccuracy(a.getSpeakingGrammarAccuracy());
+
                 // Accumulate teacher score for this section
                 if (a.getPointsAwarded() != null) {
                     sectionTeacherScore = sectionTeacherScore.add(a.getPointsAwarded());

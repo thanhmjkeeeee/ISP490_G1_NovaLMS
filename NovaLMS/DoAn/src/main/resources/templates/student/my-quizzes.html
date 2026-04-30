@@ -461,12 +461,12 @@ function loadHistory(page) {
                     ${violationHtml}
                 </div>
 
-               <div class="score-display flex-shrink-0">
-                    ${item.overallBand != null ? `
+                <div class="score-display flex-shrink-0">
+                    ${(item.maxBand != null || item.isSequential) ? `
                         <span class="score-label small text-uppercase fw-bold" style="font-size: 10px;">IELTS Band</span>
                         <div class="d-flex align-items-center justify-content-center gap-1 mt-1">
-                            <span class="score-value fs-5 fw-bold">${item.overallBand}</span>
-                            <span class="score-value fs-5 fw-bold">/ ${item.maxScore || 9}</span>
+                            <span class="score-value fs-5 fw-bold">${item.overallBand != null ? parseFloat(item.overallBand).toFixed(1) : '—'}</span>
+                            <span class="score-value fs-5 fw-bold">/ ${parseFloat(item.maxBand || 9.0).toFixed(1)}</span>
                         </div>
                     ` : item.score != null ? `
                         <span class="score-label small text-uppercase fw-bold" style="font-size: 10px;">Điểm số</span>

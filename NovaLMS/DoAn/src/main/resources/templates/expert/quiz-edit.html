@@ -409,7 +409,7 @@
                             </select>
                         </div>
                         <div class="col-md-3" id="courseSection">
-                            <label class="form-label fw-bold small">Khóa học</label>
+                            <label class="form-label fw-bold small">Khóa học <span class="text-danger">*</span></label>
                             <div class="searchable-select-container" id="courseSearchContainer">
                                 <input type="text" id="courseDisplay" class="form-control searchable-select-input"
                                     placeholder="Chọn hoặc tìm khóa học..."
@@ -473,10 +473,15 @@
                             <input type="number" id="timeLimitMinutes" class="form-control" placeholder="Không giới hạn"
                                 min="1">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small text-muted">Điểm đạt (%)</label>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-muted">Điểm đạt (%) <span class="text-danger">*</span></label>
                             <input type="number" id="passScore" class="form-control" placeholder="VD: 70" min="0"
                                 max="100" step="0.01">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-muted">Band điểm tối đa</label>
+                            <input type="number" id="overallBand" class="form-control" placeholder="VD: 9.0" min="0"
+                                max="10" step="0.5">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
@@ -1069,6 +1074,8 @@
                 document.getElementById('maxAttempts').value = q.maxAttempts || '';
                 document.getElementById('questionOrder').value = q.questionOrder || 'FIXED';
                 document.getElementById('showAnswerAfterSubmit').checked = q.showAnswerAfterSubmit;
+                document.getElementById('overallBand').value = q.overallBand || '';
+                _quizBand = q.overallBand ? q.overallBand.toString() : null;
 
 
                 // Real-time Title Validation
@@ -1674,6 +1681,18 @@
             try {
                 // Band Consistency Check
                 const qData = _lastBankResult?.data?.items?.find(x => x.id === id);
+
+                // Auto-set overallBand if empty
+                const bandInput = document.getElementById('overallBand');
+                if (bandInput && !bandInput.value && qData && qData.cefrLevel) {
+                    const numericCefr = parseFloat(qData.cefrLevel);
+                    if (!isNaN(numericCefr)) {
+                        bandInput.value = qData.cefrLevel;
+                        _quizBand = qData.cefrLevel;
+                        Toast.fire({ icon: 'info', title: `Đã tự động thiết lập Band tối đa: ${qData.cefrLevel}` });
+                    }
+                }
+
                 if (qData && _quizBand && qData.cefrLevel !== _quizBand) {
                     Swal.fire('Lỗi', `Câu hỏi này có Band ${qData.cefrLevel}, không khớp với Band ${_quizBand} của Quiz hiện tại!`, 'error');
                     return;
@@ -1728,6 +1747,17 @@
             }
 
             const cat = document.getElementById('quizCategory').value;
+
+            const courseSection = document.getElementById('courseSection');
+            const courseId = document.getElementById('courseIdSelect').value;
+            if (courseSection && courseSection.style.display !== 'none' && !courseId) {
+                Swal.fire('Thông báo', 'Vui lòng chọn khóa học', 'info');
+                return false;
+            }
+
+            const passScore = document.getElementById('passScore').value;
+            if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (%)', 'info'); return false; }
+
             const isAssignment = cat && cat.includes('ASSIGNMENT');
             const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
             const enabledSkills = skills.filter(s => document.getElementById('enable_' + s).checked);
@@ -1958,6 +1988,7 @@
                 moduleId: parseInt(document.getElementById('moduleIdSelect').value) || null,
                 lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
                 showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
+                overallBand: parseFloat(document.getElementById('overallBand').value) || null,
                 timeLimitPerSkill: skillTimes
             };
         }

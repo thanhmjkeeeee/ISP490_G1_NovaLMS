@@ -314,6 +314,7 @@ public class StudentServiceImpl implements StudentService {
                     .map(q -> DashboardResponseDTO.QuizScoreDTO.builder()
                             .quizName(q.getQuiz().getTitle())
                             .score(q.getScore() != null ? q.getScore().doubleValue() : 0.0)
+                            .bandScore(q.getOverallBand() != null ? q.getOverallBand().doubleValue() : null)
                             .build())
                     .collect(Collectors.toList());
 

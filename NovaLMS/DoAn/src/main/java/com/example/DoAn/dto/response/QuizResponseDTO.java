@@ -42,6 +42,7 @@ public class QuizResponseDTO {
     private Boolean isSequential;
     private String skillOrder; // JSON string
     private Long registrationCount;
+    private BigDecimal overallBand;
 
     private List<QuizQuestionResponseDTO> questions;
 
