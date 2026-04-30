@@ -311,11 +311,20 @@ public class StudentServiceImpl implements StudentService {
             // Recent Quiz Scores (mapping to List<QuizScoreDTO>)
             Page<QuizResult> recentPage = quizResultRepository.findByUserEmailOrderBySubmittedAtDesc(user.getEmail(), PageRequest.of(0, 5));
             List<DashboardResponseDTO.QuizScoreDTO> recentScores = recentPage.getContent().stream()
-                    .map(q -> DashboardResponseDTO.QuizScoreDTO.builder()
+                    .map(q -> {
+                        double totalMaxBand = 9.0;
+                        if (q.getQuiz() != null && q.getQuiz().getOverallBand() != null) {
+                            totalMaxBand = q.getQuiz().getOverallBand().doubleValue();
+                        } else if (q.getQuiz() != null && Boolean.TRUE.equals(q.getQuiz().getIsSequential())) {
+                            totalMaxBand = 9.0; // Default IELTS
+                        }
+                        return DashboardResponseDTO.QuizScoreDTO.builder()
                             .quizName(q.getQuiz().getTitle())
                             .score(q.getScore() != null ? q.getScore().doubleValue() : 0.0)
                             .bandScore(q.getOverallBand() != null ? q.getOverallBand().doubleValue() : null)
-                            .build())
+                            .maxBand(totalMaxBand)
+                            .build();
+                    })
                     .collect(Collectors.toList());
 
             // Last Lesson (Find latest active enrollment, then find its active lesson)

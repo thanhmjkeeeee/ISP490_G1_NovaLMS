@@ -122,8 +122,8 @@ public class GroqClient {
       String questionType,
       int maxPoints) {
     String rubricJson = buildRubricJson(questionType, cefrLevel);
-    String systemPrompt = buildSystemPrompt(questionType, rubricJson);
-    String userPrompt = buildUserPrompt(questionPrompt, skill, cefrLevel, studentAnswer);
+    String systemPrompt = buildSystemPrompt(questionType, rubricJson, maxPoints);
+    String userPrompt = buildUserPrompt(questionPrompt, skill, cefrLevel, studentAnswer, maxPoints);
 
     try {
       List<Map<String, String>> messages = List.of(
@@ -338,7 +338,7 @@ public class GroqClient {
     }
   }
 
-  private String buildSystemPrompt(String questionType, String rubricJson) {
+  private String buildSystemPrompt(String questionType, String rubricJson, int maxPoints) {
     if ("WRITING".equals(questionType)) {
       return String.format(
           """
@@ -356,41 +356,42 @@ public class GroqClient {
 
               YÊU CẦU QUAN TRỌNG: 
               - Trả về ĐÚNG ĐỊNH DẠNG JSON bên dưới.
+              - Điểm số cho từng tiêu chí phải nằm trong khoảng từ 0 đến %d.
               - Phần "feedback": Liệt kê danh sách các lỗi sai cụ thể (Sử dụng tiếng Việt).
               - Trong mỗi phần "aiReasoning" của rubric: Hãy chỉ ra các lỗi cụ thể dựa trên mô tả Band trong Rubric ở trên.
               
               {
-                "overallBand": <dự đoán band tham khảo>,
+                "overallBand": <dự đoán band tham khảo 0-%d>,
                 "displayScore": <overallBand>,
-                "maxScore": 9,
+                "maxScore": %d,
                 "feedback": "- Lỗi chính tả: ... \n- Lỗi ngữ pháp: ... \n- Từ vựng: ...",
                 "overallBandDescriptor": "Proofreading Result",
                 "rubric": {
                   "task_achievement": {
-                    "score": <0-9>, "max": 9, "bandLabel": "...", "bandDescription": "...", 
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
                     "aiReasoning": "Lỗi về nội dung so với Rubric: [liệt kê lỗi]"
                   },
                   "lexical_resource": { 
-                    "score": <0-9>, "max": 9, "bandLabel": "...", "bandDescription": "...", 
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
                     "aiReasoning": "Lỗi từ vựng/chính tả so với Rubric: [liệt kê lỗi]"
                   },
                   "grammatical_range": { 
-                    "score": <0-9>, "max": 9, "bandLabel": "...", "bandDescription": "...", 
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
                     "aiReasoning": "Lỗi ngữ pháp/cấu trúc so với Rubric: [liệt kê lỗi]"
                   },
                   "coherence_cohesion": { 
-                    "score": <0-9>, "max": 9, "bandLabel": "...", "bandDescription": "...", 
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
                     "aiReasoning": "Lỗi liên kết/mạch lạc so với Rubric: [liệt kê lỗi]"
                   }
                 }
               }
               """,
-          rubricJson);
+          rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints);
     } else {
       return String.format(
           """
-              Bạn là giáo viên tiếng Anh chuyên IELTS, chấm bài SPEAKING theo thang điểm IELTS 9-band.
-              Rubric (mỗi tiêu chí 0-9 điểm):
+              Bạn là giáo viên tiếng Anh chuyên IELTS, chấm bài SPEAKING theo thang điểm %d.
+              Rubric (mỗi tiêu chí 0-%d điểm):
               %s
 
               Hãy nghe/nhìn câu trả lời và CHẤM theo rubric trên.
@@ -398,28 +399,28 @@ public class GroqClient {
               {
                 "overallBand": <(fluency_cohesion + lexical_resource + grammatical_range + pronunciation) / 4>,
                 "displayScore": <overallBand>,
-                "maxScore": 9,
+                "maxScore": %d,
                 "feedback": "<nhận xét tổng 2-3 câu bằng tiếng Việt, gợi ý cải thiện>",
-                "overallBandDescriptor": "<VD: 'Good User (7.0)'>",
+                "overallBandDescriptor": "<VD: 'Result (%d/%d)'>",
                 "rubric": {
-                  "fluency_cohesion": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
-                  "lexical_resource": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
-                  "grammatical_range": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
-                  "pronunciation": { "score": <>, "max": 9, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." }
+                  "fluency_cohesion": { "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                  "lexical_resource": { "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                  "grammatical_range": { "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." },
+                  "pronunciation": { "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", "aiReasoning": "..." }
                 }
               }
               """,
-          rubricJson);
+          maxPoints, maxPoints, rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints);
     }
   }
 
-  private String buildUserPrompt(String prompt, String skill, String cefr, String answer) {
+  private String buildUserPrompt(String prompt, String skill, String cefr, String answer, int maxPoints) {
     return String.format("""
         Đề bài: %s
-        Skill: %s | CEFR Level: %s
+        Skill: %s | CEFR Level: %s | Max Score: %d
         Câu trả lời của học sinh:
         %s
-        Hãy chấm và trả về JSON theo rubric.
-        """, prompt, skill, cefr, answer);
+        Hãy chấm và trả về JSON theo rubric (thang điểm 0-%d).
+        """, prompt, skill, cefr, maxPoints, answer, maxPoints);
   }
 }

@@ -6445,6 +6445,43 @@ window.wsSaveEditAi = function(index) {
         }
 
         window.wsSubmitGrade = async function (isFinal) {
+            // Validation: All scores must be filled if finishing
+            if (isFinal) {
+                let missingFields = false;
+                const selectors = [
+                    '.ws-gd-score-input',
+                    '.writing-ta', '.writing-cc', '.writing-lr', '.writing-gra',
+                    '.speaking-fc', '.speaking-lr', '.speaking-pr', '.speaking-gra'
+                ];
+                
+                for (const selector of selectors) {
+                    const inputs = document.querySelectorAll(selector);
+                    for (const input of inputs) {
+                        if (input.value.trim() === '') {
+                            missingFields = true;
+                            input.classList.add('is-invalid');
+                            // Auto-switch to the tab containing the missing field
+                            const tabPane = input.closest('.tab-pane');
+                            if (tabPane) {
+                                const tabId = tabPane.id;
+                                const tabBtn = document.querySelector(`[data-bs-target="#${tabId}"]`);
+                                if (tabBtn) tabBtn.click();
+                            }
+                            input.focus();
+                            break;
+                        } else {
+                            input.classList.remove('is-invalid');
+                        }
+                    }
+                    if (missingFields) break;
+                }
+
+                if (missingFields) {
+                    wsToast('Vui lòng nhập đầy đủ điểm cho tất cả các kĩ năng trước khi hoàn tất.', 'warning');
+                    return;
+                }
+            }
+
             const items = [];
             // Handle standard manual grading
             document.querySelectorAll('.ws-gd-score-input').forEach(input => {

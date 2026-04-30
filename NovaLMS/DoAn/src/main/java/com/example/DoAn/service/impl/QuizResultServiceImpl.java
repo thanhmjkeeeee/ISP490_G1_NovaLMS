@@ -869,14 +869,16 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             boolean isSequential = qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential());
             double totalMaxBand = 9.0;
-            if (isSequential && qr.getQuiz() != null) {
+            if (qr.getQuiz() != null && qr.getQuiz().getOverallBand() != null) {
+                totalMaxBand = qr.getQuiz().getOverallBand().doubleValue();
+            } else if (isSequential && qr.getQuiz() != null) {
                 Map<String, List<QuizQuestion>> bySkill = qr.getQuiz().getQuizQuestions().stream()
                         .filter(qq -> qq.getQuestion() != null)
                         .collect(Collectors.groupingBy(qq -> {
                             String sk = qq.getQuestion().getSkill();
                             return sk != null ? sk.toUpperCase() : "OTHER";
                         }));
-                
+
                 List<Double> skillMaxes = new ArrayList<>();
                 for (String skill : bySkill.keySet()) {
                     if ("LISTENING".equals(skill) || "READING".equals(skill)) {

@@ -130,7 +130,9 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         
         // Calculate totalMaxScore (average of skill maxes)
         boolean isSequential = quiz != null && Boolean.TRUE.equals(quiz.getIsSequential());
-        if (isSequential) {
+        if (quiz != null && quiz.getOverallBand() != null) {
+            dto.setTotalMaxScore(quiz.getOverallBand());
+        } else if (isSequential) {
             List<BigDecimal> skillMaxes = new ArrayList<>();
             if (dto.getListening() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
             if (dto.getReading() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
@@ -508,7 +510,9 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         dto.setExternalSubmissionNote(result.getExternalSubmissionNote());
 
         // For IELTS: totalMaxScore is the average of section maxes
-        if (!sections.isEmpty()) {
+        if (quiz.getOverallBand() != null) {
+            dto.setTotalMaxScore(quiz.getOverallBand());
+        } else if (!sections.isEmpty()) {
             BigDecimal sumMax = sections.stream()
                 .map(s -> s.getMaxScore() != null ? s.getMaxScore() : BigDecimal.valueOf(9.0))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -526,19 +530,6 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         }));
             } catch (Exception ignored) {
                 /* leave null */ }
-        }
-
-        // Set Total Max Score (average of section max scores for IELTS overall band context)
-        List<BigDecimal> activeMaxScores = sections.stream()
-                .map(s -> s.getMaxScore())
-                .filter(m -> m != null && m.compareTo(BigDecimal.ZERO) > 0)
-                .toList();
-
-        if (!activeMaxScores.isEmpty()) {
-            BigDecimal sum = activeMaxScores.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-            dto.setTotalMaxScore(sum.divide(BigDecimal.valueOf(activeMaxScores.size()), 1, RoundingMode.HALF_UP));
-        } else {
-            dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
         }
 
         if (result.getScore() != null) {

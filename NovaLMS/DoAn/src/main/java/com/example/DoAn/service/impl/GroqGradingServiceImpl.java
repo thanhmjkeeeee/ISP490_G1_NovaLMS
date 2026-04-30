@@ -123,15 +123,19 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         String qType = questionTypeOverride != null ? questionTypeOverride : q.getQuestionType();
         String userAnswer = answer.getAnsweredOptions();
 
-        // Xác định max band từ expert config (QuizQuestion.points) — khai báo trước try/catch
-        int maxBand = 9;
+        // Xác định max band từ expert config (Ưu tiên Quiz.overallBand, fallback Question.points hoặc 9.0)
+        double maxBand = 9.0;
         QuizResult qrLookup = quizResultRepository.findById(quizResultId).orElse(null);
         if (qrLookup != null && qrLookup.getQuiz() != null) {
-            var qqOpt = quizQuestionRepository
-                .findByQuizQuizIdAndQuestionQuestionId(qrLookup.getQuiz().getQuizId(), questionId);
-            if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
-                int pts = qqOpt.get().getPoints().intValue();
-                if (pts > 0) maxBand = pts;
+            Quiz quiz = qrLookup.getQuiz();
+            if (quiz.getOverallBand() != null) {
+                maxBand = quiz.getOverallBand();
+            } else {
+                var qqOpt = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), questionId);
+                if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
+                    double pts = qqOpt.get().getPoints().doubleValue();
+                    if (pts > 0) maxBand = pts;
+                }
             }
         }
 
@@ -151,11 +155,11 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             GradingResponse grading = groqClient.gradeWritingOrSpeaking(
                     q.getContent(), q.getSkill(),
                     q.getCefrLevel() != null ? q.getCefrLevel() : "B1",
-                    userAnswer, qType, maxBand
+                    userAnswer, qType, (int) Math.round(maxBand)
             );
 
             // Lưu kết quả thành công
-            answer.setAiScore(String.format("%.2f", grading.getDisplayScore()) + "/" + maxBand);
+            answer.setAiScore(String.format("%.2f", grading.getDisplayScore()) + "/" + (maxBand == Math.floor(maxBand) ? (int)maxBand : maxBand));
             answer.setAiFeedback(grading.getFeedback());
             answer.setAiRubricJson(objectMapper.writeValueAsString(grading.getRubric()));
             answer.setAiGradingStatus("COMPLETED");
@@ -175,7 +179,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
 
             String dummyRubric = createZeroRubric(qType, errorMsg);
 
-            answer.setAiScore("0/" + maxBand);
+            answer.setAiScore("0/" + (maxBand == Math.floor(maxBand) ? (int)maxBand : maxBand));
             answer.setAiFeedback("AI tạm thời không thể chấm bài. Chi tiết: " + errorMsg);
             answer.setAiRubricJson(dummyRubric);
             answer.setAiGradingStatus("COMPLETED"); // Vẫn để COMPLETED để hiện lên UI

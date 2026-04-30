@@ -265,7 +265,10 @@
             };
             window.miniScoreChart.options.plugins.tooltip.callbacks.label = (context) => {
                 const item = reversedScores[context.dataIndex];
-                if (item.bandScore != null) return 'Band ' + item.bandScore;
+                if (item.bandScore != null) {
+                    const max = (item.maxBand || 9.0).toFixed(1);
+                    return `Band ${item.bandScore.toFixed(1)} / ${max}`;
+                }
                 return item.score + ' điểm';
             };
             window.miniScoreChart.update();

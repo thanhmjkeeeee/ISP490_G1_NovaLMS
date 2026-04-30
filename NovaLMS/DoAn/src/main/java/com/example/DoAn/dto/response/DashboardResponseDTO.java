@@ -26,6 +26,7 @@ public class DashboardResponseDTO {
         private String quizName;
         private Double score;
         private Double bandScore;
+        private Double maxBand;
     }
 
     @Data
