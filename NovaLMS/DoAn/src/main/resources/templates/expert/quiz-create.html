@@ -412,8 +412,8 @@
                 <h3 class="fw-bold m-0" style="color: #223a58;">Tạo đề kiểm tra</h3>
                 <p class="text-muted small m-0">Quy trình tạo đề thi thông minh 3 bước.</p>
             </div>
-            <button type="button" onclick="cancelAndExit()" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-                <i class="bi bi-x-lg me-1"></i> Hủy và thoát
+            <button type="button" onclick="saveDraftAndExit()" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-save me-1"></i> Lưu nháp
             </button>
         </div>
 
@@ -769,8 +769,8 @@
                             <i class="bi bi-arrow-left me-2"></i> Quay lại
                         </button>
                         <button class="btn btn-lg btn-light px-4 fw-bold" style="border-radius: 12px;"
-                            onclick="cancelAndExit()">
-                            Hủy và xóa
+                            onclick="saveDraftAndExit()">
+                            <i class="bi bi-save me-2"></i> Lưu nháp
                         </button>
                         <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal"
                             style="border-radius: 12px;"
@@ -1797,19 +1797,20 @@
             validateForPublish(counts);
         }
 
-        async function cancelAndExit() {
+        function saveDraftAndExit() {
             if (!_quizId) { window.location.href = '/expert/quiz-management'; return; }
-            const r = await Swal.fire({ title: 'Hủy tạo Quiz?', text: "Dữ liệu sẽ bị xóa.", icon: 'warning', showCancelButton: true });
-            if (r.isConfirmed) {
-                try { 
-                    const res = await fetch(`/api/v1/expert/quizzes/${_quizId}`, { method: 'DELETE' }); 
-                    if (!res.ok) {
-                        const error = await res.json();
-                        console.error('Delete failed:', error);
-                    }
-                } catch (e) { console.error('Delete error:', e); }
-                window.location.href = '/expert/quiz-management';
-            }
+            Swal.fire({
+                title: 'Lưu bản nháp?',
+                text: "Hệ thống sẽ lưu lại tiến độ hiện tại. Bạn có thể quay lại chỉnh sửa sau.",
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/expert/quiz-management';
+                }
+            });
         }
 
         function validateForPublish(counts) {
