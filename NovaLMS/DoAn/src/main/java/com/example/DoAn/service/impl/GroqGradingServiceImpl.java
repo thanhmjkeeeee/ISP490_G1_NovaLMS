@@ -48,7 +48,8 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         log.info("[AI-BATCH] Started batch grading for resultId={}", quizResultId);
         try {
             transactionTemplate.executeWithoutResult(status -> {
-                List<QuizAnswer> pendingAnswers = quizAnswerRepository.findByQuizResultResultIdWithQuestion(quizResultId).stream()
+                List<QuizAnswer> pendingAnswers = quizAnswerRepository
+                        .findByQuizResultResultIdWithQuestion(quizResultId).stream()
                         .filter(a -> Boolean.TRUE.equals(a.getPendingAiReview()))
                         .toList();
 
@@ -59,14 +60,15 @@ public class GroqGradingServiceImpl implements GroqGradingService {
 
                 for (QuizAnswer answer : pendingAnswers) {
                     try {
-                        log.info("[AI-BATCH] Grading Q{} (Type={})", answer.getQuestion().getQuestionId(), answer.getQuestion().getQuestionType());
+                        log.info("[AI-BATCH] Grading Q{} (Type={})", answer.getQuestion().getQuestionId(),
+                                answer.getQuestion().getQuestionType());
                         doGradeQuizAnswer(quizResultId, answer.getQuestion().getQuestionId(), null, false);
                     } catch (Exception e) {
-                        log.error("[AI-BATCH] Failed grading Q{} for result {}: {}", 
+                        log.error("[AI-BATCH] Failed grading Q{} for result {}: {}",
                                 answer.getQuestion().getQuestionId(), quizResultId, e.getMessage());
                     }
                 }
-                
+
                 // Recalculate ONCE after batch
                 quizResultService.recalculateQuizResult(quizResultId);
             });
@@ -115,26 +117,31 @@ public class GroqGradingServiceImpl implements GroqGradingService {
         });
     }
 
-    private void doGradeQuizAnswer(Integer quizResultId, Integer questionId, String questionTypeOverride, boolean shouldRecalculate) {
-        QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(quizResultId, questionId);
-        if (answer == null) return;
+    private void doGradeQuizAnswer(Integer quizResultId, Integer questionId, String questionTypeOverride,
+            boolean shouldRecalculate) {
+        QuizAnswer answer = quizAnswerRepository.findByQuizResultResultIdAndQuestionQuestionId(quizResultId,
+                questionId);
+        if (answer == null)
+            return;
 
         Question q = answer.getQuestion();
         String qType = questionTypeOverride != null ? questionTypeOverride : q.getQuestionType();
         String userAnswer = answer.getAnsweredOptions();
 
-        // Xác định max band từ expert config (Ưu tiên Quiz.overallBand, fallback Question.points hoặc 9.0)
+        // Xác định max band từ expert config (Ưu tiên Quiz.overallBand, fallback
+        // Question.points hoặc 9.0)
         double maxBand = 9.0;
         QuizResult qrLookup = quizResultRepository.findById(quizResultId).orElse(null);
         if (qrLookup != null && qrLookup.getQuiz() != null) {
             Quiz quiz = qrLookup.getQuiz();
             if (quiz.getOverallBand() != null) {
-                maxBand = quiz.getOverallBand();
+                maxBand = quiz.getOverallBand().doubleValue();
             } else {
                 var qqOpt = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quiz.getQuizId(), questionId);
                 if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
                     double pts = qqOpt.get().getPoints().doubleValue();
-                    if (pts > 0) maxBand = pts;
+                    if (pts > 0)
+                        maxBand = pts;
                 }
             }
         }
@@ -155,11 +162,11 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             GradingResponse grading = groqClient.gradeWritingOrSpeaking(
                     q.getContent(), q.getSkill(),
                     q.getCefrLevel() != null ? q.getCefrLevel() : "B1",
-                    userAnswer, qType, (int) Math.round(maxBand)
-            );
+                    userAnswer, qType, (int) Math.round(maxBand));
 
             // Lưu kết quả thành công
-            answer.setAiScore(String.format("%.2f", grading.getDisplayScore()) + "/" + (maxBand == Math.floor(maxBand) ? (int)maxBand : maxBand));
+            answer.setAiScore(String.format("%.2f", grading.getDisplayScore()) + "/"
+                    + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand));
             answer.setAiFeedback(grading.getFeedback());
             answer.setAiRubricJson(objectMapper.writeValueAsString(grading.getRubric()));
             answer.setAiGradingStatus("COMPLETED");
@@ -172,14 +179,18 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             // BƯỚC 3: FALLBACK - TẠO RUBRIC 0 ĐIỂM KHI CÓ LỖI
             String rawError = e.getMessage() != null ? e.getMessage() : "Unknown error";
             String errorMsg;
-            if (rawError.contains("401")) errorMsg = "Lỗi xác thực (Kiểm tra API Key).";
-            else if (rawError.contains("429")) errorMsg = "Hết hạn mức sử dụng (Quota Exceeded) hoặc bị giới hạn tốc độ.";
-            else if (rawError.contains("timeout")) errorMsg = "Dịch vụ AI phản hồi quá chậm (Timeout).";
-            else errorMsg = "Lỗi xử lý: " + (rawError.length() > 100 ? rawError.substring(0, 100) + "..." : rawError);
+            if (rawError.contains("401"))
+                errorMsg = "Lỗi xác thực (Kiểm tra API Key).";
+            else if (rawError.contains("429"))
+                errorMsg = "Hết hạn mức sử dụng (Quota Exceeded) hoặc bị giới hạn tốc độ.";
+            else if (rawError.contains("timeout"))
+                errorMsg = "Dịch vụ AI phản hồi quá chậm (Timeout).";
+            else
+                errorMsg = "Lỗi xử lý: " + (rawError.length() > 100 ? rawError.substring(0, 100) + "..." : rawError);
 
             String dummyRubric = createZeroRubric(qType, errorMsg);
 
-            answer.setAiScore("0/" + (maxBand == Math.floor(maxBand) ? (int)maxBand : maxBand));
+            answer.setAiScore("0/" + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand));
             answer.setAiFeedback("AI tạm thời không thể chấm bài. Chi tiết: " + errorMsg);
             answer.setAiRubricJson(dummyRubric);
             answer.setAiGradingStatus("COMPLETED"); // Vẫn để COMPLETED để hiện lên UI
@@ -188,15 +199,18 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             quizAnswerRepository.save(answer);
         }
 
-        if (shouldRecalculate) quizResultService.recalculateQuizResult(quizResultId);
+        if (shouldRecalculate)
+            quizResultService.recalculateQuizResult(quizResultId);
     }
 
     // Hàm hỗ trợ tạo JSON Rubric trắng
     private String createZeroRubric(String type, String reason) {
         if ("WRITING".equals(type)) {
-            return "{\"task_achievement\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\",\"bandDescription\":\"" + reason + "\"},\"lexical_resource\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"grammatical_range\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"coherence_cohesion\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"}}";
+            return "{\"task_achievement\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\",\"bandDescription\":\"" + reason
+                    + "\"},\"lexical_resource\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"grammatical_range\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"coherence_cohesion\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"}}";
         } else {
-            return "{\"fluency_cohesion\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\",\"bandDescription\":\"" + reason + "\"},\"lexical_resource\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"grammatical_range\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"pronunciation\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"}}";
+            return "{\"fluency_cohesion\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\",\"bandDescription\":\"" + reason
+                    + "\"},\"lexical_resource\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"grammatical_range\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"},\"pronunciation\":{\"score\":0,\"max\":9,\"bandLabel\":\"0.0\"}}";
         }
     }
 
