@@ -141,6 +141,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             }
         }
 
+        if (request.getOverallBand() != null) {
+            quiz.setOverallBand(request.getOverallBand());
+        }
+
         // Gắn class nếu teacher tạo quiz từ class-sessions
         if (request.getClassId() != null) {
             Clazz clazz = clazzRepository.findById(request.getClassId())
@@ -241,6 +245,9 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             quiz.setIsHybridEnabled(request.getIsHybridEnabled());
         }
         quiz.setTargetSkill(request.getTargetSkill());
+        if (request.getOverallBand() != null) {
+            quiz.setOverallBand(request.getOverallBand());
+        }
         
         // Preserve current status if not provided in request
         if (request.getStatus() == null || request.getStatus().isBlank()) {
@@ -708,19 +715,13 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                         .distinct()
                         .count()))
                 .hasAttempts(hasAttempts)
-                .registrationCount(regCount)
                 .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
-                .openAt(quiz.getOpenAt() != null
-                        ? quiz.getOpenAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                        : null)
-                .closeAt(quiz.getCloseAt() != null
-                        ? quiz.getCloseAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                        : null)
-                .deadline(quiz.getDeadline() != null
-                        ? quiz.getDeadline().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-                        : null)
+                .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null)
+                .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null)
+                .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
                 .isSequential(quiz.getIsSequential())
                 .skillOrder(quiz.getSkillOrder())
+                .registrationCount(regCount)
                 .overallBand(quiz.getOverallBand())
                 .questions(questionDTOs)
                 .build();
