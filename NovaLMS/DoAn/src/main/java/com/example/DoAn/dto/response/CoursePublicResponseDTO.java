@@ -15,22 +15,11 @@ public record CoursePublicResponseDTO(
         String levelTag,
         String status,
         Boolean isSelfStudy,
+        String duration,
         ExpertResponseDTO expert,
         List<ModuleResponseDTO> curriculum,
         List<ClassResponseDTO> activeClasses
 ) {
-    public String getCourseDuration() {
-        if (activeClasses == null || activeClasses.isEmpty()) return "N/A";
-
-        return activeClasses.stream()
-                .filter(c -> c.startDate() != null && c.endDate() != null)
-                .findFirst()
-                .map(c -> {
-                    long days = java.time.Duration.between(c.startDate(), c.endDate()).toDays();
-                    return Math.abs(days) + " ngày";
-                })
-                .orElse("Trọn đời");
-    }
 
     public record ExpertResponseDTO(
             String fullName,

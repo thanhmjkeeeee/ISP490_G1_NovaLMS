@@ -102,6 +102,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 course.getLevelTag(),
                 course.getStatus(),
                 course.getIsSelfStudy(),
+                "Trọn đời",
                 expertDTO,
                 List.of(), // No curriculum
                 List.of() // No classes
@@ -173,6 +174,23 @@ public class CoursePublicServiceImpl implements CourseService {
             imgUrl = rawImageUrl;
         }
 
+        // 5. Calculate Duration
+        String duration = "Trọn đời";
+        if (classes != null && !classes.isEmpty()) {
+            duration = classes.stream()
+                    .filter(c -> c.startDate() != null && c.endDate() != null)
+                    .findFirst()
+                    .map(c -> {
+                        try {
+                            long days = java.time.Duration.between(c.startDate(), c.endDate()).toDays();
+                            return Math.abs(days) + " ngày";
+                        } catch (Exception e) {
+                            return "N/A";
+                        }
+                    })
+                    .orElse("Trọn đời");
+        }
+
         return new CoursePublicResponseDTO(
                 id,
                 course.getCourseName(),
@@ -185,6 +203,7 @@ public class CoursePublicServiceImpl implements CourseService {
                 course.getLevelTag(),
                 course.getStatus(),
                 course.getIsSelfStudy(),
+                duration,
                 expertDTO,
                 curriculum,
                 classes);

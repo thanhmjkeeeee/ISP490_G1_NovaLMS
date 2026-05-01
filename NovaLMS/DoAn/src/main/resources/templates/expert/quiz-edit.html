@@ -479,7 +479,7 @@
                                 max="100" step="0.01">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-muted">Band điểm tối đa</label>
+                            <label class="form-label fw-bold small text-muted">Band điểm tối đa <span class="text-danger">*</span></label>
                             <input type="number" id="overallBand" class="form-control" placeholder="3.0 - 9.0" min="3"
                                 max="9" step="0.5">
                         </div>
@@ -1011,9 +1011,11 @@
                                 <h6 class="fw-bold text-primary mb-0"><i class="bi bi-journal-text me-1"></i>
                                     ĐOẠN VĂN / KỊCH BẢN (PASSAGE)</h6>
                                 <div id="wsAiGroupAudio" class="d-none">
-                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                    <button id="btn-play-group" class="btn btn-sm btn-outline-primary rounded-pill px-3"
                                         onclick="wsSpeakGroup()"><i class="bi bi-play-fill"></i> Nghe hội
                                         thoại</button>
+                                    <button id="btn-stop-group" class="btn btn-sm btn-danger rounded-pill px-3"
+                                        style="display:none;" onclick="wsStopGroup()"><i class="bi bi-stop-fill"></i> Dừng</button>
                                 </div>
                             </div>
                             <div id="wsAiPassageContent" class="p-4 bg-light rounded-4 border text-dark shadow-sm"
@@ -1069,6 +1071,7 @@
             timer: 3000,
             timerProgressBar: true
         });
+        const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
 
         async function loadQuiz() {
             try {
@@ -1143,6 +1146,12 @@
                 if (q.courseId) {
                     await loadCourses();
                     document.getElementById('courseIdSelect').value = q.courseId;
+                    
+                    // Update courseDisplay manually since loadCourses uses currentVal at start
+                    const hiddenSelect = document.getElementById('courseIdSelect');
+                    const selectedOpt = hiddenSelect.options[hiddenSelect.selectedIndex];
+                    if (selectedOpt) document.getElementById('courseDisplay').value = selectedOpt.textContent;
+
                     await loadModules(q.courseId);
                     if (q.moduleId) {
                         document.getElementById('moduleIdSelect').value = q.moduleId;
@@ -1457,33 +1466,76 @@
             }
         }
 
+        async function onModuleChange() {
+            const moduleId = document.getElementById('moduleIdSelect').value;
+            if (moduleId) {
+                await loadLessons(moduleId);
+            } else {
+                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Chọn buổi --</option>';
+            }
+        }
 
-
-        async function loadQuizQuestions() {
-            const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
-            const r = await res.json();
-            if (r.status === 200) {
-                _quizQuestions = r.data.questions || [];
-
-                // Band Consistency Check
-                if (_quizQuestions.length > 0) {
-                    _quizBand = _quizQuestions[0].cefrLevel;
-                    const cefrSelect = document.getElementById('modalCefr');
-                    if (cefrSelect) {
-                        cefrSelect.value = _quizBand;
-                        cefrSelect.disabled = true;
-                    }
+        async function loadLessons(moduleId) {
+            const select = document.getElementById('lessonIdSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Đang tải... --</option>';
+            try {
+                const res = await fetch('/api/v1/expert/lessons?moduleId=' + moduleId);
+                const result = await res.json();
+                if (result.status === 200 && result.data) {
+                    let html = '<option value="">-- Chọn buổi --</option>';
+                    result.data.forEach(l => {
+                        html += `<option value="${l.lessonId}">${l.lessonName}</option>`;
+                    });
+                    select.innerHTML = html;
                 } else {
-                    _quizBand = null;
-                    const cefrSelect = document.getElementById('modalCefr');
-                    if (cefrSelect) {
-                        cefrSelect.disabled = false;
-                    }
+                    select.innerHTML = '<option value="">-- Không có buổi học --</option>';
+                }
+            } catch (e) {
+                console.error("[loadLessons] Exception:", e);
+                select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
+            }
+        }
+
+        async function loadQuizQuestions(preFetchedData = null, skipBankReload = false) {
+            try {
+                let data = preFetchedData;
+                if (!data) {
+                    const res = await fetch(`/api/v1/expert/quizzes/${quizId}`);
+                    const r = await res.json();
+                    data = r.data;
                 }
 
-                renderAddedQuestions();
-                loadBankQuestions(_currentBankPage);
-            }
+                if (data) {
+                    _quizQuestions = data.questions || [];
+
+                    // Band Consistency Check
+                    if (data.overallBand) {
+                        _quizBand = parseFloat(data.overallBand).toFixed(1);
+                    } else if (_quizQuestions.length > 0) {
+                        _quizBand = _quizQuestions[0].cefrLevel;
+                    } else {
+                        _quizBand = null;
+                    }
+
+                    const cefrSelect = document.getElementById('modalCefr');
+                    if (cefrSelect) {
+                        if (_quizBand) {
+                            cefrSelect.value = _quizBand;
+                            cefrSelect.disabled = true;
+                        } else {
+                            cefrSelect.disabled = false;
+                        }
+                    }
+
+                    renderAddedQuestions();
+                    if (!skipBankReload) {
+                        loadBankQuestions(_currentBankPage);
+                    } else {
+                        renderBankQuestions(_lastBankResult);
+                    }
+                }
+            } catch (e) { console.error(e); }
         }
 
         function toggleGroup(groupId) {
@@ -1584,8 +1636,9 @@
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${quizId}/groups/${groupId}`, { method: 'DELETE' });
                 if (res.ok) {
+                    const r = await res.json();
                     Toast.fire({ icon: 'success', title: 'Đã gỡ bộ câu hỏi' });
-                    loadQuizQuestions();
+                    loadQuizQuestions(r.data, true);
                 } else {
                     const r = await res.json();
                     Swal.fire('Lỗi', r.message || 'Không thể gỡ bộ câu hỏi', 'error');
@@ -1724,7 +1777,7 @@
                 const r = await res.json();
                 if (res.ok) {
                     Toast.fire({ icon: 'success', title: 'Đã thêm thành công' });
-                    await loadQuizQuestions();
+                    loadQuizQuestions(r.data, true);
                 } else {
                     Swal.fire('Lỗi', r.message || 'Không thể thêm câu hỏi', 'error');
                 }
@@ -1739,8 +1792,9 @@
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${quizId}/questions/${id}`, { method: 'DELETE' });
                 if (res.ok) {
+                    const r = await res.json();
                     Toast.fire({ icon: 'success', title: 'Đã gỡ câu hỏi' });
-                    loadQuizQuestions();
+                    loadQuizQuestions(r.data, true);
                 } else {
                     const r = await res.json();
                     Swal.fire('Lỗi', r.message || 'Không thể gỡ câu hỏi', 'error');
@@ -1771,8 +1825,9 @@
             if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (%)', 'info'); return false; }
 
             const overallBand = document.getElementById('overallBand').value;
-            if (overallBand && (parseFloat(overallBand) < 0 || parseFloat(overallBand) > 9)) {
-                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm phải nằm trong khoảng từ 0 đến 9.0.' });
+            if (!overallBand) { Swal.fire('Thông báo', 'Vui lòng nhập Band điểm tối đa', 'info'); return false; }
+            if (parseFloat(overallBand) < 3.0 || parseFloat(overallBand) > 9.0) {
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm phải nằm trong khoảng từ 3.0 đến 9.0.' });
                 return false;
             }
 
@@ -2207,7 +2262,7 @@
 
         // --- TTS & Format Helpers ---
         function wsSpeak(idx) {
-            wsStop(idx);
+            wsStopAll();
             const q = _generatedAiQuestions[idx]; if (!q) return;
             let text = q.transcript || q.passage || q.groupContent || q.questionContent || q.content;
             if (typeof text === 'object') {
@@ -2238,6 +2293,10 @@
 
         function wsStop(idx) {
             window.speechSynthesis.cancel();
+            if (window._currentAudio) {
+                window._currentAudio.pause();
+                window._currentAudio.currentTime = 0;
+            }
             const btnPlay = document.getElementById('btn-play-' + idx);
             const btnStop = document.getElementById('btn-stop-' + idx);
             if (btnPlay) btnPlay.style.display = 'inline-block';
@@ -2321,16 +2380,27 @@
         // Sub-functions for Rendering to keep it clean
         function renderEditSingleQuestion(idx, q) {
             const opts = q.options || q.answers || [];
+            let answersHtml = '';
+            if (q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                answersHtml = opts.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <span class="input-group-text"><input type="${q.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="ws-edit-opt-corr-${idx}" ${o.correct || o.isCorrect ? 'checked' : ''} id="ws-edit-opt-corr-${idx}-${optIdx}"></span>
+                        <input type="text" class="form-control" id="ws-edit-opt-txt-${idx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
+                    </div>
+                `).join('');
+            } else {
+                answersHtml = `
+                    <div class="mb-2">
+                        <label class="small fw-bold">Đáp án đúng:</label>
+                        <input type="text" class="form-control form-control-sm" id="ws-edit-correct-ans-${idx}" value="${escapeHtml(q.correctAnswer || '')}">
+                    </div>`;
+            }
+
             return `
             <div class="list-group-item p-4 mb-2 rounded-3 border border-primary bg-white shadow-sm">
                 <div class="fw-bold text-primary mb-2"><i class="bi bi-pencil-square me-1"></i>Sửa câu hỏi lẻ</div>
                 <textarea class="form-control form-control-sm mb-2" id="ws-edit-content-${idx}" rows="2">${escapeHtml(q.content || q.questionContent)}</textarea>
-                ${opts.map((o, optIdx) => `
-                    <div class="input-group input-group-sm mb-1">
-                        <span class="input-group-text"><input type="radio" name="ws-edit-opt-corr-${idx}" ${o.correct || o.isCorrect ? 'checked' : ''} id="ws-edit-opt-corr-${idx}-${optIdx}"></span>
-                        <input type="text" class="form-control" id="ws-edit-opt-txt-${idx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
-                    </div>
-                `).join('')}
+                ${answersHtml}
                 <div class="mt-3 text-end">
                     <button class="btn btn-sm btn-light rounded-pill px-3" onclick="_generatedAiQuestions[${idx}]._isEditing=false; wsRenderAiResults()">Hủy</button>
                     <button class="btn btn-sm btn-primary rounded-pill px-3 ms-2" onclick="wsSaveEditSingleQ(${idx})">Lưu lại</button>
@@ -2340,19 +2410,34 @@
 
         function renderViewSingleQuestion(idx, q) {
             const opts = q.options || q.answers || [];
+            let ansHtml = '';
+            if (opts.length > 0) {
+                ansHtml = `<div class="ps-3 border-start">
+                    ${opts.map(o => `<div class="small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">• ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
+                </div>`;
+            } else if (q.correctAnswer) {
+                ansHtml = `<div class="ps-3 border-start border-success">
+                    <div class="small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</div>
+                </div>`;
+            }
+
             return `
             <div class="list-group-item p-3 mb-2 rounded-3 border ${q._selected ? 'bg-light-subtle' : ''}">
                 <div class="d-flex gap-3">
                     <div class="form-check mt-1"><input class="form-check-input ws-ai-cb" type="checkbox" value="${idx}" ${q._selected ? 'checked' : ''} onchange="wsUpdateAiSelection()"></div>
                     <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="d-flex justify-content-between mb-2 align-items-center">
                             <span class="badge bg-light text-dark border small">${typeName(q.questionType)}</span>
-                            <button class="btn btn-sm btn-link text-secondary p-0" onclick="_generatedAiQuestions[${idx}]._isEditing=true; wsRenderAiResults()"><i class="bi bi-pencil"></i></button>
+                            <div class="d-flex gap-1">
+                                ${(q.skill && q.skill.toUpperCase() === 'LISTENING') ? `
+                                    <button id="btn-play-${idx}" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0" onclick="wsSpeak(${idx})"><i class="bi bi-play-fill"></i> Nghe</button>
+                                    <button id="btn-stop-${idx}" class="btn btn-xs btn-danger rounded-pill px-2 py-0" style="display:none;" onclick="wsStop(${idx})"><i class="bi bi-stop-fill"></i> Dừng</button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-link text-secondary p-0" onclick="_generatedAiQuestions[${idx}]._isEditing=true; wsRenderAiResults()"><i class="bi bi-pencil"></i></button>
+                            </div>
                         </div>
                         <div class="fw-medium text-dark mb-2">${escapeHtml(q.content || q.questionContent)}</div>
-                        <div class="ps-3 border-start">
-                            ${opts.map(o => `<div class="small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">• ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
-                        </div>
+                        ${ansHtml}
                     </div>
                 </div>
             </div>`;
@@ -2360,30 +2445,50 @@
 
         function renderViewSubQuestion(idx, sIdx, subQ) {
             const opts = subQ.options || subQ.answers || [];
+            let ansHtml = '';
+            if (opts.length > 0) {
+                ansHtml = `<div class="ps-2 mt-1">
+                    ${opts.map(o => `<div class="extra-small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">- ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
+                </div>`;
+            } else if (subQ.correctAnswer) {
+                ansHtml = `<div class="ps-2 mt-1">
+                    <div class="extra-small text-success fw-bold">- Đáp án: ${escapeHtml(subQ.correctAnswer)}</div>
+                </div>`;
+            }
+
             return `
             <div class="p-3 border rounded-3 bg-white shadow-sm mb-1">
                 <div class="d-flex justify-content-between">
                     <div class="fw-bold small text-dark">${sIdx + 1}. ${escapeHtml(subQ.content || subQ.questionContent)}</div>
                     <button class="btn btn-sm btn-link text-secondary p-0" onclick="_generatedAiQuestions[${idx}].questions[${sIdx}]._isEditing=true; wsRenderAiResults()"><i class="bi bi-pencil"></i></button>
                 </div>
-                <div class="ps-2 mt-1">
-                    ${opts.map(o => `<div class="extra-small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">- ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
-                </div>
+                ${ansHtml}
             </div>`;
         }
 
         function renderEditSubQuestion(idx, sIdx, subQ) {
             const opts = subQ.options || subQ.answers || [];
+            let answersHtml = '';
+            if (subQ.questionType === 'MULTIPLE_CHOICE_SINGLE' || subQ.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                answersHtml = opts.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <span class="input-group-text"><input type="${subQ.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="ws-edit-gopt-corr-${idx}-${sIdx}" ${o.correct || o.isCorrect ? 'checked' : ''} id="ws-edit-gopt-corr-${idx}-${sIdx}-${optIdx}"></span>
+                        <input type="text" class="form-control" id="ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
+                    </div>
+                `).join('');
+            } else {
+                answersHtml = `
+                    <div class="mb-2">
+                        <label class="small fw-bold">Đáp án đúng:</label>
+                        <input type="text" class="form-control form-control-sm" id="ws-edit-g-correct-ans-${idx}-${sIdx}" value="${escapeHtml(subQ.correctAnswer || '')}">
+                    </div>`;
+            }
+
             return `
             <div class="p-3 border border-primary rounded-3 bg-white mb-2 shadow-sm">
                 <div class="fw-bold text-primary small mb-1">Sửa câu ${sIdx + 1}</div>
                 <input type="text" class="form-control form-control-sm mb-2" id="ws-edit-gq-content-${idx}-${sIdx}" value="${escapeHtml(subQ.content || subQ.questionContent)}">
-                ${opts.map((o, optIdx) => `
-                    <div class="input-group input-group-sm mb-1">
-                        <span class="input-group-text"><input type="radio" name="ws-edit-gopt-corr-${idx}-${sIdx}" ${o.correct || o.isCorrect ? 'checked' : ''} id="ws-edit-gopt-corr-${idx}-${sIdx}-${optIdx}"></span>
-                        <input type="text" class="form-control" id="ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
-                    </div>
-                `).join('')}
+                ${answersHtml}
                 <div class="mt-2 text-end">
                     <button class="btn btn-sm btn-light rounded-pill px-2" onclick="_generatedAiQuestions[${idx}].questions[${sIdx}]._isEditing=false; wsRenderAiResults()">Hủy</button>
                     <button class="btn btn-sm btn-primary rounded-pill px-3 ms-1" onclick="wsSaveEditGroupQ(${idx}, ${sIdx})">OK</button>
@@ -2397,13 +2502,17 @@
             const content = document.getElementById(`ws-edit-content-${idx}`).value;
             if (q.content !== undefined) q.content = content; else q.questionContent = content;
 
-            const opts = q.options || q.answers || [];
-            opts.forEach((o, optIdx) => {
-                const txt = document.getElementById(`ws-edit-opt-txt-${idx}-${optIdx}`).value;
-                const corr = document.getElementById(`ws-edit-opt-corr-${idx}-${optIdx}`).checked;
-                if (o.title !== undefined) o.title = txt; else o.answerText = txt;
-                if (o.correct !== undefined) o.correct = corr; else o.isCorrect = corr;
-            });
+            if (q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                const opts = q.options || q.answers || [];
+                opts.forEach((o, optIdx) => {
+                    const txt = document.getElementById(`ws-edit-opt-txt-${idx}-${optIdx}`).value;
+                    const corr = document.getElementById(`ws-edit-opt-corr-${idx}-${optIdx}`).checked;
+                    if (o.title !== undefined) o.title = txt; else o.answerText = txt;
+                    if (o.correct !== undefined) o.correct = corr; else o.isCorrect = corr;
+                });
+            } else {
+                q.correctAnswer = document.getElementById(`ws-edit-correct-ans-${idx}`).value;
+            }
             q._isEditing = false;
             wsRenderAiResults();
         };
@@ -2413,13 +2522,17 @@
             const content = document.getElementById(`ws-edit-gq-content-${idx}-${sIdx}`).value;
             if (subQ.content !== undefined) subQ.content = content; else subQ.questionContent = content;
 
-            const opts = subQ.options || subQ.answers || [];
-            opts.forEach((o, optIdx) => {
-                const txt = document.getElementById(`ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}`).value;
-                const corr = document.getElementById(`ws-edit-gopt-corr-${idx}-${sIdx}-${optIdx}`).checked;
-                if (o.title !== undefined) o.title = txt; else o.answerText = txt;
-                if (o.correct !== undefined) o.correct = corr; else o.isCorrect = corr;
-            });
+            if (subQ.questionType === 'MULTIPLE_CHOICE_SINGLE' || subQ.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                const opts = subQ.options || subQ.answers || [];
+                opts.forEach((o, optIdx) => {
+                    const txt = document.getElementById(`ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}`).value;
+                    const corr = document.getElementById(`ws-edit-gopt-corr-${idx}-${sIdx}-${optIdx}`).checked;
+                    if (o.title !== undefined) o.title = txt; else o.answerText = txt;
+                    if (o.correct !== undefined) o.correct = corr; else o.isCorrect = corr;
+                });
+            } else {
+                subQ.correctAnswer = document.getElementById(`ws-edit-g-correct-ans-${idx}-${sIdx}`).value;
+            }
             subQ._isEditing = false;
             wsRenderAiResults();
         };
@@ -2465,8 +2578,9 @@
                 });
 
                 if (res.ok) {
+                    const result = await res.json();
                     if (wsAiResultModal) wsAiResultModal.hide();
-                    loadQuizQuestions();
+                    loadQuizQuestions(result.data, true);
                     _aiCurrentGroup = null;
                     _generatedAiQuestions = [];
                     Toast.fire({ icon: 'success', title: 'Đã nhập câu hỏi AI thành công!' });
@@ -2486,10 +2600,44 @@
 
         function wsSpeakGroup() {
             if (_aiCurrentGroup && _aiCurrentGroup.audioUrl) {
-                if (window._currentAudio) window._currentAudio.pause();
-                window._currentAudio = new Audio(_aiCurrentGroup.audioUrl);
-                window._currentAudio.play();
+                wsStopAll();
+                const audio = new Audio(_aiCurrentGroup.audioUrl);
+                window._currentAudio = audio;
+
+                const btnPlay = document.getElementById('btn-play-group');
+                const btnStop = document.getElementById('btn-stop-group');
+
+                if (btnPlay) btnPlay.style.display = 'none';
+                if (btnStop) btnStop.style.display = 'inline-block';
+
+                audio.play();
+                audio.onended = () => {
+                    wsStopGroup();
+                };
             }
+        }
+
+        function wsStopGroup() {
+            if (window._currentAudio) {
+                window._currentAudio.pause();
+                window._currentAudio.currentTime = 0;
+            }
+            const btnPlay = document.getElementById('btn-play-group');
+            const btnStop = document.getElementById('btn-stop-group');
+            if (btnPlay) btnPlay.style.display = 'inline-block';
+            if (btnStop) btnStop.style.display = 'none';
+        }
+
+        function wsStopAll() {
+            window.speechSynthesis.cancel();
+            if (window._currentAudio) {
+                window._currentAudio.pause();
+                window._currentAudio.currentTime = 0;
+            }
+            // Hide all stop buttons
+            document.querySelectorAll('[id^="btn-stop-"]').forEach(btn => btn.style.display = 'none');
+            // Show all play buttons
+            document.querySelectorAll('[id^="btn-play-"]').forEach(btn => btn.style.display = 'inline-block');
         }
 
         function escapeHtml(text) {
@@ -2510,6 +2658,30 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Tắt tiếng khi đóng modal AI
+            const aiGenModalEl = document.getElementById('aiGenerateModal');
+            const aiResultModalEl = document.getElementById('wsAiResultModal');
+            
+            if (aiGenModalEl) {
+                aiGenModalEl.addEventListener('hidden.bs.modal', () => {
+                    window.speechSynthesis.cancel();
+                    if (window._currentAudio) {
+                        window._currentAudio.pause();
+                        window._currentAudio.currentTime = 0;
+                    }
+                });
+            }
+            
+            if (aiResultModalEl) {
+                aiResultModalEl.addEventListener('hidden.bs.modal', () => {
+                    window.speechSynthesis.cancel();
+                    if (window._currentAudio) {
+                        window._currentAudio.pause();
+                        window._currentAudio.currentTime = 0;
+                    }
+                });
+            }
+
             if (window.NovaQuestionFormSettings) {
                 NovaQuestionFormSettings.load().then(() => {
                     // Cập nhật các dropdown nếu có

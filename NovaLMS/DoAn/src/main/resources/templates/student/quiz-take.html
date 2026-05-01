@@ -642,6 +642,20 @@ function buildAnswer(q) {
 ══════════════════════════════════════════════ */
 function activateSkill(idx) {
   if (idx < 0 || idx >= ES.skills.length) return;
+
+  /* Stop current audio/speech when switching skills */
+  if (window._wsCurrentAudio) {
+      window._wsCurrentAudio.pause();
+      window._wsCurrentAudio = null;
+  }
+  if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+  }
+  if (window._wsCurrentBtn) {
+      wsResetAudioBtn(window._wsCurrentBtn);
+      window._wsCurrentBtn = null;
+  }
+
   ES.currentIdx = idx;
   const skill = ES.skills[idx];
 

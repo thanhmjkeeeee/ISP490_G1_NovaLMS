@@ -1262,7 +1262,7 @@ function matchingPreviewHtml(q) {
 }
 
 function wsSpeak(idx) {
-    wsStop(idx);
+    wsStopAll();
     const q = _generatedAiQuestions[idx]; if (!q) return;
     let text = q.transcript || q.passage || q.groupContent || q.content;
     if (typeof text === 'object') {
@@ -1297,12 +1297,56 @@ function wsSpeak(idx) {
 
 function wsStop(idx) {
     window.speechSynthesis.cancel();
+    if (window._currentAudio) {
+        window._currentAudio.pause();
+        window._currentAudio.currentTime = 0;
+    }
     const btnPlay = document.getElementById('btn-play-' + idx);
     const btnStop = document.getElementById('btn-stop-' + idx);
     const progress = document.getElementById('tts-progress-' + idx);
     if (btnPlay) btnPlay.style.display = 'inline-block';
     if (btnStop) btnStop.style.display = 'none';
     if (progress) progress.parentElement.style.display = 'none';
+}
+
+function wsSpeakGroup() {
+    if (_aiCurrentGroup && _aiCurrentGroup.audioUrl) {
+        wsStopAll();
+        const audio = new Audio(_aiCurrentGroup.audioUrl);
+        window._currentAudio = audio;
+        
+        const btnPlay = document.getElementById('btn-play-group');
+        const btnStop = document.getElementById('btn-stop-group');
+        
+        if (btnPlay) btnPlay.style.display = 'none';
+        if (btnStop) btnStop.style.display = 'inline-block';
+        
+        audio.play();
+        audio.onended = () => {
+            wsStopGroup();
+        };
+    }
+}
+
+function wsStopGroup() {
+    if (window._currentAudio) {
+        window._currentAudio.pause();
+        window._currentAudio.currentTime = 0;
+    }
+    const btnPlay = document.getElementById('btn-play-group');
+    const btnStop = document.getElementById('btn-stop-group');
+    if (btnPlay) btnPlay.style.display = 'inline-block';
+    if (btnStop) btnStop.style.display = 'none';
+}
+
+function wsStopAll() {
+    window.speechSynthesis.cancel();
+    if (window._currentAudio) {
+        window._currentAudio.pause();
+        window._currentAudio.currentTime = 0;
+    }
+    document.querySelectorAll('[id^="btn-stop-"]').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('[id^="btn-play-"]').forEach(btn => btn.style.display = 'inline-block');
 }
 
 
@@ -1332,6 +1376,12 @@ function wsRenderAiResults() {
                         </div>
                         <span class="fw-bold text-primary">Nội dung (Passage/Transcript):</span>
                     </div>
+                    ${_aiCurrentGroup.audioUrl ? `
+                        <div>
+                            <button id="btn-play-group" class="btn btn-sm btn-primary rounded-pill px-3" onclick="wsSpeakGroup()"><i class="bi bi-play-fill"></i> Nghe hội thoại</button>
+                            <button id="btn-stop-group" class="btn btn-sm btn-danger rounded-pill px-3" style="display:none;" onclick="wsStopGroup()"><i class="bi bi-stop-fill"></i> Dừng</button>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="bg-white rounded-4 p-4 border border-primary border-opacity-25 shadow-inner" style="max-height: 400px; overflow-y: auto; line-height: 1.7; font-size: 0.95rem; color: #334155; white-space: pre-wrap;">
                     ${wsFormatTranscript(_aiCurrentGroup.passage)}
@@ -1364,7 +1414,7 @@ function wsRenderAiResults() {
                 editFieldsHtml += '</div></div><div class="small text-danger mt-1 fst-italic">* Nếu AI gen gộp đáp án vào nội dung, hãy Cắt/Dán xuống các ô này.</div>';
             }
             // Form sửa cho TRẮC NGHIỆM
-            else {
+            else if (q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
                 const opts = q.options || q.answers || [];
                 if (opts.length > 0) {
                     editFieldsHtml += '<div class="mt-2"><label class="small fw-bold">Các đáp án:</label>' + opts.map((o, optIdx) => `
@@ -1376,6 +1426,12 @@ function wsRenderAiResults() {
                         </div>
                     `).join('') + '</div>';
                 }
+            } else {
+                editFieldsHtml += `
+                    <div class="mt-2">
+                        <label class="small fw-bold">Đáp án đúng:</label>
+                        <input type="text" class="form-control form-control-sm" id="ws-edit-correct-ans-${idx}" value="${escapeHtml(q.correctAnswer || '')}">
+                    </div>`;
             }
 
             let qContentEdit = `<textarea class="form-control form-control-sm mb-2" id="ws-edit-content-${idx}" rows="3">${escapeHtml(q.content || q.questionContent)}</textarea>`;
@@ -1406,6 +1462,10 @@ function wsRenderAiResults() {
                         ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
                     });
                     ansHtml += '</div>';
+                } else if (q.correctAnswer) {
+                    ansHtml = `<div class="mt-2 ps-3 border-start border-2 border-success border-opacity-25">
+                        <div class="small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</div>
+                    </div>`;
                 }
             }
 
@@ -1460,7 +1520,7 @@ window.wsSaveEditSingleQ = function(idx) {
 
             const rightInputs = document.querySelectorAll(`.ws-edit-match-right-${idx}`);
             if (rightInputs.length > 0) q.matchRight = Array.from(rightInputs).map(inp => inp.value);
-        } else {
+        } else if (q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
             const opts = q.options || q.answers || [];
             opts.forEach((o, optIdx) => {
                 const txtEl = document.getElementById(`ws-edit-opt-txt-${idx}-${optIdx}`);
@@ -1474,6 +1534,9 @@ window.wsSaveEditSingleQ = function(idx) {
                     else o.isCorrect = chkEl.checked;
                 }
             });
+        } else {
+            const caEl = document.getElementById(`ws-edit-correct-ans-${idx}`);
+            if (caEl) q.correctAnswer = caEl.value;
         }
 
         q._isEditing = false;
@@ -1554,6 +1617,38 @@ async function wsImportSelectedAiToBank() {
         spinner.style.display = 'none';
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Tắt tiếng khi đóng modal AI
+    const aiGenModalEl = document.getElementById('aiGenerateModal');
+    const aiResultModalEl = document.getElementById('wsAiResultModal');
+    
+    if (aiGenModalEl) {
+        aiGenModalEl.addEventListener('hidden.bs.modal', () => {
+            window.speechSynthesis.cancel();
+            if (window._currentAudio) {
+                window._currentAudio.pause();
+                window._currentAudio.currentTime = 0;
+            }
+            if (typeof wsStop === 'function') {
+                for (let i = 0; i < 50; i++) wsStop(i);
+            }
+        });
+    }
+    
+    if (aiResultModalEl) {
+        aiResultModalEl.addEventListener('hidden.bs.modal', () => {
+            window.speechSynthesis.cancel();
+            if (window._currentAudio) {
+                window._currentAudio.pause();
+                window._currentAudio.currentTime = 0;
+            }
+            if (typeof wsStop === 'function') {
+                for (let i = 0; i < 50; i++) wsStop(i);
+            }
+        });
+    }
+});
 
 </script>
 </body>

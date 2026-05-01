@@ -45,7 +45,7 @@ public class AIQuestionPromptBuilder {
                 - Every question must have: content (The question text), transcript (REQUIRED for LISTENING skill: a natural dialogue between 2-3 characters with SPECIFIC English names like 'Sarah', 'Robert', 'Michael'. FORBIDDEN: 'Man', 'Woman', 'Speaker', 'A', 'B'. Each line MUST start with 'Name [Male/Female]: ...', e.g., 'Robert [Male]: Hello!\\nSarah [Female]: Hi!'), questionType, skill, cefrLevel (IELTS Band), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
-                - FILL_IN_BLANK: content contains "___", correctAnswer is the answer (For LISTENING, focus on short 1-3 word answers or numbers)
+                - FILL_IN_BLANK: content MUST be a complete sentence with a "___" gap (e.g. "The capital of France is ___."). DO NOT phrase it as a question ending in "?". correctAnswer is the single word or phrase that fills the blank.
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index order)
                 - WRITING, SPEAKING: no options needed
 
@@ -97,7 +97,7 @@ public class AIQuestionPromptBuilder {
                 - Every question must have: content, transcript (REQUIRED for LISTENING skill: a natural dialogue between 2-3 characters with REAL English names like 'Emily', 'David', 'Chris'. FORBIDDEN: 'Man', 'Woman', 'Speaker'. Each line MUST start with 'Name [Male/Female]: ...', e.g., 'David [Male]: Welcome...'), questionType, skill, cefrLevel (IELTS Band), topic, explanation (can be null)
                 - MULTIPLE_CHOICE_SINGLE: 4 options, each with "title" (ENGLISH text) and "correct" (true/false), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, each with "title" (ENGLISH text) and "correct", 2-3 correct = true
-                - FILL_IN_BLANK: content contains "___", correctAnswer is the answer
+                - FILL_IN_BLANK: content MUST be a sentence with a "___" gap. DO NOT use question marks "?". correctAnswer is the answer.
                 - MATCHING: matchLeft (3-5 English words), matchRight (3-5 English meanings), correctPairs (1-based index)
 
                 Return ONLY a JSON array, no other text.
@@ -350,7 +350,7 @@ public class AIQuestionPromptBuilder {
                 Question type specifics:
                 - MULTIPLE_CHOICE_SINGLE: 4 options (ENGLISH text), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, 2-3 correct = true (but not all)
-                - FILL_IN_BLANK: content contains "___", correctAnswer required (For LISTENING, focus on short 1-3 word answers or numbers)
+                - FILL_IN_BLANK: content MUST be a sentence with a "___" gap. DO NOT phrase as a question with "?". correctAnswer required.
                 - MATCHING: matchLeft (3-5 items), matchRight (3-5 items), correctPairs (1-based index array). See CRITICAL RULE below.
                 - WRITING, SPEAKING: no options needed
 
@@ -542,7 +542,7 @@ public class AIQuestionPromptBuilder {
                 Question type specifics:
                 - MULTIPLE_CHOICE_SINGLE: 4 options (ENGLISH text), exactly 1 correct = true
                 - MULTIPLE_CHOICE_MULTI: 4 options, 2-3 correct = true (but not all)
-                - FILL_IN_BLANK: content contains "___", correctAnswer required (For LISTENING, focus on short 1-3 word answers or numbers)
+                - FILL_IN_BLANK: content MUST be a sentence with a "___" gap. DO NOT phrase as a question with "?". correctAnswer required.
                 - MATCHING: matchLeft (3-5 items), matchRight (3-5 items), correctPairs (1-based index array). See CRITICAL RULE below.
                 - WRITING, SPEAKING: no options needed
 
