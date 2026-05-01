@@ -207,8 +207,6 @@
                 <ul class="list-unstyled mb-0">
                   <li class="mb-2 d-flex align-items-center"><i class="bi bi-collection-play me-3 text-primary"></i> <span th:text="${(course.curriculum != null ? #lists.size(course.curriculum) : 0) + ' Chương mục'}">0 Modules</span></li>
                   <li class="mb-2 d-flex align-items-center"><i class="bi bi-infinity me-3 text-primary"></i> <span>Truy cập trọn đời</span></li>
-                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-phone me-3 text-primary"></i> <span>Học trên di động & TV</span></li>
-                  <li class="mb-2 d-flex align-items-center"><i class="bi bi-trophy me-3 text-primary"></i> <span>Giấy chứng nhận hoàn thành</span></li>
                   <li class="mb-2 d-flex align-items-center"><i class="bi bi-people me-3 text-primary"></i> <span th:text="${(course.studentCount ?: 0) + ' Học viên đã tham gia'}">0</span></li>
                 </ul>
               </div>
