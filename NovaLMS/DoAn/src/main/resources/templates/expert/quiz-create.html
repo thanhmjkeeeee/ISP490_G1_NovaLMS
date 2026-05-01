@@ -220,6 +220,36 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(19, 106, 213, 0.2);
         }
+
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #136ad5;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
     <script>
         // ─── CRITICAL FUNCTIONS (loaded early to prevent ReferenceError on partial renders) ───
@@ -258,7 +288,8 @@
                 // If current selected is disabled, reset to "All"
                 if (modalSkill.value && !enabledSkills.includes(modalSkill.value)) {
                     modalSkill.value = "";
-                    if (typeof loadBankQuestions === 'function') loadBankQuestions(0);
+                    // Only reload if we are currently on Step 2 (Question Selection)
+                    if (_currentStep === 2 && typeof loadBankQuestions === 'function') loadBankQuestions(0);
                 }
             }
 
@@ -406,6 +437,11 @@
     <aside th:replace="~{fragments/sidebar :: dash-overlay}"></aside>
 
     <main class="dash-main d-flex flex-column" id="dashMain">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay">
+            <div class="loader"></div>
+            <div class="mt-3 fw-bold text-primary">Đang tải dữ liệu...</div>
+        </div>
 
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
@@ -1417,27 +1453,44 @@
         let _currentStep = 1;
         let _quizId = null;
 
-        function goToStep(step) {
-            document.querySelectorAll('.quiz-step-section').forEach(s => s.style.display = 'none');
-            const section = document.getElementById('section-step-' + step);
-            if (section) section.style.display = 'block';
+        async function goToStep(step) {
+            const overlay = document.getElementById('loadingOverlay');
+            
+            // Only show overlay if we are going to do significant loading
+            let needsOverlay = (step === 2 || step === 3);
+            if (overlay && needsOverlay) overlay.style.display = 'flex';
 
-            document.querySelectorAll('.step-item').forEach((item, idx) => {
-                item.classList.remove('active', 'completed');
-                if (idx + 1 < step) item.classList.add('completed');
-                if (idx + 1 === step) item.classList.add('active');
-            });
-            _currentStep = step;
-            if (step === 2) {
-                // Sync band from input
-                const bandInput = document.getElementById('overallBand');
-                let val = (bandInput && bandInput.value) ? parseFloat(bandInput.value) : null;
-                _quizBand = (val !== null && !isNaN(val)) ? val.toFixed(1) : null;
+            try {
+                document.querySelectorAll('.quiz-step-section').forEach(s => s.style.display = 'none');
+                const section = document.getElementById('section-step-' + step);
+                if (section) section.style.display = 'block';
+
+                document.querySelectorAll('.step-item').forEach((item, idx) => {
+                    item.classList.remove('active', 'completed');
+                    if (idx + 1 < step) item.classList.add('completed');
+                    if (idx + 1 === step) item.classList.add('active');
+                });
                 
-                syncSkillFilters();
-                initStep2();
+                _currentStep = step;
+                
+                if (step === 2) {
+                    // Sync band from input
+                    const bandInput = document.getElementById('overallBand');
+                    let val = (bandInput && bandInput.value) ? parseFloat(bandInput.value) : null;
+                    _quizBand = (val !== null && !isNaN(val)) ? val.toFixed(1) : null;
+                    
+                    syncSkillFilters();
+                    // initStep2 will call loadQuizQuestions
+                    await initStep2();
+                } else if (step === 3) {
+                    await initStep3();
+                }
+            } finally {
+                if (overlay) {
+                    // Slight delay to ensure browser has rendered before hiding overlay
+                    setTimeout(() => { overlay.style.display = 'none'; }, 100);
+                }
             }
-            if (step === 3) initStep3();
         }
 
         function validateAndGoToStep2() {
@@ -1527,7 +1580,10 @@
             return map[type] || type || '—';
         }
 
-        function initStep2() { loadQuizQuestions(); loadBankQuestions(0); }
+        async function initStep2() { 
+            // Only call loadQuizQuestions with bank reload once
+            await loadQuizQuestions(null, false); 
+        }
 
         async function loadQuizQuestions(preFetchedData = null, skipBankReload = false) {
             if (!_quizId) return;
@@ -1562,13 +1618,15 @@
                     }
 
                     renderAddedQuestions();
-                    if (!skipBankReload) {
-                        loadBankQuestions(_currentBankPage);
-                    } else {
+                    
+                    // Only reload bank if specifically requested and we are on Step 2
+                    if (!skipBankReload && _currentStep === 2) {
+                        await loadBankQuestions(_currentBankPage);
+                    } else if (_lastBankResult) {
                         renderBankQuestions(_lastBankResult);
                     }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('Error loading quiz questions:', e); }
         }
 
         let _expandedGroups = new Set();
@@ -1654,6 +1712,7 @@
             } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
         }
 
+        let _lastBankParams = "";
         async function loadBankQuestions(page) {
             _currentBankPage = page;
             const params = new URLSearchParams();
@@ -1674,11 +1733,21 @@
             if (cefr) params.append('cefrLevel', cefr);
             if (keyword) params.append('keyword', keyword);
             params.append('status', 'PUBLISHED'); params.append('page', page); params.append('size', 10);
+            
+            const currentParams = params.toString();
+            // CACHE CHECK: If parameters haven't changed and we have data, just re-render
+            if (_lastBankResult && currentParams === _lastBankParams) {
+                renderBankQuestions(_lastBankResult);
+                return;
+            }
+            _lastBankParams = currentParams;
+
             try {
                 const res = await fetch(`/api/v1/expert/question-bank?${params}`);
                 const result = await res.json();
-                _lastBankResult = result; renderBankQuestions(result);
-            } catch (e) { console.error(e); }
+                _lastBankResult = result; 
+                renderBankQuestions(result);
+            } catch (e) { console.error('Error loading bank questions:', e); }
         }
 
         function renderBankQuestions(result) {
@@ -1724,9 +1793,13 @@
                     }
                 }
 
-                if (qData && _quizBand && qData.cefrLevel !== _quizBand) {
-                    Swal.fire('Lỗi', `Câu hỏi này có Band ${qData.cefrLevel}, không khớp với Band ${_quizBand} của Quiz hiện tại!`, 'error');
-                    return;
+                if (qData && _quizBand) {
+                    const qBand = parseFloat(qData.cefrLevel).toFixed(1);
+                    const curBand = parseFloat(_quizBand).toFixed(1);
+                    if (qBand !== curBand) {
+                        Swal.fire('Lỗi', `Câu hỏi này có Band ${qData.cefrLevel}, không khớp với Band ${_quizBand} của Quiz hiện tại!`, 'error');
+                        return;
+                    }
                 }
 
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/questions`, {
@@ -1757,8 +1830,8 @@
 
         async function initStep3() {
             if (!_quizId) return;
-            // Đảm bảo dữ liệu câu hỏi mới nhất được nạp
-            await loadQuizQuestions();
+            // Fetch latest quiz data but SKIP bank reload (not needed for preview)
+            await loadQuizQuestions(null, true);
             initPreview();
         }
 

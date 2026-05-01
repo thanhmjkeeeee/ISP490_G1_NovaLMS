@@ -3,6 +3,12 @@
     th:with="isDashboard=true">
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Nội dung khóa học')}"></head>
+<style>
+    button:disabled {
+        cursor: not-allowed !important;
+        opacity: 0.7;
+    }
+</style>
 
 <body class="dashboard-body">
 
@@ -537,10 +543,15 @@
             var moduleName = document.getElementById('moduleName').value.trim();
             var orderStr = document.getElementById('moduleOrder').value.trim();
             var errorEl = document.getElementById('moduleError');
+            var btn = document.getElementById('moduleSaveBtn');
 
             if (!moduleName) {
                 errorEl.textContent = 'Tên chương không được để trống.'; errorEl.style.display = 'block'; return;
             }
+
+            btn.disabled = true;
+            var originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
             var body = {
                 courseId: COURSE_ID, moduleName: moduleName,
@@ -563,7 +574,12 @@
                 } else {
                     errorEl.textContent = result.message || 'Lỗi lưu chương.'; errorEl.style.display = 'block';
                 }
-            } catch (e) { errorEl.textContent = 'Lỗi: ' + e.message; errorEl.style.display = 'block'; }
+            } catch (e) { 
+                errorEl.textContent = 'Lỗi: ' + e.message; errorEl.style.display = 'block'; 
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         }
 
         async function deleteModule(moduleId) {
@@ -771,56 +787,61 @@
             var errorEl = document.getElementById('lessonError');
             var docFile = document.getElementById('lessonDocFile').files[0];
             var savedDocUrl = document.getElementById('uploadedDocUrl').value;
+            var btn = document.getElementById('lessonSaveBtn');
 
             if (!lessonName) { errorEl.textContent = 'Tên bài học không được để trống.'; errorEl.style.display = 'block'; return; }
             if (type === 'VIDEO' && !videoUrl) { errorEl.textContent = 'Video URL là bắt buộc khi loại là Video.'; errorEl.style.display = 'block'; return; }
             if (type === 'DOC' && !contentText) { errorEl.textContent = 'Nội dung mô tả là bắt buộc khi loại là Tài liệu.'; errorEl.style.display = 'block'; return; }
 
-            // If there's a new file to upload
-            if (type === 'DOC' && docFile) {
-                var statusEl = document.getElementById('docUploadStatus');
-                statusEl.style.display = 'block';
-                statusEl.className = 'small mt-1 text-primary';
-                statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tải tài liệu lên...';
+            btn.disabled = true;
+            var originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
-                var formData = new FormData();
-                formData.append('file', docFile);
+            try {
+                // If there's a new file to upload
+                if (type === 'DOC' && docFile) {
+                    var statusEl = document.getElementById('docUploadStatus');
+                    statusEl.style.display = 'block';
+                    statusEl.className = 'small mt-1 text-primary';
+                    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tải tài liệu lên...';
 
-                try {
-                    var uploadRes = await fetch('/api/v1/upload/document', { method: 'POST', body: formData });
-                    var uploadResult = await uploadRes.json();
-                    if (uploadResult.status === 200) {
-                        savedDocUrl = uploadResult.data;
-                        statusEl.className = 'small mt-1 text-success';
-                        statusEl.innerHTML = '<i class="bi bi-check-circle me-1"></i> Tải lên thành công.';
-                    } else {
-                        errorEl.textContent = 'Lỗi upload tài liệu: ' + uploadResult.message;
+                    var formData = new FormData();
+                    formData.append('file', docFile);
+
+                    try {
+                        var uploadRes = await fetch('/api/v1/upload/document', { method: 'POST', body: formData });
+                        var uploadResult = await uploadRes.json();
+                        if (uploadResult.status === 200) {
+                            savedDocUrl = uploadResult.data;
+                            statusEl.className = 'small mt-1 text-success';
+                            statusEl.innerHTML = '<i class="bi bi-check-circle me-1"></i> Tải lên thành công.';
+                        } else {
+                            errorEl.textContent = 'Lỗi upload tài liệu: ' + uploadResult.message;
+                            errorEl.style.display = 'block';
+                            statusEl.style.display = 'none';
+                            return;
+                        }
+                    } catch (e) {
+                        errorEl.textContent = 'Lỗi kết nối upload: ' + e.message;
                         errorEl.style.display = 'block';
                         statusEl.style.display = 'none';
                         return;
                     }
-                } catch (e) {
-                    errorEl.textContent = 'Lỗi kết nối upload: ' + e.message;
-                    errorEl.style.display = 'block';
-                    statusEl.style.display = 'none';
-                    return;
                 }
-            }
 
-            var body = {
-                moduleId: _activeModuleId,
-                lessonName: lessonName,
-                type: type,
-                videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
-                contentText: type === 'VIDEO' ? videoDesc : (type === 'DOC' ? contentText : null),
-                allowDownload: document.getElementById('lessonAllowDownload').checked,
-                orderIndex: orderStr ? parseInt(orderStr) : null
-            };
+                var body = {
+                    moduleId: _activeModuleId,
+                    lessonName: lessonName,
+                    type: type,
+                    videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
+                    contentText: type === 'VIDEO' ? videoDesc : (type === 'DOC' ? contentText : null),
+                    allowDownload: document.getElementById('lessonAllowDownload').checked,
+                    orderIndex: orderStr ? parseInt(orderStr) : null
+                };
 
-            var method = lessonId ? 'PUT' : 'POST';
-            var url = lessonId ? '/api/v1/expert/lessons/' + lessonId : '/api/v1/expert/lessons';
+                var method = lessonId ? 'PUT' : 'POST';
+                var url = lessonId ? '/api/v1/expert/lessons/' + lessonId : '/api/v1/expert/lessons';
 
-            try {
                 var res = await fetch(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
@@ -841,7 +862,12 @@
                 } else {
                     errorEl.textContent = result.message || 'Lỗi lưu bài học.'; errorEl.style.display = 'block';
                 }
-            } catch (e) { errorEl.textContent = 'Lỗi: ' + e.message; errorEl.style.display = 'block'; }
+            } catch (e) { 
+                errorEl.textContent = 'Lỗi: ' + e.message; errorEl.style.display = 'block'; 
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         }
 
         async function deleteLesson(moduleId, lessonId) {
@@ -917,11 +943,18 @@
         async function saveModuleQuiz() {
             var moduleId = parseInt(document.getElementById('quizModuleId').value);
             var title = document.getElementById('quizTitle').value.trim();
+            var btn = document.getElementById('quizSaveBtn');
+            var errorEl = document.getElementById('quizError');
+
             if (!title) {
-                document.getElementById('quizError').textContent = 'Vui lòng nhập tên quiz.';
-                document.getElementById('quizError').style.display = 'block';
+                errorEl.textContent = 'Vui lòng nhập tên quiz.';
+                errorEl.style.display = 'block';
                 return;
             }
+
+            btn.disabled = true;
+            var originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tạo...';
 
             var body = {
                 title: title,
@@ -947,12 +980,15 @@
                     quizModal.hide();
                     loadModuleQuizzes(moduleId);
                 } else {
-                    document.getElementById('quizError').textContent = result.message || 'Lỗi khi tạo quiz.';
-                    document.getElementById('quizError').style.display = 'block';
+                    errorEl.textContent = result.message || 'Lỗi khi tạo quiz.';
+                    errorEl.style.display = 'block';
                 }
             } catch (e) {
-                document.getElementById('quizError').textContent = 'Lỗi: ' + e.message;
-                document.getElementById('quizError').style.display = 'block';
+                errorEl.textContent = 'Lỗi: ' + e.message;
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
             }
         }
 
@@ -986,11 +1022,18 @@
             var quizId = parseInt(document.getElementById('editQuizId').value);
             var moduleId = parseInt(document.getElementById('editQuizModuleId').value);
             var title = document.getElementById('editQuizTitle').value.trim();
+            var errorEl = document.getElementById('quizEditError');
+            var btn = event.currentTarget; // The button that clicked this
+
             if (!title) {
-                document.getElementById('quizEditError').textContent = 'Vui lòng nhập tên quiz.';
-                document.getElementById('quizEditError').style.display = 'block';
+                errorEl.textContent = 'Vui lòng nhập tên quiz.';
+                errorEl.style.display = 'block';
                 return;
             }
+
+            var originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
 
             var body = {
                 title: title,
@@ -1016,12 +1059,15 @@
                     quizEditModal.hide();
                     loadModuleQuizzes(moduleId);
                 } else {
-                    document.getElementById('quizEditError').textContent = result.message || 'Lỗi khi cập nhật quiz.';
-                    document.getElementById('quizEditError').style.display = 'block';
+                    errorEl.textContent = result.message || 'Lỗi khi cập nhật quiz.';
+                    errorEl.style.display = 'block';
                 }
             } catch (e) {
-                document.getElementById('quizEditError').textContent = 'Lỗi: ' + e.message;
-                document.getElementById('quizEditError').style.display = 'block';
+                errorEl.textContent = 'Lỗi: ' + e.message;
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
             }
         }
 

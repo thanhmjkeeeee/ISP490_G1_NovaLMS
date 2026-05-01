@@ -179,6 +179,19 @@
         })();
     </script>
 
+    <!-- Global Sticky Footer Logic for Public Pages -->
+    <style>
+        body:not(.dashboard-body) {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        body:not(.dashboard-body) .main {
+            flex: 1 0 auto;
+        }
+    </style>
+
     <!-- ============================================================
          DASHBOARD CSS — chỉ inject khi isDashboard = true
          isDashboard được set trong Controller:
