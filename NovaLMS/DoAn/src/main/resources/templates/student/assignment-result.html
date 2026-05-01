@@ -236,10 +236,53 @@ function renderQuestion(q, qi, isAutoGraded) {
                 <audio controls src="${cleanUrl}" class="w-100 rounded-pill"></audio>
             </div>`;
         } else {
+            let displayedAnswer = q.studentAnswer;
+            
+            if (q.studentAnswer) {
+                // Handle MATCHING question types which store answers as JSON
+                if (q.questionType === 'MATCHING') {
+                    try {
+                        const parsed = JSON.parse(q.studentAnswer);
+                        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                            let html = '<div class="matching-answers mt-2">';
+                            for (const [optId, val] of Object.entries(parsed)) {
+                                const option = q.options?.find(o => String(o.id) === String(optId));
+                                const leftText = option ? option.title : `Mục ${optId}`;
+                                html += `
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="badge bg-light text-dark border me-2" style="font-weight: 500;">${leftText}</span>
+                                        <i class="bi bi-arrow-right text-muted me-2"></i>
+                                        <span class="fw-bold text-primary">${val}</span>
+                                    </div>`;
+                            }
+                            html += '</div>';
+                            displayedAnswer = html;
+                        }
+                    } catch (e) { console.error("Error parsing matching answer:", e); }
+                }
+                // Handle MULTIPLE_CHOICE_SINGLE
+                else if (q.questionType === 'MULTIPLE_CHOICE_SINGLE') {
+                    const option = q.options?.find(o => String(o.id) === String(q.studentAnswer));
+                    if (option) displayedAnswer = option.title;
+                }
+                // Handle MULTIPLE_CHOICE_MULTI
+                else if (q.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                    try {
+                        const parsed = JSON.parse(q.studentAnswer);
+                        if (Array.isArray(parsed)) {
+                            displayedAnswer = parsed.map(id => {
+                                const option = q.options?.find(o => String(o.id) === String(id));
+                                return option ? option.title : id;
+                            }).join(', ');
+                        }
+                    } catch (e) {}
+                }
+            }
+
             answerBlock += `
             <div class="answer-block">
-                <div class="small fw-bold text-muted mb-1">Câu trả lời của bạn:</div>
-                <div class="text-dark">${q.studentAnswer}</div>
+                <div class="small fw-bold text-muted mb-2">Câu trả lời của bạn:</div>
+                <div class="text-dark">${displayedAnswer || '—'}</div>
             </div>`;
         }
     }
