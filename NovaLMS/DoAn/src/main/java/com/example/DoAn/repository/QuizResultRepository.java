@@ -94,6 +94,7 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "WHERE qr.user.email = :email " +
            "AND (:category IS NULL OR :category = 'ALL' OR q.quizCategory = :category) " +
            "AND (:keyword IS NULL OR LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "AND q.overallBand IS NOT NULL " +
            "ORDER BY qr.submittedAt DESC")
     Page<QuizResult> findByUserEmailAndCategory(
             @org.springframework.data.repository.query.Param("email") String email,

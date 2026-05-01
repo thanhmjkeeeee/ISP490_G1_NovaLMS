@@ -409,7 +409,7 @@
               <td class="text-muted" style="font-size:0.82rem;"><i class="bi bi-clock me-1"></i>${q.submittedAt}</td>
               <td class="fw-bold">
                 ${q.bandScore != null 
-                    ? `<span class="text-primary">Band ${q.bandScore}</span>` 
+                    ? `<span class="text-primary">Band ${q.bandScore} / ${(q.maxBand || 9.0).toFixed(1)}</span>` 
                     : `<span class="${scoreClass}">${scoreDisplay}</span> <span class="score-total">/ ${maxScoreDisplay}</span>`}
               </td>
               <td><span class="${q.statusClass}">${q.statusLabel}</span></td>

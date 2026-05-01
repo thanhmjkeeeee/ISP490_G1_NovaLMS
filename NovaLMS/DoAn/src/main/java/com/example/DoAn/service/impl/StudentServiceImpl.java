@@ -314,13 +314,9 @@ public class StudentServiceImpl implements StudentService {
             // Recent Quiz Scores (mapping to List<QuizScoreDTO>)
             Page<QuizResult> recentPage = quizResultRepository.findByUserEmailOrderBySubmittedAtDesc(user.getEmail(), PageRequest.of(0, 5));
             List<DashboardResponseDTO.QuizScoreDTO> recentScores = recentPage.getContent().stream()
+                    .filter(q -> q.getQuiz() != null && q.getQuiz().getOverallBand() != null)
                     .map(q -> {
-                        double totalMaxBand = 9.0;
-                        if (q.getQuiz() != null && q.getQuiz().getOverallBand() != null) {
-                            totalMaxBand = q.getQuiz().getOverallBand().doubleValue();
-                        } else if (q.getQuiz() != null && Boolean.TRUE.equals(q.getQuiz().getIsSequential())) {
-                            totalMaxBand = 9.0; // Default IELTS
-                        }
+                        double totalMaxBand = q.getQuiz().getOverallBand().doubleValue();
                         return DashboardResponseDTO.QuizScoreDTO.builder()
                             .quizName(q.getQuiz().getTitle())
                             .score(q.getScore() != null ? q.getScore().doubleValue() : 0.0)
@@ -456,15 +452,18 @@ public class StudentServiceImpl implements StudentService {
                         courseName = qr.getQuiz().getCourse().getCourseName();
                     }
 
+                    if (qr.getQuiz() == null || qr.getQuiz().getOverallBand() == null) continue;
+
                     quizHistoryList.add(DashboardResponseDTO.RecentQuizHistoryDTO.builder()
-                            .quizId(qr.getQuiz() != null ? qr.getQuiz().getQuizId() : null)
+                            .quizId(qr.getQuiz().getQuizId())
                             .resultId(qr.getResultId())
-                            .quizTitle(qr.getQuiz() != null ? qr.getQuiz().getTitle() : "Quiz")
+                            .quizTitle(qr.getQuiz().getTitle())
                             .courseName(courseName)
                             .submittedAt(qr.getSubmittedAt() != null ? qr.getSubmittedAt().format(fmt) : "")
                             .score(qr.getScore())
                             .maxScore(maxScore)
                             .bandScore(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
+                            .maxBand(qr.getQuiz().getOverallBand().doubleValue())
                             .statusLabel(statusLabel)
                             .statusClass(statusClass)
                             .iconBg(iconBg)

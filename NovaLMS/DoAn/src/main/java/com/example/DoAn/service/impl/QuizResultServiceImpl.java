@@ -737,6 +737,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .criteriaLabels(fetchCriteriaLabels((quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null)
                         ? quiz.getCourse().getLevelTag()
                         : "B2"))
+                .quizMaxBand(quiz.getOverallBand() != null ? quiz.getOverallBand().doubleValue() : 9.0)
                 .build();
     }
 

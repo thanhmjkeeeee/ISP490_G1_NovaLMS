@@ -57,6 +57,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             entityManager.createNativeQuery("DROP TEMPORARY TABLE temp_questions_to_keep").executeUpdate();
             summary.put("duplicateQuestionsDeleted", (long) deletedDuplicates);
 
+            // 4. Cleanup Quizzes and Results without overallBand (Standardization Requirement)
+            // Note: Native DELETE often requires joining for complex conditions in MySQL
+            int deletedResCount = entityManager.createNativeQuery(
+                "DELETE qr FROM quiz_result qr JOIN quiz q ON qr.quiz_id = q.quiz_id WHERE q.overall_band IS NULL"
+            ).executeUpdate();
+            
+            int deletedQuizCount = entityManager.createNativeQuery(
+                "DELETE FROM quiz WHERE overall_band IS NULL"
+            ).executeUpdate();
+            
+            summary.put("quizzesWithoutBandDeleted", (long) deletedQuizCount);
+            summary.put("resultsWithoutBandDeleted", (long) deletedResCount);
+
             log.info("System maintenance cleanup completed: {}", summary);
             return ResponseData.success("Dọn dẹp hệ thống thành công", summary);
         } catch (Exception e) {

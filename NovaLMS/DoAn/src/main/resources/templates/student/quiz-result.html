@@ -314,7 +314,10 @@
                                 <div class="overall-score-section">
                                     <span class="band-label-premium">Điểm IELTS Tổng Kết</span>
                                     <div th:if="${result.overallBand != null}">
-                                        <span class="huge-band-number" th:text="${#numbers.formatDecimal(result.overallBand, 1, 1)}">8.5</span>
+                                        <span class="huge-band-number">
+                                            <span th:text="${#numbers.formatDecimal(result.overallBand, 1, 1)}">8.5</span>
+                                            <span style="font-size: 0.4em; color: var(--text-muted); opacity: 0.6;"> / <span th:text="${#numbers.formatDecimal(result.quizMaxBand != null ? result.quizMaxBand : 9.0, 1, 1)}">9.0</span></span>
+                                        </span>
                                     </div>
                                     <div th:unless="${result.overallBand != null}">
                                         <span class="huge-band-number" th:text="${result.correctRate} + '%'">85%</span>

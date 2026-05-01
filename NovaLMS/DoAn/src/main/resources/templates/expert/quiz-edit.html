@@ -2079,6 +2079,10 @@
 
         async function doSaveDraft() {
             const b = buildUpdateBody();
+            if (!b.overallBand) {
+                Swal.fire('Thiếu thông tin', 'Vui lòng cấu hình Band điểm tối đa (3.0 - 9.0) cho bài thi này để đồng bộ hệ thống.', 'warning');
+                return;
+            }
             const res = await fetch(`/api/v1/expert/quizzes/${quizId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
             if (res.ok) {
                 const status = document.getElementById('status').value;
