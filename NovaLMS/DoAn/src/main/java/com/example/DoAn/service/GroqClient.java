@@ -23,10 +23,11 @@ import java.util.Map;
 @Service
 public class GroqClient {
 
-  private final WebClient webClient;
+  private final okhttp3.OkHttpClient httpClient;
   private final ObjectMapper mapper = new ObjectMapper();
   private final String apiKey;
   private final String aiModel;
+  private final String apiUrl;
   private final IAIPromptConfigService aiPromptConfigService;
 
   @Value("${groq.api.key:}")
@@ -36,35 +37,41 @@ public class GroqClient {
       @Value("${ai.api.key:${groq.api.key:}}") String apiKey,
       @Value("${ai.api.url:https://api.groq.com/openai/v1}") String apiUrl,
       @Value("${ai.model:${groq.model:llama-3.3-70b-versatile}}") String aiModel,
-      WebClient.Builder webClientBuilder,
       IAIPromptConfigService aiPromptConfigService) {
-    this.apiKey = apiKey;
+    // Clean key from quotes or spaces
+    this.apiKey = apiKey != null ? apiKey.trim().replace("\"", "").replace("'", "") : "";
     this.aiModel = aiModel;
     this.aiPromptConfigService = aiPromptConfigService;
-    // Ensure baseUrl doesn't include specific endpoints so .uri() works correctly
+    
+    // Normalize API URL
     String baseUrl = apiUrl.endsWith("/chat/completions")
         ? apiUrl.substring(0, apiUrl.length() - "/chat/completions".length())
         : apiUrl;
     if (baseUrl.endsWith("/"))
       baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+    this.apiUrl = baseUrl;
 
-    this.webClient = webClientBuilder
-        .baseUrl(baseUrl)
-        .defaultHeader("Authorization", "Bearer " + apiKey)
+    // Initialize OkHttpClient for more robust blocking calls
+    this.httpClient = new okhttp3.OkHttpClient.Builder()
+        .connectTimeout(Duration.ofSeconds(30))
+        .readTimeout(Duration.ofSeconds(300))
+        .writeTimeout(Duration.ofSeconds(30))
         .build();
   }
 
   /**
    * Transcribe audio via Whisper Large V3.
-   * Sử dụng RestTemplate thay vì WebClient để cô lập API Key thật của Groq,
+   * Sử dụng OkHttpClient để cô lập API Key thật của Groq,
    * tránh việc bị ghi đè/nhồi thêm header của Local Gateway gây lỗi 401.
    */
   public String transcribe(String audioUrl) {
-    // 1. Kiểm tra Key
-    if (groqApiKey == null || groqApiKey.isBlank()) {
+    // 1. Kiểm tra Key (Ưu tiên apiKey từ constructor đã clean)
+    String cleanKey = (this.apiKey != null && !this.apiKey.isBlank()) ? this.apiKey : 
+                      (groqApiKey != null ? groqApiKey.trim().replace("\"", "").replace("'", "") : "");
+    
+    if (cleanKey.isBlank()) {
       throw new RuntimeException("Missing Groq API Key in properties.");
     }
-    String cleanKey = groqApiKey.trim().replace("\"", "").replace("'", "");
 
     try {
       // 2. Download file từ Cloudinary
@@ -75,9 +82,7 @@ public class GroqClient {
       if (audioBytes == null)
         throw new RuntimeException("Empty audio file.");
 
-      // 3. Gọi Groq bằng OkHttp (Cực kỳ an toàn cho Auth Header)
-      okhttp3.OkHttpClient client = new okhttp3.OkHttpClient();
-
+      // 3. Gọi Groq bằng OkHttp
       okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
           audioBytes,
           okhttp3.MediaType.parse("audio/webm"));
@@ -91,10 +96,10 @@ public class GroqClient {
       okhttp3.Request request = new okhttp3.Request.Builder()
           .url("https://api.groq.com/openai/v1/audio/transcriptions")
           .post(requestBody)
-          .header("Authorization", "Bearer " + cleanKey) // Ép cứng Key thật của Groq ở đây
+          .header("Authorization", "Bearer " + cleanKey)
           .build();
 
-      try (okhttp3.Response response = client.newCall(request).execute()) {
+      try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
         if (!response.isSuccessful()) {
           log.error("Groq Whisper Error: {} - {}", response.code(), respBody);
@@ -113,6 +118,7 @@ public class GroqClient {
   /**
    * Grade WRITING or SPEAKING answer via LLaMA 3.3 70B Versatile.
    * Returns JSON with IELTS 9-band rubric breakdown.
+   * Switched to OkHttpClient for better reliability in production environments.
    */
   public GradingResponse gradeWritingOrSpeaking(
       String questionPrompt,
@@ -133,40 +139,58 @@ public class GroqClient {
           "model", aiModel,
           "messages", messages,
           "temperature", 0.3,
-          "max_tokens", 2048, // Tăng lên để tránh bị cắt cụt JSON (Unexpected end-of-input)
+          "max_tokens", 2048,
           "stream", false);
 
-      JsonNode response = webClient.post()
-          .uri("/chat/completions")
-          .bodyValue(body)
-          .retrieve()
-          .bodyToMono(JsonNode.class)
-          .timeout(Duration.ofSeconds(3000))
-          .block();
+      String jsonBody = mapper.writeValueAsString(body);
+      
+      okhttp3.RequestBody okHttpBody = okhttp3.RequestBody.create(
+          jsonBody, 
+          okhttp3.MediaType.parse("application/json; charset=utf-8"));
 
-      log.info("[GROQ] LLaMA grading response: {}", response);
-      String content = response.path("choices").get(0)
-          .path("message").path("content").asText();
+      okhttp3.Request request = new okhttp3.Request.Builder()
+          .url(apiUrl + "/chat/completions")
+          .post(okHttpBody)
+          .header("Authorization", "Bearer " + apiKey)
+          .header("Content-Type", "application/json")
+          .build();
 
-      // Robust JSON extraction: Find the first '{' and the last '}'
-      int firstBrace = content.indexOf("{");
-      int lastBrace = content.lastIndexOf("}");
-      if (firstBrace >= 0 && lastBrace > firstBrace) {
-          content = content.substring(firstBrace, lastBrace + 1);
-      }
+      log.info("[GROQ-REQ] Sending grading request to {}...", apiUrl);
 
-      // AUTO-PATCH if truncated
-      if (content.contains("\"rubric\":") && !content.endsWith("}")) {
-        log.warn("[AI-FIX] JSON bị cắt cụt, đang cố gắng đóng ngoặc...");
-        if (!content.endsWith("}")) content += "}";
-        if (!content.endsWith("}}")) content += "}";
-      }
+      try (okhttp3.Response response = httpClient.newCall(request).execute()) {
+        String respContent = response.body() != null ? response.body().string() : "";
+        
+        if (!response.isSuccessful()) {
+          log.error("[GROQ-ERROR] Status: {}, Body: {}", response.code(), respContent);
+          throw new RuntimeException("Groq API returned " + response.code() + ": " + respContent);
+        }
 
-      try {
-          return mapper.readValue(content, GradingResponse.class);
-      } catch (Exception parseEx) {
-          log.error("[GROQ-PARSE-FAIL] Raw content: {}", content);
-          throw parseEx;
+        JsonNode root = mapper.readTree(respContent);
+        String content = root.path("choices").get(0)
+            .path("message").path("content").asText();
+
+        log.debug("[GROQ-RAW-CONTENT] {}", content);
+
+        // Robust JSON extraction
+        int firstBrace = content.indexOf("{");
+        int lastBrace = content.lastIndexOf("}");
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            content = content.substring(firstBrace, lastBrace + 1);
+        }
+
+        // AUTO-PATCH if truncated
+        if (content.contains("\"rubric\":") && !content.endsWith("}")) {
+          log.warn("[AI-FIX] JSON bị cắt cụt, đang cố gắng đóng ngoặc...");
+          if (!content.endsWith("}")) content += "}";
+          if (!content.endsWith("}}")) content += "}";
+        }
+
+        try {
+            return mapper.readValue(content, GradingResponse.class);
+        } catch (Exception parseEx) {
+            log.error("[GROQ-PARSE-FAIL] Raw content: {}", content);
+            throw parseEx;
+        }
       }
     } catch (Exception e) {
       log.error("Groq LLaMA grading failed: {}", e.getMessage());

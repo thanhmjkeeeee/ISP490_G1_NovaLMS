@@ -1952,7 +1952,7 @@
         // AI Logic
         let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], _aiCurrentGroup = null, currentAudio = null;
         function openExpertAiModal() {
-            if (!expertAiModal) expertAiModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+            if (!expertAiModal) expertAiModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('aiGenerateModal'));
             
             // Sync Band to AI Modal
             const cefrRadios = document.getElementsByName('adv-cefr-radio');
@@ -2047,9 +2047,13 @@
                         _generatedAiQuestions = result.data.questions;
                     }
                     expertAiModal.hide();
-                    if (!wsAiResultModal) wsAiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
-                    wsAiResultModal.show();
                     wsRenderAiResults();
+                    
+                    // Delay showing result modal to prevent backdrop collision
+                    setTimeout(() => {
+                        if (!wsAiResultModal) wsAiResultModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('wsAiResultModal'));
+                        wsAiResultModal.show();
+                    }, 150);
                 } else {
                     Swal.fire('Lỗi', result.message || 'Lỗi sinh câu hỏi', 'error');
                 }

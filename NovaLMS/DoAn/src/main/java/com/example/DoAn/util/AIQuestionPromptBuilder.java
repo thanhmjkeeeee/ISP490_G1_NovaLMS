@@ -204,8 +204,15 @@ public class AIQuestionPromptBuilder {
                     .append(" pairs.\n");
 
         String readLen = (String) advancedOptions.get("readingLength");
-        if (readLen != null)
-            sb.append("- Reading Length: Passage should be ").append(readLen).append("\n");
+        if (readLen != null) {
+            String wordCount = switch (readLen.toUpperCase()) {
+                case "SHORT" -> "100-150 words";
+                case "MEDIUM" -> "200-300 words";
+                case "LONG" -> "400-600 words";
+                default -> "200-300 words";
+            };
+            sb.append("- Reading Length: The reading passage MUST be ").append(wordCount).append(".\n");
+        }
 
         return sb.toString();
     }
@@ -455,6 +462,9 @@ public class AIQuestionPromptBuilder {
             if ("LISTENING".equalsIgnoreCase(targetSkill)) {
                 taskTypeInstruction = "Generate independent LISTENING questions. For each question, you MUST provide a 'transcript' field containing a natural dialogue between 2-3 characters (2-4 lines) with REAL English names. " +
                     "FORBIDDEN: Man, Woman, Speaker. Use speaker labels with gender, e.g., 'Robert [Male]: ...' or 'Emily [Female]: ...'. The 'content' field should contain ONLY the actual question text.";
+            } else if ("READING".equalsIgnoreCase(targetSkill)) {
+                taskTypeInstruction = "Generate independent READING questions. For each question, you MUST generate a new, original reading passage based on the topic. Put the passage text followed by the question in the 'content' field. " +
+                    "The passage length MUST follow the Reading Length constraint provided below.";
             } else if ("WRITING".equalsIgnoreCase(targetSkill)) {
                 taskTypeInstruction = "Generate independent WRITING questions. For each question, provide a clear writing task prompt in the 'content' field (e.g., IELTS Writing Task 1 or Task 2 style).";
             } else if ("SPEAKING".equalsIgnoreCase(targetSkill)) {

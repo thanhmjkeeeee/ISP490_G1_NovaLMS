@@ -101,7 +101,7 @@ async function loadClasses(page = 0) {
 async function openQuizModal(classId, className) {
     document.getElementById('quizModalClassName').textContent = className;
     document.getElementById('quizModalBody').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
-    const modal = new bootstrap.Modal(document.getElementById('quizModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('quizModal'));
     modal.show();
 
     try {

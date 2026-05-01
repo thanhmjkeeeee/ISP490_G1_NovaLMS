@@ -2136,7 +2136,7 @@
         let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], _aiCurrentGroup = null;
 
         function openExpertAiModal() {
-            if (!expertAiModal) expertAiModal = new bootstrap.Modal(document.getElementById('aiGenerateModal'));
+            if (!expertAiModal) expertAiModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('aiGenerateModal'));
             document.getElementById('adv-topic').value = document.getElementById('title').value;
             
             // Sync Band to AI Modal
@@ -2243,9 +2243,13 @@
                     }
 
                     expertAiModal.hide();
-                    if (!wsAiResultModal) wsAiResultModal = new bootstrap.Modal(document.getElementById('wsAiResultModal'));
-                    wsAiResultModal.show();
                     wsRenderAiResults();
+                    
+                    // Delay showing result modal to prevent backdrop collision
+                    setTimeout(() => {
+                        if (!wsAiResultModal) wsAiResultModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('wsAiResultModal'));
+                        wsAiResultModal.show();
+                    }, 150);
                 } else {
                     Swal.fire('Thất bại', result.message || 'AI không thể sinh câu hỏi lúc này.', 'error');
                 }

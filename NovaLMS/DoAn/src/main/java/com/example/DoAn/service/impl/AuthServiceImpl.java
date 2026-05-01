@@ -153,7 +153,13 @@ public class AuthServiceImpl implements AuthService {
 
         verificationRepository.save(verification);
 
-        sendEmail(email, "Mã xác minh Nova LMS", "Mã xác minh của bạn là: " + code + ". Hiệu lực trong 5 phút.");
+        try {
+            sendEmail(email, "Mã xác minh Nova LMS", "Mã xác minh của bạn là: " + code + ". Hiệu lực trong 5 phút.");
+        } catch (Exception e) {
+            log.error("[AUTH-ERROR] Failed to send verification email to {}: {}", email, e.getMessage());
+            // Trả về lỗi để người dùng biết hệ thống email đang gặp sự cố
+            return ResponseData.error(500, "Không thể gửi email xác nhận: " + e.getMessage());
+        }
 
         return ResponseData.success("Mã xác minh đã được gửi vào Email của bạn.", null);
     }
@@ -177,11 +183,16 @@ public class AuthServiceImpl implements AuthService {
 
         tokenRepository.save(token);
 
-        sendEmail(user.getEmail(), "[Nova LMS] Mã xác minh đặt lại mật khẩu",
+        try {
+            sendEmail(user.getEmail(), "[Nova LMS] Mã xác minh đặt lại mật khẩu",
                 "Xin chào " + user.getFullName() + ",\n\n" +
                         "Mã xác minh để đặt lại mật khẩu của bạn là: " + tokenStr + "\n\n" +
                         "Vui lòng nhập mã này trên trang web để tiếp tục. Mã sẽ hết hạn sau 15 phút.\n" +
                         "Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.");
+        } catch (Exception e) {
+            log.error("[AUTH-ERROR] Failed to send forgot password email to {}: {}", user.getEmail(), e.getMessage());
+            return ResponseData.error(500, "Không thể gửi email đặt lại mật khẩu: " + e.getMessage());
+        }
 
         return ResponseData.success("Mã xác minh đã được gửi đến email của bạn.", null);
     }
@@ -230,6 +241,7 @@ public class AuthServiceImpl implements AuthService {
         message.setTo(to);
         message.setSubject(subject);
         message.setText(content);
+        // Lưu ý: mailSender.send() có thể ném MailException nếu cấu hình SMTP lỗi
         mailSender.send(message);
     }
 

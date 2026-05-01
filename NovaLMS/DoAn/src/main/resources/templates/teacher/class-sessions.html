@@ -575,11 +575,11 @@
     let allAiSelected = false;
 
     document.addEventListener('DOMContentLoaded', () => {
-        sessionModal = new bootstrap.Modal(document.getElementById('sessionModal'));
-        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        quizModal = new bootstrap.Modal(document.getElementById('quizModal'));
-        assignQuizModal = new bootstrap.Modal(document.getElementById('assignQuizModal'));
-        sessionQuizModal = new bootstrap.Modal(document.getElementById('sessionQuizModal'));
+        sessionModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sessionModal'));
+        deleteModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteModal'));
+        quizModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('quizModal'));
+        assignQuizModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('assignQuizModal'));
+        sessionQuizModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('sessionQuizModal'));
         loadData();
     });
 
