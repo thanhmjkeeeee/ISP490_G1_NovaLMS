@@ -38,7 +38,7 @@
               <div class="course-badge mb-3">
                 <span class="badge bg-primary me-2 px-3 py-2 rounded-pill" th:text="${course.categoryName ?: 'Uncategorized'}">Category</span>
                 <span class="badge bg-soft-info text-info border border-info px-3 py-2 rounded-pill" 
-                      th:text="${course.isSelfStudy ? 'Học Online' : 'Có người hướng dẫn'}">Type</span>
+                      th:text="${course.isSelfStudy == true ? 'Học Online' : 'Có người hướng dẫn'}">Type</span>
               </div>
               <h1 class="fw-bold mb-3 display-6" th:text="${course.courseName}">Course Title</h1>
               <p class="lead text-muted mb-4" th:text="${course.description != null && course.description.length() > 150 ? course.description.substring(0, 150) + '...' : course.description}"></p>
@@ -48,7 +48,7 @@
                      alt="Instructor" class="rounded-circle me-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid #3b82f6;">
                 <div>
                   <h6 class="mb-0 fw-bold fs-5" th:text="${course.expert != null ? course.expert.fullName : 'NovaLMS Team'}">Expert Name</h6>
-                  <small class="text-muted" th:text="${course.isSelfStudy ? 'Khóa học tự học online' : 'Chuyên gia hướng dẫn'}">Giảng viên hướng dẫn</small>
+                  <small class="text-muted" th:text="${course.isSelfStudy == true ? 'Khóa học tự học online' : 'Chuyên gia hướng dẫn'}">Giảng viên hướng dẫn</small>
                 </div>
               </div>
             </div>
@@ -104,7 +104,7 @@
           </div>
 
           <!-- Section: Classes (Only for Instructor-led courses) -->
-          <div class="section-container mb-5 p-4 bg-white rounded-4 shadow-sm border" th:if="${!course.isSelfStudy}">
+          <div class="section-container mb-5 p-4 bg-white rounded-4 shadow-sm border" th:if="${course.isSelfStudy != true}">
             <h4 class="fw-bold mb-4 border-start border-4 border-primary ps-3">Lớp học đang mở</h4>
             
             <div th:if="${#lists.isEmpty(course.activeClasses)}" class="alert alert-soft-warning border-warning border-start border-4 rounded-3 d-flex align-items-center">
