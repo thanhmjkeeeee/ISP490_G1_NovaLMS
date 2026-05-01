@@ -54,7 +54,10 @@ public class StudentServiceImpl implements StudentService {
             Course course = courseRepository.findById(courseId).orElse(null);
             if (course == null) return ResponseData.error(404, "Không tìm thấy khóa học.");
 
-            List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatus(courseId, "Open");
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime startDateMin = now.minusDays(7);
+            LocalDateTime startDateMax = now.plusDays(90);
+            List<Clazz> openClasses = classRepository.findByCourse_CourseIdAndStatusAndStartDateBetween(courseId, "Open", startDateMin, startDateMax);
             
             // Eagerly initialize lazy relations to avoid LazyInitializationException in template
             if (course.getExpert() != null) {
