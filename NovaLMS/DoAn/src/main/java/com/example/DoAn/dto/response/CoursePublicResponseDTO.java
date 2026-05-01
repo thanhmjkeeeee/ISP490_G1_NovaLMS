@@ -22,12 +22,14 @@ public record CoursePublicResponseDTO(
     public String getCourseDuration() {
         if (activeClasses == null || activeClasses.isEmpty()) return "N/A";
 
-        var firstClass = activeClasses.get(0);
-        if (firstClass.startDate() != null && firstClass.endDate() != null) {
-            long days = java.time.Duration.between(firstClass.startDate(), firstClass.endDate()).toDays();
-            return days + " ngày";
-        }
-        return "Trọn đời";
+        return activeClasses.stream()
+                .filter(c -> c.startDate() != null && c.endDate() != null)
+                .findFirst()
+                .map(c -> {
+                    long days = java.time.Duration.between(c.startDate(), c.endDate()).toDays();
+                    return Math.abs(days) + " ngày";
+                })
+                .orElse("Trọn đời");
     }
 
     public record ExpertResponseDTO(
