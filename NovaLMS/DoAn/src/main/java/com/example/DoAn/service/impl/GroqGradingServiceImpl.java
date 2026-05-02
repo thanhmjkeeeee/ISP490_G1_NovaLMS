@@ -191,7 +191,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             String dummyRubric = createZeroRubric(qType, errorMsg);
 
             answer.setAiScore("0/" + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand));
-            answer.setAiFeedback("AI tạm thời không thể chấm bài. Chi tiết: " + errorMsg);
+            answer.setAiFeedback("AI tạm thời không thể chấm bài.");
             answer.setAiRubricJson(dummyRubric);
             answer.setAiGradingStatus("COMPLETED"); // Vẫn để COMPLETED để hiện lên UI
             answer.setPendingAiReview(false);
