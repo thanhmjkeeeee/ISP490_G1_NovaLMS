@@ -66,7 +66,7 @@ public class GroqClient {
    */
   public String transcribe(String audioUrl) {
     // 1. Kiểm tra Key (Ưu tiên apiKey từ constructor đã clean)
-    String cleanKey = (this.apiKey != null && !this.apiKey.isBlank()) ? this.apiKey : 
+    String cleanKey = (this.apiKey != null && !this.apiKey.isBlank()) ? this.apiKey :
                       (groqApiKey != null ? groqApiKey.trim().replace("\"", "").replace("'", "") : "");
     
     if (cleanKey.isBlank()) {
