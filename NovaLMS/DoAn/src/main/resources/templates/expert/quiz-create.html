@@ -1659,13 +1659,54 @@
                         </div>
                         <div class="card-body pt-2">
                             <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
-                            <div class="${isExpanded ? '' : 'd-none'}">
-                                ${g.items.map((sq, idx) => `<div class="d-flex justify-content-between align-items-center mb-2"><div class="small text-muted"><span class="badge bg-light text-dark me-1">${idx + 1}</span>${sq.questionContent}</div><div class="extra-small text-info">${typeName(sq.questionType)}</div></div>`).join('')}
+                             <div class="${isExpanded ? '' : 'd-none'}">
+                                ${g.items.map((sq, idx) => {
+                                    let subAns = '';
+                                    if (sq.questionType === 'MATCHING') {
+                                        let mL = sq.matchLeft || []; let mR = sq.matchRight || [];
+                                        if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) {}
+                                        if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) {}
+                                        if (mL.length > 0) subAns = `<div class="extra-small text-muted opacity-75">${mL[0]} → ${mR[0] || '?'}${mL.length > 1 ? ' ...' : ''}</div>`;
+                                    } else if (sq.correctAnswer) {
+                                        subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(sq.correctAnswer)}</div>`;
+                                    } else if (sq.options && sq.options.length > 0) {
+                                        const c = sq.options.filter(o => o.correct || o.isCorrect)[0];
+                                        if (c) subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(c.title || c.answerText)}</div>`;
+                                    }
+                                    return `
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="small text-muted">
+                                            <span class="badge bg-light text-dark me-1">${idx + 1}</span>${sq.questionContent}
+                                            ${subAns}
+                                        </div>
+                                        <div class="extra-small text-info">${typeName(sq.questionType)}</div>
+                                    </div>`;
+                                }).join('')}
                             </div>
                         </div>
                     </div>`;
                 });
                 data.lones.forEach(q => {
+                    let ansSummary = '';
+                    if (q.questionType === 'MATCHING') {
+                        let mL = q.matchLeft || [];
+                        let mR = q.matchRight || [];
+                        if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) {}
+                        if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) {}
+                        if (mL.length > 0) {
+                            ansSummary = `<div class="mt-2 extra-small text-muted border-start ps-2">` + 
+                                mL.slice(0, 3).map((l, i) => `<div>${escapeHtml(l)} → ${escapeHtml(mR[i] || '?')}</div>`).join('') +
+                                (mL.length > 3 ? '<div>...</div>' : '') + `</div>`;
+                        }
+                    } else if (q.options && q.options.length > 0) {
+                        const correct = q.options.filter(o => o.correct || o.isCorrect).map(o => o.title || o.answerText);
+                        if (correct.length > 0) {
+                            ansSummary = `<div class="mt-1 extra-small text-success fw-bold"><i class="bi bi-check2-circle me-1"></i>ĐA: ${escapeHtml(correct.join(', '))}</div>`;
+                        }
+                    } else if (q.correctAnswer) {
+                        ansSummary = `<div class="mt-1 extra-small text-success fw-bold"><i class="bi bi-check2-circle me-1"></i>ĐA: ${escapeHtml(q.correctAnswer)}</div>`;
+                    }
+
                     html += `
                     <div class="card mb-2 border shadow-none" style="border-radius: 12px;">
                         <div class="card-body p-3">
@@ -1673,6 +1714,7 @@
                                 <div style="max-width: 85%;">
                                     <div class="small fw-bold text-success mb-1">CÂU LẺ • ${typeName(q.questionType)}</div>
                                     <div class="text-dark small text-truncate-2">${q.questionContent || '—'}</div>
+                                    ${ansSummary}
                                 </div>
                                 <button class="btn btn-sm btn-outline-danger border-0" onclick="removeQuestion(${q.questionId})"><i class="bi bi-trash"></i></button>
                             </div>
@@ -2122,35 +2164,44 @@
 
         function matchingPreviewHtml(q) {
             if (!q || q.questionType !== 'MATCHING') return '';
-            const left = Array.isArray(q.matchLeft) ? q.matchLeft : [];
-            const right = Array.isArray(q.matchRight) ? q.matchRight : [];
-            if (left.length === 0 && right.length === 0) return '';
+            const left = Array.isArray(q.matchLeft) ? q.matchLeft : (typeof q.matchLeft === 'string' && q.matchLeft.startsWith('[') ? JSON.parse(q.matchLeft) : []);
+            const right = Array.isArray(q.matchRight) ? q.matchRight : (typeof q.matchRight === 'string' && q.matchRight.startsWith('[') ? JSON.parse(q.matchRight) : []);
+            
+            // Fallback nếu rỗng nhưng có options
+            let finalLeft = left;
+            let finalRight = right;
+            if (finalLeft.length === 0 && q.options) {
+                finalLeft = q.options.map(o => o.title || o.answerText || '');
+                finalRight = q.options.map(o => o.matchTarget || o.correctAnswer || '');
+            }
+
+            if (finalLeft.length === 0) return '';
 
             function resolveRightIndex(p) {
-                if (typeof p !== 'number' || isNaN(p) || !right.length) return -1;
-                if (p >= 1 && p <= right.length) return p - 1;
-                if (p >= 0 && p < right.length) return p;
+                if (typeof p !== 'number' || isNaN(p) || !finalRight.length) return -1;
+                if (p >= 1 && p <= finalRight.length) return p - 1;
+                if (p >= 0 && p < finalRight.length) return p;
                 return -1;
             }
 
             let inner;
             const pairs = Array.isArray(q.correctPairs) ? q.correctPairs : null;
-            if (pairs && pairs.length === left.length && left.length > 0) {
+            if (pairs && pairs.length === finalLeft.length && finalLeft.length > 0) {
                 inner = '<ul class="list-unstyled small mb-0 mt-1">';
-                for (let idx = 0; idx < left.length; idx++) {
+                for (let idx = 0; idx < finalLeft.length; idx++) {
                     const rj = resolveRightIndex(Number(pairs[idx]));
-                    const rtext = (rj >= 0 && right[rj] !== undefined) ? String(right[rj]) : '?';
+                    const rtext = (rj >= 0 && finalRight[rj] !== undefined) ? String(finalRight[rj]) : '?';
                     inner += '<li class="mb-1 d-flex align-items-start gap-2"><span class="badge bg-secondary flex-shrink-0">' + (idx + 1) + '</span>' +
-                        '<span><span class="fw-medium text-dark">' + escapeHtml(String(left[idx])) + '</span>' +
+                        '<span><span class="fw-medium text-dark">' + escapeHtml(String(finalLeft[idx])) + '</span>' +
                         ' <i class="bi bi-arrow-right text-muted mx-1"></i> ' +
                         '<span class="fw-medium text-dark">' + escapeHtml(rtext) + '</span></span></li>';
                 }
                 inner += '</ul>';
             } else {
-                inner = '<div class="row g-2 mt-1"><div class="col-md-6"><div class="text-muted small mb-1">Cột A</div><ol class="small mb-0 ps-3">' +
-                    left.map(l => '<li>' + escapeHtml(String(l)) + '</li>').join('') + '</ol></div>' +
-                    '<div class="col-md-6"><div class="text-muted small mb-1">Cột B</div><ol class="small mb-0 ps-3">' +
-                    right.map(r => '<li>' + escapeHtml(String(r)) + '</li>').join('') + '</ol></div></div>';
+                inner = '<div class="row g-2 mt-1"><div class="col-md-6"><div class="text-muted small mb-1">Vế trái</div><ol class="small mb-0 ps-3">' +
+                    finalLeft.map(l => '<li>' + escapeHtml(String(l)) + '</li>').join('') + '</ol></div>' +
+                    '<div class="col-md-6"><div class="text-muted small mb-1">Vế phải</div><ol class="small mb-0 ps-3">' +
+                    finalRight.map(r => '<li>' + escapeHtml(String(r)) + '</li>').join('') + '</ol></div></div>';
             }
             return '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25 bg-light-subtle p-2 rounded">' + inner + '</div>';
         }
@@ -2223,7 +2274,22 @@
                                         <input type="text" class="form-control" id="ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
                                     </div>
                                 `).join('') + '</div>';
-                            } else if (subQ.questionType !== 'MATCHING') {
+                            } else if (subQ.questionType === 'MATCHING') {
+                                let mL = subQ.matchLeft || [];
+                                let mR = subQ.matchRight || [];
+                                if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) {}
+                                if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) {}
+                                if (mL.length === 0) mL = ['', '', ''];
+
+                                answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` + 
+                                    mL.map((left, mIdx) => `
+                                        <div class="row g-1 mb-1">
+                                            <div class="col-5"><input type="text" class="form-control form-control-sm" id="ws-edit-g-match-l-${idx}-${sIdx}-${mIdx}" value="${escapeHtml(left)}" placeholder="Vế A"></div>
+                                            <div class="col-1 text-center small mt-1">→</div>
+                                            <div class="col-6"><input type="text" class="form-control form-control-sm border-success" id="ws-edit-g-match-r-${idx}-${sIdx}-${mIdx}" value="${escapeHtml(mR[mIdx] || '')}" placeholder="Vế B (Đúng)"></div>
+                                        </div>
+                                    `).join('') + `</div>`;
+                            } else {
                                 answersEditHtml = `
                                     <div class="mb-2 mt-2">
                                         <label class="small fw-bold">Đáp án đúng:</label>
@@ -2313,7 +2379,22 @@
                                     <input type="text" class="form-control" id="ws-edit-opt-txt-${idx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
                                 </div>
                             `).join('') + '</div>';
-                        } else if (q.questionType !== 'MATCHING') {
+                        } else if (q.questionType === 'MATCHING') {
+                            let mL = q.matchLeft || [];
+                            let mR = q.matchRight || [];
+                            if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) {}
+                            if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) {}
+                            if (mL.length === 0) mL = ['', '', ''];
+
+                            answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` + 
+                                mL.map((left, mIdx) => `
+                                    <div class="row g-1 mb-1">
+                                        <div class="col-5"><input type="text" class="form-control form-control-sm" id="ws-edit-match-l-${idx}-${mIdx}" value="${escapeHtml(left)}" placeholder="Vế A"></div>
+                                        <div class="col-1 text-center small mt-1">→</div>
+                                        <div class="col-6"><input type="text" class="form-control form-control-sm border-success" id="ws-edit-match-r-${idx}-${mIdx}" value="${escapeHtml(mR[mIdx] || '')}" placeholder="Vế B (Đúng)"></div>
+                                    </div>
+                                `).join('') + `</div>`;
+                        } else {
                             answersEditHtml = `
                                 <div class="mb-2 mt-2">
                                     <label class="small fw-bold">Đáp án đúng:</label>
@@ -2437,7 +2518,23 @@
                             else o.isCorrect = chkEl.checked;
                         }
                     });
-                } else if (subQ.questionType !== 'MATCHING') {
+                } else if (subQ.questionType === 'MATCHING') {
+                    let mL = subQ.matchLeft || [];
+                    let mR = subQ.matchRight || [];
+                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) { mL = []; }
+                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) { mR = []; }
+                    if (mL.length === 0) mL = ['', '', ''];
+                    
+                    mL.forEach((_, mIdx) => {
+                        const lEl = document.getElementById(`ws-edit-g-match-l-${idx}-${sIdx}-${mIdx}`);
+                        const rEl = document.getElementById(`ws-edit-g-match-r-${idx}-${sIdx}-${mIdx}`);
+                        if (lEl) mL[mIdx] = lEl.value;
+                        if (rEl) mR[mIdx] = rEl.value;
+                    });
+                    subQ.matchLeft = mL;
+                    subQ.matchRight = mR;
+                    subQ.correctPairs = mL.map((_, i) => i + 1);
+                } else {
                     subQ.correctAnswer = document.getElementById(`ws-edit-g-correct-ans-${idx}-${sIdx}`).value;
                 }
 
@@ -2470,7 +2567,23 @@
                             else o.isCorrect = chkEl.checked;
                         }
                     });
-                } else if (q.questionType !== 'MATCHING') {
+                } else if (q.questionType === 'MATCHING') {
+                    let mL = q.matchLeft || [];
+                    let mR = q.matchRight || [];
+                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) { mL = []; }
+                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) { mR = []; }
+                    if (mL.length === 0) mL = ['', '', ''];
+                    
+                    mL.forEach((_, mIdx) => {
+                        const lEl = document.getElementById(`ws-edit-match-l-${idx}-${mIdx}`);
+                        const rEl = document.getElementById(`ws-edit-match-r-${idx}-${mIdx}`);
+                        if (lEl) mL[mIdx] = lEl.value;
+                        if (rEl) mR[mIdx] = rEl.value;
+                    });
+                    q.matchLeft = mL;
+                    q.matchRight = mR;
+                    q.correctPairs = mL.map((_, i) => i + 1);
+                } else {
                     q.correctAnswer = document.getElementById(`ws-edit-correct-ans-${idx}`).value;
                 }
 

@@ -330,7 +330,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         for (QuizQuestion qq : quiz.getQuizQuestions()) {
             Question q = qq.getQuestion();
             Integer qId = q.getQuestionId();
-            Object userAnswerObj = answers != null ? answers.get(String.valueOf(qId)) : null;
+            Object userAnswerObj = answers != null ? answers.get(qId) : null;
             String answeredOptionsJson = "";
             try {
                 if (userAnswerObj != null) {
@@ -340,6 +340,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                 // Ignore
             }
 
+            BigDecimal qPoints = qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE;
+            BigDecimal awardedPoints = BigDecimal.ZERO;
             Boolean isCorrect = false;
             String qType = q.getQuestionType();
 
@@ -354,6 +356,8 @@ public class QuizResultServiceImpl implements QuizResultService {
                         isCorrect = q.getAnswerOptions().stream()
                                 .anyMatch(opt -> opt.getAnswerOptionId().equals(selectedId)
                                         && Boolean.TRUE.equals(opt.getCorrectAnswer()));
+                        if (Boolean.TRUE.equals(isCorrect))
+                            awardedPoints = qPoints;
                     } else if ("MULTIPLE_CHOICE_MULTI".equals(qType)) {
                         List<Integer> selectedIds;
                         if (userAnswerObj instanceof List) {
@@ -366,34 +370,60 @@ public class QuizResultServiceImpl implements QuizResultService {
                                 .filter(opt -> Boolean.TRUE.equals(opt.getCorrectAnswer()))
                                 .map(AnswerOption::getAnswerOptionId).collect(Collectors.toList());
                         isCorrect = selectedIds.size() == correctIds.size() && selectedIds.containsAll(correctIds);
+                        if (Boolean.TRUE.equals(isCorrect))
+                            awardedPoints = qPoints;
                     } else if ("FILL_IN_BLANK".equals(qType)) {
                         String userTxt = userAnswerObj.toString().trim();
                         isCorrect = q.getAnswerOptions().stream()
                                 .anyMatch(opt -> Boolean.TRUE.equals(opt.getCorrectAnswer())
                                         && (opt.getTitle() != null && opt.getTitle().trim().equalsIgnoreCase(userTxt)));
+                        if (Boolean.TRUE.equals(isCorrect))
+                            awardedPoints = qPoints;
                     } else if ("MATCHING".equals(qType)) {
                         try {
-                            Map<String, String> userMatch = objectMapper.convertValue(userAnswerObj,
-                                    new TypeReference<Map<String, String>>() {
-                                    });
-                            boolean allCorrect = true;
+                            Map<String, String> userMatch = new java.util.HashMap<>();
+                            if (userAnswerObj instanceof Map) {
+                                ((Map<?, ?>) userAnswerObj).forEach((k, v) -> {
+                                    if (k != null && v != null) {
+                                        userMatch.put(String.valueOf(k), String.valueOf(v));
+                                    }
+                                });
+                            } else if (userAnswerObj instanceof String) {
+                                try {
+                                    Map<String, String> parsed = objectMapper.readValue((String) userAnswerObj,
+                                            new TypeReference<Map<String, String>>() {
+                                            });
+                                    if (parsed != null)
+                                        userMatch.putAll(parsed);
+                                } catch (Exception ignored) {
+                                }
+                            } else {
+                                Map<String, String> parsed = objectMapper.convertValue(userAnswerObj,
+                                        new TypeReference<Map<String, String>>() {
+                                        });
+                                if (parsed != null)
+                                    userMatch.putAll(parsed);
+                            }
+
                             List<AnswerOption> leftOptions = q.getAnswerOptions().stream()
                                     .filter(opt -> opt.getMatchTarget() != null && !opt.getMatchTarget().isBlank())
                                     .toList();
-                            
-                            if (leftOptions.isEmpty()) {
-                                allCorrect = false;
-                            } else {
+
+                            if (!leftOptions.isEmpty()) {
+                                int correctPairs = 0;
                                 for (AnswerOption opt : leftOptions) {
                                     String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
-                                    if (userTarget == null
-                                            || !userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
-                                        allCorrect = false;
-                                        break;
+                                    if (userTarget != null
+                                            && userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
+                                        correctPairs++;
                                     }
                                 }
+                                if (correctPairs > 0) {
+                                    awardedPoints = qPoints.multiply(new BigDecimal(correctPairs))
+                                            .divide(new BigDecimal(leftOptions.size()), 4, RoundingMode.HALF_UP);
+                                    isCorrect = (correctPairs == leftOptions.size());
+                                }
                             }
-                            isCorrect = allCorrect;
                         } catch (Exception e) {
                             isCorrect = false;
                         }
@@ -401,13 +431,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
-            BigDecimal qPoints = qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE;
-            BigDecimal awardedPoints = BigDecimal.ZERO;
-
-            if (Boolean.TRUE.equals(isCorrect)) {
-                awardedPoints = qPoints;
-                score = score.add(awardedPoints);
-            }
+            score = score.add(awardedPoints);
             if (!"WRITING".equals(qType) && !"SPEAKING".equals(qType)) {
                 maxScoreAvailable = maxScoreAvailable.add(qPoints);
             }
@@ -505,6 +529,10 @@ public class QuizResultServiceImpl implements QuizResultService {
     @Override
     @Transactional(readOnly = true)
     public QuizResultDetailDTO getQuizResult(Integer resultId, String email) {
+        return getQuizResult(resultId, email, true);
+    }
+
+    private QuizResultDetailDTO getQuizResult(Integer resultId, String email, boolean showCorrectAnswer) {
         QuizResult qr = quizResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả bài làm"));
         boolean isStudent = qr.getUser().getEmail().equals(email);
@@ -618,7 +646,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 } else if ("MATCHING".equals(q.getQuestionType())) {
                     for (AnswerOption op : q.getAnswerOptions()) {
                         if (op.getMatchTarget() != null && !op.getMatchTarget().isBlank()) {
-                            corrLogs.add("• " + op.getTitle() + " → " + op.getMatchTarget());
+                            corrLogs.add(op.getTitle() + " → " + op.getMatchTarget());
                         }
                     }
                     correctAnswerDisplay = String.join("\n", corrLogs);
@@ -910,7 +938,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(score)
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
-                    .totalMaxScore(isSequential ? totalMaxBand : (double)maxScore)
+                    .totalMaxScore(isSequential ? totalMaxBand : (double) maxScore)
                     .percentage(Math.round(percentage * 10.0) / 10.0)
                     .passed(qr.getPassed())
                     .build();
@@ -954,7 +982,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(qr.getScore())
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand())
-                    .maxBand(qr.getQuiz() != null ? (qr.getQuiz().getOverallBand() != null ? qr.getQuiz().getOverallBand() : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : null)) : null)
+                    .maxBand(qr.getQuiz() != null ? (qr.getQuiz().getOverallBand() != null
+                            ? qr.getQuiz().getOverallBand()
+                            : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : null))
+                            : null)
                     .isSequential(qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential()))
                     .passed(qr.getPassed())
                     .status(qr.getStatus())
@@ -1557,50 +1588,57 @@ public class QuizResultServiceImpl implements QuizResultService {
             double quizMaxBand = (quiz.getOverallBand() != null) ? quiz.getOverallBand().doubleValue() : 9.0;
 
             double configuredMaxBand = answers.stream()
-                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
-                .mapToDouble(a -> {
-                    String cefr = a.getQuestion().getCefrLevel();
-                    if (cefr != null && !cefr.isBlank()) {
-                        try {
-                            double val = Double.parseDouble(cefr.trim());
-                            if (val > 0) return val;
-                        } catch (Exception ignored) {}
-                    }
-                    // Fallback to dominant points if cefrLevel is not numeric
-                    java.math.BigDecimal maxPts = quizQuestionRepository.findMaxPointsByQuestionId(a.getQuestion().getQuestionId());
-                    return (maxPts != null && maxPts.doubleValue() > 1.0) ? maxPts.doubleValue() : quizMaxBand;
-                })
-                .max().orElse(quizMaxBand);
+                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                    .mapToDouble(a -> {
+                        String cefr = a.getQuestion().getCefrLevel();
+                        if (cefr != null && !cefr.isBlank()) {
+                            try {
+                                double val = Double.parseDouble(cefr.trim());
+                                if (val > 0)
+                                    return val;
+                            } catch (Exception ignored) {
+                            }
+                        }
+                        // Fallback to dominant points if cefrLevel is not numeric
+                        java.math.BigDecimal maxPts = quizQuestionRepository
+                                .findMaxPointsByQuestionId(a.getQuestion().getQuestionId());
+                        return (maxPts != null && maxPts.doubleValue() > 1.0) ? maxPts.doubleValue() : quizMaxBand;
+                    })
+                    .max().orElse(quizMaxBand);
 
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
-                // Writing/Speaking: Points awarded is already the band, average if multiple questions
+                // Writing/Speaking: Points awarded is already the band, average if multiple
+                // questions
                 long totalQs = answers.stream()
-                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
-                    .count();
+                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                        .count();
                 double avgBand = (totalQs > 0) ? raw / totalQs : 0.0;
                 // IELTS Rounding: round to nearest 0.5 (e.g. 6.25 -> 6.5)
                 skillBands.put(skill, IELTSScoreMapper.roundToIELTS(avgBand));
             } else if ("READING".equalsIgnoreCase(skill) || "LISTENING".equalsIgnoreCase(skill)) {
-                // IELTS Reading/Listening: Use the standard non-linear mapping table (e.g. 39/40 -> 9.0)
+                // IELTS Reading/Listening: Use the standard non-linear mapping table (e.g.
+                // 39/40 -> 9.0)
                 long correctCount = answers.stream()
-                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) && Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
+                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill())
+                                && Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
                 long totalQs = answers.stream()
-                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
-                    .count();
-                
+                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                        .count();
+
                 double achieved = IELTSScoreMapper.mapRawToBand(correctCount, totalQs, skill);
                 skillBands.put(skill, achieved);
             } else {
                 // Generic skill: achieved = (CorrectCount / TotalQuestions) * configuredMaxBand
                 long correctCount = answers.stream()
-                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) && Boolean.TRUE.equals(a.getIsCorrect()))
-                    .count();
+                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill())
+                                && Boolean.TRUE.equals(a.getIsCorrect()))
+                        .count();
                 long totalQs = answers.stream()
-                    .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
-                    .count();
-                
-                double achieved = (totalQs > 0) ? ((double)correctCount / totalQs) * configuredMaxBand : 0.0;
+                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
+                        .count();
+
+                double achieved = (totalQs > 0) ? ((double) correctCount / totalQs) * configuredMaxBand : 0.0;
                 skillBands.put(skill, IELTSScoreMapper.roundToIELTS(achieved));
             }
         }
@@ -1630,13 +1668,13 @@ public class QuizResultServiceImpl implements QuizResultService {
 
             if (!"LOCKED".equals(result.getStatus()) && !"PENDING_GRADING".equals(result.getStatus())) {
                 boolean allManualGraded = answers.stream()
-                    .filter(a -> {
-                        String sk = a.getQuestion().getSkill();
-                        String qt = a.getQuestion().getQuestionType();
-                        return "WRITING".equalsIgnoreCase(sk) || "SPEAKING".equalsIgnoreCase(sk)
-                                || "WRITING".equalsIgnoreCase(qt) || "SPEAKING".equalsIgnoreCase(qt);
-                    })
-                    .allMatch(a -> a.getTeacherOverrideScore() != null);
+                        .filter(a -> {
+                            String sk = a.getQuestion().getSkill();
+                            String qt = a.getQuestion().getQuestionType();
+                            return "WRITING".equalsIgnoreCase(sk) || "SPEAKING".equalsIgnoreCase(sk)
+                                    || "WRITING".equalsIgnoreCase(qt) || "SPEAKING".equalsIgnoreCase(qt);
+                        })
+                        .allMatch(a -> a.getTeacherOverrideScore() != null);
 
                 if (!hasManual || allManualGraded) {
                     result.setStatus("GRADED");
@@ -1654,7 +1692,8 @@ public class QuizResultServiceImpl implements QuizResultService {
             // 2. AND (No manual content (!hasManual) OR Teacher has finalized (GRADED))
             if (!anyPending && (!hasManual || "GRADED".equals(result.getStatus()))) {
                 if (quiz.getPassScore() != null) {
-                    // For sequential (IELTS) assignments: compare overallBandScore vs expert-configured pass band
+                    // For sequential (IELTS) assignments: compare overallBandScore vs
+                    // expert-configured pass band
                     // For regular quizzes: compare correctRate (%) vs passScore (%)
                     boolean isSequential = Boolean.TRUE.equals(result.getQuiz().getIsSequential());
                     if (isSequential) {

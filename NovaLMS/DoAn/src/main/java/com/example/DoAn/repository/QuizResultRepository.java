@@ -49,7 +49,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
            "LEFT JOIN FETCH q.course " +
            "LEFT JOIN FETCH q.clazz c " +
            "LEFT JOIN FETCH c.teacher " +
-           "WHERE qr.status != 'GRADED' AND (qr.passed IS NULL OR qr.status = 'LOCKED') " +
+           "WHERE qr.status NOT IN ('GRADED', 'IN_PROGRESS') " +
+           "AND (qr.passed IS NULL OR qr.status = 'LOCKED') " +
            "AND q.quizCategory != 'COURSE_ASSIGNMENT' " +
            "AND (:classId IS NULL OR (reg.clazz.classId = :classId AND LOWER(reg.status) = 'approved')) " +
            "AND (q.user.email = :email " +
@@ -110,7 +111,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
         JOIN Registration reg ON reg.user.userId = stu.userId
         WHERE (:classId IS NULL OR reg.clazz.classId = :classId)
           AND LOWER(reg.status) = 'approved'
-          AND (qr.status IS NULL OR qr.status IN ('SUBMITTED', 'GRADING', 'GRADED', 'PENDING_GRADING'))
+          AND (qr.status IS NOT NULL AND qr.status NOT IN ('IN_PROGRESS'))
+          AND (qr.status IN ('SUBMITTED', 'GRADING', 'GRADED', 'PENDING_GRADING', 'LOCKED'))
           AND (
                (q.quizCategory = 'COURSE_ASSIGNMENT' AND (q.clazz.classId = :classId OR (q.clazz IS NULL AND q.course.courseId = reg.clazz.course.courseId))) 
                OR EXISTS (
