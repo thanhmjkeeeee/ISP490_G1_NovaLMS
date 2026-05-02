@@ -330,7 +330,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         for (QuizQuestion qq : quiz.getQuizQuestions()) {
             Question q = qq.getQuestion();
             Integer qId = q.getQuestionId();
-            Object userAnswerObj = answers != null ? answers.get(qId) : null;
+            Object userAnswerObj = answers != null ? answers.get(String.valueOf(qId)) : null;
             String answeredOptionsJson = "";
             try {
                 if (userAnswerObj != null) {
@@ -377,12 +377,20 @@ public class QuizResultServiceImpl implements QuizResultService {
                                     new TypeReference<Map<String, String>>() {
                                     });
                             boolean allCorrect = true;
-                            for (AnswerOption opt : q.getAnswerOptions()) {
-                                String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
-                                if (userTarget == null
-                                        || !userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
-                                    allCorrect = false;
-                                    break;
+                            List<AnswerOption> leftOptions = q.getAnswerOptions().stream()
+                                    .filter(opt -> opt.getMatchTarget() != null && !opt.getMatchTarget().isBlank())
+                                    .toList();
+                            
+                            if (leftOptions.isEmpty()) {
+                                allCorrect = false;
+                            } else {
+                                for (AnswerOption opt : leftOptions) {
+                                    String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
+                                    if (userTarget == null
+                                            || !userTarget.trim().equalsIgnoreCase(opt.getMatchTarget().trim())) {
+                                        allCorrect = false;
+                                        break;
+                                    }
                                 }
                             }
                             isCorrect = allCorrect;
@@ -559,17 +567,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     } else if ("FILL_IN_BLANK".equals(qType)) {
                         userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
                     } else if ("MATCHING".equals(qType)) {
-                        Map<String, String> userMatch = objectMapper.readValue(rawJson,
-                                new TypeReference<Map<String, String>>() {
-                                });
-                        List<String> matchDisplays = new ArrayList<>();
-                        for (AnswerOption opt : q.getAnswerOptions()) {
-                            String userTarget = userMatch.get(String.valueOf(opt.getAnswerOptionId()));
-                            if (userTarget != null) {
-                                matchDisplays.add(opt.getTitle() + " -> " + userTarget);
-                            }
-                        }
-                        userAnswerDisplay = String.join(" | ", matchDisplays);
+                        userAnswerDisplay = rawJson;
                     } else if ("SPEAKING".equals(qType) || "WRITING".equals(qType)) {
                         userAnswerDisplay = objectMapper.readValue(rawJson, String.class);
                         if (userAnswerDisplay == null)
@@ -619,9 +617,11 @@ public class QuizResultServiceImpl implements QuizResultService {
                     correctAnswerDisplay = String.join(" OR ", corrLogs);
                 } else if ("MATCHING".equals(q.getQuestionType())) {
                     for (AnswerOption op : q.getAnswerOptions()) {
-                        corrLogs.add(op.getTitle() + " -> " + op.getMatchTarget());
+                        if (op.getMatchTarget() != null && !op.getMatchTarget().isBlank()) {
+                            corrLogs.add("• " + op.getTitle() + " → " + op.getMatchTarget());
+                        }
                     }
-                    correctAnswerDisplay = String.join(" | ", corrLogs);
+                    correctAnswerDisplay = String.join("\n", corrLogs);
                 }
             }
 

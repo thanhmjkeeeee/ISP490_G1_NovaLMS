@@ -266,7 +266,7 @@ public class StudentServiceImpl implements StudentService {
                         .courseId(courseId)
                         .title(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .description(course.getDescription())
-                        .imageUrl(course.getImageUrl())
+                        .imageUrl(resolveCourseImage(course))
                         .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Học nội dung (Tự học)")
                         .classId(reg.getClazz() != null ? reg.getClazz().getClassId() : null)
                         .teacherName(teacherName)
@@ -358,7 +358,7 @@ public class StudentServiceImpl implements StudentService {
                                 .chapterName(targetLesson.getLessonName())
                                 .progress(progress)
                                 .lessonUrl("/student/lesson/view/" + targetLesson.getLessonId())
-                                .courseImage(course.getImageUrl())
+                                .courseImage(resolveCourseImage(course))
                                 .build();
                     }
                 }
@@ -900,7 +900,7 @@ public class StudentServiceImpl implements StudentService {
                 .courseId(course.getCourseId())
                 .className(clazz.getClassName())
                 .courseName(course.getCourseName())
-                .courseImage(course.getImageUrl())
+                .courseImage(resolveCourseImage(course))
                 .startDate(clazz.getStartDate() != null ? clazz.getStartDate().toString() : "")
                 .endDate(clazz.getEndDate() != null ? clazz.getEndDate().toString() : "")
                 .status(clazz.getStatus())
@@ -967,7 +967,7 @@ public class StudentServiceImpl implements StudentService {
                 courseProgressList.add(LearningProgressResponseDTO.CourseProgressDTO.builder()
                         .courseId(course.getCourseId())
                         .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
-                        .courseImage(course.getImageUrl())
+                        .courseImage(resolveCourseImage(course))
                         .totalLessons(totalLessons)
                         .completedLessons((int) completedLessons)
                         .progressPercent(progress)
@@ -985,6 +985,16 @@ public class StudentServiceImpl implements StudentService {
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi tải tiến độ: " + e.getMessage());
         }
+    }
+
+    private String resolveCourseImage(Course course) {
+        if (course.getAvatar() != null && !course.getAvatar().trim().isEmpty() && !course.getAvatar().contains("placeholder")) {
+            return course.getAvatar();
+        }
+        if (course.getImageUrl() != null && !course.getImageUrl().trim().isEmpty() && !course.getImageUrl().contains("placeholder")) {
+            return course.getImageUrl();
+        }
+        return "/assets/img/default-course.png";
     }
 
     private int calculateSlotNumber(String startTime) {

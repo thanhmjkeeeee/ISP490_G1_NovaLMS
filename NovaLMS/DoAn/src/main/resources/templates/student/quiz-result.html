@@ -408,12 +408,49 @@
                         <!-- User Answer Display -->
                         <div class="bg-light p-3 rounded-4 mb-3 border-start border-3 border-primary">
                             <div class="text-muted extra-small fw-bold text-uppercase mb-1">Câu trả lời của bạn:</div>
-                            <div th:if="${question.questionType == 'SPEAKING' and question.userAnswerDisplay != null and #strings.contains(question.userAnswerDisplay, 'http')}">
-                                <audio controls th:src="${#strings.replace(question.userAnswerDisplay, '&quot;', '')}" class="w-100 rounded-pill"></audio>
-                            </div>
-                            <div th:unless="${question.questionType == 'SPEAKING' and question.userAnswerDisplay != null and #strings.contains(question.userAnswerDisplay, 'http')}" 
-                                 class="text-dark fw-medium" th:text="${question.userAnswerDisplay != null and question.userAnswerDisplay != '' ? question.userAnswerDisplay : 'Không có câu trả lời.'}">
-                            </div>
+                            <!-- MATCHING Answer Handling -->
+                            <div th:if="${question.questionType == 'MATCHING'}" class="text-dark fw-medium">
+                                <div th:id="'match-ans-' + ${question.questionId}" th:data-ans="${question.userAnswerDisplay}" th:data-opts="${#json.serialize(question.options)}">
+                                     <!-- JS will populate this for clarity -->
+                                     <script th:inline="javascript">
+                                         (function() {
+                                             try {
+                                                 const qId = /*[[${question.questionId}]]*/ 0;
+                                                 const raw = /*[[${question.userAnswerDisplay}]]*/ '{}';
+                                                 const options = /*[[${question.options}]]*/ [];
+                                                 const container = document.getElementById('match-ans-' + qId);
+                                                 const parsed = JSON.parse(raw);
+                                                 if (parsed && typeof parsed === 'object') {
+                                                     let html = '<div class="mt-2 d-flex flex-column gap-2">';
+                                                     for (const [optId, val] of Object.entries(parsed)) {
+                                                         const opt = options.find(o => String(o.answerOptionId) === String(optId));
+                                                         const leftText = opt ? opt.title : 'Mục ' + optId;
+                                                         html += `<div class="d-flex align-items-center gap-2">
+                                                             <span class="badge bg-white text-dark border p-2 px-3 rounded-3 shadow-sm small">${leftText}</span>
+                                                             <i class="bi bi-arrow-right text-primary"></i>
+                                                             <span class="fw-bold text-primary">${val}</span>
+                                                         </div>`;
+                                                     }
+                                                     html += '</div>';
+                                                     container.innerHTML = html;
+                                                 } else {
+                                                     container.innerText = raw;
+                                                 }
+                                             } catch(e) { }
+                                         })();
+                                     </script>
+                                 </div>
+                             </div>
+
+                             <!-- SPEAKING Audio Handling -->
+                             <div th:if="${question.questionType == 'SPEAKING' and question.userAnswerDisplay != null and #strings.contains(question.userAnswerDisplay, 'http')}">
+                                 <audio controls th:src="${#strings.replace(question.userAnswerDisplay, '&quot;', '')}" class="w-100 rounded-pill"></audio>
+                             </div>
+
+                             <!-- Default / OTHER Handling -->
+                             <div th:if="${question.questionType != 'MATCHING' and (question.questionType != 'SPEAKING' or question.userAnswerDisplay == null or !#strings.contains(question.userAnswerDisplay, 'http'))}" 
+                                  class="text-dark fw-medium" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay != null and question.userAnswerDisplay != '' ? question.userAnswerDisplay : 'Không có câu trả lời.'}">
+                             </div>
                         </div>
 
                         <!-- AI Feedback -->

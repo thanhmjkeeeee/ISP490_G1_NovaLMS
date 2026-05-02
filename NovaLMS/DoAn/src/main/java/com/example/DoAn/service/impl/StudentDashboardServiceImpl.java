@@ -57,7 +57,10 @@ public class StudentDashboardServiceImpl implements StudentDashboardService {
 
             LocalDate enrolledAt = reg.getRegistrationTime() != null ? reg.getRegistrationTime().toLocalDate() : null;
 
-            String thumbnailUrl = course.getImageUrl();
+            String thumbnailUrl = course.getAvatar();
+            if (thumbnailUrl == null || thumbnailUrl.isBlank() || thumbnailUrl.contains("placeholder")) {
+                thumbnailUrl = course.getImageUrl();
+            }
             if (thumbnailUrl == null || thumbnailUrl.isBlank() || thumbnailUrl.contains("placeholder")) {
                 thumbnailUrl = "/assets/img/default-course.png";
             }

@@ -430,12 +430,13 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-3" id="moduleSection">
+                        <div class="col-md-2" id="moduleSection">
                             <label class="form-label fw-bold small">Chương (Module)</label>
-                            <select id="moduleIdSelect" class="form-select" onchange="onModuleChange()">
+                             <select id="moduleIdSelect" class="form-select">
                                 <option value="">-- Chọn chương --</option>
                             </select>
                         </div>
+
                     </div>
 
                     <!-- Title + Desc -->
@@ -1152,10 +1153,6 @@
                     await loadModules(q.courseId);
                     if (q.moduleId) {
                         document.getElementById('moduleIdSelect').value = q.moduleId;
-                        await loadLessons(q.moduleId);
-                        if (q.lessonId) {
-                            document.getElementById('lessonIdSelect').value = q.lessonId;
-                        }
                     }
                 } else if (q.quizCategory !== 'ENTRY_TEST') {
                     await loadCourses();
@@ -1429,12 +1426,11 @@
             const courseId = document.getElementById('courseIdSelect').value;
             if (courseId) {
                 await loadModules(courseId);
-                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Chọn buổi --</option>';
             } else {
                 document.getElementById('moduleIdSelect').innerHTML = '<option value="">-- Chọn chương --</option>';
-                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Chọn buổi --</option>';
             }
         }
+
 
         async function loadModules(courseId) {
             const select = document.getElementById('moduleIdSelect');
@@ -1463,36 +1459,6 @@
             }
         }
 
-        async function onModuleChange() {
-            const moduleId = document.getElementById('moduleIdSelect').value;
-            if (moduleId) {
-                await loadLessons(moduleId);
-            } else {
-                document.getElementById('lessonIdSelect').innerHTML = '<option value="">-- Chọn buổi --</option>';
-            }
-        }
-
-        async function loadLessons(moduleId) {
-            const select = document.getElementById('lessonIdSelect');
-            if (!select) return;
-            select.innerHTML = '<option value="">-- Đang tải... --</option>';
-            try {
-                const res = await fetch('/api/v1/expert/lessons?moduleId=' + moduleId);
-                const result = await res.json();
-                if (result.status === 200 && result.data) {
-                    let html = '<option value="">-- Chọn buổi --</option>';
-                    result.data.forEach(l => {
-                        html += `<option value="${l.lessonId}">${l.lessonName}</option>`;
-                    });
-                    select.innerHTML = html;
-                } else {
-                    select.innerHTML = '<option value="">-- Không có buổi học --</option>';
-                }
-            } catch (e) {
-                console.error("[loadLessons] Exception:", e);
-                select.innerHTML = '<option value="">-- Lỗi kết nối --</option>';
-            }
-        }
 
         async function loadQuizQuestions(preFetchedData = null, skipBankReload = false) {
             try {
@@ -1601,7 +1567,12 @@
                                                     <div class="small text-dark pe-3">
                                                         <span class="badge bg-light text-primary me-2">${idx + 1}</span>${sq.questionContent}
                                                     </div>
-                                                    <div class="extra-small text-muted">${typeName(sq.questionType)}</div>
+                                                     <div class="extra-small text-muted d-flex align-items-center">
+                                                        <span class="me-2">${typeName(sq.questionType)}</span>
+                                                        <button class="btn btn-sm btn-outline-danger border-0 p-0" onclick="removeQuestion(${sq.questionId})" title="Gỡ bỏ">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             `).join('')}
                                         </div>
@@ -2059,9 +2030,8 @@
                 maxAttempts: parseInt(document.getElementById('maxAttempts').value) || 1,
                 questionOrder: document.getElementById('questionOrder').value,
                 status: document.getElementById('status').value,
-                courseId: parseInt(document.getElementById('courseIdSelect').value) || null,
-                moduleId: parseInt(document.getElementById('moduleIdSelect').value) || null,
-                lessonId: parseInt(document.getElementById('lessonIdSelect').value) || null,
+                courseId: document.getElementById('courseIdSelect')?.value ? parseInt(document.getElementById('courseIdSelect').value) : null,
+                moduleId: document.getElementById('moduleIdSelect')?.value ? parseInt(document.getElementById('moduleIdSelect').value) : null,
                 showAnswerAfterSubmit: document.getElementById('showAnswerAfterSubmit').checked,
                 overallBand: parseFloat(document.getElementById('overallBand').value) || null,
                 timeLimitPerSkill: skillTimes
@@ -2393,6 +2363,14 @@
                         <input type="text" class="form-control" id="ws-edit-opt-txt-${idx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
                     </div>
                 `).join('');
+            } else if (q.questionType === 'MATCHING') {
+                answersHtml = opts.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <input type="text" class="form-control" placeholder="Vế trái" value="${escapeHtml(o.title || '')}" id="ws-edit-match-left-${idx}-${optIdx}">
+                        <span class="input-group-text"><i class="bi bi-arrow-right"></i></span>
+                        <input type="text" class="form-control" placeholder="Vế phải" value="${escapeHtml(o.matchTarget || '')}" id="ws-edit-match-right-${idx}-${optIdx}">
+                    </div>
+                `).join('');
             } else {
                 answersHtml = `
                     <div class="mb-2">
@@ -2418,7 +2396,13 @@
             let ansHtml = '';
             if (opts.length > 0) {
                 ansHtml = `<div class="ps-3 border-start">
-                    ${opts.map(o => `<div class="small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">• ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
+                    ${opts.map(o => {
+                        let text = escapeHtml(o.title || o.answerText);
+                        if (q.questionType === 'MATCHING' && o.matchTarget) {
+                            text += ` <i class="bi bi-arrow-right text-primary mx-1"></i> <span class="text-dark fw-medium">${escapeHtml(o.matchTarget)}</span>`;
+                        }
+                        return `<div class="small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">• ${text}</div>`;
+                    }).join('')}
                 </div>`;
             } else if (q.correctAnswer) {
                 ansHtml = `<div class="ps-3 border-start border-success">
@@ -2453,7 +2437,13 @@
             let ansHtml = '';
             if (opts.length > 0) {
                 ansHtml = `<div class="ps-2 mt-1">
-                    ${opts.map(o => `<div class="extra-small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">- ${escapeHtml(o.title || o.answerText)}</div>`).join('')}
+                    ${opts.map(o => {
+                        let text = escapeHtml(o.title || o.answerText);
+                        if (subQ.questionType === 'MATCHING' && o.matchTarget) {
+                            text += ` <i class="bi bi-arrow-right text-primary mx-1"></i> <span class="text-dark fw-medium">${escapeHtml(o.matchTarget)}</span>`;
+                        }
+                        return `<div class="extra-small ${o.correct || o.isCorrect ? 'text-success fw-bold' : 'text-muted'}">- ${text}</div>`;
+                    }).join('')}
                 </div>`;
             } else if (subQ.correctAnswer) {
                 ansHtml = `<div class="ps-2 mt-1">
@@ -2479,6 +2469,14 @@
                     <div class="input-group input-group-sm mb-1">
                         <span class="input-group-text"><input type="${subQ.questionType === 'MULTIPLE_CHOICE_SINGLE' ? 'radio' : 'checkbox'}" name="ws-edit-gopt-corr-${idx}-${sIdx}" ${o.correct || o.isCorrect ? 'checked' : ''} id="ws-edit-gopt-corr-${idx}-${sIdx}-${optIdx}"></span>
                         <input type="text" class="form-control" id="ws-edit-gopt-txt-${idx}-${sIdx}-${optIdx}" value="${escapeHtml(o.title || o.answerText)}">
+                    </div>
+                `).join('');
+            } else if (subQ.questionType === 'MATCHING') {
+                answersHtml = opts.map((o, optIdx) => `
+                    <div class="input-group input-group-sm mb-1">
+                        <input type="text" class="form-control" placeholder="Vế trái" value="${escapeHtml(o.title || '')}" id="ws-edit-gmatch-left-${idx}-${sIdx}-${optIdx}">
+                        <span class="input-group-text"><i class="bi bi-arrow-right"></i></span>
+                        <input type="text" class="form-control" placeholder="Vế phải" value="${escapeHtml(o.matchTarget || '')}" id="ws-edit-gmatch-right-${idx}-${sIdx}-${optIdx}">
                     </div>
                 `).join('');
             } else {

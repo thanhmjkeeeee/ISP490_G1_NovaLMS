@@ -313,12 +313,15 @@ function renderQuestion(q, qi, isAutoGraded) {
                 // Handle MATCHING question types which store answers as JSON object
                 if (q.questionType === 'MATCHING') {
                     try {
-                        const parsed = JSON.parse(q.studentAnswer);
-                        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                        let parsed = q.studentAnswer;
+                        if (typeof q.studentAnswer === 'string') {
+                            try { parsed = JSON.parse(q.studentAnswer); } catch (e) { parsed = null; }
+                        }
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                             let html = '<div class="matching-answers mt-2">';
                             for (const [optId, val] of Object.entries(parsed)) {
                                 const option = q.options?.find(o => String(o.id) === String(optId));
-                                const leftText = option ? option.title : `Mục ${optId}`;
+                                const leftText = option ? (option.title || option.content) : `Mục ${optId}`;
                                 html += `
                                     <div class="d-flex align-items-center mb-1">
                                         <span class="badge bg-light text-dark border me-2">${leftText}</span>

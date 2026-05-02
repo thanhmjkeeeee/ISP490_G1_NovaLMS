@@ -20,6 +20,8 @@ public class QuizResponseDTO {
     private String moduleName;
     private Integer lessonId;
     private String lessonName;
+    private Integer classId;
+    private Integer sessionId;
     private String status;
     private Boolean isOpen; // Teacher mở/đóng quiz cho học sinh
     private Integer timeLimitMinutes;

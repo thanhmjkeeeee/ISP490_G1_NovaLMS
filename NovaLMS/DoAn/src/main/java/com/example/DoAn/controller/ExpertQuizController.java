@@ -244,4 +244,16 @@ public class ExpertQuizController {
         return ResponseData.success("Questions imported",
                 quizService.importAIQuestions(quizId, questions, passage, audioUrl, getEmail(principal)));
     }
+
+    @Operation(summary = "Lấy danh sách buổi học của lớp")
+    @GetMapping("/classes/{classId}/sessions")
+    public ResponseData<List<com.example.DoAn.dto.response.ClassSessionDTO>> getClassSessions(@PathVariable Integer classId) {
+        return ResponseData.success("Danh sách buổi học", quizService.getClassSessions(classId));
+    }
+
+    @Operation(summary = "Lấy danh sách lớp học của khóa học")
+    @GetMapping("/courses/{courseId}/classes")
+    public ResponseData<List<com.example.DoAn.dto.response.ClassSelectionDTO>> getClassesByCourse(@PathVariable Integer courseId) {
+        return ResponseData.success("Danh sách lớp học", quizService.getClassesByCourseDTO(courseId));
+    }
 }

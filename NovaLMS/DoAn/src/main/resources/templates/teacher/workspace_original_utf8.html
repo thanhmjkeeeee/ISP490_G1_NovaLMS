@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
 
 <head th:replace="~{fragments/head :: common-head(pageTitle='Không gian làm việc Giảng viên')}"></head>
@@ -72,180 +72,8 @@
             border-style: dashed !important;
         }
 
-        .workspace-nav-sidebar .list-group-item {
-            border: none;
-            color: #64748b;
-            background: transparent;
-            transition: all 0.2s ease;
-            font-size: 0.85rem;
-        }
-
-        .workspace-nav-sidebar .list-group-item:hover {
-            background: #f1f5f9;
-            color: var(--bs-primary);
-        }
-
-        .workspace-nav-sidebar .list-group-item.active {
-            background: #eff6ff;
-            color: var(--bs-primary);
-            border-left: 4px solid var(--bs-primary) !important;
-        }
-
-        .workspace-nav-sidebar i {
-            transition: transform 0.2s ease;
-        }
-
-        .workspace-nav-sidebar .list-group-item:hover i {
-            transform: scale(1.1);
-        }
-
-        /* PREMIUM GRADING INTERFACE */
-        .q-grading-row {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .criteria-card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 1rem;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: all 0.2s ease;
-        }
-
-        .criteria-card:focus-within {
-            border-color: var(--bs-primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .criteria-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-
-        .criteria-info {
-            flex-grow: 1;
-        }
-
-        .criteria-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-        }
-
-        .criteria-desc {
-            font-size: 0.6rem;
-            color: #64748b;
-            line-height: 1.2;
-        }
-
-        .criteria-input-wrap {
-            display: flex;
-            align-items: center;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 0.25rem 0.5rem;
-            width: 80px;
-        }
-
-        .criteria-input-wrap input {
-            background: transparent;
-            border: none;
-            width: 100%;
-            text-align: center;
-            font-weight: 700;
-            padding: 0;
-            font-size: 0.9rem;
-        }
-
-        .criteria-input-wrap input:focus {
-            outline: none;
-        }
-
-        .criteria-input-wrap span {
-            font-size: 0.75rem;
-            color: #94a3b8;
-            margin-left: 2px;
-        }
-
-        .grading-notes-area {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 1rem;
-            padding: 1.25rem;
-            height: 100%;
-        }
-
-        .grading-notes-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: #64748b;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .grading-notes-area textarea {
-            border: none;
-            resize: none;
-            padding: 0;
-            font-size: 0.85rem;
-        }
-
-        .grading-notes-area textarea:focus {
-            box-shadow: none;
-        }
-
-        .overall-grading-card {
-            background: #2563eb;
-            color: #fff;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-        }
-
-        .overall-grading-card.speaking {
-            background: #dc2626;
-        }
-
-        .overall-label-top {
-            font-size: 0.6rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            opacity: 0.8;
-            margin-bottom: 0.5rem;
-        }
-
-        .overall-score-big {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 0.25rem;
-        }
-
-        .overall-score-method {
-            font-size: 0.6rem;
-            opacity: 0.7;
+        .w-fit {
+            width: fit-content !important;
         }
     </style>
 
@@ -271,45 +99,56 @@
             </div>
 
             <!-- 6 TABS NAVIGATION -->
-            <ul class="nav nav-pills workspace-tabs d-flex flex-nowrap overflow-auto mb-4" id="workspaceTabs" role="tablist" style="gap: 5px;">
+            <ul class="nav nav-pills workspace-tabs d-flex flex-nowrap overflow-auto" id="workspaceTabs" role="tablist"
+                style="gap: 5px;">
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link active rounded-pill px-4" id="tab-classes-btn" data-bs-toggle="tab" data-bs-target="#tab-classes" type="button" role="tab">
-                        <i class="bi bi-journal-text me-1"></i>QUẢN LÝ KHÓA HỌC
+                    <button class="nav-link active" id="tab-classes-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-classes" type="button" role="tab">
+                        <i class="bi bi-journal-text me-1"></i>Danh sách Lớp
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-schedule-btn" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
+                    <button class="nav-link" id="tab-schedule-btn" data-bs-toggle="tab" data-bs-target="#tab-schedule"
+                        type="button" role="tab">
                         <i class="bi bi-calendar-week me-1"></i>Lịch dạy
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-quiz-btn" data-bs-toggle="tab" data-bs-target="#tab-quiz" type="button" role="tab">
-                        <i class="bi bi-patch-question me-1"></i>Ngân hàng câu hỏi
+                    <button class="nav-link" id="tab-quiz-btn" data-bs-toggle="tab" data-bs-target="#tab-quiz"
+                        type="button" role="tab">
+                        <i class="bi bi-patch-question me-1"></i>Quản lý Quiz
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-assignment-btn" data-bs-toggle="tab" data-bs-target="#tab-assignment" type="button" role="tab">
-                        <i class="bi bi-file-earmark-code me-1"></i>Kho bài tập
+                    <button class="nav-link" id="tab-assignment-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-assignment" type="button" role="tab">
+                        <i class="bi bi-file-earmark-code me-1"></i>Quản lý Assignment
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-grading-btn" data-bs-toggle="tab" data-bs-target="#tab-grading" type="button" role="tab">
+                    <button class="nav-link" id="tab-grading-btn" data-bs-toggle="tab" data-bs-target="#tab-grading"
+                        type="button" role="tab">
                         <i class="bi bi-pencil-square me-1"></i>Chấm bài
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-graded-btn" data-bs-toggle="tab" data-bs-target="#tab-graded" type="button" role="tab">
-                        <i class="bi bi-check2-circle me-1"></i>Báo cáo
+                    <button class="nav-link" id="tab-graded-btn" data-bs-toggle="tab" data-bs-target="#tab-graded"
+                        type="button" role="tab">
+                        <i class="bi bi-check2-circle me-1"></i>Kết quả đã chấm
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link position-relative rounded-pill px-4" id="tab-requests-btn" data-bs-toggle="tab" data-bs-target="#tab-requests" type="button" role="tab" style="color: #dc3545;">
+                    <button class="nav-link position-relative" id="tab-requests-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-requests" type="button" role="tab" style="color: #dc3545;">
                         <i class="bi bi-exclamation-octagon-fill me-1"></i>Yêu cầu mở khóa
-                        <span id="wsRequestBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">0</span>
+                        <span id="wsRequestBadge"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                            style="display: none; font-size: 0.65rem;">0</span>
                     </button>
                 </li>
             </ul>
 
+            <!-- TABS CONTENT -->
             <div class="tab-content w-card" id="workspaceTabContent">
 
                 <!-- TAB 1: DANH SÁCH LỚP -->
@@ -570,10 +409,10 @@
                                                 tất</strong> để gửi điểm cuối cùng.
                                         </div>
                                         <div class="d-flex gap-2">
-<!--                                            <button class="btn btn-outline-primary rounded-pill px-4"-->
-<!--                                                id="ws-gd-draftBtn" onclick="wsSubmitGrade(false)">-->
-<!--                                                Lưu nháp-->
-<!--                                            </button>-->
+                                            <button class="btn btn-outline-primary rounded-pill px-4"
+                                                id="ws-gd-draftBtn" onclick="wsSubmitGrade(false)">
+                                                Lưu nháp
+                                            </button>
                                             <button class="btn btn-success rounded-pill px-4 fw-bold"
                                                 id="ws-gd-finalBtn" onclick="wsSubmitGrade(true)">
                                                 <i class="bi bi-check-circle me-1"></i> Hoàn tất chấm
@@ -589,7 +428,7 @@
                 <!-- TAB 6: KẾT QUẢ ĐÃ CHẤM -->
                 <div class="tab-pane fade" id="tab-graded" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2 text-primary"></i>Báo cáo kết quả
+                        <h5 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2 text-primary"></i>Kết quả đã chấm
                         </h5>
                         <div class="input-group input-group-sm" style="width: 250px;">
                             <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i
@@ -640,7 +479,9 @@
                     </div>
                 </div>
 
-            </div> <!-- End of tab-content -->
+            </div> <!-- End of tab-content (line 75) -->
+
+        </div> <!-- End of container-fluid (line 11) -->
     </main>
 
     <!-- MODAL MAPPING (REFACTORED FROM TAB 3) -->
@@ -5103,8 +4944,8 @@
                                         <i class="bi bi-unlock me-1"></i>Mở khóa
                                     </button>
                                 ` : (s.status === 'SUBMITTED' || s.status === 'GRADED' || s.status === 'GRADING' ? `
-                                    <button class="btn btn-sm btn-primary rounded-pill px-4 shadow-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('wsQuizResultsModal')).hide(); wsOpenGradingDetail(${s.resultId}, 'QUIZ', 'GRADED')">
-                                        <i class="bi bi-pen-fill me-1"></i>Chấm
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="wsToast('Tính năng xem chi tiết bài làm đang phát triển', 'info')">
+                                        Chi tiết
                                     </button>
                                 ` : '')}
                             </td>
@@ -6135,7 +5976,7 @@
                 return score > 0 || skillMax > 0;
             }).filter(s => skillBands[s] > 0);
 
-const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skillBands[k], 0) / activeSkills.length : 0;
+            const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skillBands[k], 0) / activeSkills.length : 0;
             const overall = Math.round(avg * 2) / 2;
 
             const overallEl = document.getElementById('ws-gd-overall-band');
@@ -6230,235 +6071,97 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                 if (!skillQs) return '';
 
                 let qsHtml = skillQs.map((q, qi) => {
+                    const scoreVal = (q.teacherScore !== undefined) ? q.teacherScore : (q.pointsAwarded ?? 0);
                     const maxVal = q.maxPoints || q.points || 0;
-                    const scoreVal = parseFloat((q.teacherOverrideScore != null) ? q.teacherOverrideScore : ((q.teacherPointsAwarded != null) ? q.teacherPointsAwarded : (q.isCorrect ? (q.maxPoints || q.points || 0) : 0))) || 0;
-                    
-                    const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING' || (maxVal > 0 && (q.answer === null || q.answer === ''));
-                    const isSubjective = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
+                    const isManual = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
 
-                    // Premium Answer Display Logic
-                    let premiumAnsHtml = '';
-                    if (isSubjective) {
-                        const ans = q.studentAnswer || '—';
+                    let ansHtml = '';
+                    if (q.studentAnswer || q.userAnswerDisplay) {
+                        const ans = q.studentAnswer || q.userAnswerDisplay;
                         const isAudioUrl = q.questionType === 'SPEAKING' && (ans.includes('http') || ans.includes('cloudinary'));
-                        
-                        if (isAudioUrl) {
-                            premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4">
-                                    <label class="extra-small fw-bold text-muted text-uppercase mb-3 d-block" style="font-size: 0.65rem; letter-spacing: 1px;">
-                                        <i class="bi bi-mic-fill me-1 text-danger"></i> Học sinh đã trả lời bằng Audio:
-                                    </label>
-                                    <audio controls src="${ans.trim()}" class="w-100" style="height:45px;"></audio>
-                                </div>`;
+                        if (isAudioUrl && !(q.audioUrl || q.studentAudioUrl)) {
+                            ansHtml = '<div class="mb-2"><audio controls src="' + ans.trim() + '" class="w-100" style="height:35px;"></audio></div>';
                         } else {
-                            premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4" style="line-height: 1.8; font-size: 1rem; color: #334155; min-height: 120px; white-space: pre-wrap;">
-                                    ${wsSafeHtml(ans)}
-                                </div>`;
+                            let displayedAns = wsSafeHtml(ans);
+                            if (ans) {
+                                // Handle MATCHING
+                                if (q.questionType === 'MATCHING') {
+                                    try {
+                                        const parsed = JSON.parse(ans);
+                                        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                                            let matchHtml = '<div class="mt-1">';
+                                            for (const [optId, val] of Object.entries(parsed)) {
+                                                const option = q.options?.find(o => String(o.id) === String(optId));
+                                                const leftText = option ? wsSafeHtml(option.title) : `Mục ${optId}`;
+                                                matchHtml += `<div class="mb-1">` +
+                                                    `<span class="badge bg-white text-dark border me-1">` + leftText + `</span>` +
+                                                    `<i class="bi bi-arrow-right text-muted mx-1"></i>` +
+                                                    `<span class="fw-bold text-primary">` + wsSafeHtml(val) + `</span></div>`;
+                                            }
+                                            matchHtml += '</div>';
+                                            displayedAns = matchHtml;
+                                        }
+                                    } catch (e) { }
+                                }
+                                // Handle MULTIPLE_CHOICE_SINGLE
+                                else if (q.questionType === 'MULTIPLE_CHOICE_SINGLE') {
+                                    const option = q.options?.find(o => String(o.id) === String(ans));
+                                    if (option) displayedAns = wsSafeHtml(option.title);
+                                }
+                                // Handle MULTIPLE_CHOICE_MULTI
+                                else if (q.questionType === 'MULTIPLE_CHOICE_MULTI') {
+                                    try {
+                                        const parsed = JSON.parse(ans);
+                                        if (Array.isArray(parsed)) {
+                                            displayedAns = parsed.map(id => {
+                                                const option = q.options?.find(o => String(o.id) === String(id));
+                                                return option ? wsSafeHtml(option.title) : id;
+                                            }).join(', ');
+                                        }
+                                    } catch (e) { }
+                                }
+                            }
+                            ansHtml = '<div class="bg-light p-2 rounded small mb-2"><strong>Trả lời:</strong> ' + displayedAns + '</div>';
                         }
-                    } else {
-                        let displayedAns = q.studentAnswer || '—';
-                        if (q.questionType === 'MULTIPLE_CHOICE' || q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
-                             try {
-                                 let parsed = displayedAns;
-                                 if (typeof displayedAns === 'string' && (displayedAns.startsWith('[') || displayedAns.startsWith('{'))) {
-                                     parsed = JSON.parse(displayedAns);
-                                 }
-                                 if (Array.isArray(parsed)) {
-                                     displayedAns = parsed.map(id => {
-                                         const option = q.options?.find(o => String(o.id) === String(id) || String(o.answerOptionId) === String(id));
-                                         return option ? wsSafeHtml(option.title || option.content) : id;
-                                     }).join(', ');
-                                 } else if (parsed && typeof parsed === 'string') {
-                                     const option = q.options?.find(o => String(o.id) === String(parsed) || String(o.answerOptionId) === String(parsed));
-                                     if (option) displayedAns = wsSafeHtml(option.title || option.content);
-                                 }
-                             } catch (e) { }
-                        }
-                        premiumAnsHtml = `
-                            <div class="mb-4 p-3 bg-light rounded-4 border-start border-4 border-primary shadow-sm">
-                                <span class="small text-muted d-block mb-1 text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Học sinh trả lời:</span>
-                                <div class="fw-bold text-dark fs-6">${displayedAns}</div>
-                            </div>`;
                     }
 
                     let manualHtml = '';
-                    if (q.questionType === 'WRITING') {
-                        const taVal = q.writingTaskAchievement || '';
-                        const ccVal = q.writingCoherenceCohesion || '';
-                        const lrVal = q.writingLexicalResource || '';
-                        const graVal = q.writingGrammarAccuracy || '';
-                        const overall = (taVal && ccVal && lrVal && graVal) ? (Math.round(((parseFloat(taVal) + parseFloat(ccVal) + parseFloat(lrVal) + parseFloat(graVal)) / 4) * 2) / 2).toFixed(1) : '0.0';
-                        
-                        let aiRubric = {};
-                        try { if(q.aiRubricJson) aiRubric = JSON.parse(q.aiRubricJson); } catch(e){}
-
-                        manualHtml = `
-                        <div class="mt-2 grading-writing-container">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 border border-primary border-opacity-10">
-                                <div class="card-header bg-dark py-2 px-3 d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-primary p-1 rounded" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-robot text-white small"></i></div>
-                                        <span class="text-white fw-bold extra-small text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">AI ASSESSMENT</span>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
-                                </div>
-                                <div class="card-body p-3 bg-light bg-opacity-50">
-                                    <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.9rem;">AI FEEDBACK & ANALYSIS</h6>
-                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;">
-                                        ${q.aiFeedback || '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-4">
-                                ${[['Task Achievement', 'bi-bullseye', 'ta', 'writing-ta', 'text-primary'], ['Coherence and Cohesion', 'bi-link-45deg', 'cc', 'writing-cc', 'text-success'], ['Lexical Resource', 'bi-journal-text', 'lr', 'writing-lr', 'text-warning'], ['Grammatical range and accuracy', 'bi-spellcheck', 'gra', 'writing-gra', 'text-danger']].map(([label, icon, key, cls, iconCls]) => `
-                                    <div class="col-md-6 col-lg-3">
-                                        <div class="criteria-card p-3 rounded-4 shadow-sm border h-100 bg-white">
-                                            <div class="d-flex align-items-center gap-2 mb-3">
-                                                <div class="icon-circle bg-light p-2 rounded-3 ${iconCls}"><i class="bi ${icon}"></i></div>
-                                                <span class="extra-small fw-bold text-muted text-uppercase" style="font-size: 0.6rem; line-height: 1.2;">${label}</span>
-                                            </div>
-                                            <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-                                                <input type="number" step="0.5" min="0" max="9" class="form-control border-0 bg-light text-center fw-bold ${cls}" 
-                                                       style="font-size: 1.25rem;" data-qid="${q.questionId}" data-max="9" value="${q['writing' + key.toUpperCase()] || ''}" oninput="updateWritingOverall(${q.questionId})">
-                                                <span class="input-group-text border-0 bg-white text-muted fw-bold" style="font-size: 0.8rem; min-width: 45px; justify-content: center;">/ 9</span>
-                                            </div>
-                                            <div class="mt-2 text-center"><span class="badge bg-danger bg-opacity-10 text-danger" style="font-size: 0.55rem; letter-spacing: 0.5px;">AI SUGGEST: ${aiRubric[key]?.score || '0.0'}</span></div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-
-                            <div class="row g-3">
-                                <div class="col-lg-8">
-                                    <div class="p-3 rounded-4 bg-white shadow-sm border h-100">
-                                        <label class="fw-bold text-muted small mb-2 text-uppercase" style="font-size: 0.6rem;"><i class="bi bi-chat-left-quote me-1"></i> Ghi chú & Nhận xét</label>
-                                        <textarea class="form-control border-0 bg-light rounded-3 ws-gd-note-input" style="height: 120px; resize: none; font-size: 0.9rem;" data-qid="${q.questionId}" placeholder="Nhận xét...">${q.teacherNote || ''}</textarea>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="p-4 rounded-4 bg-primary text-white shadow h-100 d-flex flex-column align-items-center justify-content-center text-center" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
-                                        <span class="extra-small fw-bold text-uppercase opacity-75 mb-2" style="font-size: 0.65rem;">Overall Writing</span>
-                                        <div class="display-4 fw-bolder mb-1" id="overall-writing-${q.questionId}">${overall}</div>
-                                        <div class="small opacity-75 fw-medium" style="font-size: 0.75rem;">Band Score</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
+                    if (!isManual || isReadonly) {
+                        let aiHtml = '';
+                        if (q.aiScore || q.aiFeedback) {
+                            aiHtml = '<div class="p-3 bg-light border rounded-3 mb-3"><div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-robot text-primary"></i><span class="small fw-bold text-uppercase">AI Review</span>' + (q.aiScore ? '<span class="badge bg-primary ms-auto">Band ' + q.aiScore + '</span>' : '') + '</div><div class="small text-muted" style="white-space: pre-line;">' + wsSafeHtml(q.aiFeedback) + '</div></div>';
+                        }
+                        manualHtml = '<div class="mt-3">' + aiHtml + '<div class="row g-3"><div class="col-12"><div class="d-flex justify-content-between align-items-center p-2 px-3 bg-white border rounded-3"><span class="small fw-bold text-muted">ĐIỂM SỐ</span><span class="badge bg-primary fs-6">' + scoreVal.toFixed(1) + ' / ' + maxVal + '</span></div></div></div></div>';
+                    } else if (q.questionType === 'WRITING') {
+                        let aiHtml = '';
+                        if (q.aiScore || q.aiFeedback) {
+                            aiHtml = '<div class="p-3 bg-light border rounded-3 mb-3"><div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-robot text-primary"></i><span class="small fw-bold text-uppercase">AI Suggestion</span>' + (q.aiScore ? '<span class="badge bg-primary ms-auto">Band ' + q.aiScore + '</span>' : '') + '</div><div class="small text-muted" style="white-space: pre-line;">' + wsSafeHtml(q.aiFeedback) + '</div></div>';
+                        }
+                        manualHtml = '<div class="mt-3">' + aiHtml + '<div class="row g-2 mb-3">' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">TA</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm writing-ta" data-qid="' + q.questionId + '" value="' + (q.writingTaskAchievement || '') + '" oninput="updateWritingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">CC</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm writing-cc" data-qid="' + q.questionId + '" value="' + (q.writingCoherenceCohesion || '') + '" oninput="updateWritingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">LR</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm writing-lr" data-qid="' + q.questionId + '" value="' + (q.writingLexicalResource || '') + '" oninput="updateWritingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">GRA</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm writing-gra" data-qid="' + q.questionId + '" value="' + (q.writingGrammarAccuracy || '') + '" oninput="updateWritingOverall(' + q.questionId + ')"></div>' +
+                            '</div><div class="bg-primary bg-opacity-10 p-2 rounded-3 text-center border border-primary"><span class="small fw-bold text-primary">OVERALL: </span><span class="h5 fw-bold text-primary mb-0" id="overall-writing-' + q.questionId + '">' + (q.writingTaskAchievement != null ? (Math.round(((parseFloat(q.writingTaskAchievement) + parseFloat(q.writingCoherenceCohesion) + parseFloat(q.writingLexicalResource) + parseFloat(q.writingGrammarAccuracy)) / 4) * 2) / 2).toFixed(1) : '0.0') + '</span></div>' +
+                            '<div class="mt-3"><textarea class="form-control form-control-sm ws-gd-note-input" rows="2" data-qid="' + q.questionId + '" placeholder="Nhận xét...">' + (q.teacherNote || '') + '</textarea></div></div>';
                     } else if (q.questionType === 'SPEAKING') {
-                        const fcVal = q.speakingFluencyCoherence || '';
-                        const slrVal = q.speakingLexicalResource || '';
-                        const prVal = q.speakingPronunciation || '';
-                        const sgraVal = q.speakingGrammarAccuracy || '';
-                        const overall = (fcVal && slrVal && prVal && sgraVal) ? (Math.round(((parseFloat(fcVal) + parseFloat(slrVal) + parseFloat(prVal) + parseFloat(sgraVal)) / 4) * 2) / 2).toFixed(1) : '0.0';
-
-                        let aiRubric = {};
-                        try { if(q.aiRubricJson) aiRubric = JSON.parse(q.aiRubricJson); } catch(e){}
-
-                        manualHtml = `
-                        <div class="mt-2 grading-speaking-container">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 border border-danger border-opacity-10">
-                                <div class="card-header bg-dark py-2 px-3 d-flex justify-content-between align-items-center">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-danger p-1 rounded" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-robot text-white small"></i></div>
-                                        <span class="text-white fw-bold extra-small text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">AI ASSESSMENT</span>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
-                                </div>
-                                <div class="card-body p-3 bg-light bg-opacity-50">
-                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;">
-                                        ${q.aiFeedback || '<span class="text-muted fst-italic">AI analysis unavailable...</span>'}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-4">
-                                ${[['Fluency and Cohesion', 'bi-chat-dots', 'fc', 'speaking-fc', 'text-primary'], ['Lexical Resource', 'bi-journal-text', 'lr', 'speaking-lr', 'text-success'], ['Pronunciation', 'bi-volume-up', 'pr', 'speaking-pr', 'text-warning'], ['Grammatical range and accuracy', 'bi-spellcheck', 'gra', 'speaking-gra', 'text-danger']].map(([label, icon, key, cls, iconCls]) => `
-                                    <div class="col-md-6 col-lg-3">
-                                        <div class="criteria-card p-3 rounded-4 shadow-sm border h-100 bg-white">
-                                            <div class="d-flex align-items-center gap-2 mb-3">
-                                                <div class="icon-circle bg-light p-2 rounded-3 ${iconCls}"><i class="bi ${icon}"></i></div>
-                                                <span class="extra-small fw-bold text-muted text-uppercase" style="font-size: 0.6rem;">${label}</span>
-                                            </div>
-                                            <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden">
-                                                <input type="number" step="0.5" min="0" max="9" class="form-control border-0 bg-light text-center fw-bold ${cls}" 
-                                                       style="font-size: 1.25rem;" data-qid="${q.questionId}" data-max="9" value="${q['speaking' + key.toUpperCase()] || ''}" oninput="updateSpeakingOverall(${q.questionId})">
-                                                <span class="input-group-text border-0 bg-white text-muted fw-bold" style="font-size: 0.8rem; min-width: 45px; justify-content: center;">/ 9</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-
-                            <div class="row g-3">
-                                <div class="col-lg-8">
-                                    <div class="p-3 rounded-4 bg-white shadow-sm border h-100">
-                                        <label class="fw-bold text-muted small mb-2 text-uppercase" style="font-size: 0.6rem;">Nhận xét</label>
-                                        <textarea class="form-control border-0 bg-light rounded-3 ws-gd-note-input" style="height: 120px; resize: none; font-size: 0.9rem;" data-qid="${q.questionId}" placeholder="Nhận xét...">${q.teacherNote || ''}</textarea>
-                                    </div>
-                                </div>
-                                <div class="col-lg-4">
-                                    <div class="p-4 rounded-4 bg-danger text-white shadow h-100 d-flex flex-column align-items-center justify-content-center text-center" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);">
-                                        <span class="extra-small fw-bold text-uppercase opacity-75 mb-2" style="font-size: 0.65rem;">Overall Speaking</span>
-                                        <div class="display-4 fw-bolder mb-1" id="overall-speaking-${q.questionId}">${overall}</div>
-                                        <div class="small opacity-75 fw-medium" style="font-size: 0.75rem;">Band Score</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
+                        let aiHtml = '';
+                        if (q.aiScore || q.aiFeedback) {
+                            aiHtml = '<div class="p-3 bg-light border rounded-3 mb-3"><div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-robot text-primary"></i><span class="small fw-bold text-uppercase">AI Suggestion</span>' + (q.aiScore ? '<span class="badge bg-primary ms-auto">Band ' + q.aiScore + '</span>' : '') + '</div><div class="small text-muted" style="white-space: pre-line;">' + wsSafeHtml(q.aiFeedback) + '</div></div>';
+                        }
+                        manualHtml = '<div class="mt-3">' + aiHtml + '<div class="row g-2 mb-3">' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">FC</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm speaking-fc" data-qid="' + q.questionId + '" value="' + (q.speakingFluencyCoherence || '') + '" oninput="updateSpeakingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">LR</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm speaking-lr" data-qid="' + q.questionId + '" value="' + (q.speakingLexicalResource || '') + '" oninput="updateSpeakingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">PR</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm speaking-pr" data-qid="' + q.questionId + '" value="' + (q.speakingPronunciation || '') + '" oninput="updateSpeakingOverall(' + q.questionId + ')"></div>' +
+                            '<div class="col-6 col-md-3"><label class="small fw-bold">GRA</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm speaking-gra" data-qid="' + q.questionId + '" value="' + (q.speakingGrammarAccuracy || '') + '" oninput="updateSpeakingOverall(' + q.questionId + ')"></div>' +
+                            '</div><div class="bg-danger bg-opacity-10 p-2 rounded-3 text-center border border-danger"><span class="small fw-bold text-danger">OVERALL: </span><span class="h5 fw-bold text-danger mb-0" id="overall-speaking-' + q.questionId + '">' + (q.speakingFluencyCoherence != null ? (Math.round(((parseFloat(q.speakingFluencyCoherence) + parseFloat(q.speakingLexicalResource) + parseFloat(q.speakingPronunciation) + parseFloat(q.speakingGrammarAccuracy)) / 4) * 2) / 2).toFixed(1) : '0.0') + '</span></div>' +
+                            '<div class="mt-3"><textarea class="form-control form-control-sm ws-gd-note-input" rows="2" data-qid="' + q.questionId + '" placeholder="Nhận xét...">' + (q.teacherNote || '') + '</textarea></div></div>';
                     } else {
-                        // Premium Universal Scoring UI for all other questions in any skill
-                        const isGradable = isManual && !isReadonly;
-                        const scoreDisplay = isGradable 
-                            ? `<div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
-                                 <input type="number" step="0.1" min="0" max="${maxVal}" class="form-control border-0 bg-light text-center fw-bold ws-gd-score-input" 
-                                        style="font-size: 1.5rem;" data-qid="${q.questionId}" value="${scoreVal}" oninput="updateIeltSummary()">
-                                 <span class="input-group-text border-0 bg-primary text-white fw-bold px-4" style="font-size: 1rem;">/ ${maxVal}</span>
-                               </div>`
-                            : `<div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-4 text-center">
-                                 <span class="extra-small text-primary fw-bold text-uppercase d-block mb-1" style="font-size: 0.6rem;">Score Achieved</span>
-                                 <div class="fs-2 fw-bolder text-primary">${scoreVal.toFixed(1)} <span class="fs-6 opacity-50">/ ${maxVal}</span></div>
-                               </div>`;
-
-                        manualHtml = `
-                        <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm">
-                            <div class="row g-4 align-items-center">
-                                <div class="col-md-5">
-                                    ${scoreDisplay}
-                                </div>
-                                <div class="col-md-7">
-                                    <div class="input-group shadow-sm rounded-4 overflow-hidden">
-                                        <span class="input-group-text border-0 bg-light text-muted px-3"><i class="bi bi-chat-dots"></i></span>
-                                        <input type="text" class="form-control border-0 bg-light ws-gd-note-input py-3" data-qid="${q.questionId}" value="${(q.teacherNote || '')}" placeholder="Ghi chú nhận xét của giáo viên...">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
+                        manualHtml = '<div class="row g-2 align-items-end mt-2"><div class="col-md-3"><label class="form-label small fw-bold mb-1">Điểm</label><input type="number" step="0.5" min="0" max="' + maxVal + '" class="form-control form-control-sm ws-gd-score-input" data-qid="' + q.questionId + '" value="' + scoreVal + '" oninput="updateIeltSummary()"></div><div class="col-md-9"><label class="form-label small fw-bold mb-1">Nhận xét</label><input type="text" class="form-control form-control-sm ws-gd-note-input" data-qid="' + q.questionId + '" value="' + (q.teacherNote || '') + '" placeholder="Ghi chú..."></div></div>';
                     }
 
-                    return `
-                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
-                        <div class="card-header bg-white border-bottom-0 py-3 px-4 d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="bg-primary bg-opacity-10 text-primary fw-bold rounded-3 px-3 py-1" style="font-size: 0.85rem;">CÂU ${qi + 1}</div>
-                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small fw-bold">${skill}</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                ${q.isCorrect ? '<span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i>Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i>Sai</span>' : '<span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-clock me-1"></i>Chờ chấm</span>')}
-                            </div>
-                        </div>
-                        <div class="card-body px-4 pb-4">
-                            <div class="question-content mb-4 p-4 bg-light bg-opacity-50 rounded-4 border-start border-4 border-primary" style="font-weight: 500; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">
-                                ${q.content || '—'}
-                            </div>
-                            ${((q.audioUrl || q.studentAudioUrl) ? `<div class="mb-4 p-3 rounded-4 bg-light border border-dashed"><label class="extra-small fw-bold text-muted text-uppercase mb-2 d-block" style="font-size: 0.6rem;"><i class="bi bi-play-circle me-1"></i> Audio Record</label><audio controls src="${(q.audioUrl || q.studentAudioUrl)}" class="w-100" style="height:35px;"></audio></div>` : '')}
-                            ${premiumAnsHtml}
-                            ${manualHtml}
-                        </div>
-                    </div>`;
+                    return '<div class="border rounded-3 p-3 bg-white"><div class="d-flex justify-content-between mb-2"><h6 class="mb-0 small fw-bold">Câu ' + (qi + 1) + ' ' + (isManual ? '<span class="badge bg-light text-dark border ms-1">' + maxVal + 'đ</span>' : '') + '</h6>' + (q.isCorrect ? '<span class="badge bg-success bg-opacity-10 text-success">Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger bg-opacity-10 text-danger">Sai</span>' : '')) + '</div><p class="mb-2 small border-bottom pb-2">' + (q.content || '—') + '</p>' + ((q.audioUrl || q.studentAudioUrl) ? '<div class="mb-2"><audio controls src="' + (q.audioUrl || q.studentAudioUrl) + '" class="w-100" style="height:35px;"></audio></div>' : '') + ansHtml + manualHtml + '</div>';
                 }).join('');
-
 
                 return '<div class="tab-pane fade ' + (i === 0 ? 'show active' : '') + '" id="ws-gd-skill-' + skill + '"><div class="card border-0 shadow-sm mt-3"><div class="card-body p-3"><div class="d-flex flex-column gap-3">' + qsHtml + '</div></div></div></div>';
             }).join('');
@@ -6467,33 +6170,6 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             const actionArea = document.getElementById('ws-gd-actionArea');
             if (actionArea) actionArea.style.display = isReadonly ? 'none' : 'block';
         }
-
-        window.updateWritingOverall = function(qid) {
-            const ta = parseFloat(document.querySelector(`.writing-ta[data-qid="${qid}"]`)?.value) || 0;
-            const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${qid}"]`)?.value) || 0;
-            const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${qid}"]`)?.value) || 0;
-            const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${qid}"]`)?.value) || 0;
-            const avg = (ta + cc + lr + gra) / 4;
-            const final = (Math.round(avg * 2) / 2).toFixed(1);
-            const display = document.getElementById(`overall-writing-${qid}`);
-            if (display) display.innerText = final;
-            if (typeof updateIeltSummary === 'function') updateIeltSummary();
-        };
-
-        window.updateSpeakingOverall = function(qid) {
-            const fc = parseFloat(document.querySelector(`.speaking-fc[data-qid="${qid}"]`)?.value) || 0;
-            const slr = parseFloat(document.querySelector(`.speaking-lr[data-qid="${qid}"]`)?.value) || 0;
-            const pr = parseFloat(document.querySelector(`.speaking-pr[data-qid="${qid}"]`)?.value) || 0;
-            const sgra = parseFloat(document.querySelector(`.speaking-gra[data-qid="${qid}"]`)?.value) || 0;
-            const avg = (fc + slr + pr + sgra) / 4;
-            const final = (Math.round(avg * 2) / 2).toFixed(1);
-            const display = document.getElementById(`overall-speaking-${qid}`);
-            if (display) display.innerText = final;
-            if (typeof updateIeltSummary === 'function') updateIeltSummary();
-        };
-
-        // Real-time summary update is handled by the core updateIeltSummary function defined earlier.
-
 
         window.wsSubmitGrade = async function (isFinal) {
             // Validation: All scores must be filled if finishing

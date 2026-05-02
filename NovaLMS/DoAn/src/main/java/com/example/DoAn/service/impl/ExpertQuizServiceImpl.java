@@ -52,6 +52,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     private final EmailService emailService;
     private final INotificationService notificationService;
     private final AnswerOptionRepository answerOptionRepository;
+    private final ClassSessionRepository classSessionRepository;
 
     private static final Set<String> VALID_CATEGORIES = Set.of(
             "ENTRY_TEST", "COURSE_QUIZ", "MODULE_QUIZ", "LESSON_QUIZ",
@@ -155,6 +156,14 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             if (quiz.getCourse() == null && clazz.getCourse() != null) {
                 quiz.setCourse(clazz.getCourse());
             }
+        }
+
+        // Gắn session nếu có
+        if (request.getSessionId() != null) {
+            ClassSession session = classSessionRepository.findById(request.getSessionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + request.getSessionId()));
+            session.setQuiz(quiz);
+            classSessionRepository.save(session);
         }
 
         quizRepository.save(quiz);
@@ -284,6 +293,21 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Không tìm thấy khóa học với ID: " + request.getCourseId()));
             quiz.setCourse(course);
+        }
+
+        // Cập nhật session nếu thay đổi
+        if (request.getSessionId() != null) {
+            // Xóa các liên kết cũ của quiz này với các session khác (nếu muốn 1 quiz chỉ ở 1 session)
+            classSessionRepository.findByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId())
+                .forEach(s -> {
+                    s.setQuiz(null);
+                    classSessionRepository.save(s);
+                });
+
+            ClassSession session = classSessionRepository.findById(request.getSessionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy buổi học với ID: " + request.getSessionId()));
+            session.setQuiz(quiz);
+            classSessionRepository.save(session);
         }
 
         // Cập nhật module & lesson nếu thay đổi
@@ -696,6 +720,10 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .moduleName(quiz.getModule() != null ? quiz.getModule().getModuleName() : null)
                 .lessonId(quiz.getLesson() != null ? quiz.getLesson().getLessonId() : null)
                 .lessonName(quiz.getLesson() != null ? quiz.getLesson().getLessonName() : null)
+                .classId(classSessionRepository.findFirstByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId())
+                        .map(s -> s.getClazz().getClassId()).orElse(null))
+                .sessionId(classSessionRepository.findFirstByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId())
+                        .map(ClassSession::getSessionId).orElse(null))
                 .status(quiz.getStatus())
                 .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
@@ -1046,5 +1074,35 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             return quizRepository.existsByTitleAndUser_UserIdAndQuizIdNot(title, expert.getUserId(), excludeId);
         }
         return quizRepository.existsByTitleAndUser_UserId(title, expert.getUserId());
+    }
+
+    @Override
+    public List<com.example.DoAn.dto.response.ClassSessionDTO> getClassSessions(Integer classId) {
+        return classSessionRepository.findByClazzClassIdOrderBySessionNumberAsc(classId)
+                .stream()
+                .map(s -> com.example.DoAn.dto.response.ClassSessionDTO.builder()
+                        .sessionId(s.getSessionId())
+                        .sessionNumber(s.getSessionNumber())
+                        .topic(s.getTopic())
+                        .sessionDate(s.getSessionDate())
+                        .startTime(s.getStartTime())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<com.example.DoAn.model.Clazz> getClassesByCourse(Integer courseId) {
+        return clazzRepository.findByCourse_CourseId(courseId);
+    }
+
+    @Override
+    public List<com.example.DoAn.dto.response.ClassSelectionDTO> getClassesByCourseDTO(Integer courseId) {
+        return clazzRepository.findByCourse_CourseId(courseId)
+                .stream()
+                .map(c -> com.example.DoAn.dto.response.ClassSelectionDTO.builder()
+                        .classId(c.getClassId())
+                        .className(c.getClassName())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
     }
 }

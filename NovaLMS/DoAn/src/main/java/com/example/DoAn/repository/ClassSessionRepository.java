@@ -20,6 +20,10 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
 
     List<ClassSession> findByClazzClassIdOrderBySessionNumberAsc(Integer classId);
     
+    List<ClassSession> findByQuiz_QuizIdOrderBySessionNumberAsc(Integer quizId);
+    
+    Optional<ClassSession> findFirstByQuiz_QuizIdOrderBySessionNumberAsc(Integer quizId);
+    
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     void deleteByClazz_ClassId(Integer classId);
