@@ -276,6 +276,24 @@
             padding: 1.5rem;
             margin-top: 1rem;
         }
+
+        /* Modal Fixes */
+        .modal {
+            z-index: 2050 !important;
+        }
+        .modal-backdrop {
+            z-index: 2040 !important;
+        }
+        .modal-dialog-centered {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100% - 3.5rem);
+        }
+        /* Ensure modal content doesn't inherit alignment from parent row */
+        .modal-content {
+            margin: 0 auto;
+        }
     </style>
 </head>
 
@@ -504,7 +522,7 @@
                         <a th:href="'/student/my-classes?openSession=' + ${sessionId}" class="btn btn-outline-secondary rounded-pill px-5 fw-bold py-2">
                             <i class="bi bi-arrow-left me-2"></i>Quay lại khóa học
                         </a>
-                        <button th:if="${result.canRetake}" class="btn btn-primary rounded-pill px-5 fw-bold py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#redoModal">
+                        <button th:if="${result.canRetake}" class="btn btn-primary rounded-pill px-5 fw-bold py-2 shadow-sm" onclick="confirmRedo()">
                             <i class="bi bi-arrow-counterclockwise me-2"></i>Làm lại bài
                         </button>
                     </div>
@@ -514,29 +532,36 @@
         </div>
     </main>
 
-    <!-- Redo Modal -->
-    <div class="modal fade" id="redoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-body p-4 text-center">
-                    <div class="display-4 text-warning mb-3"><i class="bi bi-exclamation-circle-fill"></i></div>
-                    <h3 class="fw-bold text-dark mb-2">Làm lại bài?</h3>
-                    <p class="text-muted mb-4">Bạn có chắc chắn muốn thực hiện lại bài kiểm tra này không?</p>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-light rounded-pill flex-grow-1 fw-bold py-2" data-bs-dismiss="modal">Hủy</button>
-                        <a th:href="'/student/quiz/take/' + ${result.quizId}" class="btn btn-primary rounded-pill flex-grow-1 fw-bold py-2 shadow-sm">
-                            Bắt đầu làm lại
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
     <th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
 
     <script th:inline="javascript">
+        function confirmRedo() {
+            Swal.fire({
+                title: '<h3 class="fw-bold mb-0" style="font-family: \'Outfit\', sans-serif;">Làm lại bài?</h3>',
+                html: '<p class="text-muted mb-0" style="font-family: \'Outfit\', sans-serif;">Bạn có chắc chắn muốn thực hiện lại bài kiểm tra này không?</p>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#f1f5f9',
+                confirmButtonText: 'Bắt đầu làm lại',
+                cancelButtonText: 'Hủy',
+                reverseButtons: true,
+                padding: '2.5rem',
+                customClass: {
+                    popup: 'rounded-5 border-0 shadow-lg',
+                    confirmButton: 'btn btn-primary rounded-pill px-4 py-2 fw-bold ms-2',
+                    cancelButton: 'btn btn-light rounded-pill px-4 py-2 fw-bold me-2 text-dark border'
+                },
+                buttonsStyling: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const quizId = [[${result.quizId}]];
+                    window.location.href = '/student/quiz/take/' + quizId;
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // --- 1. Matching Answer Rendering ---
             document.querySelectorAll('.match-answer-container').forEach(container => {

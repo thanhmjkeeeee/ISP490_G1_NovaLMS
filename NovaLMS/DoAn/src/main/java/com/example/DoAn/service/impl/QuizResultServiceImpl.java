@@ -475,7 +475,7 @@ public class QuizResultServiceImpl implements QuizResultService {
             });
         }
 
-        // Apply IELTS logic
+        // Final recalculation to set overallBand and correct passed status before sending notifications
         recalculateQuizResult(quizResult.getResultId());
 
         // Refresh for email data
@@ -751,7 +751,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .passed(qr.getPassed())
                 .showAnswer(showAnswer)
                 .passScoreDescription(
-                        quiz.getPassScore() != null ? "Điểm đạt: " + quiz.getPassScore().toString() + "%"
+                        quiz.getPassScore() != null
+                                ? (Boolean.TRUE.equals(quiz.getIsSequential()) && quiz.getPassScore().doubleValue() <= 9.0
+                                        ? "Yêu cầu Band: " + quiz.getPassScore().toString()
+                                        : "Điểm đạt: " + quiz.getPassScore().toString() + "%")
                                 : "Không yêu cầu điểm đạt")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)
@@ -765,7 +768,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .criteriaLabels(fetchCriteriaLabels((quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null)
                         ? quiz.getCourse().getLevelTag()
                         : "B2"))
-                .quizMaxBand(quiz.getOverallBand() != null ? quiz.getOverallBand().doubleValue() : 9.0)
+                .quizMaxBand(quiz.getOverallBand() != null ? quiz.getOverallBand().doubleValue() : (Boolean.TRUE.equals(quiz.getIsSequential()) ? 9.0 : 100.0))
                 .build();
     }
 
@@ -982,9 +985,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(qr.getScore())
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand())
-                    .maxBand(qr.getQuiz() != null ? (qr.getQuiz().getOverallBand() != null
-                            ? qr.getQuiz().getOverallBand()
-                            : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : null))
+                    .maxBand(qr.getQuiz() != null 
+                            ? (qr.getQuiz().getOverallBand() != null ? qr.getQuiz().getOverallBand() 
+                            : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : BigDecimal.valueOf(100.0)))
                             : null)
                     .isSequential(qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential()))
                     .passed(qr.getPassed())
@@ -1482,15 +1485,13 @@ public class QuizResultServiceImpl implements QuizResultService {
             String skill = (q.getSkill() != null ? q.getSkill() : "DEFAULT").toUpperCase();
             String qType = q.getQuestionType();
 
-            Optional<QuizQuestion> qqOpt = quizQuestionRepository
-                    .findByQuizQuizIdAndQuestionQuestionId(result.getQuiz().getQuizId(), q.getQuestionId());
+            // Simplified: All objective questions are weight 1.0. 
+            // Manual questions (WRITING/SPEAKING) are weight quizMaxBand (their band score).
             double pts;
-            if (qqOpt.isPresent() && qqOpt.get().getPoints() != null) {
-                pts = qqOpt.get().getPoints().doubleValue();
+            if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
+                pts = (result.getQuiz().getOverallBand() != null) ? result.getQuiz().getOverallBand().doubleValue() : 9.0;
             } else {
-                pts = quizQuestionRepository.findByQuestion_QuestionId(q.getQuestionId())
-                        .map(it -> it.getPoints() != null ? it.getPoints().doubleValue() : 9.0)
-                        .orElse(9.0);
+                pts = 1.0;
             }
 
             skillMaxScore.put(skill, skillMaxScore.getOrDefault(skill, 0.0) + pts);
@@ -1607,29 +1608,15 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .max().orElse(quizMaxBand);
 
             if ("WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill)) {
-                // Writing/Speaking: Points awarded is already the band, average if multiple
-                // questions
+                // Writing/Speaking: Points awarded is already the band, average if multiple questions
                 long totalQs = answers.stream()
                         .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
                         .count();
                 double avgBand = (totalQs > 0) ? raw / totalQs : 0.0;
-                // IELTS Rounding: round to nearest 0.5 (e.g. 6.25 -> 6.5)
+                // IELTS Rounding: round to nearest 0.5
                 skillBands.put(skill, IELTSScoreMapper.roundToIELTS(avgBand));
-            } else if ("READING".equalsIgnoreCase(skill) || "LISTENING".equalsIgnoreCase(skill)) {
-                // IELTS Reading/Listening: Use the standard non-linear mapping table (e.g.
-                // 39/40 -> 9.0)
-                long correctCount = answers.stream()
-                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill())
-                                && Boolean.TRUE.equals(a.getIsCorrect()))
-                        .count();
-                long totalQs = answers.stream()
-                        .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
-                        .count();
-
-                double achieved = IELTSScoreMapper.mapRawToBand(correctCount, totalQs, skill);
-                skillBands.put(skill, achieved);
             } else {
-                // Generic skill: achieved = (CorrectCount / TotalQuestions) * configuredMaxBand
+                // Objective skills: achieved = (CorrectCount / TotalQuestions) * quizMaxBand
                 long correctCount = answers.stream()
                         .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill())
                                 && Boolean.TRUE.equals(a.getIsCorrect()))
@@ -1638,16 +1625,18 @@ public class QuizResultServiceImpl implements QuizResultService {
                         .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()))
                         .count();
 
-                double achieved = (totalQs > 0) ? ((double) correctCount / totalQs) * configuredMaxBand : 0.0;
+                double achieved = (totalQs > 0) ? ((double) correctCount / totalQs) * quizMaxBand : 0.0;
                 skillBands.put(skill, IELTSScoreMapper.roundToIELTS(achieved));
             }
         }
 
-        double overallBandScore = IELTSScoreMapper.calculateOverallBand(skillBands);
-        result.setOverallBand(BigDecimal.valueOf(overallBandScore));
-
+        // Simplified Overall Band: (TotalCorrect / TotalPossible) * quizMaxBand
+        double quizMaxBand = (quiz.getOverallBand() != null) ? quiz.getOverallBand().doubleValue() : 9.0;
         double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
+        
+        double overallBandScore = (totalMax > 0) ? (totalRaw / totalMax) * quizMaxBand : 0.0;
+        result.setOverallBand(BigDecimal.valueOf(IELTSScoreMapper.roundToIELTS(overallBandScore)));
 
         if (totalMax > 0) {
             BigDecimal correctRate = BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP);
@@ -1679,8 +1668,6 @@ public class QuizResultServiceImpl implements QuizResultService {
                 if (!hasManual || allManualGraded) {
                     result.setStatus("GRADED");
                 } else {
-                    // If has manual and not all are graded, it should be SUBMITTED or GRADING
-                    // This allows reverting from incorrectly set GRADED status
                     if ("GRADED".equals(result.getStatus()) || result.getStatus() == null) {
                         result.setStatus("SUBMITTED");
                     }
@@ -1692,14 +1679,18 @@ public class QuizResultServiceImpl implements QuizResultService {
             // 2. AND (No manual content (!hasManual) OR Teacher has finalized (GRADED))
             if (!anyPending && (!hasManual || "GRADED".equals(result.getStatus()))) {
                 if (quiz.getPassScore() != null) {
-                    // For sequential (IELTS) assignments: compare overallBandScore vs
-                    // expert-configured pass band
-                    // For regular quizzes: compare correctRate (%) vs passScore (%)
                     boolean isSequential = Boolean.TRUE.equals(result.getQuiz().getIsSequential());
                     if (isSequential) {
-                        result.setPassed(BigDecimal.valueOf(overallBandScore).compareTo(quiz.getPassScore()) >= 0);
+                        double passVal = quiz.getPassScore().doubleValue();
+                        if (passVal <= 9.0) {
+                            // Band-based comparison
+                            result.setPassed(BigDecimal.valueOf(overallBandScore).compareTo(quiz.getPassScore()) >= 0);
+                        } else {
+                            // Percentage-based comparison (e.g. 70%)
+                            result.setPassed(result.getCorrectRate().compareTo(quiz.getPassScore()) >= 0);
+                        }
                     } else {
-                        result.setPassed(correctRate.compareTo(quiz.getPassScore()) >= 0);
+                        result.setPassed(result.getCorrectRate().compareTo(quiz.getPassScore()) >= 0);
                     }
                 } else {
                     result.setPassed(true);
