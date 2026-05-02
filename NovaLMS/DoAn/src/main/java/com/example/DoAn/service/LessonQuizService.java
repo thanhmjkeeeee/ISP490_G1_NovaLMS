@@ -25,7 +25,7 @@ public class LessonQuizService {
     private final ClazzRepository clazzRepository;
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  STUDENT: List quizzes for a lesson (with sequential status)
+    // STUDENT: List quizzes for a lesson (with sequential status)
     // ═══════════════════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
@@ -36,7 +36,8 @@ public class LessonQuizService {
         List<QuizAssignment> assignments = quizAssignmentRepository
                 .findByLesson_LessonIdOrderByOrderIndexAsc(lessonId);
 
-        if (assignments.isEmpty()) return List.of();
+        if (assignments.isEmpty())
+            return List.of();
 
         Map<Integer, LessonQuizProgress> progressMap = progressRepository
                 .findByLesson_LessonIdAndUser_UserId(lessonId, user.getUserId())
@@ -72,7 +73,7 @@ public class LessonQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  STUDENT: Validate quiz is AVAILABLE before taking
+    // STUDENT: Validate quiz is AVAILABLE before taking
     // ═══════════════════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
@@ -111,12 +112,12 @@ public class LessonQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  CALLED AFTER QUIZ SUBMISSION — update progress + unlock next
+    // CALLED AFTER QUIZ SUBMISSION — update progress + unlock next
     // ═══════════════════════════════════════════════════════════════════════
 
     @Transactional
     public void updateProgressAfterSubmit(Integer lessonId, Integer quizId, Integer userId,
-                                          Double score, Boolean passed) {
+            Double score, Boolean passed) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài học"));
         User user = userRepository.findById(userId)
@@ -166,7 +167,7 @@ public class LessonQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  ASSIGN / DETACH quiz from module
+    // ASSIGN / DETACH quiz from module
     // ═══════════════════════════════════════════════════════════════════════
 
     @Transactional
@@ -196,7 +197,7 @@ public class LessonQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  ASSIGN / DETACH quiz from lesson
+    // ASSIGN / DETACH quiz from lesson
     // ═══════════════════════════════════════════════════════════════════════
 
     @Transactional
@@ -235,17 +236,19 @@ public class LessonQuizService {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
+    // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
      * Computes quiz status based on sequential progression rules.
-     * First quiz = AVAILABLE. Subsequent quiz = AVAILABLE only if previous quiz bestPassed=true.
+     * First quiz = AVAILABLE. Subsequent quiz = AVAILABLE only if previous quiz
+     * bestPassed=true.
      */
     private String computeSequentialStatus(int quizIndex,
-                                           List<QuizAssignment> assignments,
-                                           Map<Integer, LessonQuizProgress> progressMap) {
-        if (quizIndex < 0) return "LOCKED";
+            List<QuizAssignment> assignments,
+            Map<Integer, LessonQuizProgress> progressMap) {
+        if (quizIndex < 0)
+            return "LOCKED";
 
         QuizAssignment qa = assignments.get(quizIndex);
         LessonQuizProgress progress = progressMap.get(qa.getQuiz().getQuizId());
@@ -259,6 +262,7 @@ public class LessonQuizService {
         Quiz prevQuiz = assignments.get(quizIndex - 1).getQuiz();
         LessonQuizProgress prevProgress = progressMap.get(prevQuiz.getQuizId());
         return (prevProgress != null && Boolean.TRUE.equals(prevProgress.getBestPassed()))
-                ? "AVAILABLE" : "LOCKED";
+                ? "AVAILABLE"
+                : "LOCKED";
     }
 }

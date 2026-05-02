@@ -24,6 +24,7 @@ USER spring:spring
 COPY --from=build /app/target/DoAn-0.0.1-SNAPSHOT.jar app.jar
 
 # Render scans EXPOSE to detect the port. Spring Boot will use $PORT from properties.
-EXPOSE 8080
+# Render default port is 10000
+EXPOSE 10000
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

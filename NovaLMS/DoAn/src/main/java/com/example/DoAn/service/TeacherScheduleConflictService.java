@@ -16,8 +16,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Trùng lịch: cùng giáo viên, cùng ngày (theo {@link LocalDate} của {@code sessionDate}),
- * cùng giờ bắt đầu (chuẩn hóa HH:mm). Bỏ qua lớp {@code Closed}/{@code Cancelled}.
+ * Trùng lịch: cùng giáo viên, cùng ngày (theo {@link LocalDate} của
+ * {@code sessionDate}),
+ * cùng giờ bắt đầu (chuẩn hóa HH:mm). Bỏ qua lớp
+ * {@code Closed}/{@code Cancelled}.
  */
 @Service
 @RequiredArgsConstructor
@@ -65,9 +67,11 @@ public class TeacherScheduleConflictService {
     }
 
     /**
-     * Kiểm tra danh sách buổi sắp lưu (cùng một lớp hoặc generate) không trùng buổi đã có của GV.
+     * Kiểm tra danh sách buổi sắp lưu (cùng một lớp hoặc generate) không trùng buổi
+     * đã có của GV.
      *
-     * @param excludeClassId loại trừ mọi session thuộc lớp này (khi regenerate / update lớp)
+     * @param excludeClassId loại trừ mọi session thuộc lớp này (khi regenerate /
+     *                       update lớp)
      */
     public void assertProposedSessionsHaveNoTeacherConflict(Integer teacherId, List<ClassSession> proposed,
             Integer excludeClassId) {

@@ -23,10 +23,10 @@ public interface IExpertQuizService {
     QuizResponseDTO getQuizById(Integer quizId);
 
     PageResponse<QuizResponseDTO> getQuizzes(Integer courseId, String category, String status,
-        String keyword, int page, int size);
+            String keyword, int page, int size);
 
     QuizResponseDTO changeStatus(Integer quizId, String newStatus, String email);
-    
+
     QuizResponseDTO updateMaxAttempts(Integer quizId, Integer maxAttempts, String email);
 
     // Quản lý câu hỏi trong Quiz
@@ -49,13 +49,15 @@ public interface IExpertQuizService {
 
     AssignmentPreviewDTO getAssignmentPreview(Integer quizId);
 
-    QuizResponseDTO importAIQuestions(Integer quizId, List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions, String passage, String audioUrl, String email);
+    QuizResponseDTO importAIQuestions(Integer quizId,
+            List<com.example.DoAn.dto.response.AIGenerateResponseDTO.QuestionDTO> questions, String passage,
+            String audioUrl, String email);
 
     boolean checkTitleExists(String title, Integer excludeId, String email);
-    
+
     List<com.example.DoAn.dto.response.ClassSessionDTO> getClassSessions(Integer classId);
-    
+
     List<com.example.DoAn.model.Clazz> getClassesByCourse(Integer courseId);
-    
+
     List<com.example.DoAn.dto.response.ClassSelectionDTO> getClassesByCourseDTO(Integer courseId);
 }

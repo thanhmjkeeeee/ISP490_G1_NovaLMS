@@ -132,7 +132,8 @@ public class TeacherClassSessionServiceTest {
     void TC03_OpenQuiz_TimeLimitLessThanOrEqualToZero_Returns400() {
         mockAuthSuccess();
 
-        // FIX: Đặt thời gian mặc định của Quiz về 0 để lách qua bước validate "nhỏ hơn cấu hình tối thiểu"
+        // FIX: Đặt thời gian mặc định của Quiz về 0 để lách qua bước validate "nhỏ hơn
+        // cấu hình tối thiểu"
         quiz.setTimeLimitMinutes(0);
 
         when(sessionQuizRepository.findBySessionSessionIdAndQuizQuizId(SESSION_ID, QUIZ_ID))
@@ -144,7 +145,8 @@ public class TeacherClassSessionServiceTest {
         assertEquals(400, res.getStatus());
         assertEquals("Thời gian làm bài phải lớn hơn 0", res.getMessage());
 
-        // Dựa đúng theo code thực tế: sessionQuizRepository.save() ĐÃ ĐƯỢC CHẠY trước khi return 400
+        // Dựa đúng theo code thực tế: sessionQuizRepository.save() ĐÃ ĐƯỢC CHẠY trước
+        // khi return 400
         verify(sessionQuizRepository, times(1)).save(sessionQuiz);
         verify(quizRepository, never()).save(any());
     }
