@@ -2,7 +2,6 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.GradingResponse;
 import com.example.DoAn.model.AIPromptConfig;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +13,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
 
 import java.net.URI;
 import java.time.Duration;
@@ -59,11 +57,6 @@ public class GroqClient {
         .readTimeout(Duration.ofSeconds(300))
         .writeTimeout(Duration.ofSeconds(30))
         .build();
-
-    // Configure ObjectMapper for robust parsing
-    this.mapper.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
-    this.mapper.configure(JsonReadFeature.ALLOW_SINGLE_QUOTES.mappedFeature(), true);
-    this.mapper.configure(JsonReadFeature.ALLOW_UNQUOTED_FIELD_NAMES.mappedFeature(), true);
   }
 
   /**
@@ -147,9 +140,7 @@ public class GroqClient {
           "messages", messages,
           "temperature", 0.3,
           "max_tokens", 2048,
-          "stream", false,
-          "response_format", Map.of("type", "json_object")
-      );
+          "stream", false);
 
       String jsonBody = mapper.writeValueAsString(body);
       
@@ -180,18 +171,7 @@ public class GroqClient {
 
         log.debug("[GROQ-RAW-CONTENT] {}", content);
 
-        // LAYER 2: Pre-processing & Sanitization (Strip markdown & Extract JSON)
-        content = content.trim();
-        if (content.startsWith("```json")) {
-            content = content.substring(7);
-        } else if (content.startsWith("```")) {
-            content = content.substring(3);
-        }
-        if (content.endsWith("```")) {
-            content = content.substring(0, content.length() - 3);
-        }
-        content = content.trim();
-
+        // Robust JSON extraction
         int firstBrace = content.indexOf("{");
         int lastBrace = content.lastIndexOf("}");
         if (firstBrace >= 0 && lastBrace > firstBrace) {
@@ -398,8 +378,8 @@ public class GroqClient {
               3. Lỗi dùng từ không phù hợp (Inappropriate Vocabulary).
               4. Lỗi logic và liên kết (Logic & Cohesion).
 
-              YÊU CẦU QUAN TRỌNG VÀ BẮT BUỘC: 
-              - BẮT BUỘC trả về kết quả hoàn toàn bằng JSON object. Không bao giờ bọc JSON trong thẻ markdown (ví dụ: không dùng ```json). Không thêm bất kỳ text hay bình luận nào trước hoặc sau khối JSON.
+              YÊU CẦU QUAN TRỌNG: 
+              - Trả về ĐÚNG ĐỊNH DẠNG JSON bên dưới.
               - Điểm số cho từng tiêu chí phải nằm trong khoảng từ 0 đến %d.
               - Phần "feedback": Liệt kê danh sách các lỗi sai cụ thể (Sử dụng tiếng Việt).
               - Trong mỗi phần "aiReasoning" của rubric: Hãy chỉ ra các lỗi cụ thể dựa trên mô tả Band trong Rubric ở trên.
@@ -439,8 +419,7 @@ public class GroqClient {
               %s
 
               Hãy nghe/nhìn câu trả lời và CHẤM theo rubric trên.
-              YÊU CẦU QUAN TRỌNG VÀ BẮT BUỘC:
-              - BẮT BUỘC trả về DUY NHẤT một JSON object. Không sử dụng markdown (như ```json), không chèn thêm bất kỳ văn bản nào như "Here is your JSON".
+              Trả về DUY NHẤT JSON, không có markdown hay text nào khác:
               {
                 "overallBand": <(fluency_cohesion + lexical_resource + grammatical_range + pronunciation) / 4>,
                 "displayScore": <overallBand>,
