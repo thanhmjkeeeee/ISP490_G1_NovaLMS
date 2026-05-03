@@ -88,7 +88,7 @@ public class ExcelTemplateGenerator {
     private void createMCTemplate(Sheet sheet, CellStyle header, CellStyle note, String type) {
         String[] headers = {"Content *", "Option A", "Option B", "Option C", "Option D",
                 type.equals("MULTIPLE_CHOICE_MULTI") ? "CorrectAnswers (VD: A,B)" : "CorrectAnswer (VD: A)",
-                "Skill (LISTENING/READING/WRITING/SPEAKING)", "CEFR (A1-C2)", "Topic", "Explanation"};
+                "Skill (LISTENING/READING/WRITING/SPEAKING)", "IELTS Band (3.0-9.0)", "Topic", "Explanation"};
         int[] widths = {8000, 3000, 3000, 3000, 3000, 4000, 4000, 2000, 3000, 6000};
 
         Row hRow = sheet.createRow(0);
@@ -116,7 +116,7 @@ public class ExcelTemplateGenerator {
         sample.createCell(4).setCellValue("Madrid");
         sample.createCell(5).setCellValue("B");
         sample.createCell(6).setCellValue("READING");
-        sample.createCell(7).setCellValue("A1");
+        sample.createCell(7).setCellValue("5.0");
         sample.createCell(8).setCellValue("Geography");
         sample.createCell(9).setCellValue("Paris is the capital city of France.");
 
@@ -125,8 +125,8 @@ public class ExcelTemplateGenerator {
 
     private void createFillBlankTemplate(Sheet sheet, CellStyle header, CellStyle note) {
         String[] headers = {"Content * (dùng ___ cho chỗ trống)", "CorrectAnswer *",
-                "Skill", "CEFR", "Topic", "Explanation"};
-        int[] widths = {10000, 4000, 3000, 2000, 3000, 6000};
+                "Skill", "IELTS Band (3.0-9.0)", "Topic", "Explanation"};
+        int[] widths = {10000, 4000, 3000, 2500, 3000, 6000};
 
         Row hRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
@@ -146,7 +146,7 @@ public class ExcelTemplateGenerator {
         sample.createCell(0).setCellValue("The capital of France is ___.");
         sample.createCell(1).setCellValue("Paris");
         sample.createCell(2).setCellValue("READING");
-        sample.createCell(3).setCellValue("A1");
+        sample.createCell(3).setCellValue("5.5");
         sample.createCell(4).setCellValue("Geography");
         sample.createCell(5).setCellValue("France's capital is Paris.");
         sheet.createRow(3);
@@ -157,8 +157,8 @@ public class ExcelTemplateGenerator {
                 "MatchLeft (VD: Apple|Banana|Car)",
                 "MatchRight (VD: Quả táo|Quả chuối|Ô tô)",
                 "CorrectPairs (VD: 1,2,3)",
-                "Skill", "CEFR", "Topic", "Explanation"};
-        int[] widths = {8000, 6000, 6000, 4000, 3000, 2000, 3000, 6000};
+                "Skill", "IELTS Band (3.0-9.0)", "Topic", "Explanation"};
+        int[] widths = {8000, 6000, 6000, 4000, 3000, 2500, 3000, 6000};
 
         Row hRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
@@ -180,15 +180,15 @@ public class ExcelTemplateGenerator {
         sample.createCell(2).setCellValue("Quả táo|Quả chuối|Ô tô");
         sample.createCell(3).setCellValue("1,2,3");
         sample.createCell(4).setCellValue("READING");
-        sample.createCell(5).setCellValue("A1");
+        sample.createCell(5).setCellValue("6.0");
         sample.createCell(6).setCellValue("Food");
         sample.createCell(7).setCellValue("Ghép từ tiếng Anh với nghĩa tiếng Việt tương ứng.");
         sheet.createRow(3);
     }
 
     private void createWritingTemplate(Sheet sheet, CellStyle header, CellStyle note) {
-        String[] headers = {"Content *", "Skill", "CEFR", "Topic", "Explanation"};
-        int[] widths = {12000, 3000, 2000, 3000, 6000};
+        String[] headers = {"Content *", "Skill", "IELTS Band (3.0-9.0)", "Topic", "Explanation"};
+        int[] widths = {12000, 3000, 2500, 3000, 6000};
 
         Row hRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
@@ -201,15 +201,15 @@ public class ExcelTemplateGenerator {
         Row sample = sheet.createRow(1);
         sample.createCell(0).setCellValue("Write a paragraph about your favorite holiday destination (80-100 words).");
         sample.createCell(1).setCellValue("WRITING");
-        sample.createCell(2).setCellValue("B1");
+        sample.createCell(2).setCellValue("6.5");
         sample.createCell(3).setCellValue("Travel");
         sample.createCell(4).setCellValue("Focus on description and reasons.");
         sheet.createRow(2);
     }
 
     private void createSpeakingTemplate(Sheet sheet, CellStyle header, CellStyle note) {
-        String[] headers = {"Content *", "AudioUrl (public URL)", "Skill", "CEFR", "Topic"};
-        int[] widths = {12000, 6000, 3000, 2000, 3000};
+        String[] headers = {"Content *", "AudioUrl (public URL)", "Skill", "IELTS Band (3.0-9.0)", "Topic"};
+        int[] widths = {12000, 6000, 3000, 2500, 3000};
 
         Row hRow = sheet.createRow(0);
         for (int i = 0; i < headers.length; i++) {
@@ -229,7 +229,7 @@ public class ExcelTemplateGenerator {
         sample.createCell(0).setCellValue("Describe your favorite food and explain why you like it (1-2 minutes).");
         sample.createCell(1).setCellValue("https://res.cloudinary.com/.../sample.mp3");
         sample.createCell(2).setCellValue("SPEAKING");
-        sample.createCell(3).setCellValue("B1");
+        sample.createCell(3).setCellValue("7.0");
         sample.createCell(4).setCellValue("Food");
         sheet.createRow(3);
     }
@@ -262,8 +262,8 @@ public class ExcelTemplateGenerator {
         // Sheet 1: Group Info — import cần: hàng PASSAGE* (cột A), sau đó một hàng dữ liệu có ô A không trống
         // (không để hàng passage trống như template cũ → lastRowNum=2, resolveGroupPassageDataRow = null).
         Sheet groupSheet = wb.createSheet("Group Info");
-        String[] groupHeaders = {"PASSAGE *", "SKILL", "CEFR", "TOPIC", "AUDIO_URL", "IMAGE_URL", "EXPLANATION"};
-        int[] groupWidths = {15000, 3000, 2000, 3000, 5000, 5000, 6000};
+        String[] groupHeaders = {"PASSAGE *", "SKILL", "IELTS_BAND", "TOPIC", "AUDIO_URL", "IMAGE_URL", "EXPLANATION"};
+        int[] groupWidths = {15000, 3000, 2500, 3000, 5000, 5000, 6000};
 
         Row gh0 = groupSheet.createRow(0);
         for (int i = 0; i < groupHeaders.length; i++) {
@@ -277,7 +277,7 @@ public class ExcelTemplateGenerator {
         Row gh1 = groupSheet.createRow(1);
         Cell gh1a = gh1.createCell(0);
         gh1a.setCellValue(
-                "Hướng dẫn: Sửa ô A3 (dòng dữ liệu đầu tiên) thành passage thật; SKILL/CEFR/TOPIC cột B-D. "
+                "Hướng dẫn: Sửa ô A3 (dòng dữ liệu đầu tiên) thành passage thật; SKILL/IELTS_BAND/TOPIC cột B-D. "
                         + "Câu hỏi con: sheet Child Questions.");
         gh1a.setCellStyle(note);
         groupSheet.addMergedRegion(new CellRangeAddress(1, 1, 0, 6));
@@ -289,7 +289,7 @@ public class ExcelTemplateGenerator {
                         + "Experts argue that reliable buses and trains encourage people to drive less. "
                         + "Replace this entire cell with your own passage text.");
         gh2.createCell(1).setCellValue("READING");
-        gh2.createCell(2).setCellValue("B1");
+        gh2.createCell(2).setCellValue("6.0");
         gh2.createCell(3).setCellValue("Environment");
         gh2.createCell(4).setCellValue("");
         gh2.createCell(5).setCellValue("");
@@ -301,8 +301,8 @@ public class ExcelTemplateGenerator {
         Sheet childSheet = wb.createSheet("Child Questions");
         String[] childHeaders = {"CONTENT *", "TYPE", "OPTA", "OPTB", "OPTC", "OPTD",
                 "CORRECT/ANSWER", "MATCH_LEFT(|sep)", "MATCH_RIGHT(|sep)", "PAIRS(,sep)",
-                "SUB_SKILL", "SUB_CEFR", "SUB_TOPIC", "SUB_EXPLANATION"};
-        int[] childWidths = {8000, 3000, 3000, 3000, 3000, 3000, 3000, 4000, 4000, 3000, 3000, 2000, 3000, 6000};
+                "SUB_SKILL", "IELTS_BAND", "SUB_TOPIC", "SUB_EXPLANATION"};
+        int[] childWidths = {8000, 3000, 3000, 3000, 3000, 3000, 3000, 4000, 4000, 3000, 3000, 2500, 3000, 6000};
 
         Row ch0 = childSheet.createRow(0);
         for (int i = 0; i < childHeaders.length; i++) {
@@ -353,7 +353,7 @@ public class ExcelTemplateGenerator {
         ch6.createCell(0).setCellValue("Summarize the author's opinion in 3 sentences.");
         ch6.createCell(1).setCellValue("WRITING");
         ch6.createCell(10).setCellValue("WRITING");
-        ch6.createCell(11).setCellValue("B1");
+        ch6.createCell(11).setCellValue("6.5");
     }
 
 }

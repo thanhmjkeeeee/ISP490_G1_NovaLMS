@@ -406,8 +406,8 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
         if (containsAny(h1, "audiourl")) {
             return "SPEAKING";
         }
-        // WRITING thường có Skill/CEFR/Topic/Explanation ở các cột 1..4
-        if (containsAny(h1, "skill") && containsAny(h2, "cefr") && containsAny(h3, "topic")
+        // WRITING thường có Skill/IELTS Band/Topic/Explanation ở các cột 1..4
+        if (containsAny(h1, "skill") && (containsAny(h2, "cefr") || containsAny(h2, "band")) && containsAny(h3, "topic")
                 && containsAny(h4, "explanation")) {
             return "WRITING";
         }
@@ -486,7 +486,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
             throw new ValidationException("Dòng " + rowIdx + ": Skill '" + skill + "' không hợp lệ.");
         }
         if (cefr != null && !promptBuilder.isValidCefr(cefr)) {
-            throw new ValidationException("Dòng " + rowIdx + ": CEFR '" + cefr + "' không hợp lệ (A1-C2).");
+            throw new ValidationException("Dòng " + rowIdx + ": IELTS Band '" + cefr + "' không hợp lệ (3.0-9.0).");
         }
         // Only validate AudioUrl for SPEAKING questions when a value is provided
         if ("SPEAKING".equals(questionType) && audioUrl != null && !audioUrl.isBlank()
@@ -827,7 +827,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                 validationErrors.add("Skill '" + skill + "' không hợp lệ.");
             }
             if (cefr != null && !promptBuilder.isValidCefr(cefr)) {
-                validationErrors.add("CEFR '" + cefr + "' không hợp lệ (A1-C2).");
+                validationErrors.add("IELTS Band '" + cefr + "' không hợp lệ (3.0-9.0).");
             }
             if (!validationErrors.isEmpty()) {
                 errors.add(ExcelParseGroupResultDTO.ErrorRowDTO.builder()
@@ -862,7 +862,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                         throw new ValidationException("Skill '" + childSkill + "' không hợp lệ.");
                     }
                     if (childCefr != null && !promptBuilder.isValidCefr(childCefr)) {
-                        throw new ValidationException("CEFR '" + childCefr + "' không hợp lệ.");
+                        throw new ValidationException("IELTS Band '" + childCefr + "' không hợp lệ (3.0-9.0).");
                     }
 
                     ExcelParseResultDTO.ValidRowDTO.ValidRowDTOBuilder childBuilder =
@@ -873,7 +873,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                                     .skill(childSkill != null ? childSkill.toUpperCase()
                                             : (skill != null ? skill.toUpperCase() : "READING"))
                                     .cefrLevel(childCefr != null ? childCefr.toUpperCase()
-                                            : (cefr != null ? cefr.toUpperCase() : "B1"))
+                                            : (cefr != null ? cefr.toUpperCase() : "5.5"))
                                     .topic(childTopic != null ? childTopic : topic)
                                     .explanation(childExplanation != null ? childExplanation : explanation)
                                     .selected(true);
@@ -977,7 +977,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                         .group(ExcelQuestionGroupDTO.builder()
                                 .passage(passage)
                                 .skill(skill != null ? skill.toUpperCase() : "READING")
-                                .cefrLevel(cefr != null ? cefr.toUpperCase() : "B1")
+                                .cefrLevel(cefr != null ? cefr.toUpperCase() : "5.5")
                                 .topic(topic)
                                 .audioUrl(audioUrl)
                                 .imageUrl(imageUrl)
@@ -1012,7 +1012,7 @@ public class ExcelQuestionImportServiceImpl implements ExcelQuestionImportServic
                 .audioUrl(groupDto.getAudioUrl())
                 .imageUrl(groupDto.getImageUrl())
                 .skill(groupDto.getSkill() != null ? groupDto.getSkill().toUpperCase() : "READING")
-                .cefrLevel(groupDto.getCefrLevel() != null ? groupDto.getCefrLevel().toUpperCase() : "B1")
+                .cefrLevel(groupDto.getCefrLevel() != null ? groupDto.getCefrLevel().toUpperCase() : "5.5")
                 .topic(groupDto.getTopic())
                 .explanation(groupDto.getExplanation())
                 .status("DRAFT")

@@ -66,7 +66,7 @@
                     <select id="filterSkill" class="form-select form-select-sm" onchange="loadQuestions()"></select>
                 </div>
                 <div class="col-6 col-md-1">
-                    <label class="form-label small fw-bold">CEFR</label>
+                    <label class="form-label small fw-bold">Band</label>
                     <select id="filterCefr" class="form-select form-select-sm" onchange="loadQuestions()"></select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -114,7 +114,7 @@
                         <th class="px-3 py-3 text-center">#</th>
                         <th class="py-3 ps-2">Nội dung / Bài đọc</th>
                         <th class="py-3 text-center">Kỹ năng</th>
-                        <th class="py-3 text-center">CEFR</th>
+                        <th class="py-3 text-center">Band</th>
                         <th class="py-3 text-center">Loại</th>
                         <th class="py-3 text-center">Trạng thái</th>
                         <th class="py-3 text-center">Đã dùng</th>
@@ -533,7 +533,7 @@ function renderTable(data) {
                     </div>
                 </td>
                 <td class="text-center">${q.skill || '—'}</td>
-                <td class="text-center"><span class="badge bg-primary">${q.cefrLevel || '—'}</span></td>
+                <td class="text-center"><span class="badge bg-primary">Band ${q.cefrLevel || '—'}</span></td>
                 <td class="text-center align-middle">
                     <span class="badge bg-info text-dark text-truncate d-inline-block"
                           style="width: 120px; vertical-align: middle; padding: 6px 8px;"
@@ -615,7 +615,7 @@ async function changeStatus(id, type, newStatus) {
             title: 'Từ chối câu hỏi?',
             input: 'textarea',
             inputLabel: 'Lý do từ chối (gửi cho giáo viên)',
-            inputPlaceholder: 'Nội dung chưa đạt CEFR...',
+            inputPlaceholder: 'Nội dung chưa đạt Band...',
             showCancelButton: true,
             confirmButtonText: 'Xác nhận từ chối',
             cancelButtonText: 'Hủy'
@@ -917,7 +917,7 @@ function renderImportPreview() {
                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                                     <span class="badge bg-secondary">Dòng ${row.rowIndex}</span>
                                     <span class="badge bg-info text-dark">${row.questionType}</span>
-                                    <span class="badge bg-primary">${row.cefrLevel}</span>
+                                    <span class="badge bg-primary">Band ${row.cefrLevel}</span>
                                 </div>
                                 <div class="fw-semibold text-dark small mb-0">${escapeHtml(row.content || '')}</div>
                                 ${renderImportRowDetails(row)}
@@ -962,7 +962,7 @@ function renderErrorEdit(err, errIdx) {
             <div class="col-md-4">
                 <input type="text" class="form-control form-control-sm"
                     id="fixCefr${errIdx}" value="${escapeHtml(raw.col7 || raw.col3 || '')}"
-                    placeholder="CEFR (A1-C2)">
+                    placeholder="Band (4.0-9.0)">
             </div>
         </div>`;
 }
@@ -998,14 +998,14 @@ function renderImportGroupPreview() {
                 <div class="card-body">
                     <div class="mb-2 d-flex gap-2 flex-wrap">
                         <span class="badge bg-info text-dark">${g.group?.skill || 'READING'}</span>
-                        <span class="badge bg-primary">${g.group?.cefrLevel || 'B1'}</span>
+                        <span class="badge bg-primary">Band ${g.group?.cefrLevel || '5.5'}</span>
                         ${g.group?.topic ? `<span class="badge bg-secondary">${escapeHtml(g.group.topic)}</span>` : ''}
                         <span class="badge bg-success">${(g.questions || []).length} câu hỏi con</span>
                     </div>
                     ${(g.questions || []).map((q, qi) => `
                         <div class="border rounded p-2 mb-2 bg-light">
                             <div class="small fw-bold">${qi + 1}. ${escapeHtml(q.content || '')}</div>
-                            <div class="small text-muted">Type: ${q.questionType} | CEFR: ${q.cefrLevel}</div>
+                            <div class="small text-muted">Type: ${q.questionType} | Band: ${q.cefrLevel}</div>
                             ${q.questionType === 'MATCHING' ? importMatchingPreviewBlock(q) : ''}
                         </div>
                     `).join('')}

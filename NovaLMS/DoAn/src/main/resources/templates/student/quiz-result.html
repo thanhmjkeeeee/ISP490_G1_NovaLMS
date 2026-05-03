@@ -554,9 +554,9 @@
                     cancelButton: 'btn btn-light rounded-pill px-4 py-2 fw-bold me-2 text-dark border'
                 },
                 buttonsStyling: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const quizId = [[${result.quizId}]];
+            }).then((swalResult) => {
+                if (swalResult.isConfirmed) {
+                    const quizId = /*[[${result.quizId}]]*/ null;
                     window.location.href = '/student/quiz/take/' + quizId;
                 }
             });

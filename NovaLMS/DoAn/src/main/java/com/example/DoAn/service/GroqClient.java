@@ -2,8 +2,10 @@ package com.example.DoAn.service;
 
 import com.example.DoAn.dto.GradingResponse;
 import com.example.DoAn.model.AIPromptConfig;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -24,7 +26,11 @@ import java.util.Map;
 public class GroqClient {
 
   private final okhttp3.OkHttpClient httpClient;
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper mapper = JsonMapper.builder()
+      .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
+      .enable(JsonReadFeature.ALLOW_SINGLE_QUOTES)
+      .enable(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER)
+      .build();
   private final String apiKey;
   private final String aiModel;
   private final String apiUrl;
@@ -185,10 +191,12 @@ public class GroqClient {
           if (!content.endsWith("}}")) content += "}";
         }
 
+        // Final sanitization: remove any remaining control characters that might still break parsing
+        // although ALLOW_UNESCAPED_CONTROL_CHARS should handle literal newlines.
         try {
             return mapper.readValue(content, GradingResponse.class);
         } catch (Exception parseEx) {
-            log.error("[GROQ-PARSE-FAIL] Raw content: {}", content);
+            log.error("[GROQ-PARSE-FAIL] JSON parsing failed. Content: {}", content);
             throw parseEx;
         }
       }

@@ -148,13 +148,14 @@ public class GroqGradingServiceImpl implements GroqGradingService {
 
         try {
             // Bước 1: Chuyển giọng nói (Nếu là Speaking)
-            if ("SPEAKING".equals(qType)) {
+            if ("SPEAKING".equals(qType) && userAnswer != null && (userAnswer.contains("http") || userAnswer.contains("cloudinary"))) {
                 try {
                     userAnswer = groqClient.transcribe(userAnswer);
+                    // Save transcript back to database for UI display
+                    answer.setAnsweredOptions(objectMapper.writeValueAsString(userAnswer));
                 } catch (Exception e) {
                     log.warn("STT Failed, continuing with empty text for grading.");
                     userAnswer = "[Âm thanh không thể xử lý]";
-                    throw e; // Ném ra để catch bên ngoài xử lý fallback rubric
                 }
             }
 

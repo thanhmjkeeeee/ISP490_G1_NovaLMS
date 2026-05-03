@@ -247,6 +247,44 @@
             font-size: 0.6rem;
             opacity: 0.7;
         }
+
+        /* NEW STUDENT ANSWER STYLES */
+        .answer-label-ribbon {
+            display: inline-block;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 4px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .student-answer-card {
+            transition: all 0.3s ease;
+            border-left: 5px solid #e2e8f0 !important;
+        }
+
+        .student-answer-card:hover {
+            border-left-color: var(--bs-primary) !important;
+            background-color: #fff !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+        }
+
+        .question-content-premium {
+            font-weight: 500;
+            font-size: 1.05rem;
+            color: #1e293b;
+            line-height: 1.7;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 1rem;
+            border-left: 5px solid var(--bs-primary);
+        }
     </style>
 
     <main class="dash-main" id="dashMain">
@@ -6323,16 +6361,19 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                         
                         if (isAudioUrl) {
                             premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4">
-                                    <label class="extra-small fw-bold text-muted text-uppercase mb-3 d-block" style="font-size: 0.65rem; letter-spacing: 1px;">
-                                        <i class="bi bi-mic-fill me-1 text-danger"></i> Học sinh đã trả lời bằng Audio:
-                                    </label>
+                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
+                                    <div class="answer-label-ribbon">
+                                        <i class="bi bi-mic-fill me-1 text-danger"></i> Học sinh đã trả lời bằng Audio
+                                    </div>
                                     <audio controls src="${ans.trim()}" class="w-100" style="height:45px;"></audio>
                                 </div>`;
                         } else {
                             premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4" style="line-height: 1.8; font-size: 1rem; color: #334155; min-height: 120px; white-space: pre-wrap;">
-                                    ${wsSafeHtml(ans)}
+                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
+                                    <div class="answer-label-ribbon">
+                                        <i class="bi bi-person-lines-fill me-1"></i> ${isSpeakingSkill ? 'Transcript (AI Generated)' : "Student's Answer"}
+                                    </div>
+                                    <div class="text-dark" style="line-height: 1.8; font-size: 1rem; white-space: pre-wrap;">${wsSafeHtml(ans)}</div>
                                 </div>`;
                         }
                     } else {
@@ -6382,9 +6423,9 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                         }
 
                         premiumAnsHtml = `
-                            <div class="mb-3 mt-3 p-3 bg-light border rounded-3">
-                                <span class="small text-muted d-block mb-1 text-uppercase fw-bold" style="font-size: 0.75rem;">Học sinh trả lời:</span>
-                                <div class="fw-bold text-primary fs-6 mb-2">${displayedAns}</div>
+                            <div class="mb-3 mt-3 p-4 bg-white border border-light-subtle rounded-4 student-answer-card">
+                                <div class="answer-label-ribbon mb-2">Học sinh trả lời</div>
+                                <div class="fw-bold text-primary fs-6 mb-3" style="font-size: 1.05rem !important;">${displayedAns}</div>
                                 ${correctAnsHtml}
                             </div>`;
                     }
@@ -6542,7 +6583,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                                 </div>
                             </div>
                             <div class="card-body px-4 pb-4">
-                                <div class="question-content mb-4 p-4 bg-light bg-opacity-50 rounded-4 border-start border-4 border-primary" style="font-weight: 500; font-size: 1.05rem; color: #1e293b; line-height: 1.6;">
+                                <div class="question-content-premium mb-4 shadow-sm">
                                     ${q.content || '—'}
                                 </div>
                                 ${((q.audioUrl || q.studentAudioUrl) ? `<div class="mb-4 p-3 rounded-4 bg-light border border-dashed"><label class="extra-small fw-bold text-muted text-uppercase mb-2 d-block" style="font-size: 0.6rem;"><i class="bi bi-play-circle me-1"></i> Audio Record</label><audio controls src="${(q.audioUrl || q.studentAudioUrl)}" class="w-100" style="height:35px;"></audio></div>` : '')}
