@@ -200,7 +200,17 @@ public class CourseServiceImpl implements ICourseService {
         }
 
         if (isSelfStudy != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("isSelfStudy"), isSelfStudy));
+            if (isSelfStudy == false) {
+                // Đối với khóa học có người giảng, lấy cả isSelfStudy = false và isSelfStudy IS NULL (dữ liệu cũ)
+                spec = spec.and((root, query, cb) ->
+                        cb.or(
+                                cb.equal(root.get("isSelfStudy"), false),
+                                cb.isNull(root.get("isSelfStudy"))
+                        )
+                );
+            } else {
+                spec = spec.and((root, query, cb) -> cb.equal(root.get("isSelfStudy"), true));
+            }
         }
 
         Page<Course> page = courseRepository.findAll(spec, pageable);
