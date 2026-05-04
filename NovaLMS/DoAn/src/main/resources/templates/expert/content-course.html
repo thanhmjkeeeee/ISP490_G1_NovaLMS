@@ -102,14 +102,19 @@
                             placeholder="VD: Lesson 1.1 - Vocabulary" maxlength="200" autocomplete="off">
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-6">
+                        <div class="col-4">
                             <label class="form-label small fw-bold text-secondary">Loại bài học</label>
                             <select id="lessonType" class="form-select" onchange="onLessonTypeChange()">
                                 <option value="VIDEO">Video</option>
                                 <option value="DOC">Tài liệu</option>
                             </select>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <label class="form-label small fw-bold text-secondary">Thời lượng</label>
+                            <input type="text" id="lessonDuration" class="form-control" placeholder="VD: 10:00"
+                                maxlength="20" autocomplete="off">
+                        </div>
+                        <div class="col-4">
                             <label class="form-label small fw-bold text-secondary">Thứ tự</label>
                             <input type="number" id="lessonOrder" class="form-control" placeholder="Để trống = tự động"
                                 min="1" autocomplete="off">
@@ -477,6 +482,7 @@
                     '<th class="ps-3 py-2 text-uppercase small text-muted" style="width:40px;">#</th>' +
                     '<th class="py-2 text-uppercase small text-muted">Bài học</th>' +
                     '<th class="py-2 text-uppercase small text-muted">Loại</th>' +
+                    '<th class="py-2 text-uppercase small text-muted">Thời lượng</th>' +
                     '<th class="py-2 text-uppercase small text-muted">Video</th>' +
                     '<th class="text-end pe-3 py-2 text-uppercase small text-muted">Hành động</th>' +
                     '</tr>' +
@@ -636,6 +642,7 @@
                     '<td class="fw-medium text-dark align-middle">' + escape(l.lessonName || '—') + '</td>' +
                     '<td class="align-middle"><span class="badge bg-info bg-opacity-10 text-info border border-info px-2 py-1" style="font-size:11px;">' +
                     (typeMap[l.type] || l.type || '—') + '</span></td>' +
+                    '<td class="align-middle text-muted small">' + (l.duration || '—') + '</td>' +
                     '<td class="align-middle">' + (videoCell || '<span class="text-muted small">—</span>') + '</td>' +
                     '<td class="text-end pe-3 align-middle">' +
                     '<button class="btn btn-sm btn-light border shadow-sm" onclick="editLesson(' + moduleId + ',' + l.lessonId + ')" title="Sửa">' +
@@ -725,6 +732,7 @@
             document.getElementById('lessonOrder').value = '';
             document.getElementById('lessonVideoUrl').value = '';
             document.getElementById('lessonVideoDescription').value = '';
+            document.getElementById('lessonDuration').value = '';
             document.getElementById('lessonError').style.display = 'none';
             // Clear YouTube preview iframe — prevent stale data leaking between create/edit
             document.getElementById('ytPreviewFrame').src = '';
@@ -753,6 +761,7 @@
             document.getElementById('lessonId').value = l.lessonId;
             document.getElementById('lessonName').value = l.lessonName || '';
             document.getElementById('lessonType').value = l.type || 'VIDEO';
+            document.getElementById('lessonDuration').value = l.duration || '';
             document.getElementById('lessonOrder').value = l.orderIndex || '';
             // Load VIDEO / DOC content
             document.getElementById('lessonVideoUrl').value = l.videoUrl || '';
@@ -780,6 +789,7 @@
             var lessonId = document.getElementById('lessonId').value;
             var lessonName = document.getElementById('lessonName').value.trim();
             var type = document.getElementById('lessonType').value;
+            var duration = document.getElementById('lessonDuration').value.trim();
             var orderStr = document.getElementById('lessonOrder').value.trim();
             var videoUrl = document.getElementById('lessonVideoUrl').value.trim();
             var videoDesc = document.getElementById('lessonVideoDescription').value.trim();
@@ -833,6 +843,7 @@
                     moduleId: _activeModuleId,
                     lessonName: lessonName,
                     type: type,
+                    duration: duration,
                     videoUrl: type === 'VIDEO' ? videoUrl : (type === 'DOC' ? savedDocUrl : null),
                     contentText: type === 'VIDEO' ? videoDesc : (type === 'DOC' ? contentText : null),
                     allowDownload: document.getElementById('lessonAllowDownload').checked,

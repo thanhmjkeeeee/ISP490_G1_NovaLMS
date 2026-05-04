@@ -143,15 +143,21 @@
         return;
       }
 
-      container.innerHTML = list.map((c, i) => `
+      container.innerHTML = list.map((c, i) => {
+        const hasClass = c.classId !== null && c.classId !== undefined;
+        const clickAction = hasClass 
+          ? `onclick="location.href='/student/my-classes/detail/${c.classId}'"`
+          : `onclick="Swal.fire({icon:'info', title:'Thông báo', text:'Bạn chưa được xếp lớp cho khóa học này. Vui lòng liên hệ quản trị viên hoặc chờ cập nhật.'})"`;
+
+        return `
         <div class="course-col" style="animation-delay:${i*70}ms">
-          <div class="course-card" onclick="location.href='/student/my-classes/detail/${c.classId}'" style="cursor: pointer;">
+          <div class="course-card" ${clickAction} style="cursor: pointer;">
             <div class="course-img-wrapper">
               <img src="${c.courseImage || '/assets/img/default-course.png'}"
                    class="card-img-top course-image" alt="${esc(c.className)}"
                    onerror="this.onerror=null;this.src='/assets/img/default-course.png'" loading="lazy">
               <span class="course-badge">
-                <i class="bi bi-tag-fill"></i>${c.status === 'Closed' ? 'Đã hoàn thành' : 'Đang học'}
+                <i class="bi bi-tag-fill"></i>${c.status === 'Closed' ? 'Đã hoàn thành' : (hasClass ? 'Đang học' : 'Chưa xếp lớp')}
               </span>
             </div>
             <div class="course-card__body">
@@ -163,12 +169,13 @@
               </div>
             </div>
             <div class="course-card__footer">
-              <span class="btn-enroll text-primary fw-bold">
-                Vào Trung tâm Lớp học <i class="bi bi-arrow-right-circle-fill ms-1"></i>
+              <span class="btn-enroll ${hasClass ? 'text-primary' : 'text-muted'} fw-bold">
+                ${hasClass ? 'Vào Trung tâm Lớp học' : 'Chưa khả dụng'} <i class="bi bi-arrow-right-circle-fill ms-1"></i>
               </span>
             </div>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
 
       requestAnimationFrame(() => requestAnimationFrame(() => {
         document.querySelectorAll('#classesContainer .course-col').forEach(el => el.classList.add('card-visible'));
