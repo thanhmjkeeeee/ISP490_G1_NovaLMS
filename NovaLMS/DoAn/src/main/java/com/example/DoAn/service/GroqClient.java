@@ -71,12 +71,13 @@ public class GroqClient {
    * tránh việc bị ghi đè/nhồi thêm header của Local Gateway gây lỗi 401.
    */
   public String transcribe(String audioUrl) {
-    // 1. Kiểm tra Key (Ưu tiên apiKey từ constructor đã clean)
-    String cleanKey = (this.apiKey != null && !this.apiKey.isBlank()) ? this.apiKey :
-                      (groqApiKey != null ? groqApiKey.trim().replace("\"", "").replace("'", "") : "");
+    // 1. Force use of real Groq Key for Whisper (STT)
+    // Avoid using 9Router key (apiKey) which doesn't support transcription
+    String cleanKey = (groqApiKey != null && !groqApiKey.isBlank()) ? groqApiKey.trim().replace("\"", "").replace("'", "") : 
+                      (this.apiKey != null ? this.apiKey.trim().replace("\"", "").replace("'", "") : "");
     
-    if (cleanKey.isBlank()) {
-      throw new RuntimeException("Missing Groq API Key in properties.");
+    if (cleanKey.isBlank() || !cleanKey.startsWith("gsk_")) {
+        log.warn("Transcription might fail: No Groq-format key found (expected starting with 'gsk_')");
     }
 
     try {
@@ -171,9 +172,22 @@ public class GroqClient {
           throw new RuntimeException("Groq API returned " + response.code() + ": " + respContent);
         }
 
-        JsonNode root = mapper.readTree(respContent);
-        String content = root.path("choices").get(0)
-            .path("message").path("content").asText();
+        String content = "";
+        try {
+            JsonNode root = mapper.readTree(respContent);
+            if (root.has("choices") && root.path("choices").isArray() && root.path("choices").size() > 0) {
+                content = root.path("choices").get(0).path("message").path("content").asText();
+            } else if (root.has("error")) {
+                throw new RuntimeException("Groq Error: " + root.path("error").path("message").asText());
+            } else {
+                // If it's valid JSON but not ChatCompletion, maybe it's the raw grading JSON?
+                content = respContent;
+            }
+        } catch (Exception e) {
+            // If it's NOT valid JSON (e.g. starts with backtick), treat as raw text
+            log.warn("[AI-RAW] Response is not standard OpenAI JSON, treating as raw content.");
+            content = respContent;
+        }
 
         log.debug("[GROQ-RAW-CONTENT] {}", content);
 
@@ -191,12 +205,11 @@ public class GroqClient {
           if (!content.endsWith("}}")) content += "}";
         }
 
-        // Final sanitization: remove any remaining control characters that might still break parsing
-        // although ALLOW_UNESCAPED_CONTROL_CHARS should handle literal newlines.
         try {
             return mapper.readValue(content, GradingResponse.class);
         } catch (Exception parseEx) {
-            log.error("[GROQ-PARSE-FAIL] JSON parsing failed. Content: {}", content);
+            log.error("[GROQ-PARSE-FAIL] JSON parsing failed. Content Preview: {}", 
+                content.length() > 500 ? content.substring(0, 500) + "..." : content);
             throw parseEx;
         }
       }

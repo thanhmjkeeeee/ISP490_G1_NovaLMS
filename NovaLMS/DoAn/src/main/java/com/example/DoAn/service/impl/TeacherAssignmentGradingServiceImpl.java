@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
     private final RegistrationRepository registrationRepository;
     private final com.example.DoAn.service.QuizResultService quizResultService;
     private final com.example.DoAn.service.IAIPromptConfigService aiPromptConfigService;
+    private final QuizRepository quizRepository;
 
     // ─── Grading Queue ────────────────────────────────────────────────────────
 
@@ -127,40 +129,8 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             dto.setTotalScore(BigDecimal.valueOf(r.getScore()));
         }
         dto.setOverallBand(r.getOverallBand());
-        
-        // Calculate totalMaxScore (average of skill maxes)
-        boolean isSequential = quiz != null && Boolean.TRUE.equals(quiz.getIsSequential());
-        if (quiz != null && quiz.getOverallBand() != null) {
-            dto.setTotalMaxScore(quiz.getOverallBand());
-        } else if (isSequential) {
-            List<BigDecimal> skillMaxes = new ArrayList<>();
-            if (dto.getListening() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
-            if (dto.getReading() != null) skillMaxes.add(BigDecimal.valueOf(9.0));
-            
-            // For Speaking/Writing, the skill max is the average of the questions' max points
-            if (dto.getSpeaking() != null) {
-                BigDecimal m = getAverageMaxPoints(answers, "SPEAKING", quiz.getQuizId());
-                if (m != null) skillMaxes.add(m);
-            }
-            if (dto.getWriting() != null) {
-                BigDecimal m = getAverageMaxPoints(answers, "WRITING", quiz.getQuizId());
-                if (m != null) skillMaxes.add(m);
-            }
-            
-            if (!skillMaxes.isEmpty()) {
-                BigDecimal sumMax = skillMaxes.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-                dto.setTotalMaxScore(sumMax.divide(BigDecimal.valueOf(skillMaxes.size()), 1, RoundingMode.HALF_UP));
-            } else {
-                dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
-            }
-        } else {
-            // Non-IELTS: total raw score
-            BigDecimal totalRawMax = BigDecimal.ZERO;
-            for (QuizAnswer a : answers) {
-                totalRawMax = totalRawMax.add(getQuestionMaxPoints(quiz.getQuizId(), a.getQuestion()));
-            }
-            dto.setTotalMaxScore(totalRawMax);
-        }
+
+        dto.setTotalMaxScore(calculateQuizMaxBand(quiz));
 
         // Overall status
         dto.setOverallStatus(deriveOverallStatus(dto));
@@ -250,10 +220,12 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
     private BigDecimal getAverageMaxPoints(List<QuizAnswer> answers, String skill, Integer quizId) {
         List<QuizAnswer> skillQs = answers.stream()
-                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill()) || skill.equalsIgnoreCase(a.getQuestion().getQuestionType()))
+                .filter(a -> skill.equalsIgnoreCase(a.getQuestion().getSkill())
+                        || skill.equalsIgnoreCase(a.getQuestion().getQuestionType()))
                 .toList();
-        if (skillQs.isEmpty()) return null;
-        
+        if (skillQs.isEmpty())
+            return null;
+
         BigDecimal sum = BigDecimal.ZERO;
         for (QuizAnswer a : skillQs) {
             sum = sum.add(getQuestionMaxPoints(quizId, a.getQuestion()));
@@ -267,23 +239,28 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         if (cefr != null && !cefr.isBlank()) {
             try {
                 double val = Double.parseDouble(cefr.trim());
-                if (val > 0) return BigDecimal.valueOf(val);
-            } catch (Exception ignored) {}
+                if (val > 0)
+                    return BigDecimal.valueOf(val);
+            } catch (Exception ignored) {
+            }
         }
 
-        // Priority 2: Use the highest configured points across all quizzes (findMaxPointsByQuestionId)
+        // Priority 2: Use the highest configured points across all quizzes
+        // (findMaxPointsByQuestionId)
         BigDecimal maxPts = quizQuestionRepository.findMaxPointsByQuestionId(q.getQuestionId());
         if (maxPts != null && maxPts.compareTo(BigDecimal.valueOf(1.0)) > 0) {
             return maxPts;
         }
 
         // Priority 3: Specific quiz-question link
-        Optional<QuizQuestion> qq = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quizId, q.getQuestionId());
+        Optional<QuizQuestion> qq = quizQuestionRepository.findByQuizQuizIdAndQuestionQuestionId(quizId,
+                q.getQuestionId());
         if (qq.isPresent() && qq.get().getPoints() != null) {
             return qq.get().getPoints();
         }
 
-        return BigDecimal.valueOf(9.0); // Default IELTS max band
+        Quiz quiz = quizRepository.findById(quizId).orElse(null);
+        return calculateQuizMaxBand(quiz);
     }
 
     private String deriveOverallStatus(AssignmentGradingQueueDTO dto) {
@@ -326,11 +303,13 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             Question q = a.getQuestion();
             String skill = q.getSkill();
             if (skill == null || skill.isBlank() || "GENERAL".equalsIgnoreCase(skill)) {
-                if ("WRITING".equalsIgnoreCase(q.getQuestionType()) || "SPEAKING".equalsIgnoreCase(q.getQuestionType())) {
+                if ("WRITING".equalsIgnoreCase(q.getQuestionType())
+                        || "SPEAKING".equalsIgnoreCase(q.getQuestionType())) {
                     skill = q.getQuestionType().toUpperCase();
                 }
             }
-            if (skill == null) skill = "OTHER";
+            if (skill == null)
+                skill = "OTHER";
             bySkill.computeIfAbsent(skill.toUpperCase(), k -> new ArrayList<>()).add(a);
         }
 
@@ -392,13 +371,13 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 item.setAudioUrl(q.getAudioUrl());
                 item.setTeacherScore(a.getPointsAwarded());
                 item.setTeacherNote(a.getTeacherNote());
-                
+
                 // Writing criteria
                 item.setWritingTaskAchievement(a.getWritingTaskAchievement());
                 item.setWritingCoherenceCohesion(a.getWritingCoherenceCohesion());
                 item.setWritingLexicalResource(a.getWritingLexicalResource());
                 item.setWritingGrammarAccuracy(a.getWritingGrammarAccuracy());
-                
+
                 // Speaking criteria
                 item.setSpeakingFluencyCoherence(a.getSpeakingFluencyCoherence());
                 item.setSpeakingLexicalResource(a.getSpeakingLexicalResource());
@@ -455,28 +434,26 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             }
 
             section.setQuestions(items);
-            
-            // For IELTS: section max should be the highest configured band (e.g. 4.0 or 5.0)
+
+            // For IELTS: section max should be the highest configured band (e.g. 4.0 or
+            // 5.0)
             if (!items.isEmpty()) {
+                BigDecimal fallbackMax = calculateQuizMaxBand(quiz);
                 if ("LISTENING".equalsIgnoreCase(skill) || "READING".equalsIgnoreCase(skill)) {
-                    sectionMax = BigDecimal.valueOf(9.0);
+                    sectionMax = BigDecimal.valueOf(9.0); // IELTS Listening/Reading always 9.0 internally for band
+                                                          // mapping
                 } else {
-                    // Find the highest maxPoints among questions in this section
-                    BigDecimal highestMax = items.stream()
-                        .<BigDecimal>map(it -> it.getMaxPoints() != null ? it.getMaxPoints() : BigDecimal.ZERO)
-                        .max(BigDecimal::compareTo)
-                        .orElse(BigDecimal.valueOf(9.0));
-                    
-                    sectionMax = highestMax;
+                    // For Speaking/Writing, the section max is effectively the quiz's max band
+                    sectionMax = fallbackMax;
                 }
-                
+
                 // sectionTeacherScore is the average band achieved
                 BigDecimal sumAwarded = items.stream()
-                    .<BigDecimal>map(it -> it.getTeacherScore() != null ? it.getTeacherScore() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                        .<BigDecimal>map(it -> it.getTeacherScore() != null ? it.getTeacherScore() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
                 sectionTeacherScore = sumAwarded.divide(BigDecimal.valueOf(items.size()), 1, RoundingMode.HALF_UP);
             }
-            
+
             section.setMaxScore(sectionMax);
             section.setTeacherScore(sectionTeacherScore.compareTo(BigDecimal.ZERO) > 0
                     ? sectionTeacherScore
@@ -509,17 +486,12 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         dto.setExternalSubmissionLink(result.getExternalSubmissionLink());
         dto.setExternalSubmissionNote(result.getExternalSubmissionNote());
 
-        // For IELTS: totalMaxScore is the average of section maxes
-        if (quiz.getOverallBand() != null) {
-            dto.setTotalMaxScore(quiz.getOverallBand());
-        } else if (!sections.isEmpty()) {
-            BigDecimal sumMax = sections.stream()
-                .map(s -> s.getMaxScore() != null ? s.getMaxScore() : BigDecimal.valueOf(9.0))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal avgMax = sumMax.divide(BigDecimal.valueOf(sections.size()), 1, RoundingMode.HALF_UP);
-            dto.setTotalMaxScore(avgMax);
-        } else {
-            dto.setTotalMaxScore(BigDecimal.valueOf(9.0));
+        BigDecimal maxBand = calculateQuizMaxBand(quiz);
+        dto.setQuizMaxBand(maxBand);
+        dto.setTotalMaxScore(maxBand);
+
+        if (result.getScore() != null) {
+            dto.setOverallBand(BigDecimal.valueOf(result.getScore()));
         }
 
         if (result.getSectionScores() != null && !result.getSectionScores().isBlank()) {
@@ -539,17 +511,22 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
         }
 
         // Fetch dynamic criteria labels
-        String cefr = (quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null) ? quiz.getCourse().getLevelTag() : "B2";
+        String cefr = (quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null)
+                ? quiz.getCourse().getLevelTag()
+                : "B2";
         dto.setCriteriaLabels(fetchCriteriaLabels(cefr));
 
         return dto;
     }
 
     private String mapCefrToBucket(String cefr) {
-        if (cefr == null) return "advanced";
+        if (cefr == null)
+            return "advanced";
         String c = cefr.toUpperCase();
-        if (c.contains("A1") || c.contains("A2") || c.contains("BEGINNER")) return "beginner";
-        if (c.contains("B1") || c.contains("B2") || c.contains("INTERMEDIATE")) return "intermediate";
+        if (c.contains("A1") || c.contains("A2") || c.contains("BEGINNER"))
+            return "beginner";
+        if (c.contains("B1") || c.contains("B2") || c.contains("INTERMEDIATE"))
+            return "intermediate";
         return "advanced";
     }
 
@@ -566,10 +543,14 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             AIPromptConfig config = aiPromptConfigService.getConfigByBucket(bucket);
             if (config != null && config.getWritingRubricJson() != null) {
                 com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(config.getWritingRubricJson());
-                if (root.has("task_achievement")) labels.put("ta", root.path("task_achievement").path("label").asText("Task Achievement"));
-                if (root.has("coherence_cohesion")) labels.put("cc", root.path("coherence_cohesion").path("label").asText("Coherence & Cohesion"));
-                if (root.has("lexical_resource")) labels.put("lr", root.path("lexical_resource").path("label").asText("Lexical Resource"));
-                if (root.has("grammatical_range")) labels.put("gra", root.path("grammatical_range").path("label").asText("Grammar Range & Accuracy"));
+                if (root.has("task_achievement"))
+                    labels.put("ta", root.path("task_achievement").path("label").asText("Task Achievement"));
+                if (root.has("coherence_cohesion"))
+                    labels.put("cc", root.path("coherence_cohesion").path("label").asText("Coherence & Cohesion"));
+                if (root.has("lexical_resource"))
+                    labels.put("lr", root.path("lexical_resource").path("label").asText("Lexical Resource"));
+                if (root.has("grammatical_range"))
+                    labels.put("gra", root.path("grammatical_range").path("label").asText("Grammar Range & Accuracy"));
             }
         } catch (Exception e) {
             // keep defaults
@@ -593,19 +574,25 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         item.getQuestionId());
                 if (answer != null) {
                     BigDecimal awarded = item.getPointsAwarded();
-                    
+
                     // For Writing, if criteria are provided, pointsAwarded is the average
                     String qType = answer.getQuestion().getQuestionType();
                     if ("WRITING".equalsIgnoreCase(qType) && item.getWritingTaskAchievement() != null) {
-                        BigDecimal ta = item.getWritingTaskAchievement() != null ? item.getWritingTaskAchievement() : BigDecimal.ZERO;
-                        BigDecimal cc = item.getWritingCoherenceCohesion() != null ? item.getWritingCoherenceCohesion() : BigDecimal.ZERO;
-                        BigDecimal lr = item.getWritingLexicalResource() != null ? item.getWritingLexicalResource() : BigDecimal.ZERO;
-                        BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy() : BigDecimal.ZERO;
-                        
-                        BigDecimal avg = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+                        BigDecimal ta = item.getWritingTaskAchievement() != null ? item.getWritingTaskAchievement()
+                                : BigDecimal.ZERO;
+                        BigDecimal cc = item.getWritingCoherenceCohesion() != null ? item.getWritingCoherenceCohesion()
+                                : BigDecimal.ZERO;
+                        BigDecimal lr = item.getWritingLexicalResource() != null ? item.getWritingLexicalResource()
+                                : BigDecimal.ZERO;
+                        BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy()
+                                : BigDecimal.ZERO;
+
+                        BigDecimal avg = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 4,
+                                RoundingMode.HALF_UP);
                         // IELTS Rounding: round to nearest 0.5
-                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
-                        
+                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP)
+                                .divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
+
                         answer.setWritingTaskAchievement(ta);
                         answer.setWritingCoherenceCohesion(cc);
                         answer.setWritingLexicalResource(lr);
@@ -614,15 +601,21 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
 
                     // For Speaking
                     if ("SPEAKING".equalsIgnoreCase(qType) && item.getSpeakingFluencyCoherence() != null) {
-                        BigDecimal fc = item.getSpeakingFluencyCoherence() != null ? item.getSpeakingFluencyCoherence() : BigDecimal.ZERO;
-                        BigDecimal lr = item.getSpeakingLexicalResource() != null ? item.getSpeakingLexicalResource() : BigDecimal.ZERO;
-                        BigDecimal pr = item.getSpeakingPronunciation() != null ? item.getSpeakingPronunciation() : BigDecimal.ZERO;
-                        BigDecimal gra = item.getSpeakingGrammarAccuracy() != null ? item.getSpeakingGrammarAccuracy() : BigDecimal.ZERO;
-                        
-                        BigDecimal avg = fc.add(lr).add(pr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+                        BigDecimal fc = item.getSpeakingFluencyCoherence() != null ? item.getSpeakingFluencyCoherence()
+                                : BigDecimal.ZERO;
+                        BigDecimal lr = item.getSpeakingLexicalResource() != null ? item.getSpeakingLexicalResource()
+                                : BigDecimal.ZERO;
+                        BigDecimal pr = item.getSpeakingPronunciation() != null ? item.getSpeakingPronunciation()
+                                : BigDecimal.ZERO;
+                        BigDecimal gra = item.getSpeakingGrammarAccuracy() != null ? item.getSpeakingGrammarAccuracy()
+                                : BigDecimal.ZERO;
+
+                        BigDecimal avg = fc.add(lr).add(pr).add(gra).divide(new BigDecimal("4"), 4,
+                                RoundingMode.HALF_UP);
                         // IELTS Rounding: round to nearest 0.5
-                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
-                        
+                        awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP)
+                                .divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
+
                         answer.setSpeakingFluencyCoherence(fc);
                         answer.setSpeakingLexicalResource(lr);
                         answer.setSpeakingPronunciation(pr);
@@ -632,14 +625,21 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                     if (awarded != null) {
                         // Validate points against expert-configured max
                         BigDecimal maxPts = getQuestionMaxPoints(quiz.getQuizId(), answer.getQuestion());
-                        // Use the expert-configured max for all question types (including WRITING/SPEAKING)
+
+                        // For IELTS Writing/Speaking, allow scoring up to the Quiz's Overall Band (e.g.
+                        // 9.0)
                         BigDecimal maxAllowed = maxPts;
-                        
-                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
-                            throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId() 
-                                    + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + " (theo cấu hình của Expert).");
+                        if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
+                            maxAllowed = (quiz.getOverallBand() != null) ? quiz.getOverallBand()
+                                    : BigDecimal.valueOf(9.0);
                         }
-                        
+
+                        if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
+                            throw new RuntimeException(
+                                    "Số điểm chấm (" + awarded + ") cho câu hỏi " + item.getQuestionId()
+                                            + " không hợp lệ. Điểm phải từ 0 đến " + maxAllowed + ".");
+                        }
+
                         answer.setPointsAwarded(awarded);
                         answer.setTeacherOverrideScore(awarded.toString());
                         answer.setPendingAiReview(false);
@@ -648,7 +648,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                         answer.setPointsAwarded(null);
                         answer.setTeacherOverrideScore(null);
                     }
-                    
+
                     answer.setTeacherNote(item.getTeacherNote());
                     answer.setIsCorrect(awarded != null && awarded.compareTo(BigDecimal.ZERO) > 0);
                     quizAnswerRepository.save(answer);
@@ -708,5 +708,49 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
             }
         }
         return (result.getScore() != null) ? result.getScore().doubleValue() : 0.0;
+    }
+
+    private BigDecimal calculateQuizMaxBand(Quiz quiz) {
+        if (quiz == null)
+            return BigDecimal.valueOf(100.0);
+        if (quiz.getOverallBand() != null)
+            return quiz.getOverallBand();
+
+        if (Boolean.TRUE.equals(quiz.getIsSequential())) {
+            // IELTS logic
+            List<QuizQuestion> qqList = quiz.getQuizQuestions();
+            if (qqList == null || qqList.isEmpty())
+                return BigDecimal.valueOf(9.0);
+
+            Map<String, List<QuizQuestion>> bySkill = qqList.stream()
+                    .filter(qq -> qq.getQuestion() != null)
+                    .collect(Collectors.groupingBy(qq -> {
+                        String sk = qq.getQuestion().getSkill();
+                        return sk != null ? sk.toUpperCase() : "OTHER";
+                    }));
+
+            List<BigDecimal> skillMaxes = new ArrayList<>();
+            for (String skill : bySkill.keySet()) {
+                if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                    skillMaxes.add(BigDecimal.valueOf(9.0));
+                } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
+                    double avg = bySkill.get(skill).stream()
+                            .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
+                            .average().orElse(9.0);
+                    skillMaxes.add(BigDecimal.valueOf(avg));
+                }
+            }
+            if (!skillMaxes.isEmpty()) {
+                BigDecimal sum = skillMaxes.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+                return sum.divide(BigDecimal.valueOf(skillMaxes.size()), 1, RoundingMode.HALF_UP);
+            }
+            return BigDecimal.valueOf(9.0);
+        } else {
+            BigDecimal total = BigDecimal.ZERO;
+            for (QuizQuestion qq : quiz.getQuizQuestions()) {
+                total = total.add(qq.getPoints() != null ? qq.getPoints() : BigDecimal.ONE);
+            }
+            return total;
+        }
     }
 }

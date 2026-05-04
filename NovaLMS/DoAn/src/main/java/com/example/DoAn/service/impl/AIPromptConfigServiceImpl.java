@@ -92,9 +92,15 @@ public class AIPromptConfigServiceImpl implements IAIPromptConfigService {
         Map<String, Object> map = new HashMap<>();
         try {
             map.put("bloom_instruction", entity.getBloomInstruction());
-            map.put("grammar_focus", objectMapper.readValue(entity.getGrammarFocus(), new TypeReference<List<String>>() {}));
-            map.put("question_types_ratio", objectMapper.readValue(entity.getQuestionTypesRatio(), new TypeReference<Map<String, Double>>() {}));
-            map.put("skills", objectMapper.readValue(entity.getSkills(), new TypeReference<List<String>>() {}));
+            if (entity.getGrammarFocus() != null) {
+                map.put("grammar_focus", objectMapper.readValue(entity.getGrammarFocus(), new TypeReference<List<String>>() {}));
+            }
+            if (entity.getQuestionTypesRatio() != null) {
+                map.put("question_types_ratio", objectMapper.readValue(entity.getQuestionTypesRatio(), new TypeReference<Map<String, Double>>() {}));
+            }
+            if (entity.getSkills() != null) {
+                map.put("skills", objectMapper.readValue(entity.getSkills(), new TypeReference<List<String>>() {}));
+            }
             map.put("lexical_complexity", entity.getLexicalComplexity());
             map.put("writing_constraint", entity.getWritingConstraint());
             map.put("speaking_constraint", entity.getSpeakingConstraint());

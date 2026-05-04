@@ -243,9 +243,9 @@
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="statusFilter" class="form-select bg-light">
                             <option value="">Tất cả trạng thái</option>
-                            <option value="published">Đã xuất bản</option>
-                            <option value="draft">Bản nháp</option>
-                            <option value="inactive">Tạm dừng</option>
+                            <option value="Published">Xuất bản</option>
+                            <option value="Draft">Bản nháp</option>
+                            <option value="Inactive">Tạm dừng</option>
                         </select>
                     </div>
                 </div>
@@ -553,7 +553,7 @@
                 }
 
                 const statusLabel =
-                    status === 'published' ? 'Đã xuất bản'
+                    status === 'published' ? 'Xuất bản'
                     : status === 'inactive' ? 'Tạm dừng'
                     : 'Bản nháp';
 

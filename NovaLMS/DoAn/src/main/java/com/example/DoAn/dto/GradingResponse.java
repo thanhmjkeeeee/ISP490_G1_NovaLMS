@@ -7,6 +7,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public class GradingResponse {
 
     /** Overall IELTS band (0–9, có 0.5), ví dụ: 6.875 */

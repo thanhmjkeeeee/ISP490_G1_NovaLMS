@@ -169,7 +169,10 @@
   const renderCourses = (courses) => {
       const container = document.getElementById('courseContainer');
 
-      if (!courses || courses.length === 0) {
+      // Khóa học nào không có lớp (className) thì sẽ không hiện trong này
+      const filteredCourses = (courses || []).filter(c => c.className && c.className.trim() !== '');
+
+      if (filteredCourses.length === 0) {
           container.innerHTML = `
               <div class="col-12">
                   <div class="state-box shadow-sm p-5 text-center bg-white rounded-4">
@@ -181,8 +184,7 @@
           return;
       }
 
-      // Render giao diện Card Tiến độ mới
-      container.innerHTML = courses.map((c, i) => `
+      container.innerHTML = filteredCourses.map((c, i) => `
           <div class="col-lg-6 col-md-6 course-col" style="transition-delay:${i * 80}ms">
               <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 progress-card">
                   <div class="position-relative">

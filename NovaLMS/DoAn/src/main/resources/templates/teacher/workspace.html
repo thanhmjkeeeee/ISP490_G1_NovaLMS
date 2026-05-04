@@ -261,7 +261,7 @@
             border-radius: 8px;
             margin-bottom: 12px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
         }
 
         .student-answer-card {
@@ -272,7 +272,7 @@
         .student-answer-card:hover {
             border-left-color: var(--bs-primary) !important;
             background-color: #fff !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
         }
 
         .question-content-premium {
@@ -309,41 +309,52 @@
             </div>
 
             <!-- 6 TABS NAVIGATION -->
-            <ul class="nav nav-pills workspace-tabs d-flex flex-nowrap overflow-auto mb-4" id="workspaceTabs" role="tablist" style="gap: 5px;">
+            <ul class="nav nav-pills workspace-tabs d-flex flex-nowrap overflow-auto mb-4" id="workspaceTabs"
+                role="tablist" style="gap: 5px;">
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link active rounded-pill px-4" id="tab-classes-btn" data-bs-toggle="tab" data-bs-target="#tab-classes" type="button" role="tab">
+                    <button class="nav-link active rounded-pill px-4" id="tab-classes-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-classes" type="button" role="tab">
                         <i class="bi bi-journal-text me-1"></i>QUẢN LÝ KHÓA HỌC
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-schedule-btn" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
+                    <button class="nav-link rounded-pill px-4" id="tab-schedule-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-schedule" type="button" role="tab">
                         <i class="bi bi-calendar-week me-1"></i>Lịch dạy
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-quiz-btn" data-bs-toggle="tab" data-bs-target="#tab-quiz" type="button" role="tab">
+                    <button class="nav-link rounded-pill px-4" id="tab-quiz-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-quiz" type="button" role="tab">
                         <i class="bi bi-patch-question me-1"></i>Quản lý Quiz
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-assignment-btn" data-bs-toggle="tab" data-bs-target="#tab-assignment" type="button" role="tab">
+                    <button class="nav-link rounded-pill px-4" id="tab-assignment-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-assignment" type="button" role="tab">
                         <i class="bi bi-file-earmark-code me-1"></i>Quản lý Assignment
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-grading-btn" data-bs-toggle="tab" data-bs-target="#tab-grading" type="button" role="tab">
+                    <button class="nav-link rounded-pill px-4" id="tab-grading-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-grading" type="button" role="tab">
                         <i class="bi bi-pencil-square me-1"></i>Chấm bài
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link rounded-pill px-4" id="tab-graded-btn" data-bs-toggle="tab" data-bs-target="#tab-graded" type="button" role="tab">
+                    <button class="nav-link rounded-pill px-4" id="tab-graded-btn" data-bs-toggle="tab"
+                        data-bs-target="#tab-graded" type="button" role="tab">
                         <i class="bi bi-check2-circle me-1"></i>Báo cáo
                     </button>
                 </li>
                 <li class="nav-item flex-shrink-0" role="presentation">
-                    <button class="nav-link position-relative rounded-pill px-4" id="tab-requests-btn" data-bs-toggle="tab" data-bs-target="#tab-requests" type="button" role="tab" style="color: #dc3545;">
+                    <button class="nav-link position-relative rounded-pill px-4" id="tab-requests-btn"
+                        data-bs-toggle="tab" data-bs-target="#tab-requests" type="button" role="tab"
+                        style="color: #dc3545;">
                         <i class="bi bi-exclamation-octagon-fill me-1"></i>Yêu cầu mở khóa
-                        <span id="wsRequestBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">0</span>
+                        <span id="wsRequestBadge"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                            style="display: none; font-size: 0.65rem;">0</span>
                     </button>
                 </li>
             </ul>
@@ -426,8 +437,8 @@
                                 <input type="text" class="form-control border-start-0 rounded-end-pill" id="quizSearch"
                                     placeholder="Tìm tên Quiz..." onkeyup="debounceSearch('QUIZ')">
                             </div>
-                            <button class="btn btn-outline-primary rounded-pill shadow-sm px-3 fw-bold small" id="btnBindExistingQuiz"
-                                onclick="openBindExpertQuizModal()" style="display:none;">
+                            <button class="btn btn-outline-primary rounded-pill shadow-sm px-3 fw-bold small"
+                                id="btnBindExistingQuiz" onclick="openBindExpertQuizModal()" style="display:none;">
                                 <i class="bi bi-bank2 me-1"></i>Gắn Quiz có sẵn
                             </button>
                             <button class="btn btn-primary rounded-pill shadow-sm px-3 fw-bold small" id="btnCreateQuiz"
@@ -612,10 +623,10 @@
                                                 tất</strong> để gửi điểm cuối cùng.
                                         </div>
                                         <div class="d-flex gap-2">
-<!--                                            <button class="btn btn-outline-primary rounded-pill px-4"-->
-<!--                                                id="ws-gd-draftBtn" onclick="wsSubmitGrade(false)">-->
-<!--                                                Lưu nháp-->
-<!--                                            </button>-->
+                                            <!--                                            <button class="btn btn-outline-primary rounded-pill px-4"-->
+                                            <!--                                                id="ws-gd-draftBtn" onclick="wsSubmitGrade(false)">-->
+                                            <!--                                                Lưu nháp-->
+                                            <!--                                            </button>-->
                                             <button class="btn btn-success rounded-pill px-4 fw-bold"
                                                 id="ws-gd-finalBtn" onclick="wsSubmitGrade(true)">
                                                 <i class="bi bi-check-circle me-1"></i> Hoàn tất chấm
@@ -2596,7 +2607,7 @@
 
         // --- Show "Create Quiz" button only when a class is selected ---
         const originalLoadQuizzes = loadQuizzes;
-        loadQuizzes = async function(page = 0) {
+        loadQuizzes = async function (page = 0) {
             await originalLoadQuizzes(page);
             const btnCreate = document.getElementById('btnCreateQuiz');
             const btnBind = document.getElementById('btnBindExistingQuiz');
@@ -4286,8 +4297,8 @@
                         let mR = q.matchRight || [];
 
                         // 2. Nếu là string thì parse
-                        if (typeof mL === 'string' && mL.trim().startsWith('[')) try { mL = JSON.parse(mL); } catch(e) {}
-                        if (typeof mR === 'string' && mR.trim().startsWith('[')) try { mR = JSON.parse(mR); } catch(e) {}
+                        if (typeof mL === 'string' && mL.trim().startsWith('[')) try { mL = JSON.parse(mL); } catch (e) { }
+                        if (typeof mR === 'string' && mR.trim().startsWith('[')) try { mR = JSON.parse(mR); } catch (e) { }
 
                         // 3. Fallback: Nếu không có matchLeft nhưng có options (AI có thể nhầm)
                         if ((!mL || mL.length === 0) && q.options && q.options.length > 0) {
@@ -4433,20 +4444,20 @@
                                     </div>
                                     <div class="d-flex flex-column gap-1">
                                         ${(() => {
-                                            let mL = q.matchLeft || [];
-                                            let mR = q.matchRight || [];
-                                            if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) {}
-                                            if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) {}
-                                            return mL.map((left, idx) => {
-                                                const right = mR[idx] || '???';
-                                                return `
+                                let mL = q.matchLeft || [];
+                                let mR = q.matchRight || [];
+                                if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch (e) { }
+                                if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch (e) { }
+                                return mL.map((left, idx) => {
+                                    const right = mR[idx] || '???';
+                                    return `
                                                     <div class="d-flex align-items-center gap-2 small">
                                                         <div class="px-2 py-1 bg-white border rounded text-dark">${wsSafeHtml(left)}</div>
                                                         <i class="bi bi-arrow-right text-muted"></i>
                                                         <div class="px-2 py-1 bg-white border border-success rounded text-success fw-bold">${wsSafeHtml(right)}</div>
                                                     </div>`;
-                                            }).join('');
-                                        })()}
+                                }).join('');
+                            })()}
                                     </div>
                                 </div>
                             ` : ''}
@@ -4494,8 +4505,8 @@
             if (q.questionType === 'MATCHING') {
                 let mL = q.matchLeft || [];
                 let mR = q.matchRight || [];
-                if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) { mL = []; }
-                if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) { mR = []; }
+                if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch (e) { mL = []; }
+                if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch (e) { mR = []; }
 
                 mL.forEach((left, idx) => {
                     const leftEl = document.getElementById(`editAiMatchL_${index}_${idx}`);
@@ -4503,7 +4514,7 @@
                     if (leftEl) mL[idx] = leftEl.value;
                     if (rightEl) mR[idx] = rightEl.value;
                 });
-                
+
                 q.matchLeft = mL;
                 q.matchRight = mR;
                 // Tạo correctPairs mặc định 1-1: [1, 2, 3...]
@@ -5192,7 +5203,7 @@
                                     `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger">Đã đóng</span>`;
                         }
 
-                        const scoreValue = s.overallBand != null ? `<span class="fw-bold">${parseFloat(s.overallBand).toFixed(1)} / ${(s.totalMaxScore || 9.0).toFixed(1)}</span>` : (s.score !== null ? `<span class="fw-bold">${s.score}</span>` : `<span class="text-muted">—</span>`);
+                        const scoreValue = s.overallBand != null ? `<span class="fw-bold">${parseFloat(s.overallBand).toFixed(1)} / ${(s.totalMaxScore || 9.0).toFixed(1)}</span>` : (s.score !== null ? `<span class="fw-bold">${s.score} / ${s.totalMaxScore || s.totalPoints || '—'}</span>` : `<span class="text-muted">—</span>`);
                         const bandLabel = s.overallBand != null ? '<span class="badge bg-info text-white ms-1">Band</span>' : '';
 
                         return `
@@ -5622,7 +5633,7 @@
                                 studentEmail: i.studentEmail,
                                 quizTitle: i.quizTitle,
                                 submittedAt: i.submittedAt || i.startedAt,
-                                totalScore: i.status,
+                                score: i.status,
                                 type: 'QUIZ',
                                 badgeClass: 'bg-primary'
                             });
@@ -5734,7 +5745,7 @@
                                 studentEmail: i.studentEmail,
                                 quizTitle: i.quizTitle,
                                 submittedAt: i.submittedAt || i.startedAt,
-                                totalScore: (i.score !== undefined ? i.score : i.totalScore) || 0,
+                                score: i.score || 0,
                                 overallBand: i.overallBand,
                                 totalMaxScore: i.totalMaxScore,
                                 type: 'QUIZ',
@@ -5787,7 +5798,7 @@
                                     <td><small class="text-muted"><i class="bi bi-clock me-1"></i>${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('vi-VN') : '—'}</small></td>
                                     <td class="text-center">
                                         <span class="badge bg-primary bg-opacity-10 text-primary border px-3">
-                                            ${item.overallBand != null ? `${parseFloat(item.overallBand).toFixed(1)} / ${(item.totalMaxScore || 9.0).toFixed(1)}` : (item.totalScore ?? 0)}
+                                            ${item.overallBand != null ? `${parseFloat(item.overallBand).toFixed(1)} / ${(item.totalMaxScore || 9.0).toFixed(1)}` : (item.score != null ? `${item.score} / ${item.totalMaxScore || item.maxScore || '—'}` : '—')}
                                         </span>
                                     </td>
                                     <td class="text-end">
@@ -6105,19 +6116,9 @@
         function pointsToBand(points, max) {
             if (!max || max <= 0) return 0;
             const ratio = points / max;
-            // Simple IELTS mapping logic for Reading/Listening
-            if (ratio >= 0.975) return 9.0;
-            if (ratio >= 0.925) return 8.5;
-            if (ratio >= 0.875) return 8.0;
-            if (ratio >= 0.825) return 7.5;
-            if (ratio >= 0.75) return 7.0;
-            if (ratio >= 0.65) return 6.5;
-            if (ratio >= 0.575) return 6.0;
-            if (ratio >= 0.5) return 5.5;
-            if (ratio >= 0.4) return 5.0;
-            if (ratio >= 0.3) return 4.5;
-            if (ratio >= 0.2) return 4.0;
-            return 0;
+            const maxBand = (wsGradingData && (wsGradingData.quizMaxBand || wsGradingData.totalMaxScore)) ? (wsGradingData.quizMaxBand || wsGradingData.totalMaxScore) : 9.0;
+            const achieved = ratio * maxBand;
+            return Math.round(achieved * 2) / 2;
         }
 
         function updateIeltSummary() {
@@ -6126,19 +6127,21 @@
             const stdArea = document.getElementById('standard-score-area');
             const statusBadge = document.getElementById('ielts-status-badge');
 
+            if (!area) return;
+
             const isIelts = (wsGradingData.quizCategory && wsGradingData.quizCategory.toUpperCase() === 'IELTS') ||
                 (wsGradingData.quizTitle && wsGradingData.quizTitle.toUpperCase().includes('IELTS')) ||
                 (wsGradingData.className && wsGradingData.className.toUpperCase().includes('IELTS'));
 
             if (!isIelts) {
-                if (area) area.classList.add('d-none');
+                area.classList.add('d-none');
                 if (stdArea) stdArea.classList.remove('d-none');
                 if (statusBadge) statusBadge.classList.add('d-none');
                 return;
             }
 
-            if (area) area.classList.remove('d-none');
-            if (stdArea) stdArea.classList.add('d-none'); // Hide raw score for IELTS
+            area.classList.remove('d-none');
+            if (stdArea) stdArea.classList.add('d-none');
             if (statusBadge) statusBadge.classList.remove('d-none');
 
             const skillBands = { LISTENING: 0, READING: 0, WRITING: 0, SPEAKING: 0 };
@@ -6149,7 +6152,9 @@
             skills.forEach(s => {
                 let skillQs = [];
                 if (sections.length > 0) {
-                    skillQs = sections.find(sec => sec.skill === s)?.questions || [];
+                    sections.forEach(sec => {
+                        if (sec.skill === s) skillQs = skillQs.concat(sec.questions || []);
+                    });
                 } else {
                     skillQs = questions.filter(q => q.skill === s);
                 }
@@ -6157,37 +6162,19 @@
                 if (skillQs.length === 0) return;
 
                 if (s === 'LISTENING' || s === 'READING') {
-                    let correctCount = 0;
-                    let totalQs = skillQs.length;
-
-                    // Determine maxBand from assignment settings or questions
-                    let maxBand = parseFloat(wsGradingData.totalMaxScore) || 0;
+                    let totalPointsPossible = 0;
+                    let totalPointsAwarded = 0;
 
                     skillQs.forEach(q => {
-                        if (q.isCorrect) correctCount++;
-
-                        // If maxBand is not set by assignment, try to get from questions
-                        if (parseFloat(wsGradingData.totalMaxScore) <= 0 || isNaN(parseFloat(wsGradingData.totalMaxScore))) {
-                            let qMax = q.maxPoints || q.points || 0;
-                            if (qMax > 0 && qMax > maxBand) maxBand = qMax;
-
-                            if (q.cefrLevel && !isNaN(parseFloat(q.cefrLevel))) {
-                                let cVal = parseFloat(q.cefrLevel);
-                                if (cVal > 0 && cVal > maxBand) maxBand = cVal;
-                            }
-                        }
+                        const maxVal = q.maxPoints || q.points || 1;
+                        totalPointsPossible += maxVal;
+                        const scoreVal = parseFloat((q.teacherOverrideScore != null) ? q.teacherOverrideScore :
+                            ((q.pointsAwarded != null) ? q.pointsAwarded :
+                                (q.isCorrect ? maxVal : 0))) || 0;
+                        totalPointsAwarded += scoreVal;
                     });
 
-                    if (maxBand <= 0) maxBand = 9.0;
-
-                    // If maxBand is still default 9.0 but we have a standard 40-question set, use mapping
-                    if (maxBand === 9.0 && totalQs >= 38) {
-                        skillBands[s] = pointsToBand(correctCount, totalQs);
-                    } else {
-                        // Proportional calculation with IELTS rounding
-                        const rawBand = totalQs > 0 ? (correctCount / totalQs) * (maxBand || 9.0) : 0;
-                        skillBands[s] = Math.round(rawBand * 2) / 2;
-                    }
+                    skillBands[s] = pointsToBand(totalPointsAwarded, totalPointsPossible);
                 } else if (s === 'WRITING') {
                     let sum = 0; let count = 0;
                     skillQs.forEach(q => {
@@ -6195,73 +6182,57 @@
                         const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${q.questionId}"]`)?.value) || q.writingCoherenceCohesion || 0;
                         const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${q.questionId}"]`)?.value) || q.writingLexicalResource || 0;
                         const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${q.questionId}"]`)?.value) || q.writingGrammarAccuracy || 0;
-                        sum += (ta + cc + lr + gra) / 4;
-                        count++;
+                        if (ta > 0 || cc > 0 || lr > 0 || gra > 0) {
+                            sum += (ta + cc + lr + gra) / 4;
+                            count++;
+                        } else {
+                            const score = parseFloat(q.teacherOverrideScore || q.pointsAwarded || 0);
+                            if (score > 0) { sum += score; count++; }
+                        }
                     });
-                    const avg = count > 0 ? (sum / count) : 0;
-                    skillBands[s] = Math.round(avg * 2) / 2;
+                    skillBands[s] = count > 0 ? (sum / count) : 0;
                 } else if (s === 'SPEAKING') {
                     let sum = 0; let count = 0;
                     skillQs.forEach(q => {
-                        const fc = parseFloat(document.querySelector(`.speaking-fc[data-qid="${q.questionId}"]`)?.value) || q.speakingFluencyCoherence || 0;
-                        const lr = parseFloat(document.querySelector(`.speaking-lr[data-qid="${q.questionId}"]`)?.value) || q.speakingLexicalResource || 0;
-                        const pr = parseFloat(document.querySelector(`.speaking-pr[data-qid="${q.questionId}"]`)?.value) || q.speakingPronunciation || 0;
-                        const gra = parseFloat(document.querySelector(`.speaking-gra[data-qid="${q.questionId}"]`)?.value) || q.speakingGrammarAccuracy || 0;
-
-                        if (fc > 0 || lr > 0 || pr > 0 || gra > 0) {
-                            sum += (fc + lr + pr + gra) / 4;
-                        } else {
-                            const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherScore || 0;
+                        const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherOverrideScore || q.pointsAwarded || 0;
+                        if (score > 0) {
                             sum += score;
+                            count++;
                         }
-                        count++;
                     });
-                    const avg = count > 0 ? (sum / count) : 0;
-                    skillBands[s] = Math.round(avg * 2) / 2;
+                    skillBands[s] = count > 0 ? (sum / count) : 0;
                 }
             });
 
             const breakdownEl = document.getElementById('ws-gd-skill-breakdown');
             if (breakdownEl) {
-                breakdownEl.innerHTML = skills.filter(s => sections.some(sec => sec.skill === s) || questions.some(q => q.skill === s)).map(s => `
-                    <div class="d-flex flex-column align-items-center">
-                        <span class="extra-small text-muted fw-bold" style="font-size: 0.6rem;">${s.charAt(0)}</span>
-                        <span class="text-primary fw-bold" style="font-size: 0.9rem;">${skillBands[s].toFixed(1)}</span>
-                    </div>
-                `).join('<div class="vr mx-1" style="opacity: 0.1;"></div>');
+                breakdownEl.innerHTML = `
+                    L: <span class="text-primary">${skillBands.LISTENING.toFixed(1)}</span> | 
+                    R: <span class="text-primary">${skillBands.READING.toFixed(1)}</span> | 
+                    W: <span class="text-primary">${skillBands.WRITING.toFixed(1)}</span> | 
+                    S: <span class="text-primary">${skillBands.SPEAKING.toFixed(1)}</span>
+                `;
             }
 
             const activeSkills = skills.filter(s => {
-                // Only include skills that have a score > 0 OR have a max points configuration > 0
-                const score = skillBands[s] || 0;
-                let skillMax = 0;
-                if (sections && sections.length > 0) {
-                    skillMax = sections.find(sec => sec.skill === s)?.maxScore || 0;
-                } else {
-                    const skillQs = questions.filter(q => q.skill === s);
-                    skillMax = skillQs.length > 0 ? (skillQs[0].maxPoints || skillQs[0].points || 0) : 0;
-                }
-                return score > 0 || skillMax > 0;
-            }).filter(s => skillBands[s] > 0);
-
-const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skillBands[k], 0) / activeSkills.length : 0;
+                if (sections.length > 0) return sections.some(sec => sec.skill === s);
+                return questions.some(q => q.skill === s);
+            });
+            const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
             const overall = Math.round(avg * 2) / 2;
 
             const overallEl = document.getElementById('ws-gd-overall-band');
-            if (overallEl) {
-                overallEl.textContent = overall.toFixed(1);
-                // Color coding
-                if (overall >= 7) overallEl.parentElement.className = 'bg-success text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
-                else if (overall >= 5) overallEl.parentElement.className = 'bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
-                else overallEl.parentElement.className = 'bg-warning text-dark px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center';
-            }
-            const overallMaxEl = document.getElementById('ws-gd-overall-max');
-            if (overallMaxEl && wsGradingData.totalMaxScore) {
-                overallMaxEl.textContent = `/ ${parseFloat(wsGradingData.totalMaxScore).toFixed(1)}`;
-            }
+            if (overallEl) overallEl.textContent = overall.toFixed(1);
+
+            const maxBandVal = wsGradingData.quizMaxBand || wsGradingData.totalMaxScore || 9.0;
+            const maxEl = document.getElementById('ws-gd-overall-max');
+            if (maxEl) maxEl.textContent = `/ ${parseFloat(maxBandVal).toFixed(1)}`;
 
             const progressBar = document.getElementById('ielts-progress-bar');
-            if (progressBar) progressBar.style.width = (overall / 9 * 100) + '%';
+            if (progressBar) {
+                const percent = (overall / maxBandVal) * 100;
+                progressBar.style.width = percent + '%';
+            }
         }
 
         window.wsOpenGradingDetail = async function (resultId, type, source) {
@@ -6315,16 +6286,18 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
 
         function renderWsGradingDetail(d) {
             document.getElementById('ws-gd-studentName').textContent = d.studentName || 'N/A';
-            const maxBandLabel = d.totalMaxScore ? ' (Max Band: ' + parseFloat(d.totalMaxScore).toFixed(1) + ')' : '';
+            const maxBandVal = d.quizMaxBand || d.totalMaxScore || 9.0;
+            const maxBandLabel = ` (Max Band: ${parseFloat(maxBandVal).toFixed(1)})`;
             document.getElementById('ws-gd-quizTitle').textContent = (d.quizTitle || 'N/A') + maxBandLabel;
             document.getElementById('ws-gd-className').textContent = d.className || '—';
             document.getElementById('ws-gd-submittedAt').textContent = d.submittedAt ? new Date(d.submittedAt).toLocaleDateString('vi-VN') : '—';
 
-            state.ieltsQuestions = d.questions || (d.sections ? d.sections.flatMap(s => s.questions) : []);
+            wsGradingData = d;
             setTimeout(updateIeltSummary, 100);
+
             if (d.overallBand !== undefined && d.overallBand !== null) {
                 document.getElementById('ws-gd-autoScore').textContent = parseFloat(d.overallBand).toFixed(1);
-                document.getElementById('ws-gd-totalScore').textContent = d.quizMaxBand ? parseFloat(d.quizMaxBand).toFixed(1) : '9.0';
+                document.getElementById('ws-gd-totalScore').textContent = parseFloat(maxBandVal).toFixed(1);
             } else {
                 document.getElementById('ws-gd-autoScore').textContent = (d.autoScore !== undefined) ? d.autoScore : (d.score !== undefined ? d.score : 0);
                 document.getElementById('ws-gd-totalScore').textContent = d.totalScore || d.totalPoints || '—';
@@ -6346,19 +6319,19 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                 let qsHtml = skillQs.map((q, qi) => {
                     const maxVal = q.maxPoints || q.points || 0;
                     const scoreVal = parseFloat((q.teacherOverrideScore != null) ? q.teacherOverrideScore : ((q.teacherPointsAwarded != null) ? q.teacherPointsAwarded : (q.isCorrect ? (q.maxPoints || q.points || 0) : 0))) || 0;
-                    
+
                     const isWritingSkill = q.questionType === 'WRITING' || skill === 'WRITING';
                     const isSpeakingSkill = q.questionType === 'SPEAKING' || skill === 'SPEAKING';
                     const isManual = isWritingSkill || isSpeakingSkill || (maxVal > 0 && (q.answer === null || q.answer === ''));
                     const isSubjective = isWritingSkill || isSpeakingSkill;
-                    const maxBand = parseFloat(d.totalMaxScore) || parseFloat(q.maxPoints) || parseFloat(q.cefrLevel) || 9;
+                    const maxBand = parseFloat(maxBandVal) || 9;
 
                     // Premium Answer Display Logic
                     let premiumAnsHtml = '';
                     if (isSubjective) {
                         const ans = q.studentAnswer || q.userAnswerDisplay || '—';
                         const isAudioUrl = isSpeakingSkill && (ans.includes('http') || ans.includes('cloudinary'));
-                        
+
                         if (isAudioUrl) {
                             premiumAnsHtml = `
                                 <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
@@ -6379,21 +6352,21 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                     } else {
                         let displayedAns = q.studentAnswer || q.userAnswerDisplay || '—';
                         if (q.questionType === 'MULTIPLE_CHOICE' || q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
-                             try {
-                                 let parsed = displayedAns;
-                                 if (typeof displayedAns === 'string' && (displayedAns.startsWith('[') || displayedAns.startsWith('{'))) {
-                                     parsed = JSON.parse(displayedAns);
-                                 }
-                                 if (Array.isArray(parsed)) {
-                                     displayedAns = parsed.map(id => {
-                                         const option = q.options?.find(o => String(o.id) === String(id) || String(o.answerOptionId) === String(id));
-                                         return option ? wsSafeHtml(option.title || option.content) : id;
-                                     }).join(', ');
-                                 } else if (parsed && typeof parsed === 'string') {
-                                     const option = q.options?.find(o => String(o.id) === String(parsed) || String(o.answerOptionId) === String(parsed));
-                                     if (option) displayedAns = wsSafeHtml(option.title || option.content);
-                                 }
-                             } catch (e) { }
+                            try {
+                                let parsed = displayedAns;
+                                if (typeof displayedAns === 'string' && (displayedAns.startsWith('[') || displayedAns.startsWith('{'))) {
+                                    parsed = JSON.parse(displayedAns);
+                                }
+                                if (Array.isArray(parsed)) {
+                                    displayedAns = parsed.map(id => {
+                                        const option = q.options?.find(o => String(o.id) === String(id) || String(o.answerOptionId) === String(id));
+                                        return option ? wsSafeHtml(option.title || option.content) : id;
+                                    }).join(', ');
+                                } else if (parsed && typeof parsed === 'string') {
+                                    const option = q.options?.find(o => String(o.id) === String(parsed) || String(o.answerOptionId) === String(parsed));
+                                    if (option) displayedAns = wsSafeHtml(option.title || option.content);
+                                }
+                            } catch (e) { }
                         } else if (q.questionType === 'MATCHING') {
                             try {
                                 let parsed = JSON.parse(displayedAns);
@@ -6410,7 +6383,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                                 displayedAns = pairs.join('') || '—';
                             } catch (e) { }
                         }
-                        
+
                         const correctAns = q.correctAnswer || q.correctAnswerDisplay || '';
                         let correctAnsHtml = '';
                         if (correctAns && correctAns.trim() !== '') {
@@ -6550,7 +6523,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                     } else {
                         // Simple Scoring UI for Objective Questions (Listening, Reading)
                         const isGradable = isManual && !isReadonly;
-                        const scoreDisplay = isGradable 
+                        const scoreDisplay = isGradable
                             ? `<div class="d-flex align-items-center gap-2">
                                  <input type="number" step="0.1" min="0" max="${maxVal}" class="form-control form-control-sm text-center fw-bold ws-gd-score-input" 
                                         style="width: 70px;" data-qid="${q.questionId}" value="${scoreVal}" oninput="updateIeltSummary()">
@@ -6621,7 +6594,9 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             if (actionArea) actionArea.style.display = isReadonly ? 'none' : 'block';
         }
 
-        window.updateWritingOverall = function(qid) {
+
+
+        window.updateWritingOverall = function (qid) {
             const inputs = [
                 document.querySelector(`.writing-ta[data-qid="${qid}"]`),
                 document.querySelector(`.writing-cc[data-qid="${qid}"]`),
@@ -6644,7 +6619,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             if (typeof updateIeltSummary === 'function') updateIeltSummary();
         };
 
-        window.updateSpeakingOverall = function(qid) {
+        window.updateSpeakingOverall = function (qid) {
             const inputs = [
                 document.querySelector(`.speaking-fc[data-qid="${qid}"]`),
                 document.querySelector(`.speaking-lr[data-qid="${qid}"]`),
@@ -7394,19 +7369,24 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 1.5rem;">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-bank2 text-primary me-2"></i>Chọn Quiz từ Ngân hàng</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-bank2 text-primary me-2"></i>Chọn Quiz từ Ngân hàng
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-4">
                         <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" class="form-control border-start-0 rounded-end-pill" id="expertQuizSearch" 
-                                placeholder="Tìm tên Quiz trong ngân hàng..." onkeyup="loadExpertQuizzes()">
+                            <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3"><i
+                                    class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 rounded-end-pill"
+                                id="expertQuizSearch" placeholder="Tìm tên Quiz trong ngân hàng..."
+                                onkeyup="loadExpertQuizzes()">
                         </div>
                     </div>
                     <div id="expertQuizListContainer" style="max-height: 400px; overflow-y: auto;">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -7417,14 +7397,14 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
         let _currentBindSessionId = null;
         let _bindModal = null;
 
-        window.openBindExpertQuizModal = function(sessionId = null) {
+        window.openBindExpertQuizModal = function (sessionId = null) {
             if (state.selectedClassId === 'ALL') {
                 Swal.fire('Chú ý', 'Vui lòng chọn lớp học trước.', 'warning');
                 return;
             }
             _currentBindSessionId = sessionId;
             if (!_bindModal) _bindModal = new bootstrap.Modal('#bindExpertQuizModal');
-            
+
             document.getElementById('expertQuizSearch').value = '';
             _bindModal.show();
             loadExpertQuizzes();
@@ -7434,12 +7414,12 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             const container = document.getElementById('expertQuizListContainer');
             const keyword = document.getElementById('expertQuizSearch').value;
             container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</div>';
-            
+
             try {
                 const res = await fetch(`/api/v1/expert/quizzes?status=PUBLISHED&keyword=${encodeURIComponent(keyword)}&size=50`);
                 const json = await res.json();
                 const list = (json.status === 200 && json.data) ? json.data.items : [];
-                
+
                 if (list.length === 0) {
                     container.innerHTML = '<div class="text-center py-5 text-muted">Không tìm thấy Quiz nào phù hợp.</div>';
                     return;
@@ -7468,9 +7448,9 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             }
         }
 
-        window.wsBindExpertQuiz = async function(quizId) {
+        window.wsBindExpertQuiz = async function (quizId) {
             let sessionId = _currentBindSessionId;
-            
+
             if (!sessionId) {
                 Swal.fire({
                     title: 'Chọn buổi học',
@@ -7486,7 +7466,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                 });
                 return;
             }
-            
+
             doBindQuiz(sessionId, quizId);
         };
 
@@ -7498,7 +7478,7 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ quizId: quizId })
                 });
-                
+
                 const json = await res.json();
                 if (res.ok && (json.status === 200 || json.code === 200)) {
                     if (typeof wsToast === 'function') {
@@ -7511,9 +7491,9 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
                 } else {
                     Swal.fire('Lỗi', json.message || 'Không thể gắn Quiz.', 'error');
                 }
-            } catch (e) { 
+            } catch (e) {
                 console.error("doBindQuiz error:", e);
-                Swal.fire('Lỗi', 'Lỗi hệ thống: ' + e.message, 'error'); 
+                Swal.fire('Lỗi', 'Lỗi hệ thống: ' + e.message, 'error');
             }
         }
     </script>
@@ -7525,9 +7505,18 @@ const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, k) => acc + skil
             line-height: 1.5;
             border-radius: 0.2rem;
         }
-        .transition-all { transition: all 0.2s ease-in-out; }
-        .hover-up:hover { transform: translateY(-2px); }
-        .border-dashed { border-style: dashed !important; }
+
+        .transition-all {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .hover-up:hover {
+            transform: translateY(-2px);
+        }
+
+        .border-dashed {
+            border-style: dashed !important;
+        }
     </style>
 
 </body>

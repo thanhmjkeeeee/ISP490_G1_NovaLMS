@@ -279,12 +279,25 @@
 
                 <div id="skillAnalysisContainer" class="d-flex align-items-center gap-2">
                     <!-- Standard status badges here, then IELTS badge -->
-                    <div id="ielts-header-badge" class="d-none">
-                        <div class="d-flex align-items-center gap-2 bg-light p-1 rounded-pill pe-3">
-                            <span class="badge bg-primary rounded-pill py-2 px-3 fw-bold">BAND <span id="hdr-overall-band">0.0</span></span>
-                            <div class="small fw-bold text-muted text-nowrap" id="hdr-skill-breakdown">L: - | R: - | W: - | S: -</div>
+                <div id="ielts-header-badge" class="d-none">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary text-white px-4 py-2 rounded-4 fw-bold shadow-sm d-flex flex-column align-items-center" style="min-width: 120px;">
+                            <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Overall Band</span>
+                            <div class="d-flex align-items-baseline gap-1">
+                                <span id="hdr-overall-band" style="font-size: 1.4rem; line-height: 1.2;">0.0</span>
+                                <span id="hdr-max-band" style="font-size: 0.8rem; opacity: 0.7;">/ 9.0</span>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            <div class="small fw-bold text-dark d-flex gap-3" id="hdr-skill-breakdown">
+                                <!-- L | R | W | S Breakdown -->
+                            </div>
+                            <div class="progress" style="height: 4px; width: 150px; background: rgba(0,0,0,0.05);">
+                                <div id="ielts-progress-bar" class="progress-bar bg-primary" style="width: 0%"></div>
+                            </div>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <div class="d-flex align-items-center gap-3">
@@ -463,8 +476,8 @@
                                 </div>
                             ` : `
                                 <label class="ws-label">Teacher Band Score (0-9)</label>
-                                <input type="number" class="ws-score-input mb-3" step="0.5" min="0" max="9" 
-                                       data-qid="${q.questionId}" value="${q.teacherOverrideScore || ''}">
+                                <input type="number" class="ws-gd-score-input mb-3" step="0.5" min="0" max="9" 
+                                       data-qid="${q.questionId}" value="${q.teacherOverrideScore || ''}" oninput="updateIeltSummary()">
                             `}
                             
                             <label class="ws-label">Detailed Feedback</label>
@@ -595,18 +608,9 @@
         function pointsToBand(points, max) {
             if (!max || max <= 0) return 0;
             const ratio = points / max;
-            if (ratio >= 0.975) return 9.0;
-            if (ratio >= 0.925) return 8.5;
-            if (ratio >= 0.875) return 8.0;
-            if (ratio >= 0.825) return 7.5;
-            if (ratio >= 0.75)  return 7.0;
-            if (ratio >= 0.65)  return 6.5;
-            if (ratio >= 0.575) return 6.0;
-            if (ratio >= 0.5)   return 5.5;
-            if (ratio >= 0.4)   return 5.0;
-            if (ratio >= 0.3)   return 4.5;
-            if (ratio >= 0.2)   return 4.0;
-            return 0;
+            const maxBand = (resultData && resultData.quizMaxBand) ? resultData.quizMaxBand : 9.0;
+            const achieved = ratio * maxBand;
+            return Math.round(achieved * 2) / 2;
         }
 
         function updateIeltSummary() {
@@ -626,33 +630,27 @@
 
             const skillBands = { LISTENING: 0, READING: 0, WRITING: 0, SPEAKING: 0 };
             const questions = resultData.questions || [];
-            const sections = resultData.sections || []; // QuizDetailDTO might not have sections, but good to check
             const skills = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
 
             skills.forEach(s => {
-                let skillQs = [];
-                if (sections && sections.length > 0) {
-                    skillQs = sections.find(sec => sec.skill === s)?.questions || [];
-                } else {
-                    skillQs = questions.filter(q => q.skill === s);
-                }
-                
+                let skillQs = questions.filter(q => q.skill === s);
                 if (skillQs.length === 0) return;
 
                 if (s === 'LISTENING' || s === 'READING') {
                     let raw = 0; let max = 0;
                     skillQs.forEach(q => {
-                        if (q.isCorrect) raw += (q.maxPoints || 0);
-                        max += (q.maxPoints || 0);
+                        if (q.isCorrect) raw += (q.points || 0);
+                        max += (q.points || 0);
                     });
                     skillBands[s] = pointsToBand(raw, max);
                 } else if (s === 'WRITING') {
                     let sum = 0; let count = 0;
                     skillQs.forEach(q => {
-                        const ta = parseFloat(document.querySelector(`.writing-ta[data-qid="${q.questionId}"]`)?.value) || q.writingTaskAchievement || 0;
-                        const cc = parseFloat(document.querySelector(`.writing-cc[data-qid="${q.questionId}"]`)?.value) || q.writingCoherenceCohesion || 0;
-                        const lr = parseFloat(document.querySelector(`.writing-lr[data-qid="${q.questionId}"]`)?.value) || q.writingLexicalResource || 0;
-                        const gra = parseFloat(document.querySelector(`.writing-gra[data-qid="${q.questionId}"]`)?.value) || q.writingGrammarAccuracy || 0;
+                        const qid = q.questionId;
+                        const ta = parseFloat(document.querySelector(`.w-ta`)?.value) || q.writingTaskAchievement || 0;
+                        const cc = parseFloat(document.querySelector(`.w-cc`)?.value) || q.writingCoherenceCohesion || 0;
+                        const lr = parseFloat(document.querySelector(`.w-lr`)?.value) || q.writingLexicalResource || 0;
+                        const gra = parseFloat(document.querySelector(`.w-gra`)?.value) || q.writingGrammarAccuracy || 0;
                         sum += (ta + cc + lr + gra) / 4;
                         count++;
                     });
@@ -678,12 +676,23 @@
             }
 
             const activeSkills = skills.filter(s => {
-                return (sections && sections.some(sec => sec.skill === s)) || questions.some(q => q.skill === s);
+                return questions.some(q => q.skill === s);
             });
             const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
             const overall = Math.round(avg * 2) / 2;
+            
             const overallEl = document.getElementById('hdr-overall-band');
             if (overallEl) overallEl.textContent = overall.toFixed(1);
+
+            const maxBandVal = resultData.quizMaxBand || 9.0;
+            const maxEl = document.getElementById('hdr-max-band');
+            if (maxEl) maxEl.textContent = `/ ${parseFloat(maxBandVal).toFixed(1)}`;
+
+            const progressBar = document.getElementById('ielts-progress-bar');
+            if (progressBar) {
+                const percent = (overall / maxBandVal) * 100;
+                progressBar.style.width = percent + '%';
+            }
         }
 
         function bandColorCss(score) {
@@ -691,6 +700,13 @@
             if (score <= 6) return 'bg-warning text-dark';
             return 'bg-success';
         }
+        
+        function bandColor(score) {
+            if (score <= 4) return '#ef4444';
+            if (score <= 6) return '#f59e0b';
+            return '#10b981';
+        }
+
         function getCriterionLabel(key) {
             if (resultData && resultData.criteriaLabels) {
                 if (key === 'task_achievement' || key === 'ta') return resultData.criteriaLabels.ta || 'Task Achievement';
@@ -700,24 +716,44 @@
             }
             return key.replace(/_/g, ' ').toUpperCase();
         }
+
         window.renderRubric = function(container, isTeacher) {
             var rubricJson = container.getAttribute('data-rubric');
             if (!rubricJson || rubricJson === 'null') return;
             var parsedData = JSON.parse(rubricJson);
             var rubric = (parsedData && parsedData.rubric) ? parsedData.rubric : parsedData;
             
-            var html = '<div class="table-responsive"><table class="table table-sm border-0">';
+            if (!rubric || typeof rubric !== 'object') return;
+
+            var html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
+            html += '<thead><tr class="small text-muted">' +
+                '<th style="width:45%">Criteria</th>' +
+                '<th style="width:15%">Band</th>' +
+                '<th style="width:40%">Progress</th></tr></thead><tbody>';
+
             for (var key in rubric) {
                 var c = rubric[key];
                 var scoreVal = parseFloat(c.score) || 0;
                 var label = getCriterionLabel(key);
-                html += `<tr>
-                    <td class="small fw-bold py-2">${label}</td>
-                    <td class="text-end"><span class="badge ${bandColorCss(scoreVal)}">${scoreVal}</span></td>
-                </tr>
-                <tr><td colspan="2" class="extra-small text-muted border-0 pt-0 pb-3">${c.bandDescription || ''}</td></tr>`;
+                var maxVal = c.max || 9.0;
+                var pct = Math.min(100, Math.round((scoreVal / maxVal) * 100));
+                
+                html += `
+                <tr>
+                    <td>
+                        <span class="small fw-bold text-dark d-block">${label}</span>
+                        <div class="extra-small text-muted lh-sm mt-1">${c.bandDescription || ''}</div>
+                    </td>
+                    <td><span class="badge ${bandColorCss(scoreVal)} rounded-pill px-2">${scoreVal.toFixed(1)}</span></td>
+                    <td>
+                        <div class="progress rounded-pill" style="height:6px; background-color: #f1f5f9;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                                 style="width:${pct}%; background-color:${bandColor(scoreVal)}"></div>
+                        </div>
+                    </td>
+                </tr>`;
             }
-            html += '</table></div>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
         }
     })();

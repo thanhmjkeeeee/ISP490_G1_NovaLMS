@@ -275,11 +275,11 @@
                         </div>
                         <div class="mt-auto">
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted"><i class="bi bi-person-check-fill text-success me-1"></i> Student (Đã mua)</span>
+                                <span class="small text-muted"><i class="bi bi-person-check-fill text-success me-1"></i> Người dùng đã mua</span>
                                 <span class="small fw-bold" th:text="${convertedStudentsCount}">0</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3">
-                                <span class="small text-muted"><i class="bi bi-person-dash-fill text-warning me-1"></i> Guest (Chưa mua)</span>
+                                <span class="small text-muted"><i class="bi bi-person-dash-fill text-warning me-1"></i> Học viên chưa mua (Guest)</span>
                                 <span class="small fw-bold" th:text="${totalGuests}">0</span>
                             </div>
                             <div class="p-3 rounded-3 bg-white border shadow-sm">
@@ -535,7 +535,7 @@
             new Chart(conversionCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Student (Đã mua)', 'Guest (Chưa mua)'],
+                    labels: ['Người dùng đã mua', 'Học viên chưa mua'],
                     datasets: [{
                         data: [convertedCount, guestCount],
                         backgroundColor: ['#198754', '#ffc107'],
@@ -590,7 +590,7 @@
                             pointBackgroundColor: '#0dcefd'
                         },
                         {
-                            label: 'Chuyển đổi thành Student',
+                            label: 'Chuyển đổi thành người dùng mới',
                             data: conversionValues,
                             borderColor: '#198754',
                             backgroundColor: 'transparent',

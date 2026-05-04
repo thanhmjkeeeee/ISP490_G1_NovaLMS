@@ -583,19 +583,12 @@ function updateIeltSummary() {
     `;
 
     const activeSkills = skills.filter(s => {
-        // Only include skills that have a score > 0 OR have a max points configuration > 0
-        // This prevents empty skills from pulling down the average to 0.5
-        const score = skillBands[s] || 0;
-        let skillMax = 0;
-        if (sections && sections.length > 0) {
-            skillMax = sections.find(sec => sec.skill === s)?.maxScore || 0;
-        } else {
-            const skillQs = questions.filter(q => q.skill === s);
-            skillMax = skillQs.length > 0 ? (skillQs[0].maxPoints || skillQs[0].points || 0) : 0;
-        }
-        return score > 0 || skillMax > 0;
-    }).filter(s => skillBands[s] > 0); // Strictly only average skills that have a score for now to fix the user's issue
-
+        // Include skill if it has questions OR if it has a max score
+        if (sections && sections.some(sec => sec.skill === s)) return true;
+        const skillQs = questions.filter(q => q.skill === s);
+        return skillQs.length > 0;
+    });
+    
     const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
     const overall = Math.round(avg * 2) / 2;
     
@@ -612,12 +605,13 @@ function updateIeltSummary() {
     }
     
     const overallMaxEl = document.getElementById('overall-max-val');
-    if (overallMaxEl && gradingData.totalMaxScore) {
-        overallMaxEl.textContent = `/ ${parseFloat(gradingData.totalMaxScore).toFixed(1)}`;
+    if (overallMaxEl) {
+        const mx = (gradingData && gradingData.totalMaxScore) ? parseFloat(gradingData.totalMaxScore) : 9.0;
+        overallMaxEl.textContent = `/ ${mx.toFixed(1)}`;
     }
     
     const progressBar = document.getElementById('ielts-progress-bar');
-    if (progressBar) progressBar.style.width = (overall / 9 * 100) + '%';
+    if (progressBar) progressBar.style.width = (overall / (gradingData.totalMaxScore || 9) * 100) + '%';
 }
 
 function getCriterionLabel(key) {

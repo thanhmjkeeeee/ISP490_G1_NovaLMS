@@ -768,7 +768,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .criteriaLabels(fetchCriteriaLabels((quiz.getCourse() != null && quiz.getCourse().getLevelTag() != null)
                         ? quiz.getCourse().getLevelTag()
                         : "B2"))
-                .quizMaxBand(quiz.getOverallBand() != null ? quiz.getOverallBand().doubleValue() : (Boolean.TRUE.equals(quiz.getIsSequential()) ? 9.0 : 100.0))
+                .quizMaxBand(calculateQuizMaxBand(quiz))
                 .build();
     }
 
@@ -899,33 +899,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 }
             }
 
-            boolean isSequential = qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential());
-            double totalMaxBand = 9.0;
-            if (qr.getQuiz() != null && qr.getQuiz().getOverallBand() != null) {
-                totalMaxBand = qr.getQuiz().getOverallBand().doubleValue();
-            } else if (isSequential && qr.getQuiz() != null) {
-                Map<String, List<QuizQuestion>> bySkill = qr.getQuiz().getQuizQuestions().stream()
-                        .filter(qq -> qq.getQuestion() != null)
-                        .collect(Collectors.groupingBy(qq -> {
-                            String sk = qq.getQuestion().getSkill();
-                            return sk != null ? sk.toUpperCase() : "OTHER";
-                        }));
-
-                List<Double> skillMaxes = new ArrayList<>();
-                for (String skill : bySkill.keySet()) {
-                    if ("LISTENING".equals(skill) || "READING".equals(skill)) {
-                        skillMaxes.add(9.0);
-                    } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
-                        double avg = bySkill.get(skill).stream()
-                                .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
-                                .average().orElse(9.0);
-                        skillMaxes.add(avg);
-                    }
-                }
-                if (!skillMaxes.isEmpty()) {
-                    totalMaxBand = skillMaxes.stream().mapToDouble(d -> d).average().orElse(9.0);
-                }
-            }
+            double totalMaxBand = calculateQuizMaxBand(qr.getQuiz());
 
             return QuizResultGradedDTO.builder()
                     .resultId(qr.getResultId())
@@ -941,7 +915,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(score)
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand() != null ? qr.getOverallBand().doubleValue() : null)
-                    .totalMaxScore(isSequential ? totalMaxBand : (double) maxScore)
+                    .totalMaxScore(totalMaxBand)
                     .percentage(Math.round(percentage * 10.0) / 10.0)
                     .passed(qr.getPassed())
                     .build();
@@ -985,10 +959,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .score(qr.getScore())
                     .maxScore(maxScore)
                     .overallBand(qr.getOverallBand())
-                    .maxBand(qr.getQuiz() != null 
-                            ? (qr.getQuiz().getOverallBand() != null ? qr.getQuiz().getOverallBand() 
-                            : (Boolean.TRUE.equals(qr.getQuiz().getIsSequential()) ? BigDecimal.valueOf(9.0) : BigDecimal.valueOf(100.0)))
-                            : null)
+                    .maxBand(BigDecimal.valueOf(calculateQuizMaxBand(qr.getQuiz())))
                     .isSequential(qr.getQuiz() != null && Boolean.TRUE.equals(qr.getQuiz().getIsSequential()))
                     .passed(qr.getPassed())
                     .status(qr.getStatus())
@@ -1228,7 +1199,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                     BigDecimal gra = item.getWritingGrammarAccuracy() != null ? item.getWritingGrammarAccuracy()
                             : BigDecimal.ZERO;
 
-                    awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+                    BigDecimal avg = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+                    // IELTS Rounding: round to nearest 0.5
+                    awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
 
                     ans.setWritingTaskAchievement(ta);
                     ans.setWritingCoherenceCohesion(cc);
@@ -1248,8 +1221,12 @@ public class QuizResultServiceImpl implements QuizResultService {
                             .orElse(BigDecimal.valueOf(9.0));
                 }
 
-                // Respect the configured max points (e.g. 5.0) instead of hardcoding 9.0
+                // Respect the configured max points (e.g. 5.0) for objective questions.
+                // For IELTS Writing/Speaking, allow scoring up to the Quiz's Overall Band (e.g. 9.0).
                 BigDecimal maxAllowed = maxPts;
+                if ("WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)) {
+                    maxAllowed = (quiz.getOverallBand() != null) ? quiz.getOverallBand() : BigDecimal.valueOf(9.0);
+                }
 
                 if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
                     throw new RuntimeException("Số điểm chấm (" + awarded + ") cho câu hỏi " + qId
@@ -1630,13 +1607,22 @@ public class QuizResultServiceImpl implements QuizResultService {
             }
         }
 
-        // Simplified Overall Band: (TotalCorrect / TotalPossible) * quizMaxBand
-        double quizMaxBand = (quiz.getOverallBand() != null) ? quiz.getOverallBand().doubleValue() : 9.0;
+        // Improved Overall Band for IELTS: Average of skill bands
+        double quizMaxBandFinal = (quiz.getOverallBand() != null) ? quiz.getOverallBand().doubleValue() : 9.0;
+        double overallBandScore;
+        if (!skillBands.isEmpty()) {
+            double sumBands = skillBands.values().stream().mapToDouble(Double::doubleValue).sum();
+            overallBandScore = sumBands / skillBands.size();
+        } else {
+            double totalRawSum = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
+            double totalMaxSum = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
+            overallBandScore = (totalMaxSum > 0) ? (totalRawSum / totalMaxSum) * quizMaxBandFinal : 0.0;
+        }
+        
+        result.setOverallBand(BigDecimal.valueOf(IELTSScoreMapper.roundToIELTS(overallBandScore)));
+
         double totalRaw = skillRawScore.values().stream().mapToDouble(Double::doubleValue).sum();
         double totalMax = skillMaxScore.values().stream().mapToDouble(Double::doubleValue).sum();
-        
-        double overallBandScore = (totalMax > 0) ? (totalRaw / totalMax) * quizMaxBand : 0.0;
-        result.setOverallBand(BigDecimal.valueOf(IELTSScoreMapper.roundToIELTS(overallBandScore)));
 
         if (totalMax > 0) {
             BigDecimal correctRate = BigDecimal.valueOf((totalRaw / totalMax) * 100).setScale(2, RoundingMode.HALF_UP);
@@ -1731,34 +1717,7 @@ public class QuizResultServiceImpl implements QuizResultService {
         List<Map<String, Object>> list = new ArrayList<>();
 
         Quiz quiz = quizRepository.findById(quizId).orElse(null);
-        double quizMaxBand = 9.0;
-        boolean isSequential = quiz != null && Boolean.TRUE.equals(quiz.getIsSequential());
-        if (isSequential && quiz != null) {
-            Map<String, List<QuizQuestion>> bySkill = quiz.getQuizQuestions().stream()
-                    .filter(qq -> qq.getQuestion() != null)
-                    .collect(Collectors.groupingBy(qq -> {
-                        String sk = qq.getQuestion().getSkill();
-                        return sk != null ? sk.toUpperCase() : "OTHER";
-                    }));
-            List<Double> skillMaxes = new ArrayList<>();
-            for (String skill : bySkill.keySet()) {
-                if ("LISTENING".equals(skill) || "READING".equals(skill)) {
-                    skillMaxes.add(9.0);
-                } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
-                    double avg = bySkill.get(skill).stream()
-                            .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
-                            .average().orElse(9.0);
-                    skillMaxes.add(avg);
-                }
-            }
-            if (!skillMaxes.isEmpty()) {
-                quizMaxBand = skillMaxes.stream().mapToDouble(d -> d).average().orElse(9.0);
-            }
-        } else if (quiz != null) {
-            quizMaxBand = quiz.getQuizQuestions().stream()
-                    .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
-                    .sum();
-        }
+        double quizMaxBand = calculateQuizMaxBand(quiz);
 
         for (Registration reg : registrations) {
             User student = reg.getUser();
@@ -1895,7 +1854,9 @@ public class QuizResultServiceImpl implements QuizResultService {
             BigDecimal gra = request.getWritingGrammarAccuracy() != null ? request.getWritingGrammarAccuracy()
                     : BigDecimal.ZERO;
 
-            awarded = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+            BigDecimal avg = ta.add(cc).add(lr).add(gra).divide(new BigDecimal("4"), 4, RoundingMode.HALF_UP);
+            // IELTS Rounding: round to nearest 0.5
+            awarded = avg.multiply(new BigDecimal("2")).setScale(0, RoundingMode.HALF_UP).divide(new BigDecimal("2"), 1, RoundingMode.HALF_UP);
 
             ans.setWritingTaskAchievement(ta);
             ans.setWritingCoherenceCohesion(cc);
@@ -1904,10 +1865,12 @@ public class QuizResultServiceImpl implements QuizResultService {
         }
 
         if (awarded != null) {
-            // Validation (limit to 9.0 for Writing/Speaking)
-            BigDecimal maxAllowed = new BigDecimal("9.0");
+            // Validation (limit to Quiz's Overall Band for Writing/Speaking, fallback to 9.0)
+            BigDecimal maxAllowed = (qr.getQuiz() != null && qr.getQuiz().getOverallBand() != null) 
+                ? qr.getQuiz().getOverallBand() : new BigDecimal("9.0");
+            
             if (awarded.compareTo(BigDecimal.ZERO) < 0 || awarded.compareTo(maxAllowed) > 0) {
-                throw new RuntimeException("Số điểm không hợp lệ (0-9.0)");
+                throw new RuntimeException("Số điểm không hợp lệ (0-" + maxAllowed + ")");
             }
             ans.setPointsAwarded(awarded);
             ans.setTeacherOverrideScore(awarded.toString());
@@ -1924,7 +1887,42 @@ public class QuizResultServiceImpl implements QuizResultService {
         // Update status to indicate teacher has started grading
         if (!"GRADED".equals(qr.getStatus())) {
             qr.setStatus("GRADING");
-            quizResultRepository.save(qr);
+        }
+        recalculateQuizResult(qr);
+        quizResultRepository.save(qr);
+    }
+    private double calculateQuizMaxBand(Quiz quiz) {
+        if (quiz == null) return 100.0;
+        if (quiz.getOverallBand() != null) return quiz.getOverallBand().doubleValue();
+
+        if (Boolean.TRUE.equals(quiz.getIsSequential())) {
+            // IELTS-style sequential quiz (Assignment)
+            Map<String, List<QuizQuestion>> bySkill = quiz.getQuizQuestions().stream()
+                    .filter(qq -> qq.getQuestion() != null)
+                    .collect(Collectors.groupingBy(qq -> {
+                        String sk = qq.getQuestion().getSkill();
+                        return sk != null ? sk.toUpperCase() : "OTHER";
+                    }));
+            List<Double> skillMaxes = new ArrayList<>();
+            for (String skill : bySkill.keySet()) {
+                if ("LISTENING".equals(skill) || "READING".equals(skill)) {
+                    skillMaxes.add(9.0);
+                } else if ("WRITING".equals(skill) || "SPEAKING".equals(skill)) {
+                    double avg = bySkill.get(skill).stream()
+                            .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 9.0)
+                            .average().orElse(9.0);
+                    skillMaxes.add(avg);
+                }
+            }
+            if (!skillMaxes.isEmpty()) {
+                return skillMaxes.stream().mapToDouble(d -> d).average().orElse(9.0);
+            }
+            return 9.0;
+        } else {
+            // Standard point-based quiz
+            return quiz.getQuizQuestions().stream()
+                    .mapToDouble(qq -> qq.getPoints() != null ? qq.getPoints().doubleValue() : 1.0)
+                    .sum();
         }
     }
 }

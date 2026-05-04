@@ -23,6 +23,8 @@ public class AssignmentGradingDetailDTO {
     private Boolean isAssignment;
     private LocalDateTime submittedAt;
     private BigDecimal autoScore;        // LISTENING + READING sum
+    private BigDecimal overallBand;      // final overall band/score
+    private BigDecimal quizMaxBand;      // total max possible points/band
     private BigDecimal totalScore;       // final total (null if not yet graded)
     private BigDecimal totalMaxScore;    // total max possible points
     private Map<String, BigDecimal> sectionScores;

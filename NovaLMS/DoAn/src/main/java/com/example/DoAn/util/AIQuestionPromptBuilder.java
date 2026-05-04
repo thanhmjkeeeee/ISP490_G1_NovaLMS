@@ -463,8 +463,8 @@ public class AIQuestionPromptBuilder {
                 taskTypeInstruction = "Generate independent LISTENING questions. For each question, you MUST provide a 'transcript' field containing a natural dialogue between 2-3 characters (2-4 lines) with REAL English names. " +
                     "FORBIDDEN: Man, Woman, Speaker. Use speaker labels with gender, e.g., 'Robert [Male]: ...' or 'Emily [Female]: ...'. The 'content' field should contain ONLY the actual question text.";
             } else if ("READING".equalsIgnoreCase(targetSkill)) {
-                taskTypeInstruction = "Generate independent READING questions. For each question, you MUST generate a new, original reading passage based on the topic. Put the passage text followed by the question in the 'content' field. " +
-                    "The passage length MUST follow the Reading Length constraint provided below.";
+                taskTypeInstruction = "Generate independent READING questions. For each question, you MUST generate a short, original reading passage (MAX 100 words) based on the topic. Put the passage text followed by the question in the 'content' field. " +
+                    "The passage length MUST be concise to avoid exceeding response limits.";
             } else if ("WRITING".equalsIgnoreCase(targetSkill)) {
                 taskTypeInstruction = "Generate independent WRITING questions. For each question, provide a clear writing task prompt in the 'content' field (e.g., IELTS Writing Task 1 or Task 2 style).";
             } else if ("SPEAKING".equalsIgnoreCase(targetSkill)) {
@@ -473,6 +473,8 @@ public class AIQuestionPromptBuilder {
                 taskTypeInstruction = "Generate independent advanced English questions.";
             }
         }
+        
+        String concisenessNote = (quantity > 3) ? "IMPORTANT: You are generating a large batch of questions. You MUST keep all text (passages/transcripts/explanations) extremely concise. Avoid long stories. Focus on the core question content to ensure the JSON response is not truncated by the token limit." : "";
 
         String structureHeader = isGroup
                 ? "CRITICAL: The final response MUST be a single JSON object containing a 'passage' string and a 'questions' array. The 'questions' array MUST contain EXACTLY %d question objects based ON the passage.".formatted(quantity)
@@ -571,6 +573,7 @@ public class AIQuestionPromptBuilder {
                 4. 'options' MUST be null or empty [] for MATCHING questions.
                 5. 'correctPairs' MUST be an integer array mapping each left index to its correct right index (1-based).
                 MATCHING EXAMPLE: {"content":"Match the words with their definitions.","questionType":"MATCHING","matchLeft":["Abundant","Scarce","Thrive"],"matchRight":["Plentiful","Rare","Flourish"],"correctPairs":[1,2,3],"options":null}
+                %s
                 
                 Return ONLY the JSON, no other text.
                 """
@@ -582,12 +585,15 @@ public class AIQuestionPromptBuilder {
                         bloomInstruction,
                         "        - " + String.join("\n        - ", grammarFocus),
                         skillsInstruction,
-                        quantity, types, cefrLevel,
+                        quantity,
+                        types,
+                        cefrLevel,
                         constraints,
                         writingConstraint,
                         speakingConstraint,
                         cefrLevel,
                         cefrLevel,
-                        jsonStructure);
+                        jsonStructure,
+                        concisenessNote);
     }
 }

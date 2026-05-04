@@ -295,7 +295,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                     : aiApiUrlBase + (aiApiUrlBase.endsWith("/") ? "" : "/") + "chat/completions";
             body.put("model", aiModel);
             body.put("temperature", 0.7);
-            body.put("max_tokens", 4000);
+            body.put("max_tokens", 16000);
             body.put("stream", false);
             body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
             requestBuilder.addHeader("Authorization", "Bearer " + aiApiKey);
@@ -385,10 +385,14 @@ public class AIQuestionServiceImpl implements AIQuestionService {
                 throw new AIException("Gemini trả về response không có nội dung.", null);
             }
 
-            // Check for OpenAI format
+            // Check for OpenAI format and log finish_reason
             List<?> choices = (List<?>) respMap.get("choices");
             if (choices != null && !choices.isEmpty()) {
                 Map<?, ?> choice = (Map<?, ?>) choices.get(0);
+                String finishReason = (String) choice.get("finish_reason");
+                if ("length".equals(finishReason)) {
+                    log.warn("[AI_GENERATE] Response was truncated due to length (finish_reason=length). Consider reducing question quantity.");
+                }
                 Map<?, ?> message = (Map<?, ?>) choice.get("message");
                 if (message != null) {
                     return (String) message.get("content");
