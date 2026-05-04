@@ -163,7 +163,7 @@
                         <div class="card-body p-4">
                             <h6 class="fw-bold text-uppercase text-muted small letter-spacing-1 mb-4">Nhân sự phụ trách</h6>
                             <div class="mb-4">
-                                <label class="small text-muted d-block mb-2">Chuyên gia chính:</label>
+                                <label class="small text-muted d-block mb-2">Chuyên gia phụ trách:</label>
                                 <div class="d-flex align-items-center gap-2 p-2 rounded-3 bg-warning-soft">
                                     <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
                                         <i class="bi bi-person-badge"></i>
@@ -171,12 +171,7 @@
                                     <div class="fw-bold small text-warning" id="expertName">---</div>
                                 </div>
                             </div>
-                            <div>
-                                <label class="small text-muted d-block mb-2">Giảng viên tham gia:</label>
-                                <div id="teacherList">
-                                    <!-- List populated by JS -->
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -238,19 +233,7 @@
 
                             // 5. Team
                             document.getElementById('expertName').innerText = course.expertName || 'Chưa phân công';
-                            const teacherContainer = document.getElementById('teacherList');
-                            if (course.teacherNames && course.teacherNames.length > 0) {
-                                teacherContainer.innerHTML = course.teacherNames.map(name => `
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center" style="width:28px; height:28px; font-size: 0.75rem;">
-                                            ${name.charAt(0)}
-                                        </div>
-                                        <span class="small fw-500">${name}</span>
-                                    </div>
-                                `).join('');
-                            } else {
-                                teacherContainer.innerHTML = '<span class="text-muted small">Chưa có giảng viên dạy</span>';
-                            }
+
 
                             // 6. Description
                             document.getElementById('courseDescription').innerText = course.description || 'Chưa có thông tin mô tả.';

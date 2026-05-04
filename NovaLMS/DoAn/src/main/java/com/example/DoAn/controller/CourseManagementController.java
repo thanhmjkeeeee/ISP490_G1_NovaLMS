@@ -31,9 +31,10 @@ public class CourseManagementController {
             @RequestParam(defaultValue = "0") int pageNo,
             @RequestParam(defaultValue = "10") @Min(1) int pageSize,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Boolean isSelfStudy) {
         try {
-            PageResponse<?> courses = courseService.getAllCoursesWithFilter(pageNo, pageSize, search, status);
+            PageResponse<?> courses = courseService.getAllCoursesWithFilter(pageNo, pageSize, search, status, isSelfStudy);
             return new ResponseData<>(HttpStatus.OK.value(), "Thành công", courses);
         } catch (Exception e) {
             return ResponseData.error(HttpStatus.BAD_REQUEST.value(), e.getMessage());

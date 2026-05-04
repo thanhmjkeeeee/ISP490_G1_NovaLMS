@@ -180,8 +180,9 @@ public class CourseServiceImpl implements ICourseService {
         log.info("Course deleted successfully, id={}", id);
     }
 
+    @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status) {
+    public PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status, Boolean isSelfStudy) {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by("courseId").descending());
         Specification<Course> spec = Specification.where(null);
 
@@ -196,6 +197,10 @@ public class CourseServiceImpl implements ICourseService {
 
         if (status != null && !status.isEmpty()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        if (isSelfStudy != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("isSelfStudy"), isSelfStudy));
         }
 
         Page<Course> page = courseRepository.findAll(spec, pageable);

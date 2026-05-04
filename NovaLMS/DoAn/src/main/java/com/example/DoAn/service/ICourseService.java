@@ -10,7 +10,7 @@ public interface ICourseService {
     CourseDetailResponse getById(Integer id);
     PageResponse<?> getAllCourses(int pageNo, int pageSize);
     void deleteCourse(Integer id);
-    PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status);
+    PageResponse<?> getAllCoursesWithFilter(int pageNo, int pageSize, String search, String status, Boolean isSelfStudy);
     void updateCourseStatus(Integer id, String status);
     long getLessonCount(Integer courseId);
 }

@@ -217,7 +217,7 @@
         <div class="card mb-4 border-0 shadow-sm filter-section">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-7">
+                    <div class="col-md-6">
                         <label class="form-label small fw-bold text-secondary">Tìm kiếm</label>
                         <div class="input-group">
                             <span class="input-group-text border-end-0 text-muted">
@@ -239,13 +239,21 @@
         </div>
     </div>
 
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <label class="form-label small fw-bold text-secondary">Trạng thái</label>
                         <select id="statusFilter" class="form-select bg-light">
                             <option value="">Tất cả trạng thái</option>
                             <option value="Published">Xuất bản</option>
                             <option value="Draft">Bản nháp</option>
                             <option value="Inactive">Tạm dừng</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Loại hình</label>
+                        <select id="typeFilter" class="form-select bg-light">
+                            <option value="">Tất cả loại hình</option>
+                            <option value="false">Có người giảng</option>
+                            <option value="true">Tự học</option>
                         </select>
                     </div>
                 </div>
@@ -261,7 +269,6 @@
                                 <th class="ps-4 py-3 text-uppercase small text-muted">ID</th>
                                 <th class="py-3 text-uppercase small text-muted">Thông tin khóa học</th>
                                 <th class="py-3 text-uppercase small text-muted">Chuyên gia</th>
-                                <th class="py-3 text-uppercase small text-muted">Giảng viên</th>
                                 <th class="py-3 text-uppercase small text-muted">Học phí</th>
                                 <th class="py-3 text-uppercase small text-muted" style="width: 100px;">Học viên</th>
                                 <th class="py-3 text-uppercase small text-muted">Trạng thái</th>
@@ -364,9 +371,8 @@
                                         <i class="bi bi-person-badge"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <div class="small text-muted">Nhân sự phụ trách</div>
+                                        <div class="small text-muted">Chuyên gia phụ trách</div>
                                         <div class="fw-bold small truncate-1" id="statExpertName">—</div>
-                                        <div class="text-muted small truncate-1" id="statTeacherNames" style="font-size: 0.7rem;">—</div>
                                     </div>
                                 </div>
                             </div>
@@ -481,6 +487,7 @@
                 courseListFilterDebounce = setTimeout(function () { loadCourseData(0); }, 400);
             });
             document.getElementById('statusFilter').addEventListener('change', function () { loadCourseData(0); });
+            document.getElementById('typeFilter').addEventListener('change', function () { loadCourseData(0); });
         });
 
         // Hàm load dữ liệu chính
@@ -490,15 +497,17 @@
             // 1. Lấy giá trị từ các ô nhập liệu
             const search = document.getElementById('searchInput').value;
             const status = document.getElementById('statusFilter').value;
+            const type = document.getElementById('typeFilter').value;
 
             // 2. Xây dựng URL với Query Parameters (Khớp với Backend của bạn)
             let url = `/api/v1/courses/list?pageNo=${pageNo}&pageSize=${pageSize}`;
 
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (status) url += `&status=${encodeURIComponent(status)}`;
+            if (type !== "") url += `&isSelfStudy=${encodeURIComponent(type)}`;
 
             const tbody = document.getElementById('courseDataBody');
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Đang tải...</td></tr>`;
 
             fetch(url)
                 .then(response => response.json())
@@ -507,12 +516,12 @@
                         renderTable(res.data.items);
                         renderPagination(res.data.pageNo, res.data.totalPages);
                     } else {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${res.message}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${res.message}</td></tr>`;
                     }
                 })
                 .catch(err => {
                     console.error("API Error:", err);
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Không thể kết nối với máy chủ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Không thể kết nối với máy chủ</td></tr>`;
                 });
         }
 
@@ -538,7 +547,7 @@
         function renderTable(courses) {
             const tbody = document.getElementById('courseDataBody');
             if (!courses || courses.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> Không tìm thấy khóa học nào.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block"></i> Không tìm thấy khóa học nào.</td></tr>`;
                 return;
             }
 
@@ -567,8 +576,13 @@
                         </div>
                         <div>
                             <div class="fw-bold text-dark mb-1">${course.courseName || 'Chưa có tên'}</div>
-                            <div class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.65rem; font-weight: 500;">
-                                MÃ: ${course.courseCode || 'N/A'}
+                            <div class="d-flex gap-1 align-items-center">
+                                <div class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.65rem; font-weight: 500;">
+                                    MÃ: ${course.courseCode || 'N/A'}
+                                </div>
+                                <div class="badge ${course.isSelfStudy ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info'} border px-2 py-1" style="font-size: 0.65rem; font-weight: 500;">
+                                    ${course.isSelfStudy ? 'Tự học' : 'Có người dạy'}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -583,16 +597,7 @@
                            </div>`
                         : '<span class="text-muted small">—</span>'}
                 </td>
-                <td>
-                    ${course.teacherName
-                        ? `<div class="d-flex align-items-center gap-2">
-                               <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width:24px; height:24px; font-size: 0.7rem;">
-                                   ${course.teacherName.charAt(0)}
-                               </div>
-                               <span class="small fw-500 text-dark">${course.teacherName}</span>
-                           </div>`
-                        : '<span class="text-muted small">—</span>'}
-                </td>
+
                 <td>${formatCoursePriceCell(course)}</td>
                 <td class="text-center">
                     <div class="d-flex flex-column align-items-center">
@@ -742,10 +747,6 @@
                         document.getElementById('statStudentCount').innerText = studentCount;
                         document.getElementById('statClassCount').innerText = course.classCount || 0;
                         document.getElementById('statExpertName').innerText = course.expertName || '—';
-                        document.getElementById('statTeacherNames').innerText = 
-                            (course.teacherNames && course.teacherNames.length > 0) 
-                            ? course.teacherNames.join(', ') 
-                            : '—';
 
                         // 3. Setup confirm button
                         const btnConfirm = document.getElementById('btnConfirmStatus');
