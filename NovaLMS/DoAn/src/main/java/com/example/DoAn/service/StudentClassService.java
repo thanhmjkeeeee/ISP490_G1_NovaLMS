@@ -37,7 +37,9 @@ public class StudentClassService {
             Page<Registration> registrationPage = registrationRepository.findMyClassesWithFilters(user.getUserId(), searchKeyword, classStatus, pageable);
 
             List<Integer> classIds = registrationPage.getContent().stream()
-                    .map(r -> r.getClazz().getClassId())
+                    .map(r -> r.getClazz() != null ? r.getClazz().getClassId() : null)
+                    .filter(Objects::nonNull)
+                    .distinct()
                     .collect(Collectors.toList());
 
             // Tránh lỗi khi list class rỗng
@@ -53,20 +55,20 @@ public class StudentClassService {
                 Clazz clazz = reg.getClazz();
                 Course course = reg.getCourse();
 
-                int studentCount = (clazz.getRegistrations() != null) ? clazz.getRegistrations().size() : 0;
+                int studentCount = (clazz != null && clazz.getRegistrations() != null) ? clazz.getRegistrations().size() : 0;
 
                 return MyClassDTO.builder()
-                        .classId(clazz.getClassId())
-                        .className(clazz.getClassName())
+                        .classId(clazz != null ? clazz.getClassId() : null)
+                        .className(clazz != null ? clazz.getClassName() : "Chưa xếp lớp")
                         .courseId(course.getCourseId())
                         .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .courseImage(course.getImageUrl())
-                        .teacherName(clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : null)
-                        .schedule(clazz.getSchedule())
-                        .slotTime(clazz.getSlotTime())
-                        .status(clazz.getStatus())
+                        .teacherName(clazz != null && clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : null)
+                        .schedule(clazz != null ? clazz.getSchedule() : null)
+                        .slotTime(clazz != null ? clazz.getSlotTime() : null)
+                        .status(clazz != null ? clazz.getStatus() : "Pending")
                         .studentCount(studentCount)
-                        .sessionCount(sessionCountMap.getOrDefault(clazz.getClassId(), 0L).intValue())
+                        .sessionCount(clazz != null ? sessionCountMap.getOrDefault(clazz.getClassId(), 0L).intValue() : 0)
                         .build();
             }).collect(Collectors.toList());
 

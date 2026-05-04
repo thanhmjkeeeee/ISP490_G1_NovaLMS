@@ -159,7 +159,30 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                 }
             }
 
-            // Bước 2: Gọi AI chấm điểm
+            // Bước 2: Kiểm tra transcript rỗng/không hợp lệ trước khi gọi AI
+            if ("SPEAKING".equals(qType)) {
+                String cleanAns = (userAnswer != null) ? userAnswer.trim() : "";
+                if (cleanAns.isEmpty() || cleanAns.equals("[Âm thanh không thể xử lý]") || cleanAns.length() < 3) {
+                    log.info("[AI-GRADE] Skipping AI for silent/empty speaking answer (len={})", cleanAns.length());
+                    
+                    String emptyFeedback = "Không tìm thấy giọng nói rõ ràng trong đoạn ghi âm. Vui lòng kiểm tra lại micrô hoặc thử nói to hơn.";
+                    String dummyRubric = createZeroRubric(qType, emptyFeedback);
+
+                    answer.setAiScore("0/" + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand));
+                    answer.setAiFeedback(emptyFeedback);
+                    answer.setAiRubricJson(dummyRubric);
+                    answer.setAiGradingStatus("COMPLETED");
+                    answer.setPendingAiReview(false);
+                    answer.setIsCorrect(false);
+                    quizAnswerRepository.save(answer);
+
+                    if (shouldRecalculate)
+                        quizResultService.recalculateQuizResult(quizResultId);
+                    return;
+                }
+            }
+
+            // Bước 3: Gọi AI chấm điểm
             GradingResponse grading = groqClient.gradeWritingOrSpeaking(
                     q.getContent(), q.getSkill(),
                     q.getCefrLevel() != null ? q.getCefrLevel() : "B1",

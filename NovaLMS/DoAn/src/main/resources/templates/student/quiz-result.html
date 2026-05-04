@@ -444,13 +444,27 @@
                                 </div>
                              </div>
 
-                             <!-- SPEAKING Audio Handling -->
-                             <div th:if="${question.questionType == 'SPEAKING' and question.userAnswerDisplay != null and #strings.contains(question.userAnswerDisplay, 'http')}">
-                                 <audio controls th:src="${#strings.replace(question.userAnswerDisplay, '&quot;', '')}" class="w-100 rounded-pill"></audio>
+                             <!-- SPEAKING Answer Handling -->
+                             <div th:if="${question.questionType == 'SPEAKING'}">
+                                 <!-- Audio Player (from studentAudioUrl) -->
+                                 <div th:if="${question.studentAudioUrl != null and !question.studentAudioUrl.isEmpty()}" class="mb-2">
+                                     <audio controls th:src="${#strings.replace(question.studentAudioUrl, '&quot;', '')}" class="w-100 rounded-pill"></audio>
+                                 </div>
+                                 
+                                 <!-- Transcript Text (from userAnswerDisplay) -->
+                                 <div th:if="${question.userAnswerDisplay != null and !question.userAnswerDisplay.isEmpty() and !#strings.contains(question.userAnswerDisplay, 'cloudinary.com')}" 
+                                      class="p-3 rounded-4 bg-white border shadow-sm mt-2">
+                                     <div class="text-muted extra-small fw-bold text-uppercase mb-1">Bản gỡ băng (STT):</div>
+                                     <div class="text-dark fw-medium" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay}">Transcript here</div>
+                                 </div>
+
+                                 <!-- Fallback if no transcript yet or it's still just the URL -->
+                                 <div th:if="${(question.userAnswerDisplay == null or question.userAnswerDisplay == '' or #strings.contains(question.userAnswerDisplay, 'cloudinary.com')) and (question.studentAudioUrl == null or question.studentAudioUrl == '')}" 
+                                      class="text-muted italic">Không có câu trả lời.</div>
                              </div>
 
-                             <!-- Default / OTHER Handling -->
-                             <div th:if="${question.questionType != 'MATCHING' and (question.questionType != 'SPEAKING' or question.userAnswerDisplay == null or !#strings.contains(question.userAnswerDisplay, 'http'))}" 
+                             <!-- Default / OTHER Handling (Not Speaking/Matching) -->
+                             <div th:if="${question.questionType != 'MATCHING' and question.questionType != 'SPEAKING'}" 
                                   class="text-dark fw-medium" style="white-space: pre-wrap;" th:text="${question.userAnswerDisplay != null and question.userAnswerDisplay != '' ? question.userAnswerDisplay : 'Không có câu trả lời.'}">
                              </div>
                         </div>
@@ -469,11 +483,29 @@
 
                         <!-- AI Feedback -->
                         <div th:if="${question.aiFeedback != null}" class="ai-feedback-box-modern">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="bi bi-robot text-primary"></i>
-                                <span class="fw-bold small text-uppercase">Phân tích AI</span>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-robot text-primary"></i>
+                                    <span class="fw-bold small text-uppercase">Phân tích từ AI NovaLMS</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill" th:if="${question.aiScore != null}">
+                                    Band <span th:text="${#strings.split(question.aiScore, '/')[0]}">8.0</span>
+                                </span>
                             </div>
                             <p class="small text-dark mb-0" th:text="${question.aiFeedback}">AI feedback content.</p>
+                            
+                            <!-- Detailed Rubric (Hidden by default, shown via button) -->
+                            <div th:if="${question.aiRubricJson != null}" class="mt-3">
+                                <button class="btn btn-sm btn-outline-primary rounded-pill" type="button" 
+                                        th:data-bs-target="'#rubric-' + ${question.questionId}" data-bs-toggle="collapse">
+                                    <i class="bi bi-bar-chart-line me-1"></i> Xem chi tiết tiêu chí
+                                </button>
+                                <div class="collapse mt-2" th:id="'rubric-' + ${question.questionId}">
+                                    <div class="rubric-breakdown-student p-3 bg-white rounded-3 border" th:data-rubric="${question.aiRubricJson}">
+                                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Teacher Comment -->
@@ -648,6 +680,59 @@
                     }
                 });
             }
+
+            // --- 3. Rubric Rendering for Students ---
+            function getCriterionLabel(key) {
+                const labels = [[${result.criteriaLabels}]] || {};
+                if (labels) {
+                    if (key === 'task_achievement' || key === 'ta') return labels.ta || 'Task Achievement';
+                    if (key === 'lexical_resource' || key === 'lr') return labels.lr || 'Lexical Resource';
+                    if (key === 'grammatical_range' || key === 'gra' || key === 'grammatical_range_and_accuracy') return labels.gra || 'Grammar Range & Accuracy';
+                    if (key === 'coherence_cohesion' || key === 'cc') return labels.cc || 'Coherence & Cohesion';
+                    if (key === 'fluency_cohesion' || key === 'fc') return labels.fc || 'Fluency & Cohesion';
+                    if (key === 'pronunciation' || key === 'pr') return labels.pr || 'Pronunciation';
+                }
+                return key.replace(/_/g, ' ').toUpperCase();
+            }
+
+            function bandColorCss(score) {
+                if (score <= 4) return 'bg-danger';
+                if (score <= 6) return 'bg-warning text-dark';
+                return 'bg-success';
+            }
+
+            document.querySelectorAll('.rubric-breakdown-student').forEach(container => {
+                try {
+                    const rubricJson = container.getAttribute('data-rubric');
+                    if (!rubricJson || rubricJson === 'null') return;
+                    
+                    const parsedData = JSON.parse(rubricJson);
+                    const rubric = (parsedData && parsedData.rubric) ? parsedData.rubric : parsedData;
+                    
+                    let html = '<div class="row g-3">';
+                    for (const key in rubric) {
+                        const c = rubric[key];
+                        const scoreVal = parseFloat(c.score) || 0;
+                        const label = getCriterionLabel(key);
+                        
+                        html += `
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded-4 h-100 bg-light bg-opacity-50">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold small text-muted text-uppercase" style="font-size: 0.7rem;">${label}</span>
+                                        <span class="badge ${bandColorCss(scoreVal)} rounded-pill px-2">${scoreVal.toFixed(1)}</span>
+                                    </div>
+                                    <p class="mb-0 extra-small text-dark lh-base">${c.bandDescription || ''}</p>
+                                </div>
+                            </div>`;
+                    }
+                    html += '</div>';
+                    container.innerHTML = html;
+                } catch(e) {
+                    console.error("Error rendering student rubric:", e);
+                    container.innerHTML = '<p class="text-muted small italic">Không thể hiển thị chi tiết tiêu chí.</p>';
+                }
+            });
         });
     </script>
 </body>
