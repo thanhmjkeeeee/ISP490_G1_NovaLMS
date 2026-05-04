@@ -211,6 +211,8 @@
                     <div class="ratio ratio-16x9">
                         <iframe id="videoModalIframe" allowfullscreen></iframe>
                     </div>
+                    <!-- Hidden YouTube player for duration fetching -->
+                    <div id="ytDurationHelper" style="position:absolute; top:-9999px; left:-9999px; visibility:hidden;"></div>
                 </div>
             </div>
         </div>
@@ -1083,6 +1085,71 @@
         }
 
         // ── Utility ──────────────────────────────────────────────────────────────
+        // ── YOUTUBE DURATION HELPER ──────────────────────────────────────────────
+        var _ytHelperPlayer;
+        function onYouTubeIframeAPIReady() {
+            _ytHelperPlayer = new YT.Player('ytDurationHelper', {
+                height: '0', width: '0', videoId: '',
+                playerVars: { 'autoplay': 0, 'controls': 0, 'showinfo': 0, 'modestbranding': 1 },
+                events: {
+                    'onReady': function() { console.log('YT Helper Ready'); },
+                    'onStateChange': function(event) {
+                        if (event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.PLAYING) {
+                            var dur = _ytHelperPlayer.getDuration();
+                            if (dur > 0) {
+                                document.getElementById('lessonDuration').value = formatDuration(dur);
+                                _ytHelperPlayer.stopVideo();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatDuration(seconds) {
+            var min = Math.floor(seconds / 60);
+            var sec = Math.floor(seconds % 60);
+            return (min < 10 ? "0" + min : min) + ":" + (sec < 10 ? "0" + sec : sec);
+        }
+
+        function extractVideoId(url) {
+            if (!url) return null;
+            var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            var match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function fetchVideoDuration(url) {
+            if (!url) return;
+            var videoId = extractVideoId(url);
+            if (videoId) {
+                // YouTube
+                if (_ytHelperPlayer && _ytHelperPlayer.loadVideoById) {
+                    _ytHelperPlayer.loadVideoById(videoId);
+                    _ytHelperPlayer.mute();
+                    _ytHelperPlayer.playVideo();
+                }
+            } else if (url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i) || url.includes('cloudinary.com')) {
+                // Generic video file or Cloudinary
+                var video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = function() {
+                    var dur = video.duration;
+                    if (dur > 0) {
+                        document.getElementById('lessonDuration').value = formatDuration(dur);
+                    }
+                };
+                video.src = url;
+            }
+        }
+
+        // Auto-fetch duration when video URL changes
+        document.getElementById('lessonVideoUrl').addEventListener('change', function() {
+            if (document.getElementById('lessonType').value === 'VIDEO') {
+                fetchVideoDuration(this.value);
+            }
+        });
+
         function escape(str) {
             if (str == null) return '';
             return String(str)
@@ -1094,6 +1161,7 @@
         }
     </script>
 
+    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 
 </html>
