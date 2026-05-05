@@ -121,9 +121,14 @@ public class GroqClient {
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
         if (!response.isSuccessful()) {
+          if (respBody != null && (respBody.toLowerCase().contains("<!doctype html>") || respBody.toLowerCase().contains("<html"))) {
+             log.error("[GROQ-STT] AI Gateway returned an HTML error page (Status: {}).", response.code());
+             throw new RuntimeException("STT Gateway Maintenance (Status " + response.code() + "). Please try again later.");
+          }
           log.error("[GROQ-STT] Error: {} - {}", response.code(), respBody);
           throw new RuntimeException("STT API returned " + response.code() + ": " + respBody);
         }
+
 
         JsonNode node = mapper.readTree(respBody);
         String text = node.path("text").asText("");
@@ -182,9 +187,14 @@ public class GroqClient {
         String respContent = response.body() != null ? response.body().string() : "";
         
         if (!response.isSuccessful()) {
+          if (respContent != null && (respContent.toLowerCase().contains("<!doctype html>") || respContent.toLowerCase().contains("<html"))) {
+            log.error("[GROQ-ERROR] AI Gateway returned an HTML error page (Status: {}). This usually means the provider is down or maintenance is in progress.", response.code());
+            throw new RuntimeException("AI Provider Maintenance (Status " + response.code() + "). Please try again in a few minutes.");
+          }
           log.error("[GROQ-ERROR] Status: {}, Body: {}", response.code(), respContent);
-          throw new RuntimeException("Groq API returned " + response.code() + ": " + respContent);
+          throw new RuntimeException("AI API returned " + response.code() + ": " + respContent);
         }
+
 
         String content = "";
         try {
