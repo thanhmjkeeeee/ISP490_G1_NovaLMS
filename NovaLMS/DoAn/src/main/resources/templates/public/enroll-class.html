@@ -134,7 +134,7 @@
                                     </div>
 
                                     <!-- Hidden input for selected classId -->
-                                    <input type="hidden" id="classId" value="">
+                                    <input type="hidden" id="classId" th:value="${classInfo != null ? classInfo.classId : ''}">
 
                                 <div id="enrollAlert" class="alert d-none" role="alert"></div>
 
@@ -196,22 +196,26 @@
         const alertBox = document.getElementById('enrollAlert');
         
         // Check if class selection is required
-        let classIdVal = null;
-        const classRadios = document.getElementsByName('classSelection');
-        if (classRadios.length > 0) {
-            for (const radio of classRadios) {
-                if (radio.checked) {
-                    classIdVal = radio.value;
-                    break;
+        let classIdVal = document.getElementById('classId').value;
+        
+        // If not found from direct link, fallback to radio buttons
+        if (!classIdVal) {
+            const classRadios = document.getElementsByName('classSelection');
+            if (classRadios.length > 0) {
+                for (const radio of classRadios) {
+                    if (radio.checked) {
+                        classIdVal = radio.value;
+                        break;
+                    }
                 }
-            }
-            if (!classIdVal) {
-                alertBox.className = 'alert alert-warning';
-                alertBox.textContent = 'Vui lòng chọn một lớp học để tiếp tục.';
-                alertBox.classList.remove('d-none');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán';
-                return;
+                if (!classIdVal) {
+                    alertBox.className = 'alert alert-warning';
+                    alertBox.textContent = 'Vui lòng chọn một lớp học để tiếp tục.';
+                    alertBox.classList.remove('d-none');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-credit-card me-2"></i>Đăng ký & Thanh toán';
+                    return;
+                }
             }
         }
 
