@@ -62,7 +62,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                     try {
                         log.info("[AI-BATCH] Grading Q{} (Type={})", answer.getQuestion().getQuestionId(),
                                 answer.getQuestion().getQuestionType());
-                        doGradeQuizAnswer(quizResultId, answer.getQuestion().getQuestionId(), null, false);
+                        gradeQuizAnswerInNewTx(quizResultId, answer.getQuestion().getQuestionId(), null);
                     } catch (Exception e) {
                         log.error("[AI-BATCH] Failed grading Q{} for result {}: {}",
                                 answer.getQuestion().getQuestionId(), quizResultId, e.getMessage());
@@ -70,7 +70,11 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                 }
 
                 // Recalculate ONCE after batch
-                quizResultService.recalculateQuizResult(quizResultId);
+                try {
+                    quizResultService.recalculateQuizResult(quizResultId);
+                } catch (Exception e) {
+                    log.error("[AI-BATCH] Recalculate failed: {}", e.getMessage());
+                }
             });
             log.info("[AI-BATCH] Completed batch grading and recalculated for resultId={}", quizResultId);
         } catch (Exception e) {
@@ -197,13 +201,21 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                     userAnswer, qType, (int) Math.round(maxBand));
 
             // Lưu kết quả thành công
-            answer.setAiScore(String.format("%.2f", grading.getDisplayScore()) + "/"
-                    + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand));
+            String finalAiScore = String.format("%.2f", grading.getDisplayScore()) + "/"
+                    + (maxBand == Math.floor(maxBand) ? (int) maxBand : maxBand);
+            
+            answer.setAiScore(finalAiScore);
             answer.setAiFeedback(grading.getFeedback());
             answer.setAiRubricJson(objectMapper.writeValueAsString(grading.getRubric()));
             answer.setAiGradingStatus("COMPLETED");
             answer.setPendingAiReview(false);
+            
+            log.info("[AI-GRADE] Saving results for AnswerId: {}, Score: {}, Feedback length: {}", 
+                answer.getAnswerId(), finalAiScore, grading.getFeedback() != null ? grading.getFeedback().length() : 0);
+                
             quizAnswerRepository.save(answer);
+            log.info("[AI-GRADE] Successfully saved AI results to database for AnswerId: {}", answer.getAnswerId());
+
 
         } catch (Exception e) {
             log.error("AI Grading Error for Q{}: {}", questionId, e.getMessage());
