@@ -260,7 +260,7 @@ public class StudentServiceImpl implements StudentService {
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
                         ? reg.getClazz().getTeacher().getFullName() 
-                        : (Boolean.TRUE.equals(course.getIsSelfStudy()) ? "Tự học" : "Chưa cập nhật");
+                        : "Tự học";
 
                 return MyCourseDTO.builder()
                         .courseId(courseId)
