@@ -21,6 +21,8 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
     List<ClassSession> findByClazzClassIdOrderBySessionNumberAsc(Integer classId);
     
     List<ClassSession> findByQuiz_QuizIdOrderBySessionNumberAsc(Integer quizId);
+
+    long countByQuiz_QuizId(Integer quizId);
     
     Optional<ClassSession> findFirstByQuiz_QuizIdOrderBySessionNumberAsc(Integer quizId);
     
