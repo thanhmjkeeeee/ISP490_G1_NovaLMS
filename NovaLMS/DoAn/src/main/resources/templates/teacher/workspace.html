@@ -6562,9 +6562,7 @@
                                     <div class="bg-primary bg-opacity-10 text-primary fw-bold rounded-3 px-3 py-1" style="font-size: 0.85rem;">CÂU ${qi + 1}</div>
                                     <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small fw-bold">${skill}</span>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    ${q.isCorrect ? '<span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i>Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i>Sai</span>' : '<span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-clock me-1"></i>Chờ chấm</span>')}
-                                </div>
+                                    ${isSubjective ? '' : (q.isCorrect ? '<span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i>Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i>Sai</span>' : '<span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i class="bi bi-clock me-1"></i>Chờ chấm</span>'))}
                             </div>
                             <div class="card-body px-4 pb-4">
                                 <div class="question-content-premium mb-4 shadow-sm">
@@ -6580,9 +6578,7 @@
                         <div class="card border border-light-subtle shadow-sm rounded-3 mb-3">
                             <div class="card-header bg-light py-2 px-3 d-flex justify-content-between align-items-center">
                                 <div class="fw-bold text-dark" style="font-size: 0.9rem;">CÂU ${qi + 1}</div>
-                                <div class="d-flex align-items-center gap-2">
-                                    ${q.isCorrect ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Sai</span>' : '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Chờ chấm</span>')}
-                                </div>
+                                    ${isSubjective ? '' : (q.isCorrect ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Đúng</span>' : (q.isCorrect === false ? '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Sai</span>' : '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Chờ chấm</span>'))}
                             </div>
                             <div class="card-body px-3 py-3">
                                 <div class="question-content mb-3 fw-medium text-dark" style="font-size: 0.95rem; line-height: 1.5;">
