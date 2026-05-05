@@ -1780,7 +1780,7 @@
             if (result.status === 200 && result.data && result.data.items.length > 0) {
                 const existingIds = new Set(_quizQuestions.map(q => q.questionId));
                 tbody.innerHTML = result.data.items.map(q => {
-                    let isAdded = (q.type === 'SINGLE') ? existingIds.has(q.id) : q.questions.some(sub => existingIds.has(sub.questionId));
+                    let isAdded = (q.type === 'SINGLE') ? existingIds.has(q.id) : (q.questions || []).some(sub => existingIds.has(sub.questionId));
                     return `
                     <tr>
                         <td class="ps-4"><div class="text-truncate" style="max-width: 250px;">${q.content || '—'}</div><div class="extra-small text-muted">${q.skill || '—'}</div></td>
