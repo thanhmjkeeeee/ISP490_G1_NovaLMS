@@ -379,6 +379,8 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<QuizResponseDTO> getQuizzes(
+            Integer courseId, String category, String status, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Quiz> pageResult = quizRepository.findByFilters(courseId, category, status, keyword, pageable);
 
