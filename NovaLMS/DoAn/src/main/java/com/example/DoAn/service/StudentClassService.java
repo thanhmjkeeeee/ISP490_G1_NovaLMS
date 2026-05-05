@@ -63,7 +63,7 @@ public class StudentClassService {
                         .courseId(course.getCourseId())
                         .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .courseImage(course.getImageUrl())
-                        .teacherName(clazz != null && clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : "Tự học")
+                        .teacherName(clazz != null && clazz.getTeacher() != null ? clazz.getTeacher().getFullName() : null)
                         .schedule(clazz != null ? clazz.getSchedule() : null)
                         .slotTime(clazz != null ? clazz.getSlotTime() : null)
                         .status(clazz != null ? clazz.getStatus() : "Pending")

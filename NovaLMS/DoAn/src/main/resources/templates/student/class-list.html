@@ -164,7 +164,7 @@
               <div class="course-title" title="${esc(c.className)}">${esc(c.className || 'Chưa xếp lớp')}</div>
               <div class="course-desc">${esc(c.courseName || 'Chưa có mô tả chi tiết.')}</div>
               <div class="course-meta">
-                <span class="meta-pill"><i class="bi bi-person-workspace"></i>${esc(c.teacherName || 'Chưa phân công')}</span>
+                ${c.teacherName ? `<span class="meta-pill"><i class="bi bi-person-workspace"></i>${esc(c.teacherName)}</span>` : ''}
                 <span class="meta-pill"><i class="bi bi-calendar-week"></i>${esc(c.schedule || 'Chưa có lịch')}</span>
               </div>
             </div>

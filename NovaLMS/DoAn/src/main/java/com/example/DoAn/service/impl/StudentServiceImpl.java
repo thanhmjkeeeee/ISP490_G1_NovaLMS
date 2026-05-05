@@ -260,7 +260,7 @@ public class StudentServiceImpl implements StudentService {
 
                 String teacherName = (reg.getClazz() != null && reg.getClazz().getTeacher() != null)
                         ? reg.getClazz().getTeacher().getFullName() 
-                        : "Tự học";
+                        : null;
 
                 return MyCourseDTO.builder()
                         .courseId(courseId)
