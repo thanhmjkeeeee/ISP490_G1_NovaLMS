@@ -6388,6 +6388,34 @@
             }
         };
 
+        function renderAiRubric(jsonStr) {
+            if (!jsonStr) return '';
+            try {
+                const rubric = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+                let html = '<div class="row g-2 mt-2">';
+                for (const key in rubric) {
+                    const item = rubric[key];
+                    const label = key.replace(/_/g, ' ').toUpperCase();
+                    html += `
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 rounded-3 bg-white border shadow-sm h-100">
+                                <div class="extra-small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.55rem;">${label}</div>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.7rem;">Band ${item.bandLabel || item.score || '0.0'}</span>
+                                </div>
+                                ${item.bandDescription ? `<div class="mt-1 text-dark opacity-75" style="font-size: 0.65rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.bandDescription}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                return html;
+            } catch (e) {
+                console.error("Failed to parse AI Rubric", e);
+                return '';
+            }
+        }
+
         function renderWsGradingDetail(d) {
             document.getElementById('ws-gd-studentName').textContent = d.studentName || 'N/A';
             const maxBandVal = d.quizMaxBand || d.totalMaxScore || 9.0;
@@ -6553,6 +6581,7 @@
                                     <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;">
                                         ${q.aiFeedback || '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
                                     </div>
+                                    ${renderAiRubric(q.aiRubricJson)}
                                 </div>
                             </div>
 
