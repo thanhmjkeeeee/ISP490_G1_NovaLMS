@@ -20,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -94,6 +95,7 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/admin/debug/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/admin/**")).hasRole("ADMIN")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/manager/**")).hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.GET, "/api/v1/expert/**")).hasAnyRole("EXPERT", "ADMIN", "TEACHER", "MANAGER")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/expert/**")).hasAnyRole("EXPERT", "ADMIN")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/teacher/**")).hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/student/**")).hasAnyRole("STUDENT", "ADMIN")
