@@ -133,8 +133,7 @@
     const renderClasses = (list) => {
       const container = document.getElementById('classesContainer');
 
-      // Chỉ hiển thị những lớp đã được xếp (có classId)
-      const filteredList = (list || []).filter(c => c.classId !== null && c.classId !== undefined);
+      const filteredList = list || [];
 
       if (filteredList.length === 0) {
         container.innerHTML = `
@@ -147,8 +146,8 @@
       }
 
       container.innerHTML = filteredList.map((c, i) => {
-        const hasClass = true; // Đã filter ở trên nên hasClass luôn đúng
-        const clickAction = `onclick="location.href='/student/my-classes/detail/${c.classId}'"`;
+        const hasClass = c.classId !== null && c.classId !== undefined;
+        const clickAction = hasClass ? `onclick="location.href='/student/my-classes/detail/${c.classId}'"` : '';
 
         return `
         <div class="course-col" style="animation-delay:${i*70}ms">

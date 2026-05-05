@@ -169,8 +169,7 @@
   const renderCourses = (courses) => {
       const container = document.getElementById('courseContainer');
 
-      // Khóa học nào không có lớp (className) thì sẽ không hiện trong này
-      const filteredCourses = (courses || []).filter(c => c.className && c.className.trim() !== '');
+      const filteredCourses = courses || [];
 
       if (filteredCourses.length === 0) {
           container.innerHTML = `

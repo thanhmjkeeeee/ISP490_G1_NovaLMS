@@ -50,22 +50,20 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query(value = """
     SELECT r FROM Registration r 
     JOIN FETCH r.course c
-    JOIN FETCH r.clazz cl
+    LEFT JOIN FETCH r.clazz cl
     LEFT JOIN FETCH cl.teacher t
     WHERE r.user.userId = :userId 
       AND r.status = 'Approved'
-      AND r.clazz IS NOT NULL
-      AND (:keyword IS NULL OR LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
-      AND (:status IS NULL OR cl.status = :status)
+      AND (:keyword IS NULL OR (cl IS NOT NULL AND LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%'))) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+      AND (:status IS NULL OR (cl IS NOT NULL AND cl.status = :status))
 """, countQuery = """
     SELECT COUNT(r) FROM Registration r 
     JOIN r.course c
-    JOIN r.clazz cl
+    LEFT JOIN r.clazz cl
     WHERE r.user.userId = :userId 
       AND r.status = 'Approved'
-      AND r.clazz IS NOT NULL
-      AND (:keyword IS NULL OR LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
-      AND (:status IS NULL OR cl.status = :status)
+      AND (:keyword IS NULL OR (cl IS NOT NULL AND LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%'))) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+      AND (:status IS NULL OR (cl IS NOT NULL AND cl.status = :status))
 """)
     Page<Registration> findMyClassesWithFilters(
             @Param("userId") Integer userId,
@@ -77,23 +75,21 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query(value = """
         SELECT r FROM Registration r 
         JOIN FETCH r.course c
-        JOIN FETCH r.clazz cl
+        LEFT JOIN FETCH r.clazz cl
         LEFT JOIN FETCH c.category cat
         WHERE r.user.userId = :userId 
           AND r.status = 'Approved'
-          AND r.clazz IS NOT NULL
           AND (:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
-          AND (:categoryId IS NULL OR cat.settingId = :categoryId)
+          AND (:categoryId IS NULL OR (cat IS NOT NULL AND cat.settingId = :categoryId))
     """, countQuery = """
         SELECT COUNT(r) FROM Registration r 
         JOIN r.course c
-        JOIN r.clazz cl
+        LEFT JOIN r.clazz cl
         LEFT JOIN c.category cat
         WHERE r.user.userId = :userId 
           AND r.status = 'Approved'
-          AND r.clazz IS NOT NULL
           AND (:keyword IS NULL OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
-          AND (:categoryId IS NULL OR cat.settingId = :categoryId)
+          AND (:categoryId IS NULL OR (cat IS NOT NULL AND cat.settingId = :categoryId))
     """)
     Page<Registration> findMyCoursesWithFilters(
             @Param("userId") Integer userId,

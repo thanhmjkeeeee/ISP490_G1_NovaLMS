@@ -89,7 +89,11 @@ public class GroqClient {
       if (audioBytes == null)
         throw new RuntimeException("Empty audio file.");
 
-      // 3. Gọi Groq bằng OkHttp
+      // 3. Gọi API chuyển đổi (OpenAI-compatible endpoint)
+      String transcriptUrl = this.apiUrl + "/audio/transcriptions";
+      log.info("[GROQ-STT] Sending transcription request to {} using key ending in ...{}", 
+          transcriptUrl, cleanKey.length() > 5 ? cleanKey.substring(cleanKey.length() - 5) : "***");
+
       okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
           audioBytes,
           okhttp3.MediaType.parse("audio/webm"));
@@ -98,10 +102,11 @@ public class GroqClient {
           .setType(okhttp3.MultipartBody.FORM)
           .addFormDataPart("model", "whisper-large-v3")
           .addFormDataPart("file", "recording.webm", fileBody)
+          .addFormDataPart("response_format", "json")
           .build();
 
       okhttp3.Request request = new okhttp3.Request.Builder()
-          .url("https://api.groq.com/openai/v1/audio/transcriptions")
+          .url(transcriptUrl)
           .post(requestBody)
           .header("Authorization", "Bearer " + cleanKey)
           .build();
@@ -109,12 +114,14 @@ public class GroqClient {
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
         if (!response.isSuccessful()) {
-          log.error("Groq Whisper Error: {} - {}", response.code(), respBody);
-          throw new RuntimeException("Groq API returned " + response.code());
+          log.error("[GROQ-STT] Error: {} - {}", response.code(), respBody);
+          throw new RuntimeException("STT API returned " + response.code() + ": " + respBody);
         }
 
         JsonNode node = mapper.readTree(respBody);
-        return node.path("text").asText("");
+        String text = node.path("text").asText("");
+        log.info("[GROQ-STT] Success! Transcribed {} chars.", text.length());
+        return text;
       }
     } catch (Exception e) {
       log.error("Transcription failed: {}", e.getMessage());

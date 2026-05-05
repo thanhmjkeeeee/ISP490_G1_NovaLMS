@@ -6330,25 +6330,36 @@
                     let premiumAnsHtml = '';
                     if (isSubjective) {
                         const ans = q.studentAnswer || q.userAnswerDisplay || '—';
-                        const isAudioUrl = isSpeakingSkill && (ans.includes('http') || ans.includes('cloudinary'));
+                        const audioSource = q.studentAudioUrl || (isSpeakingSkill && (ans.includes('http') || ans.includes('cloudinary')) ? ans : null);
+                        const isTranscript = isSpeakingSkill && audioSource && !ans.includes('http') && !ans.includes('cloudinary') && ans !== '—';
 
-                        if (isAudioUrl) {
-                            premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
+                        let audioHtml = '';
+                        if (audioSource) {
+                            audioHtml = `
+                                <div class="mb-3">
                                     <div class="answer-label-ribbon">
-                                        <i class="bi bi-mic-fill me-1 text-danger"></i> Học sinh đã trả lời bằng Audio
+                                        <i class="bi bi-mic-fill me-1 text-danger"></i> Ghi âm học sinh
                                     </div>
-                                    <audio controls src="${ans.trim()}" class="w-100" style="height:45px;"></audio>
-                                </div>`;
-                        } else {
-                            premiumAnsHtml = `
-                                <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
-                                    <div class="answer-label-ribbon">
-                                        <i class="bi bi-person-lines-fill me-1"></i> ${isSpeakingSkill ? 'Transcript (AI Generated)' : "Student's Answer"}
-                                    </div>
-                                    <div class="text-dark" style="line-height: 1.8; font-size: 1rem; white-space: pre-wrap;">${wsSafeHtml(ans)}</div>
+                                    <audio controls src="${audioSource.trim()}" class="w-100" style="height:40px;"></audio>
                                 </div>`;
                         }
+
+                        let textHtml = '';
+                        if (isTranscript || !audioSource) {
+                            textHtml = `
+                                <div class="p-3 rounded-4 bg-light border-start border-3 border-primary shadow-sm">
+                                    <div class="answer-label-ribbon mb-2">
+                                        <i class="bi bi-person-lines-fill me-1"></i> ${isSpeakingSkill ? 'Transcript (AI STT)' : "Student's Answer"}
+                                    </div>
+                                    <div class="text-dark" style="line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap;">${wsSafeHtml(ans)}</div>
+                                </div>`;
+                        }
+
+                        premiumAnsHtml = `
+                            <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4 student-answer-card">
+                                ${audioHtml}
+                                ${textHtml}
+                            </div>`;
                     } else {
                         let displayedAns = q.studentAnswer || q.userAnswerDisplay || '—';
                         if (q.questionType === 'MULTIPLE_CHOICE' || q.questionType === 'MULTIPLE_CHOICE_SINGLE' || q.questionType === 'MULTIPLE_CHOICE_MULTI') {
