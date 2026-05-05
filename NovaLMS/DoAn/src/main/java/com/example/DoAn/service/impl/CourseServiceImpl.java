@@ -56,7 +56,7 @@ public class CourseServiceImpl implements ICourseService {
                 .sale(request.getSale())
                 .numberOfSessions(request.getNumberOfSessions())
                 .avatar(request.getAvatar())
-                .status(request.getStatus() != null ? request.getStatus() : "Published")
+                .status("Draft") // Luôn khởi tạo là Draft khi mới tạo
                 .category(category)
                 .expert(expert)
                 .teacher(teacher)
@@ -83,6 +83,15 @@ public class CourseServiceImpl implements ICourseService {
         
         String newStatus = request.getStatus();
         if (newStatus == null) newStatus = course.getStatus();
+
+        // 🛡️ Kiểm tra điều kiện khi muốn Xuất bản
+        if ("Published".equalsIgnoreCase(newStatus)) {
+            long moduleCount = moduleRepository.countByCourse_CourseId(id);
+            if (moduleCount == 0) {
+                throw new RuntimeException("Không thể xuất bản khóa học chưa có nội dung (Module/Chương học).");
+            }
+        }
+
         if ("draft".equalsIgnoreCase(newStatus)) {
             long classCount = clazzRepository.countByCourse_CourseId(id);
             if (classCount > 0) {
@@ -298,6 +307,15 @@ public class CourseServiceImpl implements ICourseService {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
         String newStatus = status;
+
+        // 🛡️ Kiểm tra điều kiện khi muốn Xuất bản
+        if ("Published".equalsIgnoreCase(newStatus)) {
+            long moduleCount = moduleRepository.countByCourse_CourseId(id);
+            if (moduleCount == 0) {
+                throw new RuntimeException("Không thể xuất bản khóa học chưa có nội dung (Module/Chương học).");
+            }
+        }
+
         if ("draft".equalsIgnoreCase(newStatus)) {
             long classCount = clazzRepository.countByCourse_CourseId(id);
             if (classCount > 0) {
