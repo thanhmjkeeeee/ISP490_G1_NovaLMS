@@ -436,12 +436,6 @@ public class QuizResultServiceImpl implements QuizResultService {
                 maxScoreAvailable = maxScoreAvailable.add(qPoints);
             }
 
-            QuizAnswer qa = QuizAnswer.builder()
-                    .quizResult(quizResult)
-                    .question(q)
-                    .answeredOptions(answeredOptionsJson)
-                    .isCorrect(isCorrect)
-                    .pointsAwarded(!"WRITING".equals(qType) && !"SPEAKING".equals(qType) ? awardedPoints : null)
             String skill = q.getSkill();
             boolean isSubjective = "WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)
                     || "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill);
