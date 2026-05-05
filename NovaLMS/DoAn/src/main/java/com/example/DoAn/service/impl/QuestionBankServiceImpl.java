@@ -37,22 +37,18 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     private final QuizQuestionRepository quizQuestionRepository;
 
     private static final Set<String> VALID_QUESTION_TYPES = Set.of(
-        "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK",
-        "MATCHING", "WRITING", "SPEAKING"
-    );
+            "MULTIPLE_CHOICE_SINGLE", "MULTIPLE_CHOICE_MULTI", "FILL_IN_BLANK",
+            "MATCHING", "WRITING", "SPEAKING");
 
     private static final Set<String> VALID_SKILLS = Set.of(
-        "LISTENING", "READING", "WRITING", "SPEAKING"
-    );
+            "LISTENING", "READING", "WRITING", "SPEAKING");
 
     private static final Set<String> VALID_CEFR_LEVELS = Set.of(
-        "A1", "A2", "B1", "B2", "C1", "C2",
-        "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0"
-    );
+            "A1", "A2", "B1", "B2", "C1", "C2",
+            "3.0", "3.5", "4.0", "4.5", "5.0", "5.5", "6.0", "6.5", "7.0", "7.5", "8.0", "8.5", "9.0");
 
     private static final Set<String> VALID_STATUSES = Set.of(
-        "DRAFT", "PUBLISHED", "ARCHIVED", "PENDING_REVIEW"
-    );
+            "DRAFT", "PUBLISHED", "ARCHIVED", "PENDING_REVIEW");
 
     // --- Loại câu hỏi KHÔNG cần answer options ---
     private static final Set<String> NO_OPTIONS_TYPES = Set.of("WRITING", "SPEAKING");
@@ -91,22 +87,22 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             } else {
                 question.getAnswerOptions().clear();
             }
-            
+
             if ("MATCHING".equals(request.getQuestionType())) {
                 var allOptions = request.getOptions();
                 var lefts = allOptions.stream()
                         .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
                         .toList();
-                
+
                 var manualRights = allOptions.stream()
                         .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
                         .map(QuestionBankRequestDTO.AnswerOptionDTO::getTitle)
                         .collect(java.util.stream.Collectors.toSet());
-                
+
                 var implicitRights = lefts.stream()
                         .map(QuestionBankRequestDTO.AnswerOptionDTO::getMatchTarget)
                         .collect(java.util.stream.Collectors.toSet());
-                
+
                 manualRights.addAll(implicitRights);
                 var uniqueRights = manualRights.stream().toList();
 
@@ -189,22 +185,22 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             } else {
                 question.getAnswerOptions().clear();
             }
-            
+
             if ("MATCHING".equals(request.getQuestionType())) {
                 var allOptions = request.getOptions();
                 var lefts = allOptions.stream()
                         .filter(o -> o.getMatchTarget() != null && !o.getMatchTarget().isBlank())
                         .toList();
-                
+
                 var manualRights = allOptions.stream()
                         .filter(o -> o.getMatchTarget() == null || o.getMatchTarget().isBlank())
                         .map(QuestionBankRequestDTO.AnswerOptionDTO::getTitle)
                         .collect(java.util.stream.Collectors.toSet());
-                
+
                 var implicitRights = lefts.stream()
                         .map(QuestionBankRequestDTO.AnswerOptionDTO::getMatchTarget)
                         .collect(java.util.stream.Collectors.toSet());
-                
+
                 manualRights.addAll(implicitRights);
                 var uniqueRights = manualRights.stream().toList();
 
@@ -256,8 +252,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         long quizUsage = questionRepository.countQuizUsage(questionId);
         if (quizUsage > 0) {
             throw new InvalidDataException(
-                "Không thể xóa câu hỏi. Câu hỏi đang được sử dụng trong " + quizUsage + " quiz."
-            );
+                    "Không thể xóa câu hỏi. Câu hỏi đang được sử dụng trong " + quizUsage + " quiz.");
         }
 
         questionRepository.delete(question);
@@ -277,7 +272,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     public QuestionBankResponseDTO getGroupDetails(Integer groupId) {
         QuestionGroup group = questionGroupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi ID: " + groupId));
-        
+
         QuestionBankResponseDTO dto = toResponseDTO(group);
         // Trả thêm danh sách câu hỏi con chi tiết cho giao diện mở rộng
         if (group.getQuestions() != null) {
@@ -309,15 +304,13 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         List<Question> loneQuestions = new ArrayList<>();
         if (finalQuestionType == null || (!finalQuestionType.equals("PASSAGE"))) {
             loneQuestions = questionRepository.findAllLoneQuestions(
-                finalSkill, finalCefrLevel, finalQuestionType, finalTopic, finalStatus, finalKeyword
-            );
+                    finalSkill, finalCefrLevel, finalQuestionType, finalTopic, finalStatus, finalKeyword);
         }
 
         List<QuestionGroup> groups = new ArrayList<>();
         if (finalQuestionType == null || finalQuestionType.equals("PASSAGE")) {
             groups = questionGroupRepository.findByFilters(
-                finalSkill, finalCefrLevel, finalTopic, finalStatus, finalKeyword
-            );
+                    finalSkill, finalCefrLevel, finalTopic, finalStatus, finalKeyword);
         }
 
         // 3. Gộp và Sắp xếp Entities
@@ -326,11 +319,16 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         merged.addAll(groups);
 
         merged.sort((o1, o2) -> {
-            java.time.LocalDateTime d1 = (o1 instanceof Question q) ? q.getCreatedAt() : ((QuestionGroup)o1).getCreatedAt();
-            java.time.LocalDateTime d2 = (o2 instanceof Question q) ? q.getCreatedAt() : ((QuestionGroup)o2).getCreatedAt();
-            if (d1 == null && d2 == null) return 0;
-            if (d1 == null) return 1;
-            if (d2 == null) return -1;
+            java.time.LocalDateTime d1 = (o1 instanceof Question q) ? q.getCreatedAt()
+                    : ((QuestionGroup) o1).getCreatedAt();
+            java.time.LocalDateTime d2 = (o2 instanceof Question q) ? q.getCreatedAt()
+                    : ((QuestionGroup) o2).getCreatedAt();
+            if (d1 == null && d2 == null)
+                return 0;
+            if (d1 == null)
+                return 1;
+            if (d2 == null)
+                return -1;
             return d2.compareTo(d1);
         });
 
@@ -344,18 +342,20 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         List<Integer> qIds = new ArrayList<>();
         List<Integer> gIds = new ArrayList<>();
         for (Object e : pagedEntities) {
-            if (e instanceof Question q) qIds.add(q.getQuestionId());
-            else if (e instanceof QuestionGroup g) gIds.add(g.getGroupId());
+            if (e instanceof Question q)
+                qIds.add(q.getQuestionId());
+            else if (e instanceof QuestionGroup g)
+                gIds.add(g.getGroupId());
         }
 
         java.util.Map<Integer, Long> counts = new java.util.HashMap<>();
         if (!qIds.isEmpty()) {
             quizQuestionRepository.countByQuestionIdsBatch(qIds)
-                    .forEach(row -> counts.put((Integer)row[0], (Long)row[1]));
+                    .forEach(row -> counts.put((Integer) row[0], (Long) row[1]));
         }
         if (!gIds.isEmpty()) {
             quizQuestionRepository.countByGroupIdsBatch(gIds)
-                    .forEach(row -> counts.put((Integer)row[0], (Long)row[1]));
+                    .forEach(row -> counts.put((Integer) row[0], (Long) row[1]));
         }
 
         // 6. Chuyển đổi sang DTO (Nhẹ hơn, không lấy sub-questions/options)
@@ -363,7 +363,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             if (e instanceof Question q) {
                 return toUnifiedItemDTO(q, counts.getOrDefault(q.getQuestionId(), 0L));
             } else {
-                QuestionGroup g = (QuestionGroup)e;
+                QuestionGroup g = (QuestionGroup) e;
                 return toUnifiedItemDTO(g, counts.getOrDefault(g.getGroupId(), 0L));
             }
         }).toList();
@@ -427,13 +427,14 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         if ("GROUP".equals(type)) {
             QuestionGroup group = questionGroupRepository.findById(questionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi ID: " + questionId));
-            
+
             String currentStatus = group.getStatus();
-            if (newStatus.equals(currentStatus)) return toResponseDTO(group);
+            if (newStatus.equals(currentStatus))
+                return toResponseDTO(group);
 
             validateTransition(currentStatus, newStatus);
             group.setStatus(newStatus);
-            
+
             // Record review metadata
             group.setReviewerId(Long.valueOf(expert.getUserId()));
             group.setReviewedAt(java.time.LocalDateTime.now());
@@ -444,12 +445,13 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         } else {
             Question question = findQuestion(questionId);
             String currentStatus = question.getStatus();
-            
-            if (newStatus.equals(currentStatus)) return toFullResponseDTO(question);
+
+            if (newStatus.equals(currentStatus))
+                return toFullResponseDTO(question);
 
             validateTransition(currentStatus, newStatus);
             question.setStatus(newStatus);
-            
+
             // Record review metadata
             question.setReviewerId(Long.valueOf(expert.getUserId()));
             question.setReviewedAt(java.time.LocalDateTime.now());
@@ -461,30 +463,29 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     }
 
     private void validateTransition(String currentStatus, String newStatus) {
-        // Validate transitions: 
+        // Validate transitions:
         // DRAFT -> PENDING_REVIEW (Teacher resubmitting)
         // PENDING_REVIEW -> PUBLISHED (Expert approving)
         // PENDING_REVIEW -> DRAFT (Expert rejecting)
         // DRAFT -> PUBLISHED (Expert manual publish)
         // PUBLISHED -> ARCHIVED
         // PUBLISHED -> DRAFT (Expert un-publish)
-        boolean valid =
-            ("DRAFT".equals(currentStatus) && "PENDING_REVIEW".equals(newStatus)) ||
-            ("PENDING_REVIEW".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
-            ("PENDING_REVIEW".equals(currentStatus) && "DRAFT".equals(newStatus)) ||
-            ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
-            ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
-            ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));
+        boolean valid = ("DRAFT".equals(currentStatus) && "PENDING_REVIEW".equals(newStatus)) ||
+                ("PENDING_REVIEW".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
+                ("PENDING_REVIEW".equals(currentStatus) && "DRAFT".equals(newStatus)) ||
+                ("DRAFT".equals(currentStatus) && "PUBLISHED".equals(newStatus)) ||
+                ("PUBLISHED".equals(currentStatus) && "ARCHIVED".equals(newStatus)) ||
+                ("PUBLISHED".equals(currentStatus) && "DRAFT".equals(newStatus));
 
         if (!valid) {
             throw new InvalidDataException(
-                "Không thể chuyển trạng thái từ " + (currentStatus == null ? "NULL" : currentStatus) + " sang " + newStatus
-            );
+                    "Không thể chuyển trạng thái từ " + (currentStatus == null ? "NULL" : currentStatus) + " sang "
+                            + newStatus);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
+    // PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════
 
     private User findExpert(String email) {
@@ -515,7 +516,8 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     /** Block duplicate: same content + skill + CEFR level. */
     private void checkDuplicate(String content, String skill, String cefrLevel) {
         if (questionRepository.existsByContentIgnoreCaseAndSkillAndCefrLevel(content, skill, cefrLevel)) {
-            throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+            throw new InvalidDataException(
+                    "Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
         }
     }
 
@@ -530,13 +532,15 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                             && Objects.equals(q.getCefrLevel(), cefrLevel))
                     .toList();
             if (found.isEmpty()) {
-                throw new InvalidDataException("Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
+                throw new InvalidDataException(
+                        "Câu hỏi đã tồn tại: [" + skill + "/" + cefrLevel + "] " + truncate(content, 80));
             }
         }
     }
 
     private String truncate(String s, int max) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.length() > max ? s.substring(0, max) + "..." : s;
     }
 
@@ -575,7 +579,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             }
             if (withTarget == 0) {
                 throw new InvalidDataException(
-                    "Câu hỏi Matching cần ít nhất 1 vế trái (nội dung có vế phải ghép nối).");
+                        "Câu hỏi Matching cần ít nhất 1 vế trái (nội dung có vế phải ghép nối).");
             }
         }
 
@@ -593,14 +597,14 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(question.getQuestionId());
         long quizUsage = questionRepository.countQuizUsage(question.getQuestionId());
 
-        java.util.function.Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o ->
-                QuestionBankResponseDTO.AnswerOptionResponseDTO.builder()
-                        .answerOptionId(o.getAnswerOptionId())
-                        .title(o.getTitle())
-                        .correctAnswer(o.getCorrectAnswer())
-                        .orderIndex(o.getOrderIndex())
-                        .matchTarget(o.getMatchTarget())
-                        .build();
+        java.util.function.Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o -> QuestionBankResponseDTO.AnswerOptionResponseDTO
+                .builder()
+                .answerOptionId(o.getAnswerOptionId())
+                .title(o.getTitle())
+                .correctAnswer(o.getCorrectAnswer())
+                .orderIndex(o.getOrderIndex())
+                .matchTarget(o.getMatchTarget())
+                .build();
 
         List<QuestionBankResponseDTO.AnswerOptionResponseDTO> optionDTOs;
         List<QuestionBankResponseDTO.AnswerOptionResponseDTO> rightDTOs = null;
