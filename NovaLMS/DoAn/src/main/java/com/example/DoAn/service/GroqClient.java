@@ -121,9 +121,14 @@ public class GroqClient {
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
         if (!response.isSuccessful()) {
+          if (respBody != null && (respBody.toLowerCase().contains("<!doctype html>") || respBody.toLowerCase().contains("<html"))) {
+             log.error("[GROQ-STT] AI Gateway returned an HTML error page (Status: {}).", response.code());
+             throw new RuntimeException("STT Gateway Maintenance (Status " + response.code() + "). Please try again later.");
+          }
           log.error("[GROQ-STT] Error: {} - {}", response.code(), respBody);
           throw new RuntimeException("STT API returned " + response.code() + ": " + respBody);
         }
+
 
         JsonNode node = mapper.readTree(respBody);
         String text = node.path("text").asText("");
@@ -182,9 +187,14 @@ public class GroqClient {
         String respContent = response.body() != null ? response.body().string() : "";
         
         if (!response.isSuccessful()) {
+          if (respContent != null && (respContent.toLowerCase().contains("<!doctype html>") || respContent.toLowerCase().contains("<html"))) {
+            log.error("[GROQ-ERROR] AI Gateway returned an HTML error page (Status: {}). This usually means the provider is down or maintenance is in progress.", response.code());
+            throw new RuntimeException("AI Provider Maintenance (Status " + response.code() + "). Please try again in a few minutes.");
+          }
           log.error("[GROQ-ERROR] Status: {}, Body: {}", response.code(), respContent);
-          throw new RuntimeException("Groq API returned " + response.code() + ": " + respContent);
+          throw new RuntimeException("AI API returned " + response.code() + ": " + respContent);
         }
+
 
         String content = "";
         try {
@@ -203,22 +213,22 @@ public class GroqClient {
             content = respContent;
         }
 
-        log.debug("[GROQ-RAW-CONTENT] {}", content);
+        log.debug("[GROQ-CLEANED-CONTENT] {}", content);
 
         // Robust JSON extraction: Find the first { and the last }
         int firstBrace = content.indexOf("{");
         int lastBrace = content.lastIndexOf("}");
         
-        if (firstBrace >= 0 && lastBrace > firstBrace) {
+        if (firstBrace >= 0 && lastBrace >= 0 && lastBrace > firstBrace) {
             content = content.substring(firstBrace, lastBrace + 1);
         } else {
-            log.warn("[AI-RAW] Could not find valid JSON braces. Content preview: {}", 
-                content.length() > 100 ? content.substring(0, 100) : content);
+            log.error("[GROQ-PARSE-FAIL] Could not find any valid JSON braces {}. AI Response was: {}", content);
+            throw new RuntimeException("AI response is not in JSON format. Please try again.");
         }
 
-        // AUTO-PATCH if truncated or malformed
+        // AUTO-PATCH if truncated
         content = content.trim();
-        if (!content.isEmpty() && !content.endsWith("}")) {
+        if (!content.isEmpty() && content.startsWith("{") && !content.endsWith("}")) {
             log.warn("[AI-FIX] JSON appears truncated, attempting to close braces...");
             long openCount = content.chars().filter(ch -> ch == '{').count();
             long closeCount = content.chars().filter(ch -> ch == '}').count();
@@ -228,14 +238,13 @@ public class GroqClient {
             }
         }
 
-
         try {
             return mapper.readValue(content, GradingResponse.class);
         } catch (Exception parseEx) {
-            log.error("[GROQ-PARSE-FAIL] JSON parsing failed. Content Preview: {}", 
-                content.length() > 500 ? content.substring(0, 500) + "..." : content);
-            throw parseEx;
+            log.error("[GROQ-PARSE-FAIL] Jackson parsing failed for content: {}. Error: {}", content, parseEx.getMessage());
+            throw new RuntimeException("Failed to parse AI response: " + parseEx.getMessage());
         }
+
       }
     } catch (Exception e) {
       log.error("Groq LLaMA grading failed: {}", e.getMessage());
