@@ -154,7 +154,7 @@
           <div class="course-card" ${clickAction} style="cursor: pointer;">
             <div class="course-img-wrapper">
               <img src="${c.courseImage || '/assets/img/default-course.png'}"
-                   class="card-img-top course-image" alt="${esc(c.className)}"
+                   class="card-img-top course-image" style="aspect-ratio: 16/9; object-fit: cover; image-rendering: -webkit-optimize-contrast;" alt="${esc(c.className)}"
                    onerror="this.onerror=null;this.src='/assets/img/default-course.png'" loading="lazy">
               <span class="course-badge">
                 <i class="bi bi-tag-fill"></i>${c.status === 'Closed' ? 'Đã hoàn thành' : (hasClass ? 'Đang học' : 'Chưa xếp lớp')}

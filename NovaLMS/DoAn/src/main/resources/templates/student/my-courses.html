@@ -188,7 +188,7 @@
               <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 progress-card">
                   <div class="position-relative">
                       <img src="${c.imageUrl || c.courseImage || '/assets/img/default-course.png'}"
-                           class="card-img-top w-100" style="height: 180px; object-fit: cover;"
+                           class="card-img-top w-100" style="aspect-ratio: 16/9; object-fit: cover; image-rendering: -webkit-optimize-contrast;"
                            alt="${c.title || c.courseName}"
                            onerror="this.onerror=null;this.src='/assets/img/default-course.png'">
 
