@@ -101,20 +101,22 @@ public class GroqClient {
 
       okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
           audioBytes,
-          okhttp3.MediaType.parse("audio/webm"));
+          okhttp3.MediaType.parse("application/octet-stream")); // Use generic type for better compatibility
 
       okhttp3.RequestBody requestBody = new okhttp3.MultipartBody.Builder()
           .setType(okhttp3.MultipartBody.FORM)
           .addFormDataPart("model", "whisper-large-v3")
-          .addFormDataPart("file", "recording.webm", fileBody)
           .addFormDataPart("response_format", "json")
+          .addFormDataPart("file", "recording.webm", fileBody) // File at the end
           .build();
 
       okhttp3.Request request = new okhttp3.Request.Builder()
           .url(transcriptUrl)
           .post(requestBody)
           .header("Authorization", "Bearer " + cleanKey)
+          .header("Accept", "application/json") // Explicitly accept JSON
           .build();
+
 
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
