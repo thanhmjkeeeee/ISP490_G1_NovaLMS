@@ -641,9 +641,16 @@
                 <!-- TAB 6: KẾT QUẢ ĐÃ CHẤM -->
                 <div class="tab-pane fade" id="tab-graded" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2 text-primary"></i>Báo cáo kết quả
-                        </h5>
-                        <div class="input-group input-group-sm" style="width: 250px;">
+                        <div class="d-flex align-items-center gap-3">
+                            <button id="gradedBackBtn" class="btn btn-outline-secondary rounded-pill btn-sm" style="display:none;" onclick="loadGradedClassList()">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <div>
+                                <h5 class="fw-bold mb-1" id="gradedTabTitle"><i class="bi bi-check2-circle me-2 text-primary"></i>Báo cáo kết quả</h5>
+                                <p class="text-muted small mb-0" id="gradedTabDesc">Danh sách các bài thi và bài tập đã hoàn thành việc chấm điểm.</p>
+                            </div>
+                        </div>
+                        <div id="gradedSearchContainer" class="input-group input-group-sm" style="width: 250px; display:none;">
                             <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i
                                     class="bi bi-search text-muted"></i></span>
                             <input type="text" class="form-control border-start-0 rounded-end-pill" id="gradedSearch"
@@ -5724,9 +5731,7 @@
             }
         }
 
-        async function loadGradedResults(page = 0) {
-            state.gradedPage = page;
-            const classId = state.selectedClassId;
+        async function loadGradedClassList() {
             const container = document.getElementById('gradedContentContainer');
             if (!container) return;
 
@@ -5735,7 +5740,74 @@
             const detailArea = document.getElementById('gradingDetailArea');
             if (detailArea) detailArea.style.display = 'none';
 
-            const classFilterStr = (classId === 'ALL' || !classId) ? '' : `&classId=${classId}`;
+            // Cập nhật giao diện header
+            document.getElementById('gradedTabTitle').innerHTML = '<i class="bi bi-check2-circle me-2 text-primary"></i>Chọn lớp học để xem báo cáo';
+            document.getElementById('gradedTabDesc').innerText = 'Danh sách các lớp học bạn đang phụ trách. Chọn một lớp để xem kết quả đã chấm.';
+            document.getElementById('gradedBackBtn').style.display = 'none';
+            document.getElementById('gradedSearchContainer').style.display = 'none';
+
+            if (!state.allClasses || state.allClasses.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">Không tìm thấy lớp học nào.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+            <div class="table-responsive mt-3">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-start">Tên lớp</th>
+                            <th class="text-start">Khóa học</th>
+                            <th class="text-center">Học viên</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.allClasses.map(c => `
+                            <tr>
+                                <td class="text-start"><h6 class="fw-bold mb-0">${c.className}</h6></td>
+                                <td class="text-start">${c.courseName || '—'}</td>
+                                <td class="text-center">${c.studentCount || 0}</td>
+                                <td class="text-center">
+                                    <span class="badge ${c.status === 'Open' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${c.status === 'Open' ? 'text-success' : 'text-secondary'} border" style="font-size:0.7rem;">
+                                        ${c.status || 'Chưa rõ'}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary rounded-pill px-4" onclick="loadGradedResults(0, ${c.classId}, '${c.className}')">
+                                        Xem báo cáo <i class="bi bi-chevron-right ms-1"></i>
+                                    </button>
+                                </td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+        }
+
+        async function loadGradedResults(page = 0, classId = null, className = '') {
+            state.gradedPage = page;
+            const container = document.getElementById('gradedContentContainer');
+            if (!container) return;
+
+            // Nếu không có classId và chưa chọn lớp cụ thể, hiển thị danh sách lớp
+            if (!classId) {
+                loadGradedClassList();
+                return;
+            }
+
+            // Cập nhật giao diện header khi đã chọn lớp
+            document.getElementById('gradedTabTitle').innerHTML = `<i class="bi bi-check2-circle me-2 text-primary"></i>Báo cáo lớp: ${wsSafeHtml(className)}`;
+            document.getElementById('gradedTabDesc').innerText = 'Danh sách các bài thi và bài tập đã hoàn thành việc chấm điểm.';
+            document.getElementById('gradedBackBtn').style.display = 'block';
+            document.getElementById('gradedSearchContainer').style.display = 'flex';
+
+            // Đảm bảo hiện màn hình danh sách và ẩn chi tiết
+            container.style.display = 'block';
+            const detailArea = document.getElementById('gradingDetailArea');
+            if (detailArea) detailArea.style.display = 'none';
+
+            const classFilterStr = `&classId=${classId}`;
 
             let assUrl = `/api/v1/teacher/assignment-results?status=ALL_GRADED&page=0&size=500${classFilterStr}`;
             let quizUrl = `/api/v1/teacher/quiz-results/graded?page=0&size=500${classFilterStr}`;
@@ -5790,7 +5862,12 @@
                 const pageRows = mergedItems.slice(page * pageSize, (page + 1) * pageSize);
 
                 if (pageRows.length === 0) {
-                    container.innerHTML = `<div class="text-center py-5 text-muted">Không tìm thấy kết quả nào.</div>`;
+                    container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-info-circle fs-1 text-muted opacity-50"></i>
+                        <p class="mt-3 text-muted">Lớp học này hiện chưa có bài nào hoàn thành chấm điểm.</p>
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill mt-2" onclick="loadGradedClassList()">Quay lại danh sách lớp</button>
+                    </div>`;
                     return;
                 }
 
@@ -5831,7 +5908,7 @@
                     </table>
                 </div>`;
 
-                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, 'loadGradedResults');
+                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, `loadGradedResults`, [classId, `'${className}'`]);
                 if (pagHtml) container.innerHTML += pagHtml;
             } catch (err) {
                 console.error(err);
@@ -5840,13 +5917,15 @@
         }
 
 
-        function renderWsPagination(p, func) {
+        function renderWsPagination(p, func, extraArgs = []) {
             if (!p || p.totalPages <= 1) return '';
             let html = `<nav class="mt-4"><ul class="pagination pagination-sm justify-content-center">`;
 
+            const argsStr = extraArgs.length > 0 ? `, ${extraArgs.join(', ')}` : '';
+
             // Previous
             html += `<li class="page-item ${p.first ? 'disabled' : ''}">
-            <button class="page-link rounded-start-pill px-3" onclick="${func}(${p.number - 1})">Trước</button>
+            <button class="page-link rounded-start-pill px-3" onclick="${func}(${p.number - 1}${argsStr})">Trước</button>
         </li>`;
 
             // Pages
@@ -5854,7 +5933,7 @@
                 if (i === p.number) {
                     html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
                 } else if (i < 3 || i > p.totalPages - 4 || (i > p.number - 2 && i < p.number + 2)) {
-                    html += `<li class="page-item"><button class="page-link" onclick="${func}(${i})">${i + 1}</button></li>`;
+                    html += `<li class="page-item"><button class="page-link" onclick="${func}(${i}${argsStr})">${i + 1}</button></li>`;
                 } else if (i === 3 || i === p.totalPages - 4) {
                     html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
                 }
@@ -5862,7 +5941,7 @@
 
             // Next
             html += `<li class="page-item ${p.last ? 'disabled' : ''}">
-            <button class="page-link rounded-end-pill px-3" onclick="${func}(${p.number + 1})">Tiếp</button>
+            <button class="page-link rounded-end-pill px-3" onclick="${func}(${p.number + 1}${argsStr})">Tiếp</button>
         </li>`;
 
             html += `</ul></nav>`;
@@ -6007,7 +6086,7 @@
             else if (id === 'id-quiz-btn' || id === 'tab-quiz-btn') loadQuizzes();
             else if (id === 'tab-assignment-btn') loadAssignments();
             else if (id === 'tab-grading-btn') loadGradingClassList();
-            else if (id === 'tab-graded-btn') loadGradedResults();
+            else if (id === 'tab-graded-btn') loadGradedClassList();
             else if (id === 'tab-requests-btn') loadUnlockRequests();
         }
 
