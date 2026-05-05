@@ -145,7 +145,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             answerOptionRepository.saveAll(question.getAnswerOptions());
         }
 
-        return toResponseDTO(question);
+        return toFullResponseDTO(question);
     }
 
     // ─── UPDATE ─────────────────────────────────────────────────────────────
@@ -242,7 +242,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         }
 
         questionRepository.save(question);
-        return toResponseDTO(question);
+        return toFullResponseDTO(question);
     }
 
     // ─── DELETE ──────────────────────────────────────────────────────────────
@@ -445,7 +445,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             Question question = findQuestion(questionId);
             String currentStatus = question.getStatus();
             
-            if (newStatus.equals(currentStatus)) return toResponseDTO(question);
+            if (newStatus.equals(currentStatus)) return toFullResponseDTO(question);
 
             validateTransition(currentStatus, newStatus);
             question.setStatus(newStatus);
@@ -456,7 +456,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             question.setReviewNote(note);
 
             questionRepository.save(question);
-            return toResponseDTO(question);
+            return toFullResponseDTO(question);
         }
     }
 
