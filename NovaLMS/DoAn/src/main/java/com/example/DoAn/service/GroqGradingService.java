@@ -7,15 +7,6 @@ package com.example.DoAn.service;
  */
 public interface GroqGradingService {
 
-
-
-    /**
-     * Fire-and-forget: grade a QuizAnswer (Lesson Quiz or Assignment)
-     * for SPEAKING/WRITING asynchronously.
-     *
-     * @param quizResultId the QuizResult ID
-     * @param questionId   the Question ID
-     */
     /**
      * Process all pending AI-graded questions for a quiz result in one async task.
      * This is faster and avoids race conditions.
@@ -33,4 +24,5 @@ public interface GroqGradingService {
      * @param questionTypeOverride null = auto-detect from question
      */
     void gradeSync(Integer quizResultId, Integer questionId, String questionTypeOverride);
+
 }

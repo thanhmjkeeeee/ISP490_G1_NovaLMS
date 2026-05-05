@@ -416,6 +416,13 @@
       if (selfStudyParam !== null) {
         document.getElementById('isSelfStudy').value = selfStudyParam;
       }
+      
+      // NEW COURSE: Lock status to Draft
+      const statusEl = document.getElementById('status');
+      statusEl.value = 'Draft';
+      statusEl.disabled = true;
+      // Add a tooltip or message to clarify why it's locked
+      statusEl.title = "Khóa học mới tạo mặc định ở trạng thái Bản nháp.";
     }
 
     document.getElementById('courseForm').addEventListener('submit', function(e) {

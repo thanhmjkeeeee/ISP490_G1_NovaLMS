@@ -227,6 +227,7 @@ public class GroqGradingServiceImpl implements GroqGradingService {
             quizResultService.recalculateQuizResult(quizResultId);
     }
 
+
     // Hàm hỗ trợ tạo JSON Rubric trắng
     private String createZeroRubric(String type, String reason) {
         if ("WRITING".equals(type)) {

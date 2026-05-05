@@ -47,4 +47,5 @@ public interface QuizResultService {
 
     /** Individual question grading with Writing criteria support */
     void gradeQuizItem(com.example.DoAn.dto.request.QuizItemGradingRequestDTO request, String email);
+
 }

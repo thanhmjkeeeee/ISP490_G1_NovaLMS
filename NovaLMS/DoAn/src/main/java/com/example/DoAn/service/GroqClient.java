@@ -394,46 +394,51 @@ public class GroqClient {
     if ("WRITING".equals(questionType)) {
       return String.format(
           """
-              Bạn là một chuyên gia soát lỗi (Proofreader) và giáo viên tiếng Anh IELTS.
-              Nhiệm vụ của bạn là hỗ trợ giáo viên tìm ra các LỖI SAI trong bài viết của học sinh dựa trên RUBRIC sau:
+              Bạn là một chuyên gia soát lỗi (Proofreader) và giáo viên tiếng Anh IELTS cấp cao.
+              Nhiệm vụ của bạn là soi xét từng từ, từng câu để tìm ra TẤT CẢ các lỗi sai trong bài viết của học sinh.
               
-              RUBRIC CẤU HÌNH (Sử dụng các tiêu chí này để phân loại lỗi):
+              HÃY THỰC HIỆN CÁC BƯỚC SAU:
+              1. KIỂM TRA CHÍNH TẢ (Spelling): Nhặt ra từng từ viết sai.
+              2. KIỂM TRA NGỮ PHÁP (Grammar): Tìm các lỗi chia thì, số ít/số nhiều, cấu trúc câu.
+              3. KIỂM TRA DÙNG TỪ (Vocabulary): Chỉ ra các từ dùng sai ngữ cảnh hoặc lặp từ.
+              4. CHẤM ĐIỂM DỰA TRÊN RUBRIC:
               %s
-              
-              HÃY TẬP TRUNG VÀO:
-              1. Lỗi chính tả (Spelling).
-              2. Lỗi ngữ pháp và cấu trúc câu (Grammar & Sentence Structure).
-              3. Lỗi dùng từ không phù hợp (Inappropriate Vocabulary).
-              4. Lỗi logic và liên kết (Logic & Cohesion).
 
-              YÊU CẦU QUAN TRỌNG: 
+              YÊU CẦU ĐỊNH DẠNG PHẦN FEEDBACK (Bắt buộc dùng tiếng Việt):
+              Trong phần "feedback", hãy liệt kê chi tiết các lỗi theo định dạng sau:
+              ### 🔍 DANH SÁCH LỖI SAI:
+              - ❌ [Lỗi sai] -> ✅ [Sửa lại]: (Giải thích ngắn gọn)
+              - ...
+              ### 💡 NHẬN XÉT CHUNG:
+              (Nhận xét về ưu điểm và hướng cải thiện)
+
+              YÊU CẦU KỸ THUẬT: 
               - Trả về ĐÚNG ĐỊNH DẠNG JSON bên dưới.
               - Điểm số cho từng tiêu chí phải nằm trong khoảng từ 0 đến %d.
-              - Phần "feedback": Liệt kê danh sách các lỗi sai cụ thể (Sử dụng tiếng Việt).
-              - Trong mỗi phần "aiReasoning" của rubric: Hãy chỉ ra các lỗi cụ thể dựa trên mô tả Band trong Rubric ở trên.
+              - Trong mỗi phần "aiReasoning" của rubric: Phải chỉ rõ các lỗi cụ thể tương ứng với tiêu chí đó.
               
               {
-                "overallBand": <dự đoán band tham khảo 0-%d>,
+                "overallBand": <dự đoán band 0-%d>,
                 "displayScore": <overallBand>,
                 "maxScore": %d,
-                "feedback": "- Lỗi chính tả: ... \n- Lỗi ngữ pháp: ... \n- Từ vựng: ...",
-                "overallBandDescriptor": "Proofreading Result",
+                "feedback": "...",
+                "overallBandDescriptor": "Detailed Proofreading",
                 "rubric": {
                   "task_achievement": {
                     "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
-                    "aiReasoning": "Lỗi về nội dung so với Rubric: [liệt kê lỗi]"
+                    "aiReasoning": "Lỗi nội dung: ..."
                   },
                   "lexical_resource": { 
                     "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
-                    "aiReasoning": "Lỗi từ vựng/chính tả so với Rubric: [liệt kê lỗi]"
+                    "aiReasoning": "Lỗi chính tả/từ vựng: ..."
                   },
                   "grammatical_range": { 
                     "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
-                    "aiReasoning": "Lỗi ngữ pháp/cấu trúc so với Rubric: [liệt kê lỗi]"
+                    "aiReasoning": "Lỗi ngữ pháp/cấu trúc: ..."
                   },
                   "coherence_cohesion": { 
                     "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
-                    "aiReasoning": "Lỗi liên kết/mạch lạc so với Rubric: [liệt kê lỗi]"
+                    "aiReasoning": "Lỗi liên kết: ..."
                   }
                 }
               }
