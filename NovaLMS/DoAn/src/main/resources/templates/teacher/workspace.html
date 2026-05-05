@@ -6118,7 +6118,11 @@
             const ratio = points / max;
             const maxBand = (wsGradingData && (wsGradingData.quizMaxBand || wsGradingData.totalMaxScore)) ? (wsGradingData.quizMaxBand || wsGradingData.totalMaxScore) : 9.0;
             const achieved = ratio * maxBand;
-            return Math.round(achieved * 2) / 2;
+            return roundIelts(achieved);
+        }
+
+        function roundIelts(score) {
+            return Math.round(score * 2) / 2;
         }
 
         function updateIeltSummary() {
@@ -6190,7 +6194,7 @@
                             if (score > 0) { sum += score; count++; }
                         }
                     });
-                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                    skillBands[s] = count > 0 ? roundIelts(sum / count) : 0;
                 } else if (s === 'SPEAKING') {
                     let sum = 0; let count = 0;
                     skillQs.forEach(q => {
@@ -6200,7 +6204,7 @@
                             count++;
                         }
                     });
-                    skillBands[s] = count > 0 ? (sum / count) : 0;
+                    skillBands[s] = count > 0 ? roundIelts(sum / count) : 0;
                 }
             });
 
@@ -6219,7 +6223,7 @@
                 return questions.some(q => q.skill === s);
             });
             const avg = activeSkills.length > 0 ? activeSkills.reduce((acc, s) => acc + skillBands[s], 0) / activeSkills.length : 0;
-            const overall = Math.round(avg * 2) / 2;
+            const overall = roundIelts(avg);
 
             const overallEl = document.getElementById('ws-gd-overall-band');
             if (overallEl) overallEl.textContent = overall.toFixed(1);
@@ -6620,7 +6624,7 @@
                 sum += val;
             });
             const avg = sum / 4;
-            const final = (Math.round(avg * 2) / 2).toFixed(1);
+            const final = roundIelts(avg).toFixed(1);
             const display = document.getElementById(`overall-writing-${qid}`);
             if (display) display.innerText = final;
             if (typeof updateIeltSummary === 'function') updateIeltSummary();
@@ -6643,7 +6647,7 @@
                 sum += val;
             });
             const avg = sum / 4;
-            const final = (Math.round(avg * 2) / 2).toFixed(1);
+            const final = roundIelts(avg).toFixed(1);
             const display = document.getElementById(`overall-speaking-${qid}`);
             if (display) display.innerText = final;
             if (typeof updateIeltSummary === 'function') updateIeltSummary();
