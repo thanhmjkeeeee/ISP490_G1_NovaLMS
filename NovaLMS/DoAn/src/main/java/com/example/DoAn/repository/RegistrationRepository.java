@@ -178,9 +178,11 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("SELECT r.status, COUNT(r) FROM Registration r GROUP BY r.status")
     List<Object[]> countByStatusDistribution();
 
-    /** Thống kê số lượng đăng ký theo danh mục khóa học */
     @Query("SELECT c.category.name, COUNT(r) FROM Registration r JOIN r.course c WHERE c.category IS NOT NULL GROUP BY c.category.name")
     List<Object[]> countEnrollmentsByCategory();
+
+    @Query("SELECT r.course.courseId, COUNT(r) FROM Registration r WHERE r.course.courseId IN :courseIds GROUP BY r.course.courseId")
+    List<Object[]> countByCourseIdsBatch(@Param("courseIds") List<Integer> courseIds);
 
     // Bổ sung các phương thức thiếu cho StudentServiceImpl
     List<Registration> findByClazz_ClassIdAndStatus(Integer classId, String status);

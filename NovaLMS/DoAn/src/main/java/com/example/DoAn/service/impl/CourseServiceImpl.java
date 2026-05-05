@@ -128,17 +128,7 @@ public class CourseServiceImpl implements ICourseService {
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public PageResponse<?> getAllCourses(int pageNo, int pageSize) {
         Page<Course> page = courseRepository.findAll(PageRequest.of(pageNo, pageSize));
-
-        List<CourseDetailResponse> list = page.getContent().stream()
-                .map(this::mapToResponse)
-                .toList();
-
-        return PageResponse.<CourseDetailResponse>builder()
-                .pageNo(pageNo)
-                .pageSize(pageSize)
-                .totalPages(page.getTotalPages())
-                .items(list)
-                .build();
+        return buildPageResponse(page, pageNo, pageSize);
     }
 
     @Override
@@ -214,9 +204,46 @@ public class CourseServiceImpl implements ICourseService {
         }
 
         Page<Course> page = courseRepository.findAll(spec, pageable);
+        return buildPageResponse(page, pageNo, pageSize);
+    }
 
-        List<CourseDetailResponse> list = page.getContent().stream()
-                .map(this::mapToResponse) // Sử dụng hàm map đã viết ở các bước trước
+    private PageResponse<CourseDetailResponse> buildPageResponse(Page<Course> page, int pageNo, int pageSize) {
+        List<Course> courses = page.getContent();
+        if (courses.isEmpty()) {
+            return PageResponse.<CourseDetailResponse>builder()
+                    .pageNo(pageNo)
+                    .pageSize(pageSize)
+                    .totalPages(page.getTotalPages())
+                    .items(java.util.Collections.emptyList())
+                    .build();
+        }
+
+        List<Integer> ids = courses.stream().map(Course::getCourseId).toList();
+
+        // Batch fetch registrations
+        java.util.Map<Integer, Long> regCounts = new java.util.HashMap<>();
+        registrationRepository.countByCourseIdsBatch(ids)
+                .forEach(row -> regCounts.put((Integer) row[0], (Long) row[1]));
+
+        // Batch fetch class counts
+        java.util.Map<Integer, Long> classCounts = new java.util.HashMap<>();
+        clazzRepository.countByCourseIdsBatch(ids)
+                .forEach(row -> classCounts.put((Integer) row[0], (Long) row[1]));
+
+        // Batch fetch teacher names
+        java.util.Map<Integer, List<String>> teacherNamesMap = new java.util.HashMap<>();
+        clazzRepository.findTeachersByCourseIdsBatch(ids)
+                .forEach(row -> {
+                    Integer cid = (Integer) row[0];
+                    String tname = (String) row[1];
+                    teacherNamesMap.computeIfAbsent(cid, k -> new java.util.ArrayList<>()).add(tname);
+                });
+
+        List<CourseDetailResponse> list = courses.stream()
+                .map(c -> mapToResponseOptimized(c, 
+                        regCounts.getOrDefault(c.getCourseId(), 0L),
+                        classCounts.getOrDefault(c.getCourseId(), 0L),
+                        teacherNamesMap.getOrDefault(c.getCourseId(), java.util.Collections.emptyList())))
                 .toList();
 
         return PageResponse.<CourseDetailResponse>builder()
@@ -227,7 +254,7 @@ public class CourseServiceImpl implements ICourseService {
                 .build();
     }
 
-    private CourseDetailResponse mapToResponse(Course course) {
+    private CourseDetailResponse mapToResponseOptimized(Course course, Long regCount, Long clCount, List<String> teachers) {
         return CourseDetailResponse.builder()
                 .courseId(course.getCourseId())
                 .courseCode(course.getCourseName())
@@ -243,18 +270,26 @@ public class CourseServiceImpl implements ICourseService {
                 .expertName(course.getExpert() != null ? course.getExpert().getFullName() : null)
                 .teacherId(course.getTeacher() != null ? course.getTeacher().getUserId() : null)
                 .teacherName(course.getTeacher() != null ? course.getTeacher().getFullName() : null)
-                .registrationCount(registrationRepository.countByCourse_CourseId(course.getCourseId()))
+                .registrationCount(regCount)
                 .numberOfSessions(course.getNumberOfSessions())
-                .classCount(course.getClasses() != null ? (long) course.getClasses().size() : 0L)
-                .teacherNames(course.getClasses() != null 
-                        ? course.getClasses().stream()
-                            .filter(c -> c.getTeacher() != null)
-                            .map(c -> c.getTeacher().getFullName())
-                            .distinct()
-                            .toList()
-                        : java.util.Collections.emptyList())
+                .classCount(clCount)
+                .teacherNames(teachers.stream().distinct().toList())
                 .isSelfStudy(course.getIsSelfStudy())
                 .build();
+    }
+
+    private CourseDetailResponse mapToResponse(Course course) {
+        Long regCount = registrationRepository.countByCourse_CourseId(course.getCourseId());
+        long classCount = clazzRepository.countByCourse_CourseId(course.getCourseId());
+        List<String> teachers = course.getClasses() != null 
+                ? course.getClasses().stream()
+                    .filter(c -> c.getTeacher() != null)
+                    .map(c -> c.getTeacher().getFullName())
+                    .distinct()
+                    .toList()
+                : java.util.Collections.emptyList();
+
+        return mapToResponseOptimized(course, regCount, classCount, teachers);
     }
 
     @Override

@@ -18,4 +18,10 @@ public interface ClazzRepository extends JpaRepository<Clazz, Integer> {
     List<Clazz> findByCourse_CourseId(Integer courseId);
     
     long countByCourse_CourseId(Integer courseId);
+
+    @Query("SELECT c.course.courseId, COUNT(c) FROM Clazz c WHERE c.course.courseId IN :courseIds GROUP BY c.course.courseId")
+    List<Object[]> countByCourseIdsBatch(@Param("courseIds") List<Integer> courseIds);
+
+    @Query("SELECT DISTINCT c.course.courseId, t.fullName FROM Clazz c JOIN c.teacher t WHERE c.course.courseId IN :courseIds")
+    List<Object[]> findTeachersByCourseIdsBatch(@Param("courseIds") List<Integer> courseIds);
 }
