@@ -29,6 +29,9 @@ public class QuestionBankResponseDTO {
     // cho MATCHING: options chỉ hiện LEFT, này là RIGHT
     private List<AnswerOptionResponseDTO> matchRightOptions;
 
+    // Danh sách câu hỏi con nếu là GROUP/PASSAGE
+    private List<QuestionBankResponseDTO> questions;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
