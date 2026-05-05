@@ -28,6 +28,7 @@ public interface IExpertModuleService {
         private Integer courseId;
         private String courseName;
         private String categoryName;
+        private String categoryValue;
         private String status;
         private Long moduleCount;
         private Long lessonCount;
