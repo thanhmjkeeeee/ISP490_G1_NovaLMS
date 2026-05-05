@@ -89,18 +89,25 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/public/**")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/files/preview")).permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/payment/webhook")).permitAll()
+                        
+                        // Phân quyền cho API (Specific first)
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/admin/debug/**")).permitAll()
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated()
-
-                        // Phân quyền cứng
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/admin/**")).hasRole("ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/manager/**")).hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/expert/**")).hasAnyRole("EXPERT", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/teacher/**")).hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/student/**")).hasAnyRole("STUDENT", "ADMIN")
+                        
+                        // Phân quyền cho View (Specific first)
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/registrations/**")).hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/admin/**")).hasRole("ADMIN")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/manager/**")).hasAnyRole("MANAGER", "ADMIN")
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/teacher/**")).hasRole("TEACHER")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/teacher/**")).hasAnyRole("TEACHER", "ADMIN")
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/expert/**")).hasAnyRole("EXPERT", "ADMIN")
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/expert/assignments/**")).hasAnyAuthority("ROLE_EXPERT", "ROLE_ADMIN")
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/student/**")).hasRole("STUDENT")
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/student/**")).hasAnyRole("STUDENT", "ADMIN")
 
+                        // Các API khác yêu cầu đăng nhập
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/**")).authenticated()
                         .anyRequest().authenticated()
                 )
 
