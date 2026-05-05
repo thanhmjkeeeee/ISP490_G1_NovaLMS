@@ -4972,6 +4972,17 @@
                 return;
             }
 
+            const confirmResult = await Swal.fire({
+                title: 'Xác nhận',
+                text: `Bạn có chắc chắn muốn ${newOpen ? 'mở' : 'đóng'} ${label.toLowerCase()} này không?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+
             try {
                 let url = `/api/v1/teacher/class-sessions/${sessionId}/quizzes/${quizId}/toggle-open`;
                 const res = await fetch(url, { method: 'PATCH' });
