@@ -1,5 +1,6 @@
 package com.example.DoAn.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -22,5 +23,6 @@ public class MyCourseDTO {
     private Integer totalQuizzes;
     private Double averageScore;
     private Double averageBand;
-    private boolean isSelfStudy;
+    @JsonProperty("isSelfStudy")
+    private Boolean isSelfStudy;
 }

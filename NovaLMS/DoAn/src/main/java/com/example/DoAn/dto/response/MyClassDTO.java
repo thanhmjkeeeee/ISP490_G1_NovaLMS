@@ -1,5 +1,6 @@
 package com.example.DoAn.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -17,5 +18,6 @@ public class MyClassDTO {
     private String status;
     private int studentCount;
     private int sessionCount;
-    private boolean isSelfStudy;
+    @JsonProperty("isSelfStudy")
+    private Boolean isSelfStudy;
 }

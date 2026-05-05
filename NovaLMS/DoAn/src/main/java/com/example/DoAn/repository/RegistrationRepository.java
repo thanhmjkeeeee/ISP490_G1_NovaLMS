@@ -54,6 +54,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     LEFT JOIN FETCH cl.teacher t
     WHERE r.user.userId = :userId 
       AND r.status = 'Approved'
+      AND (c.isSelfStudy IS NULL OR c.isSelfStudy = false)
       AND (:keyword IS NULL OR (cl IS NOT NULL AND LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%'))) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
       AND (:status IS NULL OR (cl IS NOT NULL AND cl.status = :status))
 """, countQuery = """
@@ -62,6 +63,7 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     LEFT JOIN r.clazz cl
     WHERE r.user.userId = :userId 
       AND r.status = 'Approved'
+      AND (c.isSelfStudy IS NULL OR c.isSelfStudy = false)
       AND (:keyword IS NULL OR (cl IS NOT NULL AND LOWER(cl.className) LIKE LOWER(CONCAT('%', :keyword, '%'))) OR LOWER(c.courseName) LIKE LOWER(CONCAT('%', :keyword, '%')))
       AND (:status IS NULL OR (cl IS NOT NULL AND cl.status = :status))
 """)
