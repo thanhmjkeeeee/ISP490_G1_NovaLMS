@@ -437,10 +437,6 @@
                                 <input type="text" class="form-control border-start-0 rounded-end-pill" id="quizSearch"
                                     placeholder="Tìm tên Quiz..." onkeyup="debounceSearch('QUIZ')">
                             </div>
-                            <button class="btn btn-outline-primary rounded-pill shadow-sm px-3 fw-bold small"
-                                id="btnBindExistingQuiz" onclick="openBindExpertQuizModal()" style="display:none;">
-                                <i class="bi bi-bank2 me-1"></i>Gắn Quiz có sẵn
-                            </button>
                             <button class="btn btn-primary rounded-pill shadow-sm px-3 fw-bold small" id="btnCreateQuiz"
                                 onclick="openCreateQuizModal()" style="display:none;">
                                 <i class="bi bi-plus-lg me-1"></i>Tạo Quiz mới
@@ -2610,13 +2606,10 @@
         loadQuizzes = async function (page = 0) {
             await originalLoadQuizzes(page);
             const btnCreate = document.getElementById('btnCreateQuiz');
-            const btnBind = document.getElementById('btnBindExistingQuiz');
             if (state.selectedClassId !== 'ALL') {
                 if (btnCreate) btnCreate.style.display = 'block';
-                if (btnBind) btnBind.style.display = 'block';
             } else {
                 if (btnCreate) btnCreate.style.display = 'none';
-                if (btnBind) btnBind.style.display = 'none';
             }
         };
 
