@@ -40,19 +40,25 @@ public class RescheduleService {
     }
 
     @Transactional
-    public ResponseData<Integer> createRequest(Integer sessionId, String newDateStr, String newStartTime, String reason, String userEmail) {
+    public ResponseData<Integer> createRequest(Integer sessionId, String newDateStr, String newStartTime, String reason,
+            String userEmail) {
         User user = userRepository.findByEmail(userEmail).orElse(null);
-        if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
+        if (user == null)
+            return ResponseData.error(401, "Người dùng không tồn tại");
 
-        // Khóa theo giáo viên để không thể tạo đồng thời hai yêu cầu PENDING trùng slot (hai buổi khác nhau).
+        // Khóa theo giáo viên để không thể tạo đồng thời hai yêu cầu PENDING trùng slot
+        // (hai buổi khác nhau).
         user = userRepository.findByIdForUpdate(user.getUserId()).orElse(null);
-        if (user == null) return ResponseData.error(401, "Người dùng không tồn tại");
+        if (user == null)
+            return ResponseData.error(401, "Người dùng không tồn tại");
 
         ClassSession session = classSessionRepository.findByIdForUpdate(sessionId).orElse(null);
-        if (session == null) return ResponseData.error(404, "Không tìm thấy buổi học");
+        if (session == null)
+            return ResponseData.error(404, "Không tìm thấy buổi học");
 
         // Check ownership
-        if (session.getClazz().getTeacher() == null || !session.getClazz().getTeacher().getUserId().equals(user.getUserId())) {
+        if (session.getClazz().getTeacher() == null
+                || !session.getClazz().getTeacher().getUserId().equals(user.getUserId())) {
             return ResponseData.error(403, "Bạn không có quyền gửi yêu cầu cho buổi học này");
         }
 
@@ -65,7 +71,7 @@ public class RescheduleService {
         LocalDateTime newDate;
         try {
             // Frontend sends YYYY-MM-DD
-                    newDate = LocalDate.parse(newDateStr).atStartOfDay();
+            newDate = LocalDate.parse(newDateStr).atStartOfDay();
         } catch (Exception e) {
             return ResponseData.error(400, "Định dạng ngày không hợp lệ (YYYY-MM-DD)");
         }
@@ -73,7 +79,8 @@ public class RescheduleService {
         // --- 1. Chặn đổi lịch buổi học trong quá khứ ---
         try {
             LocalTime oldTime = LocalTime.parse(session.getStartTime(), DateTimeFormatter.ofPattern("HH:mm"));
-            LocalDateTime originalSessionTime = session.getSessionDate().withHour(oldTime.getHour()).withMinute(oldTime.getMinute());
+            LocalDateTime originalSessionTime = session.getSessionDate().withHour(oldTime.getHour())
+                    .withMinute(oldTime.getMinute());
             if (originalSessionTime.isBefore(LocalDateTime.now())) {
                 return ResponseData.error(400, "Không thể đổi lịch cho buổi học đã diễn ra.");
             }
@@ -82,7 +89,8 @@ public class RescheduleService {
         }
 
         // --- 2. Chặn đổi lịch trùng với lịch hiện tại ---
-        if (newDate.toLocalDate().isEqual(session.getSessionDate().toLocalDate()) && newStartTime.equals(session.getStartTime())) {
+        if (newDate.toLocalDate().isEqual(session.getSessionDate().toLocalDate())
+                && newStartTime.equals(session.getStartTime())) {
             return ResponseData.error(400, "Thời gian đổi lịch không được trùng với lịch hiện tại.");
         }
 
@@ -99,10 +107,12 @@ public class RescheduleService {
         }
 
         // --- 2. Chống trùng lịch với các yêu cầu ĐỔI LỊCH ĐANG CHỜ DUYỆT (PENDING) ---
-        boolean conflictPending = rescheduleRequestRepository.existsByCreatedBy_UserIdAndNewDateAndNewStartTimeAndStatus(
-                user.getUserId(), newDate, newStartTime, "PENDING");
+        boolean conflictPending = rescheduleRequestRepository
+                .existsByCreatedBy_UserIdAndNewDateAndNewStartTimeAndStatus(
+                        user.getUserId(), newDate, newStartTime, "PENDING");
         if (conflictPending) {
-            return ResponseData.error(400, "Trùng lịch! Bạn đang có một yêu cầu đổi lịch khác vào ca này đang chờ duyệt.");
+            return ResponseData.error(400,
+                    "Trùng lịch! Bạn đang có một yêu cầu đổi lịch khác vào ca này đang chờ duyệt.");
         }
 
         RescheduleRequest request = RescheduleRequest.builder()
@@ -117,7 +127,8 @@ public class RescheduleService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // Kiểm tra lại ngay trước khi ghi (phòng các race hiếm gặp sau khi validate dài).
+        // Kiểm tra lại ngay trước khi ghi (phòng các race hiếm gặp sau khi validate
+        // dài).
         if (rescheduleRequestRepository.findPendingBySessionId(sessionId).isPresent()) {
             return ResponseData.error(400, "Bạn đã gửi yêu cầu đổi lịch cho buổi này, vui lòng chờ duyệt");
         }
@@ -129,16 +140,15 @@ public class RescheduleService {
             String className = session.getClazz().getClassName();
             String dateLabel = request.getNewDate().toLocalDate().toString();
             String teacherName = user.getFullName();
-            
+
             // Fix: Sử dụng findByRole_Value vì repo đã có method này
             List<User> managers = userRepository.findByRole_Value("ROLE_MANAGER");
             for (User manager : managers) {
                 notificationService.sendRescheduleRequestForManager(
-                    Long.valueOf(manager.getUserId()), 
-                    teacherName, 
-                    className, 
-                    dateLabel
-                );
+                        Long.valueOf(manager.getUserId()),
+                        teacherName,
+                        className,
+                        dateLabel);
             }
         } catch (Exception e) {
             log.error("Lỗi gửi thông báo cho Manager: {}", e.getMessage());
@@ -148,10 +158,13 @@ public class RescheduleService {
     }
 
     @Transactional(readOnly = true)
-    public ResponseData<Page<RescheduleResponseDTO>> getRequestsForManager(String teacherName, String status, int page, int size) {
+    public ResponseData<Page<RescheduleResponseDTO>> getRequestsForManager(String teacherName, String status, int page,
+            int size) {
         // Normalize empty filters to null
-        if (teacherName != null && teacherName.trim().isEmpty()) teacherName = null;
-        if (status != null && status.trim().isEmpty()) status = null;
+        if (teacherName != null && teacherName.trim().isEmpty())
+            teacherName = null;
+        if (status != null && status.trim().isEmpty())
+            status = null;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<RescheduleRequest> result = rescheduleRequestRepository.findAllWithFilter(teacherName, status, pageable);
@@ -174,7 +187,9 @@ public class RescheduleService {
                 .session(RescheduleResponseDTO.SessionDTO.builder()
                         .sessionNumber(r.getSession() != null ? r.getSession().getSessionNumber() : 0)
                         .clazz(RescheduleResponseDTO.ClassDTO.builder()
-                                .className(r.getSession() != null && r.getSession().getClazz() != null ? r.getSession().getClazz().getClassName() : "Lớp học rỗng")
+                                .className(r.getSession() != null && r.getSession().getClazz() != null
+                                        ? r.getSession().getClazz().getClassName()
+                                        : "Lớp học rỗng")
                                 .build())
                         .build())
                 .build());
@@ -185,7 +200,8 @@ public class RescheduleService {
     @Transactional
     public ResponseData<Void> updateStatus(Integer requestId, String status, String managerNote) {
         RescheduleRequest request = rescheduleRequestRepository.findByIdForUpdate(requestId).orElse(null);
-        if (request == null) return ResponseData.error(404, "Không tìm thấy yêu cầu");
+        if (request == null)
+            return ResponseData.error(404, "Không tìm thấy yêu cầu");
 
         if (!"PENDING".equals(request.getStatus())) {
             return ResponseData.error(400, "Yêu cầu này đã được xử lý");
@@ -218,14 +234,17 @@ public class RescheduleService {
     }
 
     private void notifyTeacherOnDecision(RescheduleRequest request) {
-        if (request == null || request.getCreatedBy() == null) return;
+        if (request == null || request.getCreatedBy() == null)
+            return;
         User teacher = request.getCreatedBy();
         Long teacherId = Long.valueOf(teacher.getUserId());
         String teacherName = teacher.getFullName() != null ? teacher.getFullName() : "";
 
         String className = request.getSession() != null && request.getSession().getClazz() != null
                 ? request.getSession().getClazz().getClassName() != null
-                        ? request.getSession().getClazz().getClassName() : "" : "";
+                        ? request.getSession().getClazz().getClassName()
+                        : ""
+                : "";
         String newDate = request.getNewDate() != null ? request.getNewDate().toLocalDate().toString() : "";
         String newTime = request.getNewStartTime() != null ? request.getNewStartTime() : "";
         String managerNote = request.getManagerNote() != null ? request.getManagerNote() : "";
@@ -234,12 +253,14 @@ public class RescheduleService {
         // ── Internal Notification ───────────────────────────────────────────
         try {
             if ("APPROVED".equals(status)) {
-                notificationService.sendSessionRescheduled(teacherId, className, newDate, newTime, "Đã được phê duyệt: " + managerNote);
+                notificationService.sendSessionRescheduled(teacherId, className, newDate, newTime,
+                        "Đã được phê duyệt: " + managerNote);
             } else if ("REJECTED".equals(status)) {
-                notificationService.send(teacherId, "SESSION_RESCHEDULE_REJECTED", 
-                    "Yêu cầu đổi lịch bị từ chối", 
-                    "Yêu cầu đổi lịch lớp " + className + " sang ngày " + newDate + " đã bị từ chối. Lý do: " + managerNote, 
-                    "/teacher/workspace");
+                notificationService.send(teacherId, "SESSION_RESCHEDULE_REJECTED",
+                        "Yêu cầu đổi lịch bị từ chối",
+                        "Yêu cầu đổi lịch lớp " + className + " sang ngày " + newDate + " đã bị từ chối. Lý do: "
+                                + managerNote,
+                        "/teacher/workspace");
             }
         } catch (Exception e) {
             log.error("Error sending internal notification to teacher: {}", e.getMessage());
@@ -252,7 +273,8 @@ public class RescheduleService {
                     emailService.sendSessionRescheduledEmail(teacher.getEmail(), teacherName, className,
                             "", "", newDate, newTime, managerNote);
                 } else if ("REJECTED".equals(status)) {
-                    emailService.sendSessionCancelledEmail(teacher.getEmail(), teacherName, className, newDate, newTime, managerNote);
+                    emailService.sendSessionCancelledEmail(teacher.getEmail(), teacherName, className, newDate, newTime,
+                            managerNote);
                 }
             }
         } catch (Exception e) {
@@ -271,21 +293,30 @@ public class RescheduleService {
     }
 
     public int calculateSlotNumber(String startTime) {
-        if (startTime == null || startTime.length() < 5) return 1;
+        if (startTime == null || startTime.length() < 5)
+            return 1;
         int hour;
         try {
             hour = Integer.parseInt(startTime.substring(0, 2));
         } catch (Exception e) {
             return 1;
         }
-        if (hour >= 7 && hour < 9) return 1;
-        if (hour >= 9 && hour < 11) return 2;
-        if (hour >= 13 && hour < 15) return 3;
-        if (hour >= 15 && hour < 17) return 4;
-        if (hour >= 18 && hour < 20) return 5;
-        if (hour < 7) return 1;
-        if (hour >= 11 && hour < 13) return 2;
-        if (hour >= 17 && hour < 18) return 4;
+        if (hour >= 7 && hour < 9)
+            return 1;
+        if (hour >= 9 && hour < 11)
+            return 2;
+        if (hour >= 13 && hour < 15)
+            return 3;
+        if (hour >= 15 && hour < 17)
+            return 4;
+        if (hour >= 18 && hour < 20)
+            return 5;
+        if (hour < 7)
+            return 1;
+        if (hour >= 11 && hour < 13)
+            return 2;
+        if (hour >= 17 && hour < 18)
+            return 4;
         return 5;
     }
 
@@ -298,10 +329,12 @@ public class RescheduleService {
     @Transactional(readOnly = true)
     public List<RescheduleResponseDTO> getTeacherRequests(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return java.util.Collections.emptyList();
-        
-        List<RescheduleRequest> requests = rescheduleRequestRepository.findByCreatedBy_UserIdWithDetails(user.getUserId());
-        
+        if (user == null)
+            return java.util.Collections.emptyList();
+
+        List<RescheduleRequest> requests = rescheduleRequestRepository
+                .findByCreatedBy_UserIdWithDetails(user.getUserId());
+
         return requests.stream().map(this::mapToDTO).collect(java.util.stream.Collectors.toList());
     }
 
@@ -323,7 +356,9 @@ public class RescheduleService {
                 .session(RescheduleResponseDTO.SessionDTO.builder()
                         .sessionNumber(r.getSession() != null ? r.getSession().getSessionNumber() : 0)
                         .clazz(RescheduleResponseDTO.ClassDTO.builder()
-                                .className(r.getSession() != null && r.getSession().getClazz() != null ? r.getSession().getClazz().getClassName() : "Lớp học rỗng")
+                                .className(r.getSession() != null && r.getSession().getClazz() != null
+                                        ? r.getSession().getClazz().getClassName()
+                                        : "Lớp học rỗng")
                                 .build())
                         .build())
                 .build();
