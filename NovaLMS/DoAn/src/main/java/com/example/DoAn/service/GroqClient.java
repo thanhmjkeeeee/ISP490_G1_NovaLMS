@@ -90,9 +90,14 @@ public class GroqClient {
         throw new RuntimeException("Empty audio file.");
 
       // 3. Gọi API chuyển đổi (OpenAI-compatible endpoint)
-      String transcriptUrl = this.apiUrl + "/audio/transcriptions";
+      // Nếu là key của Groq thật (gsk_...), ta gọi trực tiếp api.groq.com để tránh lỗi 500 từ proxy
+      String transcriptUrl = (cleanKey.startsWith("gsk_")) 
+          ? "https://api.groq.com/openai/v1/audio/transcriptions"
+          : this.apiUrl + "/audio/transcriptions";
+
       log.info("[GROQ-STT] Sending transcription request to {} using key ending in ...{}", 
           transcriptUrl, cleanKey.length() > 5 ? cleanKey.substring(cleanKey.length() - 5) : "***");
+
 
       okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
           audioBytes,
@@ -198,54 +203,29 @@ public class GroqClient {
 
         log.debug("[GROQ-RAW-CONTENT] {}", content);
 
-        // Robust JSON cleaning
-        content = content.trim();
-        
-        // 1. Remove Markdown code blocks if present
-        if (content.startsWith("```")) {
-            // Find first newline after ```json or ```
-            int firstNewline = content.indexOf("\n");
-            if (firstNewline != -1) {
-                content = content.substring(firstNewline).trim();
-            } else {
-                // Just strip the first ```
-                content = content.substring(3).trim();
-            }
-            
-            // Strip trailing ```
-            if (content.endsWith("```")) {
-                content = content.substring(0, content.length() - 3).trim();
-            }
-        }
-
-        // 2. Extract based on braces for extra safety
+        // Robust JSON extraction: Find the first { and the last }
         int firstBrace = content.indexOf("{");
         int lastBrace = content.lastIndexOf("}");
         
-        if (firstBrace >= 0) {
-            if (lastBrace > firstBrace) {
-                content = content.substring(firstBrace, lastBrace + 1);
-            } else {
-                // Truncated? Take from first brace to end
-                log.warn("[AI-FIX] Missing closing brace, attempting to parse from first brace.");
-                content = content.substring(firstBrace);
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            content = content.substring(firstBrace, lastBrace + 1);
+        } else {
+            log.warn("[AI-RAW] Could not find valid JSON braces. Content preview: {}", 
+                content.length() > 100 ? content.substring(0, 100) : content);
+        }
+
+        // AUTO-PATCH if truncated or malformed
+        content = content.trim();
+        if (!content.isEmpty() && !content.endsWith("}")) {
+            log.warn("[AI-FIX] JSON appears truncated, attempting to close braces...");
+            long openCount = content.chars().filter(ch -> ch == '{').count();
+            long closeCount = content.chars().filter(ch -> ch == '}').count();
+            while (closeCount < openCount) {
+                content += "}";
+                closeCount++;
             }
         }
 
-        // 3. AUTO-PATCH if truncated or malformed
-        content = content.trim();
-        if (!content.isEmpty()) {
-            if (!content.endsWith("}")) {
-                log.warn("[AI-FIX] JSON appears truncated, adding missing braces...");
-                // Count opening vs closing braces to be smarter
-                long openCount = content.chars().filter(ch -> ch == '{').count();
-                long closeCount = content.chars().filter(ch -> ch == '}').count();
-                while (closeCount < openCount) {
-                    content += "}";
-                    closeCount++;
-                }
-            }
-        }
 
         try {
             return mapper.readValue(content, GradingResponse.class);

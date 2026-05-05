@@ -166,8 +166,8 @@ public class GroqGradingServiceImpl implements GroqGradingService {
                     // Save transcript back to database for UI display
                     answer.setAnsweredOptions(objectMapper.writeValueAsString(userAnswer));
                 } catch (Exception e) {
-                    log.warn("STT Failed, continuing with empty text for grading.");
-                    userAnswer = "[Âm thanh không thể xử lý]";
+                    log.warn("STT Failed: {}", e.getMessage());
+                    userAnswer = ""; // Set to empty to trigger "no speech detected" logic below
                 }
             }
 
