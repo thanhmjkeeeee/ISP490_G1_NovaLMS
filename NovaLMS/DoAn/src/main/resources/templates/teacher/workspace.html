@@ -6133,9 +6133,10 @@
 
             if (!area) return;
 
-            const isIelts = (wsGradingData.quizCategory && wsGradingData.quizCategory.toUpperCase() === 'IELTS') ||
+            const isIelts = (wsGradingData.quizCategory && (wsGradingData.quizCategory.toUpperCase() === 'IELTS' || wsGradingData.quizCategory.toUpperCase().includes('ASSIGNMENT'))) ||
                 (wsGradingData.quizTitle && wsGradingData.quizTitle.toUpperCase().includes('IELTS')) ||
-                (wsGradingData.className && wsGradingData.className.toUpperCase().includes('IELTS'));
+                (wsGradingData.className && wsGradingData.className.toUpperCase().includes('IELTS')) ||
+                (wsGradingData.quizMaxBand > 0);
 
             if (!isIelts) {
                 area.classList.add('d-none');
