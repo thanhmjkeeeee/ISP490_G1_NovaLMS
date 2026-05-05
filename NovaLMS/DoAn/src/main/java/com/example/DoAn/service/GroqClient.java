@@ -198,18 +198,53 @@ public class GroqClient {
 
         log.debug("[GROQ-RAW-CONTENT] {}", content);
 
-        // Robust JSON extraction
-        int firstBrace = content.indexOf("{");
-        int lastBrace = content.lastIndexOf("}");
-        if (firstBrace >= 0 && lastBrace > firstBrace) {
-            content = content.substring(firstBrace, lastBrace + 1);
+        // Robust JSON cleaning
+        content = content.trim();
+        
+        // 1. Remove Markdown code blocks if present
+        if (content.startsWith("```")) {
+            // Find first newline after ```json or ```
+            int firstNewline = content.indexOf("\n");
+            if (firstNewline != -1) {
+                content = content.substring(firstNewline).trim();
+            } else {
+                // Just strip the first ```
+                content = content.substring(3).trim();
+            }
+            
+            // Strip trailing ```
+            if (content.endsWith("```")) {
+                content = content.substring(0, content.length() - 3).trim();
+            }
         }
 
-        // AUTO-PATCH if truncated
-        if (content.contains("\"rubric\":") && !content.endsWith("}")) {
-          log.warn("[AI-FIX] JSON bị cắt cụt, đang cố gắng đóng ngoặc...");
-          if (!content.endsWith("}")) content += "}";
-          if (!content.endsWith("}}")) content += "}";
+        // 2. Extract based on braces for extra safety
+        int firstBrace = content.indexOf("{");
+        int lastBrace = content.lastIndexOf("}");
+        
+        if (firstBrace >= 0) {
+            if (lastBrace > firstBrace) {
+                content = content.substring(firstBrace, lastBrace + 1);
+            } else {
+                // Truncated? Take from first brace to end
+                log.warn("[AI-FIX] Missing closing brace, attempting to parse from first brace.");
+                content = content.substring(firstBrace);
+            }
+        }
+
+        // 3. AUTO-PATCH if truncated or malformed
+        content = content.trim();
+        if (!content.isEmpty()) {
+            if (!content.endsWith("}")) {
+                log.warn("[AI-FIX] JSON appears truncated, adding missing braces...");
+                // Count opening vs closing braces to be smarter
+                long openCount = content.chars().filter(ch -> ch == '{').count();
+                long closeCount = content.chars().filter(ch -> ch == '}').count();
+                while (closeCount < openCount) {
+                    content += "}";
+                    closeCount++;
+                }
+            }
         }
 
         try {
