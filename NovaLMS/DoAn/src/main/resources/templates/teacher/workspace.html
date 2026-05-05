@@ -1539,6 +1539,37 @@
     </div>
 
     <script th:inline="none">
+        function wsMarkdownToHtml(md) {
+            if (!md) return '';
+            let html = md.trim();
+            
+            // 1. Headers (### Heading)
+            html = html.replace(/^###\s+(.*$)/gim, '<h6 class="fw-bold text-primary mt-3 mb-2">$1</h6>');
+            html = html.replace(/^##\s+(.*$)/gim, '<h5 class="fw-bold text-primary mt-3 mb-2">$1</h5>');
+            
+            // 2. Bold (**text**)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-dark fw-bold">$1</strong>');
+            
+            // 3. Lists (- item) - handle each line
+            html = html.split('\n').map(line => {
+                if (line.trim().startsWith('- ')) {
+                    return `<div class="d-flex align-items-start gap-2 mb-1">
+                                <i class="bi bi-dot text-primary mt-1"></i>
+                                <span>${line.trim().substring(2)}</span>
+                            </div>`;
+                }
+                return line;
+            }).join('\n');
+            
+            // 4. Line breaks (preserve existing formatting but replace \n with <br>)
+            html = html.replace(/\n/g, '<br>');
+            
+            // 5. Clean up any double br
+            html = html.replace(/(<br>){3,}/g, '<br><br>');
+            
+            return html;
+        }
+
         window.wsShowSessionQuizzes = function (sessionId) {
             const session = wsAllSessionsForTable.find(s => s.sessionId == sessionId);
             if (!session) return;
@@ -6593,13 +6624,20 @@
                                         <div class="bg-primary p-1 rounded" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-robot text-white small"></i></div>
                                         <span class="text-white fw-bold extra-small text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">AI ASSESSMENT</span>
                                     </div>
-                                    <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-xs btn-outline-light py-0 px-2" style="font-size: 0.6rem;" onclick="wsReGradeAi(${q.questionId})">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>RE-TRY AI
+                                        </button>
+                                        <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
+                                    </div>
                                 </div>
                                 <div class="card-body p-3 bg-light bg-opacity-50">
-                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;">
-                                        ${q.aiFeedback || '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
+                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;" id="ai-feedback-${q.questionId}">
+                                        ${q.aiFeedback ? wsMarkdownToHtml(q.aiFeedback) : '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
                                     </div>
-                                    ${renderAiRubric(q.aiRubricJson)}
+                                    <div id="ai-rubric-${q.questionId}">
+                                        ${renderAiRubric(q.aiRubricJson)}
+                                    </div>
                                 </div>
                             </div>
 
@@ -6659,13 +6697,20 @@
                                         <div class="bg-primary p-1 rounded" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-robot text-white small"></i></div>
                                         <span class="text-white fw-bold extra-small text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">AI ASSESSMENT</span>
                                     </div>
-                                    <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-xs btn-outline-light py-0 px-2" style="font-size: 0.6rem;" onclick="wsReGradeAi(${q.questionId})">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>RE-TRY AI
+                                        </button>
+                                        <span class="badge bg-primary rounded-pill" style="font-size: 0.6rem;">BETA</span>
+                                    </div>
                                 </div>
                                 <div class="card-body p-3 bg-light bg-opacity-50">
-                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;">
-                                        ${q.aiFeedback || '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
+                                    <div class="p-3 rounded-3 bg-white border border-dashed text-dark mb-0 shadow-sm" style="font-size: 0.85rem; line-height: 1.5;" id="ai-feedback-${q.questionId}">
+                                        ${q.aiFeedback ? wsMarkdownToHtml(q.aiFeedback) : '<span class="text-muted fst-italic">AI feedback unavailable...</span>'}
                                     </div>
-                                    ${renderAiRubric(q.aiRubricJson)}
+                                    <div id="ai-rubric-${q.questionId}">
+                                        ${renderAiRubric(q.aiRubricJson)}
+                                    </div>
                                 </div>
                             </div>
 
