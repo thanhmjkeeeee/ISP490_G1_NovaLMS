@@ -502,13 +502,16 @@
                 <!-- TAB 5: CHẤM BÀI -->
                 <div class="tab-pane fade" id="tab-grading" role="tabpanel">
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                        <div>
-                            <h5 class="fw-bold mb-1"><i class="bi bi-pencil-square me-2 text-primary"></i>Danh sách bài
-                                nộp cần chấm</h5>
-                            <p class="text-muted small mb-0">Hệ thống chấm tự động LISTENING/READING. Cần tải bài
-                                SPEAKING/WRITING để chấm thủ công.</p>
+                        <div class="d-flex align-items-center gap-3">
+                            <button id="gradingBackBtn" class="btn btn-outline-secondary rounded-pill btn-sm" style="display:none;" onclick="loadGradingClassList()">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <div>
+                                <h5 class="fw-bold mb-1" id="gradingTabTitle"><i class="bi bi-pencil-square me-2 text-primary"></i>Danh sách bài nộp cần chấm</h5>
+                                <p class="text-muted small mb-0" id="gradingTabDesc">Hệ thống chấm tự động LISTENING/READING. Cần tải bài SPEAKING/WRITING để chấm thủ công.</p>
+                            </div>
                         </div>
-                        <div class="input-group input-group-sm" style="width: 250px;">
+                        <div id="gradingSearchContainer" class="input-group input-group-sm" style="width: 250px; display:none;">
                             <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i
                                     class="bi bi-search text-muted"></i></span>
                             <input type="text" class="form-control border-start-0 rounded-end-pill" id="gradingSearch"
@@ -5539,9 +5542,7 @@
 
 
         // --- TAB 5: GRADING QUEUE ---
-        async function loadGradingQueue(page = 0) {
-            state.gradingPage = page;
-            const classId = state.selectedClassId;
+        async function loadGradingClassList() {
             const container = document.getElementById('gradingQueueArea');
             if (!container) return;
 
@@ -5550,13 +5551,71 @@
             const detailArea = document.getElementById('gradingDetailArea');
             if (detailArea) detailArea.style.display = 'none';
 
-            // Allow loading for ALL classes if needed, or if allClasses is empty
-            const classFilterStr = (classId === 'ALL' || !classId) ? '' : `&classId=${classId}`;
+            // Cập nhật giao diện header
+            document.getElementById('gradingTabTitle').innerHTML = '<i class="bi bi-pencil-square me-2 text-primary"></i>Chọn lớp học cần chấm';
+            document.getElementById('gradingTabDesc').innerText = 'Danh sách các lớp học bạn đang phụ trách. Chọn một lớp để xem chi tiết bài nộp.';
+            document.getElementById('gradingBackBtn').style.display = 'none';
+            document.getElementById('gradingSearchContainer').style.display = 'none';
+
+            if (!state.allClasses || state.allClasses.length === 0) {
+                container.innerHTML = `<div class="text-center py-5 text-muted">Không tìm thấy lớp học nào.</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+            <div class="row g-4 mt-1">
+                ${state.allClasses.map(c => `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 border-0 shadow-sm rounded-4 hover-up transition-all" style="cursor:pointer;" onclick="loadGradingQueue(0, ${c.classId}, '${c.className}')">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded-4 me-3">
+                                        <i class="bi bi-people-fill text-primary fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">${wsSafeHtml(c.className)}</h6>
+                                        <small class="text-muted">${wsSafeHtml(c.courseName || 'Khóa học')}</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <span class="badge bg-light text-muted border small px-3 py-2 rounded-pill">
+                                        <i class="bi bi-person me-1"></i>${c.studentCount || 0} học viên
+                                    </span>
+                                    <span class="text-primary fw-bold small">Xem bài nộp <i class="bi bi-chevron-right ms-1"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+
+        async function loadGradingQueue(page = 0, classId = null, className = '') {
+            state.gradingPage = page;
+            const container = document.getElementById('gradingQueueArea');
+            if (!container) return;
+
+            // Nếu không có classId và chưa chọn lớp cụ thể, hiển thị danh sách lớp
+            if (!classId) {
+                loadGradingClassList();
+                return;
+            }
+
+            // Cập nhật giao diện header khi đã chọn lớp
+            document.getElementById('gradingTabTitle').innerHTML = `<i class="bi bi-pencil-square me-2 text-primary"></i>Bài nộp lớp: ${wsSafeHtml(className)}`;
+            document.getElementById('gradingTabDesc').innerText = 'Danh sách các bài Speaking/Writing cần giáo viên chấm điểm thủ công.';
+            document.getElementById('gradingBackBtn').style.display = 'block';
+            document.getElementById('gradingSearchContainer').style.display = 'flex';
+
+            // Đảm bảo ẩn màn hình chi tiết và hiện màn hình danh sách
+            container.style.display = 'block';
+            const detailArea = document.getElementById('gradingDetailArea');
+            if (detailArea) detailArea.style.display = 'none';
 
             // Fetch Assignments
-            let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=0&size=500${classFilterStr}`;
+            let assUrl = `/api/v1/teacher/assignment-results?status=PENDING_SPEAKING,PENDING_WRITING,PENDING_BOTH&page=0&size=500&classId=${classId}`;
             // Fetch Quizzes
-            let quizUrl = `/api/v1/teacher/quiz-results/grading?page=0&size=500${classFilterStr}`;
+            let quizUrl = `/api/v1/teacher/quiz-results/grading?page=0&size=500&classId=${classId}`;
 
             const query = (document.getElementById('gradingSearch')?.value || '').toLowerCase();
 
@@ -5605,7 +5664,12 @@
                 const pageRows = mergedItems.slice(page * pageSize, (page + 1) * pageSize);
 
                 if (pageRows.length === 0) {
-                    container.innerHTML = `<div class="text-center py-5 text-muted">Không tìm thấy bài nào cần chấm.</div>`;
+                    container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-check2-circle fs-1 text-success opacity-50"></i>
+                        <p class="mt-3 text-muted">Lớp học này hiện không có bài nào cần chấm.</p>
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill mt-2" onclick="loadGradingClassList()">Quay lại danh sách lớp</button>
+                    </div>`;
                     return;
                 }
 
@@ -5646,7 +5710,7 @@
                     </table>
                 </div>`;
 
-                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, 'loadGradingQueue');
+                const pagHtml = renderWsPagination({ number: page, totalPages: totalPages, first: page === 0, last: page === totalPages - 1 }, `loadGradingQueue`, [classId, `'${className}'`]);
                 if (pagHtml) container.innerHTML += pagHtml;
             } catch (err) {
                 console.error(err);
@@ -5936,7 +6000,7 @@
             else if (id === 'tab-schedule-btn') loadSchedule();
             else if (id === 'id-quiz-btn' || id === 'tab-quiz-btn') loadQuizzes();
             else if (id === 'tab-assignment-btn') loadAssignments();
-            else if (id === 'tab-grading-btn') loadGradingQueue();
+            else if (id === 'tab-grading-btn') loadGradingClassList();
             else if (id === 'tab-graded-btn') loadGradedResults();
             else if (id === 'tab-requests-btn') loadUnlockRequests();
         }
