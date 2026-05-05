@@ -6563,7 +6563,7 @@
                                 <div class="question-content-premium mb-4 shadow-sm">
                                     ${q.content || '—'}
                                 </div>
-                                ${((q.audioUrl || q.studentAudioUrl) ? `<div class="mb-4 p-3 rounded-4 bg-light border border-dashed"><label class="extra-small fw-bold text-muted text-uppercase mb-2 d-block" style="font-size: 0.6rem;"><i class="bi bi-play-circle me-1"></i> Audio Record</label><audio controls src="${(q.audioUrl || q.studentAudioUrl)}" class="w-100" style="height:35px;"></audio></div>` : '')}
+                                ${((q.audioUrl) ? `<div class="mb-4 p-3 rounded-4 bg-light border border-dashed"><label class="extra-small fw-bold text-muted text-uppercase mb-2 d-block" style="font-size: 0.6rem;"><i class="bi bi-play-circle me-1"></i> Audio Record</label><audio controls src="${(q.audioUrl)}" class="w-100" style="height:35px;"></audio></div>` : '')}
                                 ${premiumAnsHtml}
                                 ${manualHtml}
                             </div>
