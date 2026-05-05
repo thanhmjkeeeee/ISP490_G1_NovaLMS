@@ -570,29 +570,58 @@ function toggleGroup(groupId, btn) {
         detailRow.classList.remove('d-none');
         icon.className = 'bi bi-dash';
         
-        // Fetch or render subquestions
         const group = findLocalItem(groupId, 'GROUP');
         if (group && group.questions) {
-            contentBox.innerHTML = `
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-header bg-white py-2 small fw-bold text-primary">Danh sách câu hỏi trong bộ</div>
-                    <div class="list-group list-group-flush">
-                        ${group.questions.map((sq, idx) => `
-                            <div class="list-group-item bg-transparent py-2">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="small"><span class="text-muted me-2">${idx+1}.</span> ${escapeHtml(sq.content)}</div>
-                                    <div class="small fw-bold text-info">${typeName(sq.questionType)}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+            renderGroupContent(group, contentBox);
+        } else {
+            contentBox.innerHTML = '<div class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Đang tải câu hỏi con...</div>';
+            fetch(`/api/v1/expert/question-bank/groups/${groupId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 200 && res.data) {
+                        if (group) group.questions = res.data.questions;
+                        renderGroupContent(res.data, contentBox);
+                    } else {
+                        contentBox.innerHTML = '<div class="text-center py-2 text-danger">Lỗi tải dữ liệu</div>';
+                    }
+                }).catch(e => {
+                    contentBox.innerHTML = '<div class="text-center py-2 text-danger">Lỗi kết nối</div>';
+                });
         }
     } else {
         detailRow.classList.add('d-none');
         icon.className = 'bi bi-plus';
     }
+}
+
+function renderGroupContent(group, container) {
+    if (!group.questions || group.questions.length === 0) {
+        container.innerHTML = '<div class="p-3 text-center text-muted">Không có câu hỏi con nào.</div>';
+        return;
+    }
+    container.innerHTML = `
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-2 small fw-bold text-primary d-flex justify-content-between">
+                <span>Danh sách câu hỏi trong bộ</span>
+                <span class="text-muted">${group.questions.length} câu hỏi</span>
+            </div>
+            <div class="list-group list-group-flush">
+                ${group.questions.map((sq, idx) => `
+                    <div class="list-group-item bg-transparent py-2">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div class="small">
+                                <span class="text-muted me-2">${idx+1}.</span> 
+                                <span class="fw-medium">${escapeHtml(sq.content || '—')}</span>
+                            </div>
+                            <div class="text-end" style="min-width: 100px;">
+                                <span class="badge bg-light text-info border">${typeName(sq.questionType)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
 }
 
 // Global variable to store loaded questions for quick access

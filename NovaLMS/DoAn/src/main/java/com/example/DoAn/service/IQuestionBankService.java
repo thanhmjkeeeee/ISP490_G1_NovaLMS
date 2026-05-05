@@ -20,4 +20,6 @@ public interface IQuestionBankService {
         int page, int size);
 
     QuestionBankResponseDTO changeStatus(Integer questionId, java.util.Map<String, String> body, String email);
+
+    QuestionBankResponseDTO getGroupDetails(Integer groupId);
 }

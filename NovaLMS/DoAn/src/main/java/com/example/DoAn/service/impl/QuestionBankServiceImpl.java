@@ -269,7 +269,23 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
     @Transactional(readOnly = true)
     public QuestionBankResponseDTO getQuestionById(Integer questionId) {
         Question question = findQuestion(questionId);
-        return toResponseDTO(question);
+        return toFullResponseDTO(question);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuestionBankResponseDTO getGroupDetails(Integer groupId) {
+        QuestionGroup group = questionGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bộ câu hỏi ID: " + groupId));
+        
+        QuestionBankResponseDTO dto = toResponseDTO(group);
+        // Trả thêm danh sách câu hỏi con chi tiết cho giao diện mở rộng
+        if (group.getQuestions() != null) {
+            dto.setQuestions(group.getQuestions().stream()
+                    .map(this::toFullResponseDTO)
+                    .collect(java.util.stream.Collectors.toList()));
+        }
+        return dto;
     }
 
     // ─── LIST + FILTER ──────────────────────────────────────────────────────
@@ -281,48 +297,76 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
             String topic, String status, String keyword,
             int page, int size) {
 
-        // Chuẩn hóa tham số: "" -> null để @Query IS NULL hoạt động đúng
-        skill = (skill != null && !skill.trim().isEmpty()) ? skill : null;
-        cefrLevel = (cefrLevel != null && !cefrLevel.trim().isEmpty()) ? cefrLevel : null;
-        questionType = (questionType != null && !questionType.trim().isEmpty()) ? questionType : null;
-        topic = (topic != null && !topic.trim().isEmpty()) ? topic : null;
-        status = (status != null && !status.trim().isEmpty()) ? status : null;
-        keyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
+        // 1. Chuẩn hóa tham số
+        String finalSkill = (skill != null && !skill.trim().isEmpty()) ? skill : null;
+        String finalCefrLevel = (cefrLevel != null && !cefrLevel.trim().isEmpty()) ? cefrLevel : null;
+        String finalQuestionType = (questionType != null && !questionType.trim().isEmpty()) ? questionType : null;
+        String finalTopic = (topic != null && !topic.trim().isEmpty()) ? topic : null;
+        String finalStatus = (status != null && !status.trim().isEmpty()) ? status : null;
+        String finalKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword : null;
 
-        // 1. Lấy danh sách câu hỏi lẻ
+        // 2. Lấy danh sách Entities (Chỉ filter, chưa convert DTO)
         List<Question> loneQuestions = new ArrayList<>();
-        if (questionType == null || (!questionType.equals("PASSAGE"))) {
+        if (finalQuestionType == null || (!finalQuestionType.equals("PASSAGE"))) {
             loneQuestions = questionRepository.findAllLoneQuestions(
-                skill, cefrLevel, questionType, topic, status, keyword
+                finalSkill, finalCefrLevel, finalQuestionType, finalTopic, finalStatus, finalKeyword
             );
         }
 
-        // 2. Lấy danh sách bộ câu hỏi (Passages)
-        List<com.example.DoAn.model.QuestionGroup> groups = new ArrayList<>();
-        if (questionType == null || questionType.equals("PASSAGE")) {
+        List<QuestionGroup> groups = new ArrayList<>();
+        if (finalQuestionType == null || finalQuestionType.equals("PASSAGE")) {
             groups = questionGroupRepository.findByFilters(
-                skill, cefrLevel, topic, status, keyword
+                finalSkill, finalCefrLevel, finalTopic, finalStatus, finalKeyword
             );
         }
 
-        // 3. Chuyển đổi và Gộp
-        List<QuestionBankItemDTO> allItems = new ArrayList<>();
-        loneQuestions.forEach(q -> allItems.add(toUnifiedItemDTO(q)));
-        groups.forEach(g -> allItems.add(toUnifiedItemDTO(g)));
+        // 3. Gộp và Sắp xếp Entities
+        List<Object> merged = new ArrayList<>();
+        merged.addAll(loneQuestions);
+        merged.addAll(groups);
 
-        // 4. Sắp xếp theo thời gian mới nhất (Nếu có trường createdAt), null đẩy xuống cuối
-        allItems.sort((a, b) -> {
-            if (a.getCreatedAt() == null && b.getCreatedAt() == null) return 0;
-            if (a.getCreatedAt() == null) return 1;
-            if (b.getCreatedAt() == null) return -1;
-            return b.getCreatedAt().compareTo(a.getCreatedAt());
+        merged.sort((o1, o2) -> {
+            java.time.LocalDateTime d1 = (o1 instanceof Question q) ? q.getCreatedAt() : ((QuestionGroup)o1).getCreatedAt();
+            java.time.LocalDateTime d2 = (o2 instanceof Question q) ? q.getCreatedAt() : ((QuestionGroup)o2).getCreatedAt();
+            if (d1 == null && d2 == null) return 0;
+            if (d1 == null) return 1;
+            if (d2 == null) return -1;
+            return d2.compareTo(d1);
         });
 
-        // 5. Phân trang thủ công
-        int total = allItems.size();
+        // 4. Phân trang trên Entities
+        int total = merged.size();
         int start = Math.min(page * size, total);
         int end = Math.min(start + size, total);
-        List<QuestionBankItemDTO> pagedItems = allItems.subList(start, end);
+        List<Object> pagedEntities = merged.subList(start, end);
+
+        // 5. Batch fetch usage counts cho trang hiện tại (Fix N+1)
+        List<Integer> qIds = new ArrayList<>();
+        List<Integer> gIds = new ArrayList<>();
+        for (Object e : pagedEntities) {
+            if (e instanceof Question q) qIds.add(q.getQuestionId());
+            else if (e instanceof QuestionGroup g) gIds.add(g.getGroupId());
+        }
+
+        java.util.Map<Integer, Long> counts = new java.util.HashMap<>();
+        if (!qIds.isEmpty()) {
+            quizQuestionRepository.countByQuestionIdsBatch(qIds)
+                    .forEach(row -> counts.put((Integer)row[0], (Long)row[1]));
+        }
+        if (!gIds.isEmpty()) {
+            quizQuestionRepository.countByGroupIdsBatch(gIds)
+                    .forEach(row -> counts.put((Integer)row[0], (Long)row[1]));
+        }
+
+        // 6. Chuyển đổi sang DTO (Nhẹ hơn, không lấy sub-questions/options)
+        List<QuestionBankItemDTO> pagedItems = pagedEntities.stream().map(e -> {
+            if (e instanceof Question q) {
+                return toUnifiedItemDTO(q, counts.getOrDefault(q.getQuestionId(), 0L));
+            } else {
+                QuestionGroup g = (QuestionGroup)e;
+                return toUnifiedItemDTO(g, counts.getOrDefault(g.getGroupId(), 0L));
+            }
+        }).toList();
 
         return PageResponse.<QuestionBankItemDTO>builder()
                 .items(pagedItems)
@@ -334,7 +378,7 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .build();
     }
 
-    private QuestionBankItemDTO toUnifiedItemDTO(Question q) {
+    private QuestionBankItemDTO toUnifiedItemDTO(Question q, long usedCount) {
         return QuestionBankItemDTO.builder()
                 .id(q.getQuestionId())
                 .type("SINGLE")
@@ -346,11 +390,11 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .createdAt(q.getCreatedAt())
                 .questionType(q.getQuestionType() != null ? q.getQuestionType() : "MULTIPLE_CHOICE_SINGLE")
                 .subQuestionCount(1)
-                .usedInQuizCount(questionRepository.countQuizUsage(q.getQuestionId()))
+                .usedInQuizCount(usedCount)
                 .build();
     }
 
-    private QuestionBankItemDTO toUnifiedItemDTO(QuestionGroup g) {
+    private QuestionBankItemDTO toUnifiedItemDTO(QuestionGroup g, long usedCount) {
         return QuestionBankItemDTO.builder()
                 .id(g.getGroupId())
                 .type("GROUP")
@@ -358,14 +402,11 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
                 .skill(g.getSkill())
                 .cefrLevel(g.getCefrLevel())
                 .topic(g.getTopic())
-                .status(g.getStatus()) // Không mặc định PUBLISHED nữa
+                .status(g.getStatus())
                 .createdAt(g.getCreatedAt())
                 .questionType("PASSAGE")
                 .subQuestionCount(g.getQuestions() != null ? g.getQuestions().size() : 0)
-                .usedInQuizCount(quizQuestionRepository.countByQuestionGroup_GroupId(g.getGroupId()))
-                .questions(g.getQuestions() != null ? g.getQuestions().stream()
-                        .map(this::toResponseDTO)
-                        .collect(java.util.stream.Collectors.toList()) : null)
+                .usedInQuizCount(usedCount)
                 .build();
     }
 
@@ -548,11 +589,11 @@ public class QuestionBankServiceImpl implements IQuestionBankService {
         }
     }
 
-    private QuestionBankResponseDTO toResponseDTO(Question question) {
+    private QuestionBankResponseDTO toFullResponseDTO(Question question) {
         List<AnswerOption> opts = answerOptionRepository.findByQuestionQuestionId(question.getQuestionId());
         long quizUsage = questionRepository.countQuizUsage(question.getQuestionId());
 
-        Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o ->
+        java.util.function.Function<AnswerOption, QuestionBankResponseDTO.AnswerOptionResponseDTO> toDto = o ->
                 QuestionBankResponseDTO.AnswerOptionResponseDTO.builder()
                         .answerOptionId(o.getAnswerOptionId())
                         .title(o.getTitle())

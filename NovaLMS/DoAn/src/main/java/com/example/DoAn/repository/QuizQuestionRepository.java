@@ -40,4 +40,9 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
     long countByQuizIdAndSkill(@org.springframework.data.repository.query.Param("quizId") Integer quizId, @org.springframework.data.repository.query.Param("skill") String skill);
     @org.springframework.data.jpa.repository.Query("SELECT SUM(qq.points) FROM QuizQuestion qq WHERE qq.quiz.quizId = :quizId")
     java.math.BigDecimal sumPointsByQuizId(@org.springframework.data.repository.query.Param("quizId") Integer quizId);
+    @org.springframework.data.jpa.repository.Query("SELECT qq.question.questionId, COUNT(DISTINCT qq.quiz.quizId) FROM QuizQuestion qq WHERE qq.question.questionId IN :questionIds GROUP BY qq.question.questionId")
+    List<Object[]> countByQuestionIdsBatch(@org.springframework.data.repository.query.Param("questionIds") List<Integer> questionIds);
+
+    @org.springframework.data.jpa.repository.Query("SELECT qq.questionGroup.groupId, COUNT(DISTINCT qq.quiz.quizId) FROM QuizQuestion qq WHERE qq.questionGroup.groupId IN :groupIds GROUP BY qq.questionGroup.groupId")
+    List<Object[]> countByGroupIdsBatch(@org.springframework.data.repository.query.Param("groupIds") List<Integer> groupIds);
 }

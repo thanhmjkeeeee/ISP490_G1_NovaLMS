@@ -55,6 +55,12 @@ public class QuestionBankController {
         return ResponseData.success("Chi tiết câu hỏi", questionBankService.getQuestionById(questionId));
     }
 
+    @Operation(summary = "Xem chi tiết một bộ câu hỏi (Passage)")
+    @GetMapping("/groups/{groupId}")
+    public ResponseData<QuestionBankResponseDTO> getGroupDetails(@PathVariable Integer groupId) {
+        return ResponseData.success("Chi tiết bộ câu hỏi", questionBankService.getGroupDetails(groupId));
+    }
+
     // ─── CREATE ─────────────────────────────────────────────────────────────
 
     @Operation(summary = "Tạo câu hỏi mới trong Question Bank")
