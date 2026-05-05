@@ -213,22 +213,22 @@ public class GroqClient {
             content = respContent;
         }
 
-        log.debug("[GROQ-RAW-CONTENT] {}", content);
+        log.debug("[GROQ-CLEANED-CONTENT] {}", content);
 
         // Robust JSON extraction: Find the first { and the last }
         int firstBrace = content.indexOf("{");
         int lastBrace = content.lastIndexOf("}");
         
-        if (firstBrace >= 0 && lastBrace > firstBrace) {
+        if (firstBrace >= 0 && lastBrace >= 0 && lastBrace > firstBrace) {
             content = content.substring(firstBrace, lastBrace + 1);
         } else {
-            log.warn("[AI-RAW] Could not find valid JSON braces. Content preview: {}", 
-                content.length() > 100 ? content.substring(0, 100) : content);
+            log.error("[GROQ-PARSE-FAIL] Could not find any valid JSON braces {}. AI Response was: {}", content);
+            throw new RuntimeException("AI response is not in JSON format. Please try again.");
         }
 
-        // AUTO-PATCH if truncated or malformed
+        // AUTO-PATCH if truncated
         content = content.trim();
-        if (!content.isEmpty() && !content.endsWith("}")) {
+        if (!content.isEmpty() && content.startsWith("{") && !content.endsWith("}")) {
             log.warn("[AI-FIX] JSON appears truncated, attempting to close braces...");
             long openCount = content.chars().filter(ch -> ch == '{').count();
             long closeCount = content.chars().filter(ch -> ch == '}').count();
@@ -238,14 +238,13 @@ public class GroqClient {
             }
         }
 
-
         try {
             return mapper.readValue(content, GradingResponse.class);
         } catch (Exception parseEx) {
-            log.error("[GROQ-PARSE-FAIL] JSON parsing failed. Content Preview: {}", 
-                content.length() > 500 ? content.substring(0, 500) + "..." : content);
-            throw parseEx;
+            log.error("[GROQ-PARSE-FAIL] Jackson parsing failed for content: {}. Error: {}", content, parseEx.getMessage());
+            throw new RuntimeException("Failed to parse AI response: " + parseEx.getMessage());
         }
+
       }
     } catch (Exception e) {
       log.error("Groq LLaMA grading failed: {}", e.getMessage());
