@@ -35,6 +35,7 @@ public class TeacherQuizService {
     private final LessonRepository lessonRepository;
     private final CourseRepository courseRepository;
     private final RegistrationRepository registrationRepository;
+    private final SessionQuizRepository sessionQuizRepository;
     private final EmailService emailService;
     private final INotificationService notificationService;
     private final QuestionGroupRepository questionGroupRepository;
@@ -249,6 +250,17 @@ public class TeacherQuizService {
             // Toggle: false -> true (mở), true -> false (đóng)
             Boolean current = quiz.getIsOpen();
             Boolean updated = (current == null || !current) ? true : false;
+
+            // Validate: Must be assigned to at least one session to be opened
+            if (updated) {
+                boolean hasLegacySession = classSessionRepository.countByQuiz_QuizId(quizId) > 0;
+                boolean hasMultiSession = !sessionQuizRepository.findAllByQuizId(quizId).isEmpty();
+                
+                if (!hasLegacySession && !hasMultiSession) {
+                    return ResponseData.error(400, "Vui lòng gán Quiz/Assignment vào ít nhất một buổi học trước khi mở.");
+                }
+            }
+
             quiz.setIsOpen(updated);
             quizRepository.save(quiz);
 

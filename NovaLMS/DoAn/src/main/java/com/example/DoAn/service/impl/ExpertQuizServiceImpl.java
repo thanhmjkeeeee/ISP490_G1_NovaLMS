@@ -269,9 +269,6 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             }
             log.info("[expert_quiz_update] Quiz {} status transition: {} -> {}", quizId, quiz.getStatus(), request.getStatus());
             quiz.setStatus(request.getStatus());
-            if ("PUBLISHED".equals(request.getStatus())) {
-                quiz.setIsOpen(true);
-            }
         }
 
         if (request.getTimeLimitPerSkill() != null) {
@@ -537,9 +534,6 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         }
 
         quiz.setStatus(newStatus);
-        if ("PUBLISHED".equals(newStatus)) {
-            quiz.setIsOpen(true);
-        }
         quizRepository.save(quiz);
 
         // ── Notify on publish ─────────────────────────────────────────────────

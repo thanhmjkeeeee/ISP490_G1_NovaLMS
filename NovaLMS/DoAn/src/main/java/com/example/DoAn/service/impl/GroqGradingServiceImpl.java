@@ -126,6 +126,14 @@ public class GroqGradingServiceImpl implements GroqGradingService {
 
         Question q = answer.getQuestion();
         String qType = questionTypeOverride != null ? questionTypeOverride : q.getQuestionType();
+        String skill = q.getSkill();
+        
+        // Normalize qType based on skill if it's not WRITING/SPEAKING
+        if (!"WRITING".equalsIgnoreCase(qType) && !"SPEAKING".equalsIgnoreCase(qType)) {
+            if ("WRITING".equalsIgnoreCase(skill)) qType = "WRITING";
+            else if ("SPEAKING".equalsIgnoreCase(skill)) qType = "SPEAKING";
+        }
+        
         String userAnswer = answer.getAnsweredOptions();
 
         // Xác định max band từ expert config (Ưu tiên Quiz.overallBand, fallback

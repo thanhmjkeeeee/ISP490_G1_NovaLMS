@@ -63,6 +63,7 @@ public class AssignmentGradingDetailDTO {
         private Boolean isCorrect;
         private String aiScore;
         private String aiFeedback;
+        private String aiRubricJson;
         private BigDecimal teacherScore;  // submitted score for this question
         private String teacherNote;
         private String audioUrl;          // for SPEAKING questions

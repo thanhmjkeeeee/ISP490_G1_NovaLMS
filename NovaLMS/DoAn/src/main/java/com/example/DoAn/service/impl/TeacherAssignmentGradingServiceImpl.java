@@ -368,6 +368,7 @@ public class TeacherAssignmentGradingServiceImpl implements ITeacherAssignmentGr
                 item.setIsCorrect(a.getIsCorrect());
                 item.setAiScore(a.getAiScore());
                 item.setAiFeedback(a.getAiFeedback());
+                item.setAiRubricJson(a.getAiRubricJson());
                 item.setAudioUrl(q.getAudioUrl());
                 item.setTeacherScore(a.getPointsAwarded());
                 item.setTeacherNote(a.getTeacherNote());

@@ -442,14 +442,18 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .answeredOptions(answeredOptionsJson)
                     .isCorrect(isCorrect)
                     .pointsAwarded(!"WRITING".equals(qType) && !"SPEAKING".equals(qType) ? awardedPoints : null)
-                    .pendingAiReview(
-                            "WRITING".equals(qType) || "SPEAKING".equals(qType)
-                                    ? true
-                                    : false)
-                    .aiGradingStatus(
-                            "WRITING".equals(qType) || "SPEAKING".equals(qType)
-                                    ? "PENDING"
-                                    : null)
+            String skill = q.getSkill();
+            boolean isSubjective = "WRITING".equalsIgnoreCase(qType) || "SPEAKING".equalsIgnoreCase(qType)
+                    || "WRITING".equalsIgnoreCase(skill) || "SPEAKING".equalsIgnoreCase(skill);
+
+            QuizAnswer qa = QuizAnswer.builder()
+                    .quizResult(quizResult)
+                    .question(q)
+                    .answeredOptions(answeredOptionsJson)
+                    .isCorrect(isCorrect)
+                    .pointsAwarded(!"WRITING".equals(qType) && !"SPEAKING".equals(qType) ? awardedPoints : null)
+                    .pendingAiReview(isSubjective)
+                    .aiGradingStatus(isSubjective ? "PENDING" : null)
                     .audioUrl(
                             "SPEAKING".equals(qType)
                                     ? extractRawString(answeredOptionsJson)
