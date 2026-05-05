@@ -427,6 +427,9 @@
                     if (courseSection) courseSection.style.display = 'none';
                 }
             }
+
+            // Always apply self-study constraints when category changes
+            applySelfStudyConstraints();
         }
 
         async function onCourseChange() {
@@ -1274,10 +1277,17 @@
         function filterSearchableItems(containerId, keyword) {
             const items = document.querySelectorAll(`#${containerId} .searchable-select-item`);
             let hasResults = false;
+
             items.forEach(item => {
+                if (item.dataset.hiddenBySelfStudy === 'true') {
+                    item.style.display = 'none';
+                    return; // Nhảy sang vòng lặp tiếp theo
+                }
+
                 const text = item.textContent.toLowerCase();
                 const match = text.includes(keyword.toLowerCase());
                 item.style.display = match ? 'block' : 'none';
+
                 if (match) hasResults = true;
             });
 
@@ -1303,6 +1313,11 @@
             container.querySelectorAll('.searchable-select-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.value == value);
             });
+
+            // Re-apply self-study constraints when course selection changes
+            if (containerId === 'courseSearchContainer') {
+                applySelfStudyConstraints();
+            }
         }
 
         // Close dropdown when clicking outside
@@ -1330,21 +1345,27 @@
                     result.data.items.forEach(c => {
                         const val = c.courseId;
                         const text = c.courseName || c.title;
+                        const catVal = c.categoryValue || '';
 
                         // Add to hidden select
                         const opt = document.createElement('option');
                         opt.value = val;
                         opt.textContent = text;
+                        opt.dataset.categoryValue = catVal;
                         hiddenSelect.appendChild(opt);
 
                         // Add to searchable list
                         const item = document.createElement('div');
                         item.className = 'searchable-select-item';
                         item.dataset.value = val;
+                        item.dataset.categoryValue = catVal;
                         item.textContent = text;
                         item.onclick = () => selectSearchableItem('courseSearchContainer', val, text);
                         itemsList.appendChild(item);
                     });
+
+                    // Apply constraints after courses are loaded
+                    applySelfStudyConstraints();
 
                     const noRes = document.createElement('div');
                     noRes.className = 'searchable-select-no-results';
@@ -1363,6 +1384,108 @@
             } catch (e) {
                 itemsList.innerHTML = '<div class="p-3 text-center text-danger small">Lỗi tải dữ liệu</div>';
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // SELF-STUDY COURSE CONSTRAINTS (IELTS_SELF_STUDY)
+        // RULE 1: COURSE_QUIZ + Self-Study → Disable Speaking & Writing
+        // RULE 2: COURSE_ASSIGNMENT → Hide Self-Study courses from dropdown
+        // ═══════════════════════════════════════════════════════════════════
+        function applySelfStudyConstraints() {
+            const cat = document.getElementById('quizCategory').value;
+            const hiddenSelect = document.getElementById('courseId');
+            const isAssignment = cat && cat.includes('ASSIGNMENT');
+            const isCourseQuiz = (cat === 'COURSE_QUIZ');
+
+            // --- Detect selected course's category ---
+            let selectedCategoryValue = '';
+            if (hiddenSelect && hiddenSelect.value) {
+                const selectedOpt = hiddenSelect.options[hiddenSelect.selectedIndex];
+                if (selectedOpt) selectedCategoryValue = selectedOpt.dataset.categoryValue || '';
+            }
+            const isSelfStudy = (selectedCategoryValue === 'IELTS_SELF_STUDY');
+
+            // --- RULE 2: Hide IELTS_SELF_STUDY courses when ASSIGNMENT is selected ---
+            const container = document.getElementById('courseSearchContainer');
+            if (container) {
+                // Filter hidden <select> options
+                Array.from(hiddenSelect.options).forEach(opt => {
+                    if (opt.value === '') return; // skip placeholder
+                    const optCat = opt.dataset.categoryValue || '';
+                    opt.hidden = (isAssignment && optCat === 'IELTS_SELF_STUDY');
+                });
+                // Filter searchable dropdown items
+                container.querySelectorAll('.searchable-select-item').forEach(item => {
+                    const itemCat = item.dataset.categoryValue || '';
+                    if (isAssignment && itemCat === 'IELTS_SELF_STUDY') {
+                        item.style.display = 'none';
+                        item.dataset.hiddenBySelfStudy = 'true';
+                    } else {
+                        if (item.dataset.hiddenBySelfStudy === 'true') {
+                            item.style.display = '';
+                            delete item.dataset.hiddenBySelfStudy;
+                        }
+                    }
+                });
+                // If current selection is Self-Study and user switched to Assignment, clear it
+                if (isAssignment && isSelfStudy) {
+                    hiddenSelect.value = '';
+                    const display = document.getElementById('courseDisplay');
+                    if (display) display.value = '';
+                    selectedCategoryValue = '';
+                }
+            }
+
+            // --- RULE 1: Disable Speaking & Writing for COURSE_QUIZ + IELTS_SELF_STUDY ---
+            const warningEl = document.getElementById('selfStudySkillWarning');
+            const shouldDisable = (isCourseQuiz && selectedCategoryValue === 'IELTS_SELF_STUDY');
+
+            ['SPEAKING', 'WRITING'].forEach(skill => {
+                const cb = document.getElementById('enable_' + skill);
+                const timeInput = document.getElementById('timeLimit_' + skill);
+                if (!cb) return;
+
+                if (shouldDisable) {
+                    // Uncheck and disable
+                    if (cb.type === 'checkbox') {
+                        cb.checked = false;
+                        cb.disabled = true;
+                    }
+                    if (timeInput) {
+                        timeInput.value = '';
+                        timeInput.disabled = true;
+                    }
+                } else {
+                    // Re-enable (only for non-Assignment mode where checkboxes exist)
+                    if (cb.type === 'checkbox' && !isAssignment) {
+                        cb.disabled = false;
+                    }
+                    if (timeInput && cb.type === 'checkbox' && !cb.checked) {
+                        timeInput.disabled = true;
+                    } else if (timeInput) {
+                        timeInput.disabled = false;
+                    }
+                }
+            });
+
+            // Show/Hide warning message
+            if (!warningEl) {
+                // Create warning element once (insert after perSkillTimeSection)
+                const perSkillSection = document.getElementById('perSkillTimeSection');
+                if (perSkillSection) {
+                    const warn = document.createElement('div');
+                    warn.id = 'selfStudySkillWarning';
+                    warn.className = 'alert alert-warning border-0 shadow-sm small py-2 mt-2 mb-0';
+                    warn.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Khóa học <strong>Tự học (Self-Study)</strong> không hỗ trợ kỹ năng <strong>Speaking</strong> và <strong>Writing</strong> trong bài kiểm tra.';
+                    warn.style.display = shouldDisable ? 'block' : 'none';
+                    perSkillSection.parentNode.insertBefore(warn, perSkillSection.nextSibling);
+                }
+            } else {
+                warningEl.style.display = shouldDisable ? 'block' : 'none';
+            }
+
+            // Recalculate total time after changes
+            if (typeof calculateTotalTime === 'function') calculateTotalTime();
         }
 
         const Toast = Swal.mixin({

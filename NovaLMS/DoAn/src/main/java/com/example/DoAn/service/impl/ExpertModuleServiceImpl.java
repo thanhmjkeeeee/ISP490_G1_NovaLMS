@@ -123,6 +123,7 @@ public class ExpertModuleServiceImpl implements IExpertModuleService {
             dto.setCourseName(c.getCourseName());
             dto.setStatus(c.getStatus());
             dto.setCategoryName(c.getCategory() != null ? c.getCategory().getName() : null);
+            dto.setCategoryValue(c.getCategory() != null ? c.getCategory().getValue() : null);
 
             // Thêm thống kê số lượng
             dto.setModuleCount(moduleRepository.countByCourse_CourseId(c.getCourseId()));
