@@ -202,4 +202,6 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             @org.springframework.data.repository.query.Param("classId") Integer classId,
             Pageable pageable);
 
+    @Query("SELECT DISTINCT qr.quiz.quizId FROM QuizResult qr WHERE qr.quiz.quizId IN :quizIds AND qr.status IN ('SUBMITTED', 'GRADING', 'GRADED')")
+    List<Integer> findQuizIdsWithAttemptsBatch(@Param("quizIds") List<Integer> quizIds);
 }

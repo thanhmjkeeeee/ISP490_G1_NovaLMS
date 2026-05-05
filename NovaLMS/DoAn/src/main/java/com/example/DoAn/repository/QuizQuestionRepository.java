@@ -45,4 +45,6 @@ public interface QuizQuestionRepository extends JpaRepository<QuizQuestion, Inte
 
     @org.springframework.data.jpa.repository.Query("SELECT qq.questionGroup.groupId, COUNT(DISTINCT qq.quiz.quizId) FROM QuizQuestion qq WHERE qq.questionGroup.groupId IN :groupIds GROUP BY qq.questionGroup.groupId")
     List<Object[]> countByGroupIdsBatch(@org.springframework.data.repository.query.Param("groupIds") List<Integer> groupIds);
+    @org.springframework.data.jpa.repository.Query("SELECT qq FROM QuizQuestion qq JOIN FETCH qq.question LEFT JOIN FETCH qq.questionGroup WHERE qq.quiz.quizId IN :quizIds")
+    List<QuizQuestion> findByQuizQuizIdIn(@org.springframework.data.repository.query.Param("quizIds") List<Integer> quizIds);
 }

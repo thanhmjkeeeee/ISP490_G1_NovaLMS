@@ -379,14 +379,58 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<QuizResponseDTO> getQuizzes(
-            Integer courseId, String category, String status, String keyword, int page, int size) {
-
         Pageable pageable = PageRequest.of(page, size);
         Page<Quiz> pageResult = quizRepository.findByFilters(courseId, category, status, keyword, pageable);
 
-        List<QuizResponseDTO> items = pageResult.getContent().stream()
-                .map(this::toResponseDTO)
+        return buildPageResponse(pageResult, page, size);
+    }
+
+    private PageResponse<QuizResponseDTO> buildPageResponse(Page<Quiz> pageResult, int page, int size) {
+        List<Quiz> quizzes = pageResult.getContent();
+        if (quizzes.isEmpty()) {
+            return PageResponse.<QuizResponseDTO>builder()
+                    .items(java.util.Collections.emptyList())
+                    .pageNo(pageResult.getNumber())
+                    .pageSize(pageResult.getSize())
+                    .totalPages(pageResult.getTotalPages())
+                    .totalElements(pageResult.getTotalElements())
+                    .last(pageResult.isLast())
+                    .build();
+        }
+
+        List<Integer> quizIds = quizzes.stream().map(Quiz::getQuizId).toList();
+        List<Integer> courseIds = quizzes.stream()
+                .map(q -> q.getCourse() != null ? q.getCourse().getCourseId() : null)
+                .filter(java.util.Objects::nonNull)
+                .distinct().toList();
+
+        // 1. Batch fetch questions
+        List<QuizQuestion> allQQs = quizQuestionRepository.findByQuizQuizIdIn(quizIds);
+        Map<Integer, List<QuizQuestion>> qqMap = allQQs.stream()
+                .collect(Collectors.groupingBy(qq -> qq.getQuiz().getQuizId()));
+
+        // 2. Batch check attempts
+        List<Integer> attemptQuizIds = quizResultRepository.findQuizIdsWithAttemptsBatch(quizIds);
+        Set<Integer> attemptSet = new HashSet<>(attemptQuizIds);
+
+        // 3. Batch fetch session/class mappings
+        List<ClassSession> sessions = classSessionRepository.findByQuizQuizIdIn(quizIds);
+        Map<Integer, ClassSession> sessionMap = sessions.stream()
+                .collect(Collectors.toMap(s -> s.getQuiz().getQuizId(), s -> s, (s1, s2) -> s1));
+
+        // 4. Batch fetch registration counts
+        Map<Integer, Long> regCounts = new HashMap<>();
+        if (!courseIds.isEmpty()) {
+            registrationRepository.countByCourseIdsBatch(courseIds)
+                    .forEach(row -> regCounts.put((Integer) row[0], (Long) row[1]));
+        }
+
+        List<QuizResponseDTO> items = quizzes.stream()
+                .map(q -> toResponseDTOOptimized(q, 
+                        qqMap.getOrDefault(q.getQuizId(), Collections.emptyList()),
+                        attemptSet.contains(q.getQuizId()),
+                        sessionMap.get(q.getQuizId()),
+                        regCounts.getOrDefault(q.getCourse() != null ? q.getCourse().getCourseId() : -1, 0L)))
                 .collect(Collectors.toList());
 
         return PageResponse.<QuizResponseDTO>builder()
@@ -396,6 +440,70 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .totalPages(pageResult.getTotalPages())
                 .totalElements(pageResult.getTotalElements())
                 .last(pageResult.isLast())
+                .build();
+    }
+
+    private QuizResponseDTO toResponseDTOOptimized(Quiz quiz, List<QuizQuestion> quizQuestions, boolean hasAttempts, ClassSession session, Long regCount) {
+        List<QuizResponseDTO.QuizQuestionResponseDTO> questionDTOs = quizQuestions.stream()
+                .map(qq -> {
+                    Question q = qq.getQuestion();
+                    return QuizResponseDTO.QuizQuestionResponseDTO.builder()
+                            .quizQuestionId(qq.getQuizQuestionId())
+                            .questionId(q.getQuestionId())
+                            .groupId(qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupId() : null)
+                            .groupContent(
+                                    qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupContent() : null)
+                            .questionContent(q.getContent())
+                            .questionType(q.getQuestionType())
+                            .skill(q.getSkill())
+                            .cefrLevel(q.getCefrLevel())
+                            .orderIndex(qq.getOrderIndex())
+                            .points(qq.getPoints())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return QuizResponseDTO.builder()
+                .quizId(quiz.getQuizId())
+                .title(quiz.getTitle())
+                .description(quiz.getDescription())
+                .quizCategory(quiz.getQuizCategory())
+                .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
+                .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
+                .moduleId(quiz.getModule() != null ? quiz.getModule().getModuleId() : null)
+                .moduleName(quiz.getModule() != null ? quiz.getModule().getModuleName() : null)
+                .lessonId(quiz.getLesson() != null ? quiz.getLesson().getLessonId() : null)
+                .lessonName(quiz.getLesson() != null ? quiz.getLesson().getLessonName() : null)
+                .classId(session != null ? session.getClazz().getClassId() : null)
+                .sessionId(session != null ? session.getSessionId() : null)
+                .status(quiz.getStatus())
+                .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
+                .timeLimitMinutes(quiz.getTimeLimitMinutes())
+                .passScore(quiz.getPassScore())
+                .maxAttempts(quiz.getMaxAttempts())
+                .numberOfQuestions(quiz.getNumberOfQuestions())
+                .questionOrder(quiz.getQuestionOrder())
+                .showAnswerAfterSubmit(quiz.getShowAnswerAfterSubmit())
+                .isHybridEnabled(quiz.getIsHybridEnabled() != null ? quiz.getIsHybridEnabled() : false)
+                .targetSkill(quiz.getTargetSkill())
+                .createdByName(quiz.getUser() != null ? quiz.getUser().getFullName() : null)
+                .createdAt(quiz.getCreatedAt())
+                .updatedAt(quiz.getUpdatedAt())
+                .totalQuestions((int) (quizQuestions.stream()
+                        .map(qq -> qq.getQuestionGroup() != null ? "G" + qq.getQuestionGroup().getGroupId()
+                                : "Q" + qq.getQuestion().getQuestionId())
+                        .distinct()
+                        .count()))
+                .hasAttempts(hasAttempts)
+                .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
+                .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null)
+                .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null)
+                .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
+                .isSequential(quiz.getIsSequential())
+                .skillOrder(quiz.getSkillOrder())
+                .registrationCount(regCount)
+                .overallBand(quiz.getOverallBand())
+                .questions(questionDTOs)
                 .build();
     }
 
@@ -681,78 +789,12 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
     }
 
     private QuizResponseDTO toResponseDTO(Quiz quiz) {
-        List<QuizQuestion> quizQuestions = quizQuestionRepository
-                .findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
+        List<QuizQuestion> quizQuestions = quizQuestionRepository.findByQuizQuizIdOrderByOrderIndexAsc(quiz.getQuizId());
         boolean hasAttempts = hasStudentAttempts(quiz.getQuizId());
+        ClassSession session = classSessionRepository.findFirstByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId()).orElse(null);
+        long regCount = (quiz.getCourse() != null) ? registrationRepository.countByCourse_CourseId(quiz.getCourse().getCourseId()) : 0L;
 
-        List<QuizResponseDTO.QuizQuestionResponseDTO> questionDTOs = quizQuestions.stream()
-                .map(qq -> {
-                    Question q = qq.getQuestion();
-                    return QuizResponseDTO.QuizQuestionResponseDTO.builder()
-                            .quizQuestionId(qq.getQuizQuestionId())
-                            .questionId(q.getQuestionId())
-                            .groupId(qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupId() : null)
-                            .groupContent(
-                                    qq.getQuestionGroup() != null ? qq.getQuestionGroup().getGroupContent() : null)
-                            .questionContent(q.getContent())
-                            .questionType(q.getQuestionType())
-                            .skill(q.getSkill())
-                            .cefrLevel(q.getCefrLevel())
-                            .orderIndex(qq.getOrderIndex())
-                            .points(qq.getPoints())
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        long regCount = 0;
-        if (quiz.getCourse() != null) {
-            regCount = registrationRepository.countByCourse_CourseId(quiz.getCourse().getCourseId());
-        }
-
-        return QuizResponseDTO.builder()
-                .quizId(quiz.getQuizId())
-                .title(quiz.getTitle())
-                .description(quiz.getDescription())
-                .quizCategory(quiz.getQuizCategory())
-                .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
-                .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
-                .moduleId(quiz.getModule() != null ? quiz.getModule().getModuleId() : null)
-                .moduleName(quiz.getModule() != null ? quiz.getModule().getModuleName() : null)
-                .lessonId(quiz.getLesson() != null ? quiz.getLesson().getLessonId() : null)
-                .lessonName(quiz.getLesson() != null ? quiz.getLesson().getLessonName() : null)
-                .classId(classSessionRepository.findFirstByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId())
-                        .map(s -> s.getClazz().getClassId()).orElse(null))
-                .sessionId(classSessionRepository.findFirstByQuiz_QuizIdOrderBySessionNumberAsc(quiz.getQuizId())
-                        .map(ClassSession::getSessionId).orElse(null))
-                .status(quiz.getStatus())
-                .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
-                .timeLimitMinutes(quiz.getTimeLimitMinutes())
-                .passScore(quiz.getPassScore())
-                .maxAttempts(quiz.getMaxAttempts())
-                .numberOfQuestions(quiz.getNumberOfQuestions())
-                .questionOrder(quiz.getQuestionOrder())
-                .showAnswerAfterSubmit(quiz.getShowAnswerAfterSubmit())
-                .isHybridEnabled(quiz.getIsHybridEnabled() != null ? quiz.getIsHybridEnabled() : false)
-                .targetSkill(quiz.getTargetSkill())
-                .createdByName(quiz.getUser() != null ? quiz.getUser().getFullName() : null)
-                .createdAt(quiz.getCreatedAt())
-                .updatedAt(quiz.getUpdatedAt())
-                .totalQuestions((int) (quizQuestions.stream()
-                        .map(qq -> qq.getQuestionGroup() != null ? "G" + qq.getQuestionGroup().getGroupId()
-                                : "Q" + qq.getQuestion().getQuestionId())
-                        .distinct()
-                        .count()))
-                .hasAttempts(hasAttempts)
-                .timeLimitPerSkill(quiz.getTimeLimitPerSkill())
-                .openAt(quiz.getOpenAt() != null ? quiz.getOpenAt().toString() : null)
-                .closeAt(quiz.getCloseAt() != null ? quiz.getCloseAt().toString() : null)
-                .deadline(quiz.getDeadline() != null ? quiz.getDeadline().toString() : null)
-                .isSequential(quiz.getIsSequential())
-                .skillOrder(quiz.getSkillOrder())
-                .registrationCount(regCount)
-                .overallBand(quiz.getOverallBand())
-                .questions(questionDTOs)
-                .build();
+        return toResponseDTOOptimized(quiz, quizQuestions, hasAttempts, session, regCount);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

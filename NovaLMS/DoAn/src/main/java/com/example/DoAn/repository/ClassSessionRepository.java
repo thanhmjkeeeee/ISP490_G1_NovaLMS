@@ -81,4 +81,7 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, Inte
             @Param("excludeClassId") Integer excludeClassId,
             @Param("excludeSessionId") Integer excludeSessionId
     );
+
+    @Query("SELECT s FROM ClassSession s JOIN FETCH s.clazz WHERE s.quiz.quizId IN :quizIds")
+    List<ClassSession> findByQuizQuizIdIn(@Param("quizIds") List<Integer> quizIds);
 }
