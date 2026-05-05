@@ -267,7 +267,7 @@ public class StudentServiceImpl implements StudentService {
                         .title(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .description(course.getDescription())
                         .imageUrl(resolveCourseImage(course))
-                        .className(reg.getClazz() != null ? reg.getClazz().getClassName() : "Học nội dung (Tự học)")
+                        .className(reg.getClazz() != null ? reg.getClazz().getClassName() : (Boolean.TRUE.equals(course.getIsSelfStudy()) ? "Học tự học" : "Đang chờ xếp lớp"))
                         .classId(reg.getClazz() != null ? reg.getClazz().getClassId() : null)
                         .teacherName(teacherName)
                         .progressPercent(progressPercent)
@@ -277,6 +277,7 @@ public class StudentServiceImpl implements StudentService {
                         .totalQuizzes((int) totalQuizzesInCourse)
                         .averageScore(Math.round(avgScore * 10.0) / 10.0)
                         .averageBand(avgBand > 0 ? Math.round(avgBand * 10.0) / 10.0 : null)
+                        .isSelfStudy(course.getIsSelfStudy() != null && course.getIsSelfStudy())
                         .build();
             }).collect(Collectors.toList());
 

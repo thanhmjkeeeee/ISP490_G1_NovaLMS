@@ -17,4 +17,5 @@ public class MyClassDTO {
     private String status;
     private int studentCount;
     private int sessionCount;
+    private boolean isSelfStudy;
 }

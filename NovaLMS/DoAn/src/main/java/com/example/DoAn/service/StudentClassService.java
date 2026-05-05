@@ -59,7 +59,6 @@ public class StudentClassService {
 
                 return MyClassDTO.builder()
                         .classId(clazz != null ? clazz.getClassId() : null)
-                        .className(clazz != null ? clazz.getClassName() : "Chưa xếp lớp")
                         .courseId(course.getCourseId())
                         .courseName(course.getCourseName() != null ? course.getCourseName() : course.getTitle())
                         .courseImage(course.getImageUrl())
@@ -69,6 +68,8 @@ public class StudentClassService {
                         .status(clazz != null ? clazz.getStatus() : "Pending")
                         .studentCount(studentCount)
                         .sessionCount(clazz != null ? sessionCountMap.getOrDefault(clazz.getClassId(), 0L).intValue() : 0)
+                        .isSelfStudy(course.getIsSelfStudy() != null && course.getIsSelfStudy())
+                        .className(clazz != null ? clazz.getClassName() : (Boolean.TRUE.equals(course.getIsSelfStudy()) ? "Học tự học" : "Chưa xếp lớp"))
                         .build();
             }).collect(Collectors.toList());
 

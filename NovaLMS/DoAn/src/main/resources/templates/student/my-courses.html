@@ -194,7 +194,7 @@
 
                       <div class="position-absolute top-0 start-0 m-3">
                           <span class="badge bg-primary text-white rounded-pill px-3 shadow-sm">
-                              <i class="bi bi-tags-fill me-1"></i>${c.className || 'Học tự do'}
+                              <i class="bi bi-tags-fill me-1"></i>${c.isSelfStudy ? 'Khóa học tự học' : (c.className || 'Chưa xếp lớp')}
                           </span>
                       </div>
 
@@ -236,7 +236,7 @@
 
                       <div class="mt-auto pt-3 border-top d-flex justify-content-end align-items-center">
                           <a href="/student/learn/${c.courseId}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-                              Vào lớp <i class="bi bi-arrow-right-short"></i>
+                              ${c.isSelfStudy ? 'Vào học ngay' : 'Vào lớp học'} <i class="bi bi-arrow-right-short"></i>
                           </a>
                       </div>
                   </div>

@@ -22,4 +22,5 @@ public class MyCourseDTO {
     private Integer totalQuizzes;
     private Double averageScore;
     private Double averageBand;
+    private boolean isSelfStudy;
 }
