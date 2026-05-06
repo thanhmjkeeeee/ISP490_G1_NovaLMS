@@ -58,13 +58,15 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+
     @Override
+    @Transactional(readOnly = true)
     public ResponseData<LoginResponse> login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailWithRole(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng không tồn tại."));
 
         if (!"Active".equalsIgnoreCase(user.getStatus())) {
