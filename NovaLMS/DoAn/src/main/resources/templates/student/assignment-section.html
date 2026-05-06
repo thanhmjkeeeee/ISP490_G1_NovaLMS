@@ -256,6 +256,22 @@ let saveToast;
 document.addEventListener('DOMContentLoaded', () => {
     saveToast = new bootstrap.Toast(document.getElementById('saveToast'), { delay: 2000 });
     loadSection();
+
+    // Prevent paste in answer fields
+    document.addEventListener('paste', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cảnh báo!',
+                text: 'Hành động dán văn bản bị cấm trong lúc làm bài.',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+        }
+    });
 });
 
 async function loadSection() {
