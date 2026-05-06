@@ -693,7 +693,8 @@
       const currentVal = hiddenSelect.value;
       itemsList.innerHTML = '<div class="p-3 text-center text-muted small">Đang tải...</div>';
       try {
-          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=500&status=Published&isSelfStudy=false');
+          // REMOVED status=Published to show Draft courses as well
+          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=500&isSelfStudy=false');
           const result = await res.json();
           if (result.data && result.data.items) {
               hiddenSelect.innerHTML = '<option value="">-- Chọn khóa học --</option>';
@@ -944,7 +945,7 @@
 
       if (!name) { showToast('Vui lòng nhập tên khóa học.', 'error'); return; }
 
-      const payload = { courseName: name, numberOfSessions: parseInt(sessions), description: desc, status: 'Published', isSelfStudy: false };
+      const payload = { courseName: name, numberOfSessions: parseInt(sessions), description: desc, status: 'Draft', isSelfStudy: false };
       
       try {
           const res = await fetch('/api/v1/courses/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
