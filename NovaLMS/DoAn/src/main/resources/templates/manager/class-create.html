@@ -233,9 +233,12 @@
 
           <div class="mt-4 pt-4 border-top d-flex justify-content-start gap-2">
             <a th:href="@{/manager/class/list}" class="btn btn-light rounded-pill px-4">Hủy</a>
+            <button type="button" id="btnSaveDraft" class="btn btn-outline-warning rounded-pill px-4 fw-bold" onclick="handleDraftSave()">
+              <i class="bi bi-save me-1"></i>Lưu bản nháp
+            </button>
             <button type="submit" id="btnSubmitClass" class="btn btn-primary rounded-pill px-4 fw-bold">
               <i class="bi bi-check-lg me-1"></i>
-              <span class="btn-text">Lưu</span>
+              <span class="btn-text">Lưu lớp học</span>
               <span class="spinner-border spinner-border-sm d-none" role="status"></span>
             </button>
           </div>
@@ -356,7 +359,6 @@
         </div>
       </div>
     </div>
-  </div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
@@ -655,7 +657,8 @@
       const currentVal = hiddenSelect.value;
       itemsList.innerHTML = '<div class="p-3 text-center text-muted small">Đang tải...</div>';
       try {
-          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=500&status=Published&isSelfStudy=false');
+          // REMOVED status=Published to show Draft courses as well
+          const res = await fetch('/api/v1/courses/list?pageNo=0&pageSize=500&isSelfStudy=false');
           const result = await res.json();
           if (result.data && result.data.items) {
               hiddenSelect.innerHTML = '<option value="">-- Chọn khóa học --</option>';
@@ -894,11 +897,78 @@
 
   function goToEdit() { if (classId) window.location.href = `/manager/class/edit/${classId}`; }
 
+  // DRAFT SAVE LOGIC
+  async function handleDraftSave() {
+      const className = document.getElementById('className').value.trim();
+      if (!className) {
+          const el = document.getElementById('classNameError');
+          if (el) el.textContent = 'Vui lòng nhập tên lớp để lưu bản nháp.';
+          document.getElementById('className').focus();
+          return;
+      }
+      
+      // Force status to Draft for this action
+      document.getElementById('stDraft').checked = true;
+      
+      // Perform a simplified save without modal
+      const courseId = document.getElementById('courseId').value;
+      const scheduleStr = buildScheduleString();
+      const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value) || 0;
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const meetLink = document.getElementById('meetLink').value.trim();
+      const formatDt = (d) => d ? d + 'T00:00:00' : null;
+
+      const payload = {
+          className, courseId: courseId ? parseInt(courseId) : null,
+          teacherId: document.getElementById('teacherId').value ? parseInt(document.getElementById('teacherId').value) : null,
+          status: 'Draft', 
+          startDate: formatDt(startDate),
+          endDate: endDate ? formatDt(endDate) : null,
+          schedule: scheduleStr, slotTime: document.getElementById('slotTime').value,
+          numberOfSessions, meetLink,
+          description: document.getElementById('description').value.trim()
+      };
+
+      const draftBtn = document.getElementById('btnSaveDraft');
+      const originalText = draftBtn.innerHTML;
+      draftBtn.disabled = true;
+      draftBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang lưu nháp...';
+
+      try {
+          const url = classId ? `/api/v1/classes/${classId}` : '/api/v1/classes/';
+          const method = classId ? 'PUT' : 'POST';
+          const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          const result = await res.json();
+          if (result.status === 201 || result.status === 200 || result.status === 202) {
+              Swal.fire({ icon: 'success', title: 'Đã lưu bản nháp!', timer: 1500, showConfirmButton: false }).then(() => {
+                  window.location.href = '/manager/class/list';
+              });
+          } else { 
+              showToast(result.message || 'Lưu nháp thất bại.', 'error');
+              draftBtn.disabled = false;
+              draftBtn.innerHTML = originalText;
+          }
+      } catch (err) { 
+          showToast('Lỗi kết nối.', 'error');
+          draftBtn.disabled = false;
+          draftBtn.innerHTML = originalText;
+      }
+  }
+
   // Form submit (Trigger Modal first)
   document.getElementById('classForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const setError = (id, msg) => { const el = document.getElementById(id + 'Error'); if (el) el.textContent = msg || ''; };
+      const setError = (id, msg) => { 
+          const el = document.getElementById(id + 'Error'); 
+          const input = document.getElementById(id);
+          if (el) el.textContent = msg || ''; 
+          if (input) {
+              if (msg) input.classList.add('is-invalid');
+              else input.classList.remove('is-invalid');
+          }
+      };
       const clearErrors = () => ['className','courseId','teacherId','schedule','numberOfSessions','meetLink','startDate'].forEach(id => setError(id,''));
       clearErrors();
       
@@ -922,7 +992,10 @@
           hasError = true;
       }
 
-      if (hasError) return;
+      if (hasError) {
+          showToast('Vui lòng kiểm tra lại các trường thông tin bắt buộc.', 'error');
+          return;
+      }
   
       // Populate Confirmation Modal
       document.getElementById('mConfirmClassName').textContent = className;
@@ -930,7 +1003,7 @@
       document.getElementById('mConfirmTeacher').textContent = document.getElementById('teacherId').options[document.getElementById('teacherId').selectedIndex]?.text || 'Chưa phân công';
       document.getElementById('mConfirmStart').textContent = startDate;
       document.getElementById('mConfirmEnd').textContent = document.getElementById('endDate').value || '---';
-      document.getElementById('mConfirmSchedule').textContent = scheduleStr;
+      document.getElementById('mConfirmSchedule').textContent = formatScheduleDisplay(scheduleStr);
       document.getElementById('mConfirmSlot').textContent = document.getElementById('slotTime').value || '---';
       document.getElementById('mConfirmSessions').textContent = numberOfSessions;
 
@@ -995,6 +1068,18 @@
           finalBtn.innerHTML = originalText;
       }
   });
+
+  function showToast(message, type = 'success') {
+      Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: type,
+          title: message,
+          showConfirmButton: false,
+          timer: 3000
+      });
+  }
 </script>
+
 </body>
 </html>

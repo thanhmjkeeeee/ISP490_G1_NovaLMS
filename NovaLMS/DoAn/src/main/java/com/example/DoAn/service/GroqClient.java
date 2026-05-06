@@ -36,19 +36,16 @@ public class GroqClient {
   private final String apiUrl;
   private final IAIPromptConfigService aiPromptConfigService;
 
-  @Value("${groq.api.key:}")
-  private String groqApiKey;
-
   public GroqClient(
-      @Value("${ai.api.key:${groq.api.key:}}") String apiKey,
-      @Value("${ai.api.url:https://api.groq.com/openai/v1}") String apiUrl,
-      @Value("${ai.model:${groq.model:llama-3.3-70b-versatile}}") String aiModel,
+      @Value("${ai.grading.api.key}") String apiKey,
+      @Value("${ai.grading.api.url:https://api.groq.com/openai/v1}") String apiUrl,
+      @Value("${ai.grading.model:llama-3.3-70b-versatile}") String aiModel,
       IAIPromptConfigService aiPromptConfigService) {
     // Clean key from quotes or spaces
     this.apiKey = apiKey != null ? apiKey.trim().replace("\"", "").replace("'", "") : "";
     this.aiModel = aiModel;
     this.aiPromptConfigService = aiPromptConfigService;
-    
+
     // Normalize API URL
     String baseUrl = apiUrl.endsWith("/chat/completions")
         ? apiUrl.substring(0, apiUrl.length() - "/chat/completions".length())
@@ -71,13 +68,11 @@ public class GroqClient {
    * tránh việc bị ghi đè/nhồi thêm header của Local Gateway gây lỗi 401.
    */
   public String transcribe(String audioUrl) {
-    // 1. Force use of real Groq Key for Whisper (STT)
-    // Avoid using 9Router key (apiKey) which doesn't support transcription
-    String cleanKey = (groqApiKey != null && !groqApiKey.isBlank()) ? groqApiKey.trim().replace("\"", "").replace("'", "") : 
-                      (this.apiKey != null ? this.apiKey.trim().replace("\"", "").replace("'", "") : "");
-    
+    // 1. Use the unified grading key (Groq)
+    String cleanKey = this.apiKey != null ? this.apiKey.trim().replace("\"", "").replace("'", "") : "";
+
     if (cleanKey.isBlank() || !cleanKey.startsWith("gsk_")) {
-        log.warn("Transcription might fail: No Groq-format key found (expected starting with 'gsk_')");
+      log.warn("Transcription might fail: No Groq-format key found (expected starting with 'gsk_')");
     }
 
     try {
@@ -90,14 +85,14 @@ public class GroqClient {
         throw new RuntimeException("Empty audio file.");
 
       // 3. Gọi API chuyển đổi (OpenAI-compatible endpoint)
-      // Nếu là key của Groq thật (gsk_...), ta gọi trực tiếp api.groq.com để tránh lỗi 500 từ proxy
-      String transcriptUrl = (cleanKey.startsWith("gsk_")) 
+      // Nếu là key của Groq thật (gsk_...), ta gọi trực tiếp api.groq.com để tránh
+      // lỗi 500 từ proxy
+      String transcriptUrl = (cleanKey.startsWith("gsk_"))
           ? "https://api.groq.com/openai/v1/audio/transcriptions"
           : this.apiUrl + "/audio/transcriptions";
 
-      log.info("[GROQ-STT] Sending transcription request to {} using key ending in ...{}", 
+      log.info("[GROQ-STT] Sending transcription request to {} using key ending in ...{}",
           transcriptUrl, cleanKey.length() > 5 ? cleanKey.substring(cleanKey.length() - 5) : "***");
-
 
       okhttp3.RequestBody fileBody = okhttp3.RequestBody.create(
           audioBytes,
@@ -117,18 +112,18 @@ public class GroqClient {
           .header("Accept", "application/json") // Explicitly accept JSON
           .build();
 
-
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respBody = response.body() != null ? response.body().string() : "";
         if (!response.isSuccessful()) {
-          if (respBody != null && (respBody.toLowerCase().contains("<!doctype html>") || respBody.toLowerCase().contains("<html"))) {
-             log.error("[GROQ-STT] AI Gateway returned an HTML error page (Status: {}).", response.code());
-             throw new RuntimeException("STT Gateway Maintenance (Status " + response.code() + "). Please try again later.");
+          if (respBody != null
+              && (respBody.toLowerCase().contains("<!doctype html>") || respBody.toLowerCase().contains("<html"))) {
+            log.error("[GROQ-STT] AI Gateway returned an HTML error page (Status: {}).", response.code());
+            throw new RuntimeException(
+                "STT Gateway Maintenance (Status " + response.code() + "). Please try again later.");
           }
           log.error("[GROQ-STT] Error: {} - {}", response.code(), respBody);
           throw new RuntimeException("STT API returned " + response.code() + ": " + respBody);
         }
-
 
         JsonNode node = mapper.readTree(respBody);
         String text = node.path("text").asText("");
@@ -169,9 +164,9 @@ public class GroqClient {
           "stream", false);
 
       String jsonBody = mapper.writeValueAsString(body);
-      
+
       okhttp3.RequestBody okHttpBody = okhttp3.RequestBody.create(
-          jsonBody, 
+          jsonBody,
           okhttp3.MediaType.parse("application/json; charset=utf-8"));
 
       okhttp3.Request request = new okhttp3.Request.Builder()
@@ -185,32 +180,35 @@ public class GroqClient {
 
       try (okhttp3.Response response = httpClient.newCall(request).execute()) {
         String respContent = response.body() != null ? response.body().string() : "";
-        
+
         if (!response.isSuccessful()) {
-          if (respContent != null && (respContent.toLowerCase().contains("<!doctype html>") || respContent.toLowerCase().contains("<html"))) {
-            log.error("[GROQ-ERROR] AI Gateway returned an HTML error page (Status: {}). This usually means the provider is down or maintenance is in progress.", response.code());
-            throw new RuntimeException("AI Provider Maintenance (Status " + response.code() + "). Please try again in a few minutes.");
+          if (respContent != null && (respContent.toLowerCase().contains("<!doctype html>")
+              || respContent.toLowerCase().contains("<html"))) {
+            log.error(
+                "[GROQ-ERROR] AI Gateway returned an HTML error page (Status: {}). This usually means the provider is down or maintenance is in progress.",
+                response.code());
+            throw new RuntimeException(
+                "AI Provider Maintenance (Status " + response.code() + "). Please try again in a few minutes.");
           }
           log.error("[GROQ-ERROR] Status: {}, Body: {}", response.code(), respContent);
           throw new RuntimeException("AI API returned " + response.code() + ": " + respContent);
         }
 
-
         String content = "";
         try {
-            JsonNode root = mapper.readTree(respContent);
-            if (root.has("choices") && root.path("choices").isArray() && root.path("choices").size() > 0) {
-                content = root.path("choices").get(0).path("message").path("content").asText();
-            } else if (root.has("error")) {
-                throw new RuntimeException("Groq Error: " + root.path("error").path("message").asText());
-            } else {
-                // If it's valid JSON but not ChatCompletion, maybe it's the raw grading JSON?
-                content = respContent;
-            }
-        } catch (Exception e) {
-            // If it's NOT valid JSON (e.g. starts with backtick), treat as raw text
-            log.warn("[AI-RAW] Response is not standard OpenAI JSON, treating as raw content.");
+          JsonNode root = mapper.readTree(respContent);
+          if (root.has("choices") && root.path("choices").isArray() && root.path("choices").size() > 0) {
+            content = root.path("choices").get(0).path("message").path("content").asText();
+          } else if (root.has("error")) {
+            throw new RuntimeException("Groq Error: " + root.path("error").path("message").asText());
+          } else {
+            // If it's valid JSON but not ChatCompletion, maybe it's the raw grading JSON?
             content = respContent;
+          }
+        } catch (Exception e) {
+          // If it's NOT valid JSON (e.g. starts with backtick), treat as raw text
+          log.warn("[AI-RAW] Response is not standard OpenAI JSON, treating as raw content.");
+          content = respContent;
         }
 
         log.debug("[GROQ-CLEANED-CONTENT] {}", content);
@@ -218,31 +216,32 @@ public class GroqClient {
         // Robust JSON extraction: Find the first { and the last }
         int firstBrace = content.indexOf("{");
         int lastBrace = content.lastIndexOf("}");
-        
+
         if (firstBrace >= 0 && lastBrace >= 0 && lastBrace > firstBrace) {
-            content = content.substring(firstBrace, lastBrace + 1);
+          content = content.substring(firstBrace, lastBrace + 1);
         } else {
-            log.error("[GROQ-PARSE-FAIL] Could not find any valid JSON braces {}. AI Response was: {}", content);
-            throw new RuntimeException("AI response is not in JSON format. Please try again.");
+          log.error("[GROQ-PARSE-FAIL] Could not find any valid JSON braces {}. AI Response was: {}", content);
+          throw new RuntimeException("AI response is not in JSON format. Please try again.");
         }
 
         // AUTO-PATCH if truncated
         content = content.trim();
         if (!content.isEmpty() && content.startsWith("{") && !content.endsWith("}")) {
-            log.warn("[AI-FIX] JSON appears truncated, attempting to close braces...");
-            long openCount = content.chars().filter(ch -> ch == '{').count();
-            long closeCount = content.chars().filter(ch -> ch == '}').count();
-            while (closeCount < openCount) {
-                content += "}";
-                closeCount++;
-            }
+          log.warn("[AI-FIX] JSON appears truncated, attempting to close braces...");
+          long openCount = content.chars().filter(ch -> ch == '{').count();
+          long closeCount = content.chars().filter(ch -> ch == '}').count();
+          while (closeCount < openCount) {
+            content += "}";
+            closeCount++;
+          }
         }
 
         try {
-            return mapper.readValue(content, GradingResponse.class);
+          return mapper.readValue(content, GradingResponse.class);
         } catch (Exception parseEx) {
-            log.error("[GROQ-PARSE-FAIL] Jackson parsing failed for content: {}. Error: {}", content, parseEx.getMessage());
-            throw new RuntimeException("Failed to parse AI response: " + parseEx.getMessage());
+          log.error("[GROQ-PARSE-FAIL] Jackson parsing failed for content: {}. Error: {}", content,
+              parseEx.getMessage());
+          throw new RuntimeException("Failed to parse AI response: " + parseEx.getMessage());
         }
 
       }
@@ -422,7 +421,7 @@ public class GroqClient {
           """
               Bạn là một chuyên gia soát lỗi (Proofreader) và giáo viên tiếng Anh IELTS cấp cao.
               Nhiệm vụ của bạn là soi xét từng từ, từng câu để tìm ra TẤT CẢ các lỗi sai trong bài viết của học sinh.
-              
+
               HÃY THỰC HIỆN CÁC BƯỚC SAU:
               1. KIỂM TRA CHÍNH TẢ (Spelling): Nhặt ra từng từ viết sai.
               2. KIỂM TRA NGỮ PHÁP (Grammar): Tìm các lỗi chia thì, số ít/số nhiều, cấu trúc câu.
@@ -438,11 +437,11 @@ public class GroqClient {
               ### 💡 NHẬN XÉT CHUNG:
               (Nhận xét về ưu điểm và hướng cải thiện)
 
-              YÊU CẦU KỸ THUẬT: 
+              YÊU CẦU KỸ THUẬT:
               - Trả về ĐÚNG ĐỊNH DẠNG JSON bên dưới.
               - Điểm số cho từng tiêu chí phải nằm trong khoảng từ 0 đến %d.
               - Trong mỗi phần "aiReasoning" của rubric: Phải chỉ rõ các lỗi cụ thể tương ứng với tiêu chí đó.
-              
+
               {
                 "overallBand": <dự đoán band 0-%d>,
                 "displayScore": <overallBand>,
@@ -451,25 +450,26 @@ public class GroqClient {
                 "overallBandDescriptor": "Detailed Proofreading",
                 "rubric": {
                   "task_achievement": {
-                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...",
                     "aiReasoning": "Lỗi nội dung: ..."
                   },
-                  "lexical_resource": { 
-                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
+                  "lexical_resource": {
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...",
                     "aiReasoning": "Lỗi chính tả/từ vựng: ..."
                   },
-                  "grammatical_range": { 
-                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
+                  "grammatical_range": {
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...",
                     "aiReasoning": "Lỗi ngữ pháp/cấu trúc: ..."
                   },
-                  "coherence_cohesion": { 
-                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...", 
+                  "coherence_cohesion": {
+                    "score": <0-%d>, "max": %d, "bandLabel": "...", "bandDescription": "...",
                     "aiReasoning": "Lỗi liên kết: ..."
                   }
                 }
               }
               """,
-          rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints);
+          rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints,
+          maxPoints, maxPoints);
     } else {
       return String.format(
           """
@@ -493,7 +493,8 @@ public class GroqClient {
                 }
               }
               """,
-          maxPoints, maxPoints, rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints);
+          maxPoints, maxPoints, rubricJson, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints, maxPoints,
+          maxPoints, maxPoints, maxPoints, maxPoints);
     }
   }
 
