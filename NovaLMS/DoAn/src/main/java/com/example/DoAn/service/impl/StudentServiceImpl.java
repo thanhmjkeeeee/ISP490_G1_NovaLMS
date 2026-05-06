@@ -116,27 +116,36 @@ public class StudentServiceImpl implements StudentService {
                 return ResponseData.error(400, "Lớp học này đã đóng đăng ký.");
             }
 
-            // Removed: check for other class registration to allow multi-class enrollment
-
+            // Rule 1: Duplicate Exact Class Constraint (Must not have an ACTIVE or IN_PROGRESS enrollment for the same class)
             if (clazz != null) {
-                boolean existsInClass = registrationRepository.existsByUser_UserIdAndClazz_ClassIdAndStatusNot(
-                        user.getUserId(), request.getClassId(), "Cancelled");
-                if (existsInClass) return ResponseData.error(400, "Bạn đã đăng ký lớp này rồi!");
+                boolean hasActiveEnrollment = registrationRepository.existsActiveEnrollmentForClass(user.getUserId(), clazz.getClassId());
+                if (hasActiveEnrollment) {
+                    throw new com.example.DoAn.exception.DuplicateCourseEnrollmentException("Bạn đã đăng ký lớp học này rồi. Vui lòng hoàn thành lớp học trước khi đăng ký lại.");
+                }
             } else {
-                // For course-only (self-study), check if already has a course-only registration
-                boolean existsCourseOnly = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndClazzIsNullAndStatus(
-                        user.getUserId(), course.getCourseId(), "Approved");
-                if (existsCourseOnly) return ResponseData.error(400, "Bạn đã đăng ký nội dung khóa học này rồi!");
+                // Self-study Duplicate Course Constraint
+                boolean hasActiveSelfStudy = registrationRepository.existsActiveSelfStudyEnrollment(user.getUserId(), course.getCourseId());
+                if (hasActiveSelfStudy) {
+                    throw new com.example.DoAn.exception.DuplicateCourseEnrollmentException("Bạn đã đăng ký khóa học này rồi. Vui lòng hoàn thành khóa học trước khi đăng ký lại.");
+                }
             }
-            // Check if student is already enrolled in the COURSE (any class or content-only)
-            boolean alreadyEnrolledInCourse = registrationRepository.existsByUser_UserIdAndCourse_CourseIdAndStatus(
-                    user.getUserId(), course.getCourseId(), "Approved");
 
+            // Rule 2: Schedule Conflict Constraint (Must not overlap with any active classes)
+            if (clazz != null && clazz.getSchedule() != null && clazz.getSlotTime() != null) {
+                List<Clazz> activeClasses = registrationRepository.findActiveClassesByUserId(user.getUserId());
+                for (Clazz activeClass : activeClasses) {
+                    if (activeClass.getSlotTime() != null && activeClass.getSlotTime().equals(clazz.getSlotTime())) {
+                        if (hasScheduleConflict(activeClass.getSchedule(), clazz.getSchedule())) {
+                            throw new com.example.DoAn.exception.ScheduleConflictException("Lịch học của lớp này bị trùng với " + activeClass.getClassName() + " mà bạn đã đăng ký.");
+                        }
+                    }
+                }
+            }
 
-            // Tính giá: price - sale (If already enrolled in course, price is 0)
+            // Tính giá: price - sale (Mọi lượt đăng ký mới đều phải thanh toán đầy đủ)
             Double originalPrice = course.getPrice() != null ? course.getPrice() : 0.0;
             Double saleAmount = course.getSale() != null ? course.getSale() : 0.0;
-            Double finalPrice = alreadyEnrolledInCourse ? 0.0 : (originalPrice - saleAmount);
+            Double finalPrice = originalPrice - saleAmount;
             if (finalPrice < 0) finalPrice = 0.0;
 
 
@@ -152,9 +161,25 @@ public class StudentServiceImpl implements StudentService {
 
             registrationRepository.save(reg);
             return ResponseData.success("Đăng ký thành công! Vui lòng hoàn tất thanh toán.", reg.getRegistrationId());
+        } catch (com.example.DoAn.exception.DuplicateCourseEnrollmentException | com.example.DoAn.exception.ScheduleConflictException e) {
+            throw e; // Rethrow to rollback transaction and let GlobalExceptionHandler handle it
         } catch (Exception e) {
             return ResponseData.error(500, "Lỗi hệ thống: " + e.getMessage());
         }
+    }
+
+    private boolean hasScheduleConflict(String sched1, String sched2) {
+        if (sched1 == null || sched2 == null || sched1.isBlank() || sched2.isBlank()) return false;
+        String[] days1 = sched1.split("[,\\-]+");
+        String[] days2 = sched2.split("[,\\-]+");
+        for (String d1 : days1) {
+            if (d1.trim().isEmpty()) continue;
+            for (String d2 : days2) {
+                if (d2.trim().isEmpty()) continue;
+                if (d1.trim().equalsIgnoreCase(d2.trim())) return true;
+            }
+        }
+        return false;
     }
 
     @Override

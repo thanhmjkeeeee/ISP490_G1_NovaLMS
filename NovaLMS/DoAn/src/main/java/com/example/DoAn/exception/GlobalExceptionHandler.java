@@ -216,4 +216,27 @@ public class GlobalExceptionHandler {
         errorResponse.setMessage("Bạn không có quyền truy cập vào chức năng này.");
         return errorResponse;
     }
+    @ExceptionHandler(DuplicateCourseEnrollmentException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public ErrorResponse handleDuplicateCourseEnrollmentException(DuplicateCourseEnrollmentException e, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setTimestamp(new Date());
+        errorResponse.setStatus(BAD_REQUEST.value());
+        errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        errorResponse.setError("Trùng lặp khóa học");
+        errorResponse.setMessage(e.getMessage());
+        return errorResponse;
+    }
+
+    @ExceptionHandler(ScheduleConflictException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public ErrorResponse handleScheduleConflictException(ScheduleConflictException e, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setTimestamp(new Date());
+        errorResponse.setStatus(BAD_REQUEST.value());
+        errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        errorResponse.setError("Xung đột lịch học");
+        errorResponse.setMessage(e.getMessage());
+        return errorResponse;
+    }
 }
