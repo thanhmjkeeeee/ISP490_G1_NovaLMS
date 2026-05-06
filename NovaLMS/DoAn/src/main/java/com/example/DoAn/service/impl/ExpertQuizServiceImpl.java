@@ -607,6 +607,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .quiz(quiz)
                 .question(question)
                 .questionGroup(question.getQuestionGroup())
+                .skill(question.getSkill()) // Add this line
                 .orderIndex(request.getOrderIndex() != null ? request.getOrderIndex() : currentCount + 1)
                 .points(request.getPoints() != null ? request.getPoints() : BigDecimal.ONE)
                 .build();
@@ -636,6 +637,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                     .quiz(quiz)
                     .question(q)
                     .questionGroup(group)
+                    .skill(q.getSkill()) // Add this line
                     .orderIndex(currentCount + i + 1)
                     .points(BigDecimal.ONE)
                     .build();
@@ -1096,6 +1098,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                     .quiz(quiz)
                     .question(question)
                     .questionGroup(sharedGroup)
+                    .skill(question.getSkill()) // Add this line
                     .orderIndex(++currentCount)
                     .points(BigDecimal.ONE)
                     .build();
