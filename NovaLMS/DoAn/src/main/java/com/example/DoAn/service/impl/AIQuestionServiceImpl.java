@@ -40,7 +40,7 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final ITextToSpeechService ttsService;
     private final FileUploadService fileUploadService;
 
-    @Value("${ai.generation.api.key}")
+    @Value("${ai.generation.api.key:}")
     private String aiApiKey;
 
     @Value("${ai.generation.model:apilms}")

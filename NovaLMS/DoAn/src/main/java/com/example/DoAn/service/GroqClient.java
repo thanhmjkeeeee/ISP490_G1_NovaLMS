@@ -37,7 +37,7 @@ public class GroqClient {
   private final IAIPromptConfigService aiPromptConfigService;
 
   public GroqClient(
-      @Value("${ai.grading.api.key}") String apiKey,
+      @Value("${ai.grading.api.key:}") String apiKey,
       @Value("${ai.grading.api.url:https://api.groq.com/openai/v1}") String apiUrl,
       @Value("${ai.grading.model:llama-3.3-70b-versatile}") String aiModel,
       IAIPromptConfigService aiPromptConfigService) {
