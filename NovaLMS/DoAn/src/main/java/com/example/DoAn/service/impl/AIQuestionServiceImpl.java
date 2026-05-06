@@ -40,13 +40,13 @@ public class AIQuestionServiceImpl implements AIQuestionService {
     private final ITextToSpeechService ttsService;
     private final FileUploadService fileUploadService;
 
-    @Value("${ai.api.key:${groq.api.key:}}")
+    @Value("${ai.generation.api.key}")
     private String aiApiKey;
 
-    @Value("${ai.model:${groq.model:llama-3.3-70b-versatile}}")
+    @Value("${ai.generation.model:apilms}")
     private String aiModel;
 
-    @Value("${ai.api.url:${groq.api.url:https://api.groq.com/openai/v1}}")
+    @Value("${ai.generation.api.url:https://rpkaeml.9router.com/v1}")
     private String aiApiUrlBase;
 
     // OkHttpClient — uses OS DNS resolver, works on all environments

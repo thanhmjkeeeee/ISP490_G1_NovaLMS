@@ -29,20 +29,15 @@ public class GroqClient {
   private final ObjectMapper mapper = JsonMapper.builder()
       .enable(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS)
       .enable(JsonReadFeature.ALLOW_SINGLE_QUOTES)
-      .enable(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER)
-      .build();
   private final String apiKey;
   private final String aiModel;
   private final String apiUrl;
   private final IAIPromptConfigService aiPromptConfigService;
 
-  @Value("${groq.api.key:}")
-  private String groqApiKey;
-
   public GroqClient(
-      @Value("${ai.api.key:${groq.api.key:}}") String apiKey,
-      @Value("${ai.api.url:https://api.groq.com/openai/v1}") String apiUrl,
-      @Value("${ai.model:${groq.model:llama-3.3-70b-versatile}}") String aiModel,
+      @Value("${ai.grading.api.key}") String apiKey,
+      @Value("${ai.grading.api.url:https://api.groq.com/openai/v1}") String apiUrl,
+      @Value("${ai.grading.model:llama-3.3-70b-versatile}") String aiModel,
       IAIPromptConfigService aiPromptConfigService) {
     // Clean key from quotes or spaces
     this.apiKey = apiKey != null ? apiKey.trim().replace("\"", "").replace("'", "") : "";
