@@ -270,11 +270,89 @@
         }
 
         .ai-feedback-box-modern {
-            background: #f8fafc;
-            border-left: 4px solid var(--ielts-primary);
-            border-radius: 0 16px 16px 0;
-            padding: 1.5rem;
-            margin-top: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid var(--ielts-primary);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.05);
+            position: relative;
+        }
+
+        .ai-feedback-content h6 {
+            font-weight: 700;
+            color: var(--ielts-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .ai-feedback-content h6:first-child {
+            margin-top: 0;
+        }
+
+        .ai-feedback-content p {
+            line-height: 1.7;
+            color: #334155;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .ai-section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, #e2e8f0 0%, transparent 100%);
+            margin: 1.5rem 0;
+        }
+
+        .rubric-table-premium {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            width: 100%;
+        }
+
+        .rubric-table-premium tr {
+            background: #ffffff;
+            transition: transform 0.2s;
+        }
+
+        .rubric-table-premium td {
+            padding: 1rem !important;
+            border: none !important;
+        }
+
+        .rubric-table-premium tr td:first-child {
+            border-radius: 12px 0 0 12px;
+            border: 1px solid #f1f5f9;
+            border-right: none;
+        }
+
+        .rubric-table-premium tr td:last-child {
+            border-radius: 0 12px 12px 0;
+            border: 1px solid #f1f5f9;
+            border-left: none;
+        }
+
+        .rubric-table-premium tr td:nth-child(2) {
+            border-top: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .progress-premium {
+            height: 10px !important;
+            background-color: #f1f5f9 !important;
+            border-radius: 20px !important;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .progress-bar-premium {
+            border-radius: 20px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         /* Modal Fixes */
@@ -481,18 +559,19 @@
                             <div class="small text-dark" th:utext="${question.explanation}"></div>
                         </div>
 
-                        <!-- AI Feedback -->
                         <div th:if="${question.aiFeedback != null}" class="ai-feedback-box-modern">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-robot text-primary"></i>
-                                    <span class="fw-bold small text-uppercase">Phân tích từ AI NovaLMS</span>
+                                    <i class="bi bi-robot text-primary fs-5"></i>
+                                    <span class="fw-bold small text-uppercase letter-spacing-1">Phân tích từ AI NovaLMS</span>
                                 </div>
-                                <span class="badge bg-primary rounded-pill" th:if="${question.aiScore != null}">
-                                    Band <span th:text="${#strings.arraySplit(question.aiScore, '/')[0]}">8.0</span>
+                                <span class="badge bg-primary rounded-pill px-3 py-2 shadow-sm" th:if="${question.aiScore != null}">
+                                    BAND <span class="fs-6 fw-bold" th:text="${#strings.arraySplit(question.aiScore, '/')[0]}">8.0</span>
                                 </span>
                             </div>
-                            <p class="small text-dark mb-0" th:text="${question.aiFeedback}">AI feedback content.</p>
+                            <div class="ai-feedback-content mt-3" th:data-feedback="${question.aiFeedback}">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            </div>
                             
                             <!-- Detailed Rubric (Hidden by default, shown via button) -->
                             <div th:if="${question.aiRubricJson != null}" class="mt-3">
@@ -685,21 +764,51 @@
             function getCriterionLabel(key) {
                 const labels = /*[[${result.criteriaLabels}]]*/ {};
                 if (labels) {
-                    if (key === 'task_achievement' || key === 'ta') return labels.ta || 'Task Achievement';
-                    if (key === 'lexical_resource' || key === 'lr') return labels.lr || 'Lexical Resource';
-                    if (key === 'grammatical_range' || key === 'gra' || key === 'grammatical_range_and_accuracy') return labels.gra || 'Grammar Range & Accuracy';
-                    if (key === 'coherence_cohesion' || key === 'cc') return labels.cc || 'Coherence & Cohesion';
-                    if (key === 'fluency_cohesion' || key === 'fc') return labels.fc || 'Fluency & Cohesion';
-                    if (key === 'pronunciation' || key === 'pr') return labels.pr || 'Pronunciation';
+                    const k = key.toLowerCase();
+                    if (k === 'task_achievement' || k === 'ta') return labels.ta || 'Task Achievement';
+                    if (k === 'lexical_resource' || k === 'lr') return labels.lr || 'Lexical Resource';
+                    if (k === 'grammatical_range' || k === 'gra' || k === 'grammatical_range_and_accuracy' || k === 'grammar_accuracy') return labels.gra || 'Grammar & Accuracy';
+                    if (k === 'coherence_cohesion' || k === 'cc') return labels.cc || 'Coherence & Cohesion';
+                    if (k === 'fluency_cohesion' || k === 'fc') return labels.fc || 'Fluency & Cohesion';
+                    if (k === 'pronunciation' || k === 'pr') return labels.pr || 'Pronunciation';
                 }
                 return key.replace(/_/g, ' ').toUpperCase();
             }
 
             function bandColorCss(score) {
                 if (score <= 4) return 'bg-danger';
-                if (score <= 6) return 'bg-warning text-dark';
+                if (score <= 6.5) return 'bg-warning text-dark';
                 return 'bg-success';
             }
+
+            function getProgressGradient(score) {
+                if (score <= 4) return 'linear-gradient(90deg, #f87171, #ef4444)';
+                if (score <= 6.5) return 'linear-gradient(90deg, #fbbf24, #f59e0b)';
+                return 'linear-gradient(90deg, #34d399, #10b981)';
+            }
+
+            // AI Feedback Text Formatter
+            document.querySelectorAll('.ai-feedback-content').forEach(container => {
+                const raw = container.getAttribute('data-feedback');
+                if (!raw) return;
+
+                // Format markers like ### TITLE into <h6> TITLE </h6>
+                let formatted = raw.replace(/###\s*([^#\n]+)/g, '<h6>$1</h6>');
+                
+                // Format lines into paragraphs
+                formatted = formatted.split('\n').map(line => {
+                    if (line.trim().startsWith('<h6>') || line.trim() === '') return line;
+                    return `<p>${line.trim()}</p>`;
+                }).join('');
+
+                // Replace specific icons with styled spans if needed
+                formatted = formatted.replace(/🔍/g, '<i class="bi bi-search text-primary me-2"></i>');
+                formatted = formatted.replace(/💡/g, '<i class="bi bi-lightbulb text-warning me-2"></i>');
+                formatted = formatted.replace(/✅/g, '<i class="bi bi-check-circle-fill text-success me-2"></i>');
+                formatted = formatted.replace(/❌/g, '<i class="bi bi-x-circle-fill text-danger me-2"></i>');
+
+                container.innerHTML = formatted;
+            });
 
             document.querySelectorAll('.rubric-breakdown-student').forEach(container => {
                 try {
@@ -711,31 +820,39 @@
                     
                     if (!rubric || typeof rubric !== 'object') return;
 
-                    let html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0 border-0">';
-                    html += '<thead><tr class="extra-small text-muted border-0">' +
-                        '<th style="width:45%" class="border-0">Tiêu chí</th>' +
-                        '<th style="width:15%" class="border-0">Band</th>' +
-                        '<th style="width:40%" class="border-0">Tiến trình</th></tr></thead><tbody>';
+                    let html = '<div class="table-responsive"><table class="rubric-table-premium">';
+                    html += '<thead><tr class="extra-small text-muted">' +
+                        '<th style="width:40%" class="ps-3">Tiêu chí chấm điểm</th>' +
+                        '<th style="width:15%" class="text-center">Band</th>' +
+                        '<th style="width:45%" class="pe-3">Mức độ hoàn thành</th></tr></thead><tbody>';
 
                     for (const key in rubric) {
                         const c = rubric[key];
                         const scoreVal = parseFloat(c.score) || 0;
                         const label = getCriterionLabel(key);
-                        const maxVal = c.max || 9.0;
+                        const maxVal = 9.0;
                         const pct = Math.min(100, Math.round((scoreVal / maxVal) * 100));
-                        const color = scoreVal <= 4 ? '#ef4444' : (scoreVal <= 6 ? '#f59e0b' : '#10b981');
+                        const gradient = getProgressGradient(scoreVal);
                         
                         html += `
-                        <tr class="border-0">
-                            <td class="border-0 py-2">
+                        <tr>
+                            <td>
                                 <span class="small fw-bold text-dark d-block">${label}</span>
-                                <div class="extra-small text-muted lh-sm mt-1">${c.bandDescription || ''}</div>
+                                <div class="extra-small text-muted lh-sm mt-1" style="max-width: 350px;">${c.bandDescription || ''}</div>
                             </td>
-                            <td class="border-0"><span class="badge ${bandColorCss(scoreVal)} rounded-pill px-2">${scoreVal.toFixed(1)}</span></td>
-                            <td class="border-0">
-                                <div class="progress rounded-pill" style="height:6px; background-color: #f1f5f9;">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                                         style="width:${pct}%; background-color:${color}"></div>
+                            <td class="text-center">
+                                <span class="badge ${bandColorCss(scoreVal)} rounded-pill px-3 py-2 shadow-sm fw-bold">
+                                    ${scoreVal.toFixed(1)}
+                                </span>
+                            </td>
+                            <td class="pe-3">
+                                <div class="progress progress-premium">
+                                    <div class="progress-bar progress-bar-premium progress-bar-striped progress-bar-animated" role="progressbar" 
+                                         style="width:${pct}%; background:${gradient}"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <span class="extra-small text-muted">0</span>
+                                    <span class="extra-small text-muted">9.0</span>
                                 </div>
                             </td>
                         </tr>`;
