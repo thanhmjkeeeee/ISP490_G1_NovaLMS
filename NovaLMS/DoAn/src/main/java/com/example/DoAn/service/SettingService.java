@@ -27,6 +27,10 @@ public class SettingService {
         return settingRepository.findBySettingTypeAndStatus("COURSE_CATEGORY", "Active");
     }
 
+    public List<Setting> getUsedCourseCategories() {
+        return settingRepository.findUsedCourseCategories();
+    }
+
     public List<Setting> getSettingsByType(String type) {
         return getSettingsByType(type, false);
     }

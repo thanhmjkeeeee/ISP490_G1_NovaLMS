@@ -19,7 +19,7 @@ public class CoursePublicViewController {
     @GetMapping("/courses")
     public String listCoursesPage(@RequestParam(required = false) Integer categoryId, Model model) {
         model.addAttribute("courseList", courseService.getCoursesByFilter(categoryId));
-        model.addAttribute("categories", settingService.getCourseCategories());
+        model.addAttribute("categories", settingService.getUsedCourseCategories());
         model.addAttribute("selectedCat", categoryId);
         return "public/courses"; // Đảm bảo file là templates/public/courses.html
     }

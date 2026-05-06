@@ -31,4 +31,7 @@ public interface SettingRepository extends JpaRepository<Setting, Integer> {
     boolean existsBySettingTypeAndValue(String settingType, String value);
     boolean existsBySettingTypeAndNameAndSettingIdNot(String settingType, String name, Integer settingId);
     boolean existsBySettingTypeAndValueAndSettingIdNot(String settingType, String value, Integer settingId);
+
+    @Query("SELECT DISTINCT c.category FROM Course c WHERE c.status = 'Published' AND c.category.status = 'Active' AND c.category.settingType = 'COURSE_CATEGORY'")
+    List<Setting> findUsedCourseCategories();
 }

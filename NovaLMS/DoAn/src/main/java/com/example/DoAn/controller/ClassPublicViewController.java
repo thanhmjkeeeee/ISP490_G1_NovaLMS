@@ -20,7 +20,7 @@ public class ClassPublicViewController {
 
     @GetMapping("/classes")
     public String listOpenClasses(@RequestParam(required = false) Integer categoryId, Model model) {
-        model.addAttribute("categories", settingService.getCourseCategories());
+        model.addAttribute("categories", settingService.getUsedCourseCategories());
         model.addAttribute("selectedCat", categoryId);
 
         return "public/classes";
