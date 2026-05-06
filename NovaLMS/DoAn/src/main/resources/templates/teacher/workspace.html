@@ -6545,14 +6545,22 @@
                 } else if (s === 'SPEAKING') {
                     let sum = 0; let count = 0;
                     skillQs.forEach(q => {
-                        const score = parseFloat(document.querySelector(`.ws-gd-score-input[data-qid="${q.questionId}"]`)?.value) || q.teacherOverrideScore || q.pointsAwarded || 0;
-                        if (score > 0) {
-                            sum += score;
+                        const fc = parseFloat(document.querySelector(`.speaking-fc[data-qid="${q.questionId}"]`)?.value) || q.speakingFluencyCoherence || 0;
+                        const lr = parseFloat(document.querySelector(`.speaking-lr[data-qid="${q.questionId}"]`)?.value) || q.speakingLexicalResource || 0;
+                        const pr = parseFloat(document.querySelector(`.speaking-pronunciation[data-qid="${q.questionId}"]`)?.value || document.querySelector(`.speaking-pr[data-qid="${q.questionId}"]`)?.value) || q.speakingPronunciation || 0;
+                        const gra = parseFloat(document.querySelector(`.speaking-gra[data-qid="${q.questionId}"]`)?.value) || q.speakingGrammarAccuracy || 0;
+                        
+                        if (fc > 0 || lr > 0 || pr > 0 || gra > 0) {
+                            sum += (fc + lr + pr + gra) / 4;
                             count++;
+                        } else {
+                            const score = parseFloat(q.teacherOverrideScore || q.pointsAwarded || 0);
+                            if (score > 0) { sum += score; count++; }
                         }
                     });
                     skillBands[s] = count > 0 ? roundIelts(sum / count) : 0;
                 }
+
             });
 
             const breakdownEl = document.getElementById('ws-gd-skill-breakdown');
