@@ -118,12 +118,7 @@
             </div>
 
             <div class="col-md-6">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <label class="form-label small fw-bold text-secondary text-uppercase mb-0">Khóa học <span class="text-danger">*</span></label>
-                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-bold" onclick="openQuickAddCourse()">
-                  <i class="bi bi-plus-circle-fill me-1"></i>Thêm mới
-                </button>
-              </div>
+              <label class="form-label small fw-bold text-secondary text-uppercase">Khóa học <span class="text-danger">*</span></label>
               <div class="searchable-select-container" id="courseSearchContainer">
                 <input type="text" id="courseDisplay" class="form-control searchable-select-input" 
                     placeholder="Chọn hoặc tìm khóa học..." readonly onclick="toggleSearchableSelect('courseSearchContainer')">
@@ -364,37 +359,6 @@
         </div>
       </div>
     </div>
-  <!-- Quick Add Course Modal -->
-  <div class="modal fade" id="quickAddCourseModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header bg-dark text-white border-0">
-          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Thêm khóa học nhanh</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body p-4">
-          <form id="quickCourseForm">
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-uppercase">Tên khóa học <span class="text-danger">*</span></label>
-              <input type="text" id="qc-name" class="form-control" required placeholder="Ví dụ: IELTS Foundation">
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-uppercase">Số buổi học <span class="text-danger">*</span></label>
-              <input type="number" id="qc-sessions" class="form-control" required min="1" value="20">
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-uppercase">Mô tả ngắn</label>
-              <textarea id="qc-desc" class="form-control" rows="2" placeholder="Thông tin khóa học..."></textarea>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer border-0">
-          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
-          <button type="button" onclick="submitQuickCourse()" class="btn btn-primary rounded-pill px-4 fw-bold">Tạo & Chọn</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </main>
 
 <th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
@@ -932,39 +896,6 @@
   }
 
   function goToEdit() { if (classId) window.location.href = `/manager/class/edit/${classId}`; }
-
-  // QUICK ADD COURSE
-  function openQuickAddCourse() {
-      new bootstrap.Modal(document.getElementById('quickAddCourseModal')).show();
-  }
-
-  async function submitQuickCourse() {
-      const name = document.getElementById('qc-name').value.trim();
-      const sessions = document.getElementById('qc-sessions').value;
-      const desc = document.getElementById('qc-desc').value.trim();
-
-      if (!name) { showToast('Vui lòng nhập tên khóa học.', 'error'); return; }
-
-      const payload = { courseName: name, numberOfSessions: parseInt(sessions), description: desc, status: 'Draft', isSelfStudy: false };
-      
-      try {
-          const res = await fetch('/api/v1/courses/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-          const result = await res.json();
-          if (result.status === 201 || result.status === 200) {
-              const modalEl = document.getElementById('quickAddCourseModal');
-              bootstrap.Modal.getInstance(modalEl).hide();
-              showToast('Đã tạo khóa học mới thành công!', 'success');
-              
-              // Refresh courses and select the new one
-              await loadCourses();
-              setTimeout(() => {
-                  selectSearchableItem('courseSearchContainer', result.data.courseId, name);
-                  document.getElementById('numberOfSessions').value = sessions;
-                  calculateEndDate();
-              }, 500);
-          } else { showToast(result.message || 'Lỗi khi tạo khóa học.', 'error'); }
-      } catch (e) { showToast('Lỗi kết nối server.', 'error'); }
-  }
 
   // DRAFT SAVE LOGIC
   async function handleDraftSave() {
