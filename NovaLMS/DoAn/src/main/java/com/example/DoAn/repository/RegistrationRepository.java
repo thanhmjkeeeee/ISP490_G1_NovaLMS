@@ -1,5 +1,6 @@
 package com.example.DoAn.repository;
 
+import com.example.DoAn.model.Clazz;
 import com.example.DoAn.model.Registration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -126,12 +127,21 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("status") String status
     );
 
-    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r WHERE r.user.userId = :userId AND r.course.courseId = :courseId AND r.clazz IS NULL AND r.status = :status")
-    boolean existsByUser_UserIdAndCourse_CourseIdAndClazzIsNullAndStatus(
-            @Param("userId") Integer userId,
-            @Param("courseId") Integer courseId,
-            @Param("status") String status
-    );
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r " +
+           "WHERE r.user.userId = :userId AND r.course.courseId = :courseId " +
+           "AND r.clazz IS NULL AND r.status IN ('Approved', 'Submitted', 'PENDING')")
+    boolean existsActiveSelfStudyEnrollment(@Param("userId") Integer userId, @Param("courseId") Integer courseId);
+
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Registration r " +
+           "WHERE r.user.userId = :userId AND r.clazz.classId = :classId " +
+           "AND r.status IN ('Approved', 'Submitted', 'PENDING')")
+    boolean existsActiveEnrollmentForClass(@Param("userId") Integer userId, @Param("classId") Integer classId);
+
+    @Query("SELECT r.clazz FROM Registration r " +
+           "WHERE r.user.userId = :userId " +
+           "AND r.status IN ('Approved', 'Submitted', 'PENDING') " +
+           "AND r.clazz IS NOT NULL")
+    List<Clazz> findActiveClassesByUserId(@Param("userId") Integer userId);
 
 
     /**
