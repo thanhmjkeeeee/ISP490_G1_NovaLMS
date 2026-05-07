@@ -163,6 +163,7 @@
         .searchable-select-container {
             position: relative;
         }
+
         .searchable-select-input {
             cursor: pointer;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
@@ -170,6 +171,7 @@
             background-position: right 0.75rem center;
             background-size: 16px 12px;
         }
+
         .searchable-select-dropdown {
             position: absolute;
             top: 100%;
@@ -182,26 +184,31 @@
             background: #fff;
             border: 1px solid #dee2e6;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             margin-top: 5px;
         }
+
         .searchable-select-dropdown.show {
             display: block;
         }
+
         .searchable-select-item {
             padding: 10px 15px;
             cursor: pointer;
             transition: background 0.2s;
         }
+
         .searchable-select-item:hover {
             background: #f8faff;
             color: #136ad5;
         }
+
         .searchable-select-item.active {
             background: #eef4ff;
             color: #136ad5;
             font-weight: 600;
         }
+
         .searchable-select-no-results {
             padding: 15px;
             text-align: center;
@@ -213,6 +220,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
+
         .topic-suggestion:hover {
             background-color: #136ad5 !important;
             color: white !important;
@@ -236,6 +244,7 @@
             align-items: center;
             backdrop-filter: blur(2px);
         }
+
         .loader {
             width: 48px;
             height: 48px;
@@ -246,9 +255,15 @@
             box-sizing: border-box;
             animation: rotation 1s linear infinite;
         }
+
         @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
     <script>
@@ -273,7 +288,7 @@
         function syncSkillFilters() {
             const skills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
             const enabledSkills = skills.filter(s => document.getElementById('enable_' + s)?.checked);
-            
+
             // 1. Update Question Bank Filter (modalSkill)
             const modalSkill = document.getElementById('modalSkill');
             if (modalSkill) {
@@ -346,7 +361,7 @@
                     if (isAssignment) perSkillSection.classList.add('assignment-mode');
                     else perSkillSection.classList.remove('assignment-mode');
                 }
-                
+
                 if (timeLimitInput) {
                     timeLimitInput.readOnly = true;
                     timeLimitInput.style.backgroundColor = '#e9ecef';
@@ -517,13 +532,17 @@
                             <div class="col-md-4" id="courseSection" style="display:none">
                                 <label class="form-label fw-bold">Khóa học <span class="text-danger">*</span></label>
                                 <div class="searchable-select-container" id="courseSearchContainer">
-                                    <input type="text" id="courseDisplay" class="form-control form-control-lg border-2 searchable-select-input" 
-                                        placeholder="Chọn hoặc tìm khóa học..." onfocus="toggleSearchableSelect('courseSearchContainer', true)"
+                                    <input type="text" id="courseDisplay"
+                                        class="form-control form-control-lg border-2 searchable-select-input"
+                                        placeholder="Chọn hoặc tìm khóa học..."
+                                        onfocus="toggleSearchableSelect('courseSearchContainer', true)"
                                         oninput="filterSearchableItems('courseSearchContainer', this.value); toggleSearchableSelect('courseSearchContainer', true)">
                                     <div class="searchable-select-dropdown" id="courseDropdown">
                                         <div class="p-2 border-bottom sticky-top bg-white">
-                                            <input type="text" class="form-control form-control-sm dropdown-search-input" 
-                                                placeholder="Tìm kiếm..." onkeyup="filterSearchableItems('courseSearchContainer', this.value)">
+                                            <input type="text"
+                                                class="form-control form-control-sm dropdown-search-input"
+                                                placeholder="Tìm kiếm..."
+                                                onkeyup="filterSearchableItems('courseSearchContainer', this.value)">
                                         </div>
                                         <div class="searchable-items-list">
                                             <!-- Items will be loaded here -->
@@ -565,14 +584,16 @@
                                     oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label fw-bold small text-muted">Điểm đạt (Band/%) <span class="text-danger">*</span></label>
-                                <input type="number" id="passScore" class="form-control" placeholder="VD: 6.5 hoặc 70" min="0"
+                                <label class="form-label fw-bold small text-muted">Điểm đạt (Band/%) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="passScore" class="form-control" placeholder="VD: 6.5" min="0"
                                     max="100" step="0.1">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label fw-bold small text-muted">Band điểm tối đa <span class="text-danger">*</span></label>
-                                <input type="number" id="overallBand" class="form-control" placeholder="3.0 - 9.0" min="3"
-                                    max="9" step="0.5">
+                                <label class="form-label fw-bold small text-muted">Band điểm tối đa <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="overallBand" class="form-control" placeholder="3.0 - 9.0"
+                                    min="3" max="9" step="0.5">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold small text-muted">Số lần làm lại</label>
@@ -640,7 +661,8 @@
                                         <input class="form-check-input" type="checkbox" id="enable_WRITING" checked
                                             onchange="toggleSkillInput('WRITING')">
                                         <label class="form-label fw-bold small text-muted mb-0"
-                                            for="enable_WRITING">WRITING <span class="extra-small text-primary">(Dài nhất)</span></label>
+                                            for="enable_WRITING">WRITING <span class="extra-small text-primary">(Dài
+                                                nhất)</span></label>
                                     </div>
                                     <input type="text" id="timeLimit_WRITING" class="form-control"
                                         placeholder="Tối đa 100" oninput="calculateTotalTime(this)">
@@ -820,8 +842,7 @@
                             <i class="bi bi-save me-2"></i> Lưu nháp
                         </button>
                         <button class="btn btn-lg btn-success px-5 fw-bold" id="btnPublishFinal"
-                            style="border-radius: 12px;"
-                            onclick="finalPublish()">
+                            style="border-radius: 12px;" onclick="finalPublish()">
                             <i class="bi bi-rocket-takeoff me-2"></i> Xuất bản ngay
                         </button>
                     </div>
@@ -851,20 +872,34 @@
                         <div class="row g-4">
                             <!-- Left: Base Config -->
                             <div class="col-md-6 border-end pe-md-4">
-                                <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ bản</label>
-                                
+                                <label class="form-label fw-bold small text-uppercase text-primary">Cấu hình cơ
+                                    bản</label>
+
 
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Chủ đề (Topic) <span class="text-danger">*</span></label>
+                                    <label class="form-label small fw-bold">Chủ đề (Topic) <span
+                                            class="text-danger">*</span></label>
                                     <input type="text" class="form-control rounded-3" id="adv-topic"
                                         placeholder="VD: Present Perfect, Workplace Communication...">
                                     <div class="mt-2 d-flex flex-wrap gap-2">
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Education')">Education</span>
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Technology')">Technology</span>
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Environment')">Environment</span>
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Health')">Health</span>
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Work & Career')">Work & Career</span>
-                                        <span class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion" onclick="setTopic('Travel & Tourism')">Travel & Tourism</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Education')">Education</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Technology')">Technology</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Environment')">Environment</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Health')">Health</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Work & Career')">Work & Career</span>
+                                        <span
+                                            class="badge bg-light text-secondary border fw-normal py-2 px-3 cursor-pointer topic-suggestion"
+                                            onclick="setTopic('Travel & Tourism')">Travel & Tourism</span>
                                     </div>
                                 </div>
                                 <div class="row g-3 mb-4">
@@ -1011,7 +1046,8 @@
                                             class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                             for="type-match">Nối cặp</label>
 
-                                        <input type="checkbox" class="btn-check" id="type-group" value="GROUP" onchange="toggleAiAdvancedFields()">
+                                        <input type="checkbox" class="btn-check" id="type-group" value="GROUP"
+                                            onchange="toggleAiAdvancedFields()">
                                         <label
                                             class="btn btn-outline-light text-dark btn-sm rounded-pill border py-1 px-3 shadow-none fw-normal"
                                             for="type-group">Bộ câu hỏi</label>
@@ -1127,13 +1163,19 @@
                     <div class="modal-body p-4">
                         <div id="wsAiPassageArea" class="mb-4 d-none">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-journal-text me-1"></i> ĐOẠN VĂN / KỊCH BẢN (PASSAGE)</h6>
+                                <h6 class="fw-bold text-primary mb-0"><i class="bi bi-journal-text me-1"></i> ĐOẠN VĂN /
+                                    KỊCH BẢN (PASSAGE)</h6>
                                 <div id="wsAiGroupAudio" class="d-none">
-                                    <button id="btn-play-group" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="wsSpeakGroup()"><i class="bi bi-play-fill"></i> Nghe hội thoại</button>
-                                    <button id="btn-stop-group" class="btn btn-sm btn-danger rounded-pill px-3" style="display:none;" onclick="wsStopGroup()"><i class="bi bi-stop-fill"></i> Dừng</button>
+                                    <button id="btn-play-group" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                        onclick="wsSpeakGroup()"><i class="bi bi-play-fill"></i> Nghe hội thoại</button>
+                                    <button id="btn-stop-group" class="btn btn-sm btn-danger rounded-pill px-3"
+                                        style="display:none;" onclick="wsStopGroup()"><i class="bi bi-stop-fill"></i>
+                                        Dừng</button>
                                 </div>
                             </div>
-                            <div id="wsAiPassageContent" class="p-4 bg-light rounded-4 border text-dark shadow-sm" style="max-height: 250px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; font-style: italic; border-left: 5px solid #0d6efd !important;"></div>
+                            <div id="wsAiPassageContent" class="p-4 bg-light rounded-4 border text-dark shadow-sm"
+                                style="max-height: 250px; overflow-y: auto; line-height: 1.6; white-space: pre-wrap; font-style: italic; border-left: 5px solid #0d6efd !important;">
+                            </div>
                         </div>
                         <div id="wsAiList" class="list-group">
                             <div class="text-center py-5">
@@ -1185,10 +1227,10 @@
             const feedback = document.getElementById('titleFeedback');
             let timeout = null;
 
-            titleInput.addEventListener('input', function() {
+            titleInput.addEventListener('input', function () {
                 const title = this.value.trim();
                 feedback.style.display = 'none';
-                
+
                 if (timeout) clearTimeout(timeout);
                 if (title.length < 3) return;
 
@@ -1256,12 +1298,12 @@
         function toggleSearchableSelect(containerId, forceShow = false) {
             const dropdown = document.querySelector(`#${containerId} .searchable-select-dropdown`);
             const isShown = dropdown.classList.contains('show');
-            
+
             if (forceShow && isShown) return;
 
             // Close others
             document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
-            
+
             if (forceShow || !isShown) {
                 dropdown.classList.add('show');
                 const searchInput = dropdown.querySelector('.dropdown-search-input');
@@ -1320,7 +1362,7 @@
         }
 
         // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', function (e) {
             if (!e.target.closest('.searchable-select-container')) {
                 document.querySelectorAll('.searchable-select-dropdown').forEach(d => d.classList.remove('show'));
             }
@@ -1340,7 +1382,7 @@
                 if (result.status === 200 && result.data && result.data.items) {
                     hiddenSelect.innerHTML = '<option value="">-- Chọn khóa học --</option>';
                     itemsList.innerHTML = '';
-                    
+
                     result.data.items.forEach(c => {
                         const val = c.courseId;
                         const text = c.courseName || c.title;
@@ -1559,7 +1601,7 @@
 
         async function goToStep(step) {
             const overlay = document.getElementById('loadingOverlay');
-            
+
             // Only show overlay if we are going to do significant loading
             let needsOverlay = (step === 2 || step === 3);
             if (overlay && needsOverlay) overlay.style.display = 'flex';
@@ -1574,15 +1616,15 @@
                     if (idx + 1 < step) item.classList.add('completed');
                     if (idx + 1 === step) item.classList.add('active');
                 });
-                
+
                 _currentStep = step;
-                
+
                 if (step === 2) {
                     // Sync band from input
                     const bandInput = document.getElementById('overallBand');
                     let val = (bandInput && bandInput.value) ? parseFloat(bandInput.value) : null;
                     _quizBand = (val !== null && !isNaN(val)) ? val.toFixed(1) : null;
-                    
+
                     syncSkillFilters();
                     // initStep2 will call loadQuizQuestions
                     await initStep2();
@@ -1600,7 +1642,7 @@
         function validateAndGoToStep2() {
             const title = document.getElementById('title').value;
             if (!title) { Swal.fire('Thông báo', 'Vui lòng nhập tên Quiz', 'info'); return; }
-            
+
             const feedback = document.getElementById('titleFeedback');
             if (feedback && feedback.style.display === 'block' && feedback.classList.contains('text-danger')) {
                 Swal.fire('Lỗi', 'Tên Quiz đã tồn tại. Vui lòng chọn tên khác.', 'error');
@@ -1619,11 +1661,22 @@
 
             const passScore = document.getElementById('passScore').value;
             if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (Band hoặc %)', 'info'); return; }
+            const psVal = parseFloat(passScore);
+            if (psVal < 0 || psVal > 100) {
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Điểm đạt phải nằm trong khoảng từ 0 đến 100 (Band hoặc %).' });
+                return;
+            }
 
             const overallBand = document.getElementById('overallBand').value;
             if (!overallBand) { Swal.fire('Thông báo', 'Vui lòng nhập Band điểm tối đa', 'info'); return; }
-            if (parseFloat(overallBand) < 3.0 || parseFloat(overallBand) > 9.0) {
-                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm phải nằm trong khoảng từ 3.0 đến 9.0.' });
+            const obVal = parseFloat(overallBand);
+            if (obVal < 3.0 || obVal > 9.0) {
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm tối đa phải nằm trong khoảng từ 3.0 đến 9.0.' });
+                return;
+            }
+
+            if (psVal <= 9.0 && psVal > obVal) {
+                Swal.fire({ icon: 'warning', title: 'Logic không hợp lệ', text: 'Điểm đạt (Band) không thể lớn hơn Band điểm tối đa của bài thi.' });
                 return;
             }
 
@@ -1658,10 +1711,10 @@
 
                 // Rule: Writing time must be the longest
                 if (document.getElementById('enable_WRITING').checked && writingTime < maxOtherTime) {
-                    Swal.fire({ 
-                        icon: 'warning', 
-                        title: 'Quy tắc thời gian', 
-                        text: 'Thời gian kỹ năng WRITING phải là dài nhất (hoặc bằng các kỹ năng khác). Vui lòng điều chỉnh lại.' 
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Quy tắc thời gian',
+                        text: 'Thời gian kỹ năng WRITING phải là dài nhất (hoặc bằng các kỹ năng khác). Vui lòng điều chỉnh lại.'
                     });
                     return;
                 }
@@ -1684,9 +1737,9 @@
             return map[type] || type || '—';
         }
 
-        async function initStep2() { 
+        async function initStep2() {
             // Only call loadQuizQuestions with bank reload once
-            await loadQuizQuestions(null, false); 
+            await loadQuizQuestions(null, false);
         }
 
         async function loadQuizQuestions(preFetchedData = null, skipBankReload = false) {
@@ -1722,7 +1775,7 @@
                     }
 
                     renderAddedQuestions();
-                    
+
                     // Only reload bank if specifically requested and we are on Step 2
                     if (!skipBankReload && _currentStep === 2) {
                         await loadBankQuestions(_currentBankPage);
@@ -1783,19 +1836,19 @@
                             <div class="text-dark small mb-2 border-bottom pb-2" style="font-style: italic;">${g.content || '—'}</div>
                              <div class="${isExpanded ? '' : 'd-none'}">
                                 ${g.items.map((sq, idx) => {
-                                    let subAns = '';
-                                    if (sq.questionType === 'MATCHING') {
-                                        let mL = sq.matchLeft || []; let mR = sq.matchRight || [];
-                                        if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) {}
-                                        if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) {}
-                                        if (mL.length > 0) subAns = `<div class="extra-small text-muted opacity-75">${mL[0]} → ${mR[0] || '?'}${mL.length > 1 ? ' ...' : ''}</div>`;
-                                    } else if (sq.correctAnswer) {
-                                        subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(sq.correctAnswer)}</div>`;
-                                    } else if (sq.options && sq.options.length > 0) {
-                                        const c = sq.options.filter(o => o.correct || o.isCorrect)[0];
-                                        if (c) subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(c.title || c.answerText)}</div>`;
-                                    }
-                                    return `
+                        let subAns = '';
+                        if (sq.questionType === 'MATCHING') {
+                            let mL = sq.matchLeft || []; let mR = sq.matchRight || [];
+                            if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch (e) { }
+                            if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch (e) { }
+                            if (mL.length > 0) subAns = `<div class="extra-small text-muted opacity-75">${mL[0]} → ${mR[0] || '?'}${mL.length > 1 ? ' ...' : ''}</div>`;
+                        } else if (sq.correctAnswer) {
+                            subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(sq.correctAnswer)}</div>`;
+                        } else if (sq.options && sq.options.length > 0) {
+                            const c = sq.options.filter(o => o.correct || o.isCorrect)[0];
+                            if (c) subAns = `<div class="extra-small text-success opacity-75">ĐA: ${escapeHtml(c.title || c.answerText)}</div>`;
+                        }
+                        return `
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <div class="small text-muted">
                                             <span class="badge bg-light text-dark me-1">${idx + 1}</span>${sq.questionContent}
@@ -1803,7 +1856,7 @@
                                         </div>
                                         <div class="extra-small text-info">${typeName(sq.questionType)}</div>
                                     </div>`;
-                                }).join('')}
+                    }).join('')}
                             </div>
                         </div>
                     </div>`;
@@ -1813,10 +1866,10 @@
                     if (q.questionType === 'MATCHING') {
                         let mL = q.matchLeft || [];
                         let mR = q.matchRight || [];
-                        if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch(e) {}
-                        if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch(e) {}
+                        if (typeof mL === 'string') try { mL = JSON.parse(mL); } catch (e) { }
+                        if (typeof mR === 'string') try { mR = JSON.parse(mR); } catch (e) { }
                         if (mL.length > 0) {
-                            ansSummary = `<div class="mt-2 extra-small text-muted border-start ps-2">` + 
+                            ansSummary = `<div class="mt-2 extra-small text-muted border-start ps-2">` +
                                 mL.slice(0, 3).map((l, i) => `<div>${escapeHtml(l)} → ${escapeHtml(mR[i] || '?')}</div>`).join('') +
                                 (mL.length > 3 ? '<div>...</div>' : '') + `</div>`;
                         }
@@ -1850,10 +1903,10 @@
         async function removeGroup(groupId) {
             try {
                 const res = await fetch(`/api/v1/expert/quizzes/${_quizId}/groups/${groupId}`, { method: 'DELETE' });
-                if (res.ok) { 
+                if (res.ok) {
                     const result = await res.json();
-                    loadQuizQuestions(result.data, true); 
-                    Toast.fire({ icon: 'success', title: 'Đã gỡ bộ câu hỏi' }); 
+                    loadQuizQuestions(result.data, true);
+                    Toast.fire({ icon: 'success', title: 'Đã gỡ bộ câu hỏi' });
                 }
             } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
         }
@@ -1879,7 +1932,7 @@
             if (cefr) params.append('cefrLevel', cefr);
             if (keyword) params.append('keyword', keyword);
             params.append('status', 'PUBLISHED'); params.append('page', page); params.append('size', 10);
-            
+
             const currentParams = params.toString();
             // CACHE CHECK: If parameters haven't changed and we have data, just re-render
             if (_lastBankResult && currentParams === _lastBankParams) {
@@ -1891,7 +1944,7 @@
             try {
                 const res = await fetch(`/api/v1/expert/question-bank?${params}`);
                 const result = await res.json();
-                _lastBankResult = result; 
+                _lastBankResult = result;
                 renderBankQuestions(result);
             } catch (e) { console.error('Error loading bank questions:', e); }
         }
@@ -1952,10 +2005,10 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ questionId: id, itemType: type, points: 1.0 })
                 });
-                if (res.ok) { 
+                if (res.ok) {
                     const result = await res.json();
-                    Toast.fire({ icon: 'success', title: 'Đã thêm vào Quiz' }); 
-                    loadQuizQuestions(result.data, true); 
+                    Toast.fire({ icon: 'success', title: 'Đã thêm vào Quiz' });
+                    loadQuizQuestions(result.data, true);
                 }
             } catch (e) { Swal.fire('Lỗi', e.message, 'error'); }
         }
@@ -1991,21 +2044,21 @@
             document.getElementById('previewTitle').textContent = document.getElementById('title').value;
             const time = document.getElementById('timeLimitMinutes').value || '?';
             const pass = document.getElementById('passScore').value || 0;
-            
+
             document.getElementById('previewSummary').textContent = Object.entries(counts)
                 .filter(([s, c]) => c > 0)
                 .map(([s, c]) => `${c} ${s.charAt(0) + s.slice(1).toLowerCase()}`)
                 .join(', ') || 'Chưa có câu hỏi nào';
-            
+
             document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút | Điểm đạt ${pass}%`;
-            
+
             const container = document.getElementById('skillStatusCards');
             const allSkills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
             const skillIcons = { 'LISTENING': 'headphones', 'READING': 'book', 'SPEAKING': 'mic', 'WRITING': 'pencil-square' };
-            
+
             const cat = document.getElementById('quizCategory').value;
             const isAssignment = cat && cat.includes('ASSIGNMENT');
-            
+
             let displaySkills = allSkills;
             if (!isAssignment) {
                 displaySkills = allSkills.filter(s => {
@@ -2013,7 +2066,7 @@
                     return cb && cb.checked;
                 });
             }
-            
+
             container.innerHTML = displaySkills.map(s => {
                 const count = counts[s] || 0;
                 const isReady = count > 0;
@@ -2099,7 +2152,7 @@
         let expertAiModal, wsAiResultModal, _generatedAiQuestions = [], _aiCurrentGroup = null, currentAudio = null;
         function openExpertAiModal() {
             if (!expertAiModal) expertAiModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('aiGenerateModal'));
-            
+
             // Sync Band to AI Modal
             const cefrRadios = document.getElementsByName('adv-cefr-radio');
             if (_quizBand) {
@@ -2116,8 +2169,8 @@
                 // Enable all
                 cefrRadios.forEach(r => r.disabled = false);
             }
-            
-            toggleAiAdvancedFields(); 
+
+            toggleAiAdvancedFields();
             expertAiModal.show();
         }
 
@@ -2148,7 +2201,7 @@
             const qty = document.getElementById('adv-qty').value;
             const isGroup = document.getElementById('type-group').checked;
             const mode = isGroup ? 'GROUP' : 'LONE';
-            
+
             const types = [];
             if (skill === 'WRITING' || skill === 'SPEAKING') types.push(skill);
             else {
@@ -2166,20 +2219,20 @@
 
             try {
                 const endpoint = mode === 'GROUP' ? '/api/v1/expert/quizzes/ai/generate-group' : '/api/v1/expert/quizzes/ai/generate';
-                const res = await fetch(endpoint, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ 
-                        topic, 
-                        quantity: qty, 
-                        skill, 
-                        cefrLevel: cefr, 
-                        questionTypes: types, 
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic,
+                        quantity: qty,
+                        skill,
+                        cefrLevel: cefr,
+                        questionTypes: types,
                         mode: "ADVANCED",
                         advancedOptions: { readingLength: readLen, listeningType: listenType }
-                    }) 
+                    })
                 });
-                
+
                 const result = await res.json();
                 if (result.status === 200) {
                     if (mode === 'GROUP') {
@@ -2194,7 +2247,7 @@
                     }
                     expertAiModal.hide();
                     wsRenderAiResults();
-                    
+
                     // Delay showing result modal to prevent backdrop collision
                     setTimeout(() => {
                         if (!wsAiResultModal) wsAiResultModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('wsAiResultModal'));
@@ -2203,11 +2256,11 @@
                 } else {
                     Swal.fire('Lỗi', result.message || 'Lỗi sinh câu hỏi', 'error');
                 }
-            } catch (e) { 
-                Swal.fire('Lỗi', e.message, 'error'); 
-            } finally { 
-                btn.disabled = false; 
-                spin.style.display = 'none'; 
+            } catch (e) {
+                Swal.fire('Lỗi', e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                spin.style.display = 'none';
             }
         }
 
@@ -2288,7 +2341,7 @@
             if (!q || q.questionType !== 'MATCHING') return '';
             const left = Array.isArray(q.matchLeft) ? q.matchLeft : (typeof q.matchLeft === 'string' && q.matchLeft.startsWith('[') ? JSON.parse(q.matchLeft) : []);
             const right = Array.isArray(q.matchRight) ? q.matchRight : (typeof q.matchRight === 'string' && q.matchRight.startsWith('[') ? JSON.parse(q.matchRight) : []);
-            
+
             // Fallback nếu rỗng nhưng có options
             let finalLeft = left;
             let finalRight = right;
@@ -2334,7 +2387,7 @@
             const passageArea = document.getElementById('wsAiPassageArea');
             const passageContent = document.getElementById('wsAiPassageContent');
             const groupAudio = document.getElementById('wsAiGroupAudio');
-            
+
             document.getElementById('wsAiTotalCount').textContent = _generatedAiQuestions.length;
 
             if (_aiCurrentGroup && _aiCurrentGroup.passage) {
@@ -2399,11 +2452,11 @@
                             } else if (subQ.questionType === 'MATCHING') {
                                 let mL = subQ.matchLeft || [];
                                 let mR = subQ.matchRight || [];
-                                if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) {}
-                                if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) {}
+                                if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch (e) { }
+                                if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch (e) { }
                                 if (mL.length === 0) mL = ['', '', ''];
 
-                                answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` + 
+                                answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` +
                                     mL.map((left, mIdx) => `
                                         <div class="row g-1 mb-1">
                                             <div class="col-5"><input type="text" class="form-control form-control-sm" id="ws-edit-g-match-l-${idx}-${sIdx}-${mIdx}" value="${escapeHtml(left)}" placeholder="Vế A"></div>
@@ -2504,11 +2557,11 @@
                         } else if (q.questionType === 'MATCHING') {
                             let mL = q.matchLeft || [];
                             let mR = q.matchRight || [];
-                            if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) {}
-                            if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) {}
+                            if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch (e) { }
+                            if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch (e) { }
                             if (mL.length === 0) mL = ['', '', ''];
 
-                            answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` + 
+                            answersEditHtml = `<div class="mt-2"><label class="small fw-bold text-primary">Các cặp nối (1-1):</label>` +
                                 mL.map((left, mIdx) => `
                                     <div class="row g-1 mb-1">
                                         <div class="col-5"><input type="text" class="form-control form-control-sm" id="ws-edit-match-l-${idx}-${mIdx}" value="${escapeHtml(left)}" placeholder="Vế A"></div>
@@ -2548,23 +2601,23 @@
                     // B. XEM CÂU HỎI LẺ BÌNH THƯỜNG
                     else {
                         let ansHtml = '';
-                            if (q.questionType === 'MATCHING') {
-                                ansHtml = matchingPreviewHtml(q);
-                            } else {
-                                const opts = q.options || q.answers || [];
-                                if (opts.length > 0) {
-                                    ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
-                                    opts.forEach(a => {
-                                        const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
-                                        ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
-                                    });
-                                    ansHtml += '</div>';
-                                } else if (q.correctAnswer) {
-                                    ansHtml = `<div class="mt-2 ps-3 border-start border-2 border-success border-opacity-25">
+                        if (q.questionType === 'MATCHING') {
+                            ansHtml = matchingPreviewHtml(q);
+                        } else {
+                            const opts = q.options || q.answers || [];
+                            if (opts.length > 0) {
+                                ansHtml = '<div class="mt-2 ps-3 border-start border-2 border-primary border-opacity-25">';
+                                opts.forEach(a => {
+                                    const isCorrect = (a.correct || a.isCorrect) ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : '';
+                                    ansHtml += `<div class="small text-muted mb-1">• ${escapeHtml(a.title || a.answerText)} ${isCorrect}</div>`;
+                                });
+                                ansHtml += '</div>';
+                            } else if (q.correctAnswer) {
+                                ansHtml = `<div class="mt-2 ps-3 border-start border-2 border-success border-opacity-25">
                                         <div class="small text-success fw-bold">Đáp án: ${escapeHtml(q.correctAnswer)}</div>
                                     </div>`;
-                                }
                             }
+                        }
 
                         html += `
                         <div class="list-group-item p-3 mb-2 rounded-3 border ${q._selected ? 'bg-light-subtle' : ''}">
@@ -2603,7 +2656,7 @@
         }
 
         // HÀM LƯU EDIT CHO ĐOẠN VĂN (PASSAGE)
-        window.wsSaveEditPassage = function(idx) {
+        window.wsSaveEditPassage = function (idx) {
             try {
                 const q = _generatedAiQuestions[idx];
                 const el = document.getElementById(`ws-edit-passage-${idx}`);
@@ -2617,7 +2670,7 @@
         };
 
         // HÀM LƯU EDIT CHO CÂU HỎI CON TRONG BỘ (GROUP QUESTION)
-        window.wsSaveEditGroupQ = function(idx, sIdx) {
+        window.wsSaveEditGroupQ = function (idx, sIdx) {
             try {
                 const subQ = _generatedAiQuestions[idx].questions[sIdx];
                 const contentEl = document.getElementById(`ws-edit-gq-content-${idx}-${sIdx}`);
@@ -2643,10 +2696,10 @@
                 } else if (subQ.questionType === 'MATCHING') {
                     let mL = subQ.matchLeft || [];
                     let mR = subQ.matchRight || [];
-                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) { mL = []; }
-                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) { mR = []; }
+                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch (e) { mL = []; }
+                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch (e) { mR = []; }
                     if (mL.length === 0) mL = ['', '', ''];
-                    
+
                     mL.forEach((_, mIdx) => {
                         const lEl = document.getElementById(`ws-edit-g-match-l-${idx}-${sIdx}-${mIdx}`);
                         const rEl = document.getElementById(`ws-edit-g-match-r-${idx}-${sIdx}-${mIdx}`);
@@ -2666,7 +2719,7 @@
         };
 
         // HÀM LƯU EDIT CHO CÂU HỎI LẺ (SINGLE QUESTION)
-        window.wsSaveEditSingleQ = function(idx) {
+        window.wsSaveEditSingleQ = function (idx) {
             try {
                 const q = _generatedAiQuestions[idx];
                 const contentEl = document.getElementById(`ws-edit-content-${idx}`);
@@ -2692,10 +2745,10 @@
                 } else if (q.questionType === 'MATCHING') {
                     let mL = q.matchLeft || [];
                     let mR = q.matchRight || [];
-                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch(e) { mL = []; }
-                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch(e) { mR = []; }
+                    if (typeof mL === 'string' && mL.startsWith('[')) try { mL = JSON.parse(mL); } catch (e) { mL = []; }
+                    if (typeof mR === 'string' && mR.startsWith('[')) try { mR = JSON.parse(mR); } catch (e) { mR = []; }
                     if (mL.length === 0) mL = ['', '', ''];
-                    
+
                     mL.forEach((_, mIdx) => {
                         const lEl = document.getElementById(`ws-edit-match-l-${idx}-${mIdx}`);
                         const rEl = document.getElementById(`ws-edit-match-r-${idx}-${mIdx}`);
@@ -2718,7 +2771,7 @@
         function wsUpdateAiSelection() {
             let c = 0;
             document.querySelectorAll('.ws-ai-cb').forEach(cb => {
-                if(_generatedAiQuestions[cb.value]) {
+                if (_generatedAiQuestions[cb.value]) {
                     _generatedAiQuestions[cb.value]._selected = cb.checked;
                     if (cb.checked) c++;
                 }
@@ -2776,13 +2829,13 @@
                 wsStopAll();
                 const audio = new Audio(_aiCurrentGroup.audioUrl);
                 window._currentAudio = audio;
-                
+
                 const btnPlay = document.getElementById('btn-play-group');
                 const btnStop = document.getElementById('btn-stop-group');
-                
+
                 if (btnPlay) btnPlay.style.display = 'none';
                 if (btnStop) btnStop.style.display = 'inline-block';
-                
+
                 audio.play();
                 audio.onended = () => {
                     wsStopGroup();
@@ -2822,7 +2875,7 @@
         // Real-time title validation
         const titleInput = document.getElementById('title');
         if (titleInput) {
-            titleInput.addEventListener('blur', async function() {
+            titleInput.addEventListener('blur', async function () {
                 const title = this.value.trim();
                 const feedback = document.getElementById('titleFeedback');
                 if (!title) {
@@ -2851,7 +2904,7 @@
             // Tắt tiếng khi đóng modal AI
             const aiGenModalEl = document.getElementById('aiGenerateModal');
             const aiResultModalEl = document.getElementById('wsAiResultModal');
-            
+
             if (aiGenModalEl) {
                 aiGenModalEl.addEventListener('hidden.bs.modal', () => {
                     window.speechSynthesis.cancel();
@@ -2861,7 +2914,7 @@
                     }
                 });
             }
-            
+
             if (aiResultModalEl) {
                 aiResultModalEl.addEventListener('hidden.bs.modal', () => {
                     window.speechSynthesis.cancel();
@@ -2885,7 +2938,10 @@
         });
     </script>
     <style>
-        .bg-light-subtle { background-color: #f0f7ff !important; }
+        .bg-light-subtle {
+            background-color: #f0f7ff !important;
+        }
     </style>
 </body>
+
 </html>

@@ -1827,11 +1827,22 @@
 
             const passScore = document.getElementById('passScore').value;
             if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (Band hoặc %)', 'info'); return false; }
+            const psVal = parseFloat(passScore);
+            if (psVal < 0 || psVal > 100) {
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Điểm đạt phải nằm trong khoảng từ 0 đến 100 (Band hoặc %).' });
+                return false;
+            }
 
             const overallBand = document.getElementById('overallBand').value;
             if (!overallBand) { Swal.fire('Thông báo', 'Vui lòng nhập Band điểm tối đa', 'info'); return false; }
-            if (parseFloat(overallBand) < 3.0 || parseFloat(overallBand) > 9.0) {
-                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm phải nằm trong khoảng từ 3.0 đến 9.0.' });
+            const obVal = parseFloat(overallBand);
+            if (obVal < 3.0 || obVal > 9.0) {
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm tối đa phải nằm trong khoảng từ 3.0 đến 9.0.' });
+                return false;
+            }
+
+            if (psVal <= 9.0 && psVal > obVal) {
+                Swal.fire({ icon: 'warning', title: 'Logic không hợp lệ', text: 'Điểm đạt (Band) không thể lớn hơn Band điểm tối đa của bài thi.' });
                 return false;
             }
 

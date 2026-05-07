@@ -776,9 +776,23 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
             throw new InvalidDataException("Thứ tự câu hỏi không hợp lệ: " + request.getQuestionOrder());
         }
         if (request.getPassScore() != null) {
-            if (request.getPassScore().compareTo(BigDecimal.ZERO) < 0 ||
-                    request.getPassScore().compareTo(new BigDecimal("100")) > 0) {
-                throw new InvalidDataException("Điểm đạt không hợp lệ (0-100% hoặc 0-9 Band).");
+            BigDecimal ps = request.getPassScore();
+            if (ps.compareTo(BigDecimal.ZERO) < 0 || ps.compareTo(new BigDecimal("100")) > 0) {
+                throw new InvalidDataException("Điểm đạt không hợp lệ (Phải từ 0-100% hoặc 0-9 Band).");
+            }
+        }
+
+        if (request.getOverallBand() != null) {
+            BigDecimal ob = request.getOverallBand();
+            if (ob.compareTo(new BigDecimal("3.0")) < 0 || ob.compareTo(new BigDecimal("9.0")) > 0) {
+                throw new InvalidDataException("Band điểm tối đa không hợp lệ (Phải từ 3.0 đến 9.0).");
+            }
+
+            // Logic check: if passScore is a Band (<= 9.0), it shouldn't exceed the max band
+            if (request.getPassScore() != null && request.getPassScore().compareTo(new BigDecimal("9.0")) <= 0) {
+                if (request.getPassScore().compareTo(ob) > 0) {
+                    throw new InvalidDataException("Điểm đạt (Band) không được lớn hơn Band điểm tối đa.");
+                }
             }
         }
         if (request.getStatus() != null && !VALID_STATUSES.contains(request.getStatus())) {
