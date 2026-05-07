@@ -536,23 +536,44 @@ public class QuizResultServiceImpl implements QuizResultService {
         boolean isStudent = qr.getUser().getEmail().equals(email);
 
         // Teacher có quyền xem nếu: tạo quiz HOẶC được gán lớp quiz HOẶC phụ trách
-        // course quiz (qua lớp khác)
+        // course quiz (qua lớp khác) HOẶC quiz được gắn qua session của lớp họ phụ trách
         Quiz quiz = qr.getQuiz();
         boolean isCreator = quiz.getUser() != null && quiz.getUser().getEmail().equals(email);
         boolean isAssignedTeacher = quiz.getClazz() != null
                 && quiz.getClazz().getTeacher() != null
                 && quiz.getClazz().getTeacher().getEmail().equals(email);
-        boolean isCourseTeacher = false;
-        if (quiz.getCourse() != null && !isAssignedTeacher) {
-            User teacher = userRepository.findByEmail(email).orElse(null);
-            if (teacher != null) {
-                List<Clazz> teacherClasses = clazzRepository.findAllByTeacher_UserId(teacher.getUserId());
-                isCourseTeacher = teacherClasses.stream()
-                        .anyMatch(c -> c.getCourse() != null
-                                && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+
+        User teacherUser = null;
+        List<Clazz> teacherClasses = null;
+
+        if (!isCreator && !isAssignedTeacher) {
+            teacherUser = userRepository.findByEmail(email).orElse(null);
+            if (teacherUser != null) {
+                teacherClasses = clazzRepository.findAllByTeacher_UserId(teacherUser.getUserId());
             }
         }
-        boolean isTeacher = isCreator || isAssignedTeacher || isCourseTeacher;
+
+        boolean isCourseTeacher = false;
+        if (quiz.getCourse() != null && !isCreator && !isAssignedTeacher && teacherClasses != null) {
+            isCourseTeacher = teacherClasses.stream()
+                    .anyMatch(c -> c.getCourse() != null
+                            && c.getCourse().getCourseId().equals(quiz.getCourse().getCourseId()));
+        }
+
+        // 🔥 FIX: Kiểm tra qua sessions (multi-session mapping) — quiz.clazz có thể null
+        boolean isSessionTeacher = false;
+        if (!isCreator && !isAssignedTeacher && !isCourseTeacher && teacherClasses != null) {
+            List<Integer> teacherClassIds = teacherClasses.stream()
+                    .map(Clazz::getClassId)
+                    .collect(Collectors.toList());
+            if (quiz.getSessions() != null) {
+                isSessionTeacher = quiz.getSessions().stream()
+                        .anyMatch(s -> s.getClazz() != null
+                                && teacherClassIds.contains(s.getClazz().getClassId()));
+            }
+        }
+
+        boolean isTeacher = isCreator || isAssignedTeacher || isCourseTeacher || isSessionTeacher;
 
         if (!isStudent && !isTeacher) {
             throw new RuntimeException("Không được phép thực hiện.");
