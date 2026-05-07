@@ -3491,7 +3491,7 @@
                 document.getElementById('wsQuizDescription').value = q.description || '';
                 document.getElementById('wsQuizTimeLimit').value = q.timeLimitMinutes || '';
                 document.getElementById('wsQuizOverallBand').value = q.overallBand || '';
-                document.getElementById('wsQuizPassScore').value = q.passScore || '70';
+                document.getElementById('wsQuizPassScore').value = q.passScore || '';
                 document.getElementById('wsQuizMaxAttempts').value = q.maxAttempts || '3';
 
                 if (q.status === 'PUBLISHED') document.getElementById('wsStatusPublish').checked = true;
@@ -3570,7 +3570,7 @@
             document.getElementById('wsQuizDescription').value = '';
             document.getElementById('wsQuizTimeLimit').value = '';
             document.getElementById('wsQuizOverallBand').value = '';
-            document.getElementById('wsQuizPassScore').value = '70';
+            document.getElementById('wsQuizPassScore').value = '';
             document.getElementById('wsQuizMaxAttempts').value = '3';
             document.getElementById('wsStatusDraft').checked = true;
             document.getElementById('wsQuizShowAnswer').checked = true;
