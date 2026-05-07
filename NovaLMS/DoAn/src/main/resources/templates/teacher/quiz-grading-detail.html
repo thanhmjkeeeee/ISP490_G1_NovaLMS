@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:with="isDashboard=true">
+
+<head th:replace="~{fragments/head :: common-head(pageTitle='Chi tiết kết quả: ' + (${result != null ? result.studentName : ''}))}" ></head>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; }
+    .result-header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 2rem; border-radius: 20px; margin-bottom: 2rem; }
+    .score-pill { background: rgba(255,255,255,0.15); border-radius: 16px; padding: 1rem 2rem; display: inline-block; text-align: center; }
+    .question-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 1rem; transition: box-shadow 0.2s; }
+    .question-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .q-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.25rem 0.75rem; border-radius: 999px; }
+    .answer-box { background: #f8fafc; border-left: 3px solid #3b82f6; padding: 1rem; border-radius: 0 12px 12px 0; margin-top: 0.75rem; white-space: pre-wrap; }
+    .correct-box { background: #f0fdf4; border-left: 3px solid #22c55e; padding: 0.75rem 1rem; border-radius: 0 12px 12px 0; margin-top: 0.5rem; }
+    .ai-box { background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 1px solid #bfdbfe; border-radius: 12px; padding: 1rem; margin-top: 0.75rem; }
+    .back-btn { background: white; border: 1px solid #e2e8f0; color: #374151; border-radius: 12px; padding: 0.5rem 1.25rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; transition: all 0.2s; }
+    .back-btn:hover { background: #f1f5f9; color: #1e293b; }
+</style>
+
+<body class="dashboard-body">
+<header th:replace="~{fragments/header :: dash-header(pageTitle='Chi tiết kết quả', breadcrumb='Kết quả đã chấm')}"></header>
+<aside th:replace="~{fragments/sidebar :: dash-sidebar(activePage='grading-results')}"></aside>
+<div th:replace="~{fragments/sidebar :: dash-overlay}"></div>
+
+<main class="dash-main" id="dashMain">
+
+    <!-- Back button -->
+    <div class="mb-4 d-flex align-items-center gap-3">
+        <a th:href="${result != null && result.classId != null
+                        ? '/teacher/quiz/graded'
+                        : '/teacher/quiz/graded'}"
+           class="back-btn">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách
+        </a>
+        <span class="text-muted small" th:if="${result != null}">
+            Bài nộp #<span th:text="${result.resultId}"></span>
+        </span>
+    </div>
+
+    <!-- Error fallback -->
+    <div th:if="${result == null}" class="alert alert-warning rounded-4">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Không tìm thấy kết quả hoặc bạn không có quyền xem.
+        <a href="/teacher/quiz/graded" class="alert-link ms-2">Quay lại danh sách</a>
+    </div>
+
+    <div th:if="${result != null}">
+        <!-- Header card -->
+        <div class="result-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <h4 class="fw-bold mb-1" th:text="${result.studentName}">Học sinh</h4>
+                    <p class="mb-1 opacity-75">
+                        <i class="bi bi-journal-text me-1"></i>
+                        <span th:text="${result.quizTitle}">Quiz</span>
+                    </p>
+                    <p class="mb-0 opacity-60 small">
+                        <i class="bi bi-building me-1"></i>
+                        <span th:text="${result.className}">Lớp</span>
+                        <span th:if="${result.courseName}" class="ms-3">
+                            <i class="bi bi-book me-1"></i>
+                            <span th:text="${result.courseName}"></span>
+                        </span>
+                    </p>
+                    <p class="mb-0 opacity-60 small mt-1" th:if="${result.submittedAt != null}">
+                        <i class="bi bi-clock me-1"></i>
+                        Nộp lúc:
+                        <span th:text="${#temporals.format(result.submittedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                    </p>
+                </div>
+                <div class="d-flex gap-3 flex-wrap">
+                    <!-- Score -->
+                    <div class="score-pill">
+                        <div class="small opacity-75 mb-1">Điểm số</div>
+                        <div class="fw-bold" style="font-size: 1.8rem;" th:text="${result.score != null ? result.score : '—'}">0</div>
+                        <div class="small opacity-60" th:text="${'/ ' + (result.totalPoints != null ? result.totalPoints : '?')}">/ 0</div>
+                    </div>
+                    <!-- Band Score if applicable -->
+                    <div class="score-pill" th:if="${result.overallBand != null}">
+                        <div class="small opacity-75 mb-1">Overall Band</div>
+                        <div class="fw-bold" style="font-size: 1.8rem;" th:text="${result.overallBand}">0</div>
+                        <div class="small opacity-60">/ 9.0</div>
+                    </div>
+                    <!-- Pass/Fail -->
+                    <div class="score-pill" th:if="${result.passed != null}">
+                        <div class="small opacity-75 mb-1">Kết quả</div>
+                        <div class="fw-bold" style="font-size: 1.2rem;">
+                            <span th:if="${result.passed}" class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Đạt</span>
+                            <span th:if="${!result.passed}" class="text-warning"><i class="bi bi-x-circle-fill me-1"></i>Chưa đạt</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions list rendered by JS from inline data -->
+        <div id="questionsContainer">
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p>Đang tải câu hỏi...</p>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Inline result data -->
+<script th:inline="javascript" th:if="${result != null}">
+    /*<![CDATA[*/
+    const resultData = /*[[${result}]]*/ {};
+    /*]]>*/
+</script>
+
+<th:block th:replace="~{fragments/footer :: dash-scripts}"></th:block>
+<th:block th:replace="~{fragments/header :: dash-scripts}"></th:block>
+
+<script th:if="${result != null}">
+document.addEventListener('DOMContentLoaded', function () {
+    if (!resultData || !resultData.questions) return;
+
+    const container = document.getElementById('questionsContainer');
+    if (!resultData.questions.length) {
+        container.innerHTML = '<p class="text-muted text-center py-4">Không có câu hỏi nào.</p>';
+        return;
+    }
+
+    let html = '';
+    resultData.questions.forEach((q, idx) => {
+        const isCorrect = q.isCorrect;
+        const isSubjective = q.questionType === 'WRITING' || q.questionType === 'SPEAKING';
+
+        let statusBadge = '';
+        if (isSubjective) {
+            statusBadge = q.teacherOverrideScore != null
+                ? `<span class="q-badge bg-success-subtle text-success">Đã chấm: ${q.teacherOverrideScore}</span>`
+                : `<span class="q-badge bg-warning-subtle text-warning">Chờ chấm</span>`;
+        } else {
+            statusBadge = isCorrect === true
+                ? `<span class="q-badge bg-success-subtle text-success"><i class="bi bi-check2 me-1"></i>Đúng</span>`
+                : isCorrect === false
+                    ? `<span class="q-badge bg-danger-subtle text-danger"><i class="bi bi-x me-1"></i>Sai</span>`
+                    : `<span class="q-badge bg-secondary-subtle text-secondary">—</span>`;
+        }
+
+        const scoreDisplay = q.pointsAwarded != null
+            ? `<span class="fw-bold text-primary">${q.pointsAwarded}</span><span class="text-muted">/${q.points}</span>`
+            : `<span class="text-muted">—/${q.points}</span>`;
+
+        let answerSection = '';
+        if (q.userAnswerDisplay) {
+            answerSection = `
+                <div class="mt-3">
+                    <div class="small fw-bold text-muted mb-1">Câu trả lời của học sinh:</div>
+                    ${q.questionType === 'SPEAKING' && q.studentAudioUrl
+                        ? `<audio controls src="${q.studentAudioUrl}" class="w-100 rounded-3"></audio>`
+                        : `<div class="answer-box">${q.userAnswerDisplay || '<em class="text-muted">Không có câu trả lời</em>'}</div>`
+                    }
+                </div>`;
+        }
+
+        let correctSection = '';
+        if (q.correctAnswerDisplay) {
+            correctSection = `
+                <div class="mt-2">
+                    <div class="small fw-bold text-muted mb-1">Đáp án đúng:</div>
+                    <div class="correct-box small">${q.correctAnswerDisplay}</div>
+                </div>`;
+        }
+
+        let aiSection = '';
+        if (q.aiFeedback || q.aiScore != null) {
+            aiSection = `
+                <div class="ai-box mt-3">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-robot text-primary"></i>
+                        <span class="small fw-bold text-uppercase">AI Feedback</span>
+                        ${q.aiScore != null ? `<span class="badge bg-primary rounded-pill ms-auto">Band ${q.aiScore}</span>` : ''}
+                    </div>
+                    <p class="small text-muted mb-0">${q.aiFeedback || ''}</p>
+                </div>`;
+        }
+
+        let teacherNoteSection = '';
+        if (q.teacherNote) {
+            teacherNoteSection = `
+                <div class="mt-2 p-3 bg-light rounded-3 border-start border-warning border-3">
+                    <div class="small fw-bold text-warning-emphasis mb-1"><i class="bi bi-chat-left-text me-1"></i>Nhận xét của giáo viên:</div>
+                    <p class="small mb-0">${q.teacherNote}</p>
+                </div>`;
+        }
+
+        html += `
+        <div class="question-card">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-muted small">Câu ${idx + 1}</span>
+                    <span class="q-badge bg-light text-secondary border">${q.questionType}</span>
+                    ${q.skill ? `<span class="q-badge bg-info-subtle text-info">${q.skill}</span>` : ''}
+                    ${statusBadge}
+                </div>
+                <div class="text-end">${scoreDisplay}</div>
+            </div>
+            <div class="fw-semibold text-dark mb-2">${q.content || ''}</div>
+            ${q.imageUrl ? `<img src="${q.imageUrl}" class="img-fluid rounded-3 mb-3" style="max-height:200px;">` : ''}
+            ${q.audioUrl ? `<audio controls src="${q.audioUrl}" class="w-100 mb-3"></audio>` : ''}
+            ${answerSection}
+            ${correctSection}
+            ${aiSection}
+            ${teacherNoteSection}
+        </div>`;
+    });
+
+    container.innerHTML = html;
+});
+</script>
+
+</body>
+</html>
