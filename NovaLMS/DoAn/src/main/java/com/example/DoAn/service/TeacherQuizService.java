@@ -136,6 +136,26 @@ public class TeacherQuizService {
             }
 
             quizRepository.save(quiz);
+
+            // Mapping to multiple sessions if provided
+            if (request.getSessionIds() != null && !request.getSessionIds().isEmpty()) {
+                for (Integer sessionId : request.getSessionIds()) {
+                    ClassSession session = classSessionRepository.findById(sessionId).orElse(null);
+                    if (session != null) {
+                        if (!sessionQuizRepository.existsBySessionSessionIdAndQuizQuizId(sessionId, quiz.getQuizId())) {
+                            int count = sessionQuizRepository.countBySessionSessionId(sessionId);
+                            SessionQuiz sq = SessionQuiz.builder()
+                                    .session(session)
+                                    .quiz(quiz)
+                                    .orderIndex(count + 1)
+                                    .isOpen(false)
+                                    .build();
+                            sessionQuizRepository.save(sq);
+                        }
+                    }
+                }
+            }
+
             return ResponseData.success("Tạo quiz thành công", toTeacherQuizDTO(quiz));
         } catch (Exception e) {
             return ResponseData.error(500, e.getMessage());

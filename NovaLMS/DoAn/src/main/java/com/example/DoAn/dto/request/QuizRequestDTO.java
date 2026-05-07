@@ -26,6 +26,7 @@ public class QuizRequestDTO {
     private Integer moduleId;        // cho MODULE_QUIZ
     private Integer lessonId;        // cho LESSON_QUIZ
     private Integer sessionId;       // gắn quiz với buổi học cụ thể
+    private java.util.List<Integer> sessionIds; // danh sách các buổi học được gắn quiz
     private Integer timeLimitMinutes;
 
     @Min(value = 0, message = "Điểm đạt tối thiểu là 0%")

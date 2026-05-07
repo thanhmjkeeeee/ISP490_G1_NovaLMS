@@ -824,10 +824,11 @@ public class TeacherClassSessionService {
             // Fetch current mappings for this class
             List<SessionLesson> currentMappings = sessionLessonRepository
                     .findByClassSession_Clazz_ClassIdOrderByOrderIndexAsc(classId);
-            Map<Integer, Integer> lessonToSessionMap = new HashMap<>(); // lessonId -> sessionId
+            Map<Integer, List<Integer>> lessonToSessionsMap = new HashMap<>(); // lessonId -> List<sessionId>
             for (SessionLesson sl : currentMappings) {
                 if (sl.getLesson() != null && sl.getSession() != null) {
-                    lessonToSessionMap.put(sl.getLesson().getLessonId(), sl.getSession().getSessionId());
+                    lessonToSessionsMap.computeIfAbsent(sl.getLesson().getLessonId(), k -> new ArrayList<>())
+                            .add(sl.getSession().getSessionId());
                 }
             }
 
@@ -843,7 +844,10 @@ public class TeacherClassSessionService {
                     Map<String, Object> lm = new LinkedHashMap<>();
                     lm.put("lessonId", l.getLessonId());
                     lm.put("lessonName", l.getLessonName());
-                    lm.put("sessionId", lessonToSessionMap.get(l.getLessonId()));
+                    lm.put("sessionIds", lessonToSessionsMap.getOrDefault(l.getLessonId(), new ArrayList<>()));
+                    // Keep sessionId for backward compatibility if needed, using the first one
+                    List<Integer> sids = lessonToSessionsMap.get(l.getLessonId());
+                    lm.put("sessionId", (sids != null && !sids.isEmpty()) ? sids.get(0) : null);
                     return lm;
                 }).toList();
                 mm.put("lessons", lessons);

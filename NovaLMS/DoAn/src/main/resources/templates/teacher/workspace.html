@@ -1112,10 +1112,8 @@
                                 <div class="p-3 text-center text-muted small">Đang tải danh sách buổi học...</div>
                             </div>
                             <div id="wsSelectedSessionDisplay"
-                                class="mt-2 p-2 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-3 d-none">
-                                <i class="bi bi-link-45deg"></i> Đã chọn: <strong id="wsSelectedSessionName"></strong>
-                                <button type="button" class="btn-close float-end" style="font-size: 0.7rem;"
-                                    onclick="wsDeselectSession()"></button>
+                                class="mt-2 d-flex flex-wrap gap-2">
+                                <!-- Selected sessions badges injected here -->
                             </div>
                             <input type="hidden" id="wsSessionSelect">
                             <!-- Hidden field to maintain compatibility with existing logic -->
@@ -2126,7 +2124,8 @@
                 const assignedLessons = [];
                 wsMappingCourseContent.forEach(m => {
                     m.lessons.forEach(l => {
-                        if (l.sessionId == s.sessionId) {
+                        const sids = l.sessionIds || [];
+                        if (sids.includes(s.sessionId)) {
                             assignedLessons.push(l.lessonName);
                         }
                     });
@@ -2160,8 +2159,28 @@
             document.getElementById('pickerSessionNumber').textContent = `Buổi ${sessionNumber}`;
 
             const container = document.getElementById('pickerCourseAccordion');
+            // Check if no modules at all
             if (!wsMappingCourseContent || wsMappingCourseContent.length === 0) {
-                container.innerHTML = '<div class="text-center text-muted py-3">Không có Module nào</div>';
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Chưa có nội dung khóa học',
+                    html: '<p class="mb-1">Khóa học này chưa có <strong>Module</strong> hoặc <strong>Bài học</strong> nào.</p>' +
+                          '<p class="text-muted small mb-0">Vui lòng thêm nội dung vào khóa học trước khi gắn vào buổi học.</p>',
+                    confirmButtonText: 'Đã hiểu'
+                });
+                return;
+            }
+
+            // Check if modules exist but have no lessons
+            const totalLessons = wsMappingCourseContent.reduce((sum, m) => sum + (m.lessons ? m.lessons.length : 0), 0);
+            if (totalLessons === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Chưa có bài học nào',
+                    html: '<p class="mb-1">Các Module trong khóa học này chưa có <strong>Bài học</strong> nào.</p>' +
+                          '<p class="text-muted small mb-0">Vui lòng thêm bài học vào các Module trước khi gắn vào buổi học.</p>',
+                    confirmButtonText: 'Đã hiểu'
+                });
                 return;
             }
 
@@ -2184,9 +2203,9 @@
                         </div>
                         <ul class="list-group list-group-flush">
                             ${m.lessons.map(l => {
-                const isChecked = l.sessionId == sessionId ? 'checked' : '';
-                // Nếu lesson đã gán cho buổi khác, có thể hiển thị hint
-                const otherSessionHint = (l.sessionId && l.sessionId != sessionId) ? `<span class="badge bg-secondary ms-2" style="font-size:0.6rem;">Đang gán buổi khác</span>` : '';
+                const isChecked = (l.sessionIds || []).includes(sessionId) ? 'checked' : '';
+                const otherSessions = (l.sessionIds || []).filter(id => id != sessionId);
+                const otherSessionHint = otherSessions.length > 0 ? `<span class="badge bg-secondary ms-2" style="font-size:0.6rem;">Đang gắn ${otherSessions.length} buổi khác</span>` : '';
                 return `
                                 <li class="list-group-item list-group-item-action d-flex align-items-center">
                                     <input class="form-check-input me-3 lesson-checkbox" type="checkbox" value="${l.lessonId}" id="chk-lesson-${l.lessonId}" ${isChecked}>
@@ -2219,7 +2238,7 @@
             if (inst) inst.hide();
         }
 
-        function confirmLessonPicker() {
+        window.confirmLessonPicker = function () {
             const sessionId = parseInt(document.getElementById('pickerSessionId').value);
 
             // Collect all checked lesson IDs
@@ -2228,29 +2247,35 @@
             // Update state
             wsMappingCourseContent.forEach(m => {
                 m.lessons.forEach(l => {
-                    // Nếu nó được check trong modal này => gán cho sessionId
+                    if (!l.sessionIds) l.sessionIds = [];
+                    
                     if (checkedIds.includes(l.lessonId)) {
-                        l.sessionId = sessionId;
+                        // If checked in this modal => add to sessionIds if not exists
+                        if (!l.sessionIds.includes(sessionId)) {
+                            l.sessionIds.push(sessionId);
+                        }
+                    } else {
+                        // If NOT checked in this modal => remove sessionId if it was there
+                        l.sessionIds = l.sessionIds.filter(id => id != sessionId);
                     }
-                    // Nếu nó đang thuộc sessionId này nhưng KHÔNG được check nữa => bỏ gán (null)
-                    else if (l.sessionId === sessionId) {
-                        l.sessionId = null;
-                    }
+                    
+                    // Update legacy sessionId for compatibility
+                    l.sessionId = l.sessionIds.length > 0 ? l.sessionIds[0] : null;
                 });
             });
 
             closeLessonPicker();
             renderSessionList();
-        }
+        };
 
-        async function saveMapping() {
+        window.saveMapping = async function () {
             const payload = [];
-            // Quét lại state wsMappingCourseContent
             wsMappingCourseContent.forEach(m => {
                 m.lessons.forEach(l => {
-                    if (l.sessionId) {
-                        payload.push({ lessonId: l.lessonId, sessionId: l.sessionId });
-                    }
+                    const sids = l.sessionIds || [];
+                    sids.forEach(sid => {
+                        payload.push({ lessonId: l.lessonId, sessionId: sid });
+                    });
                 });
             });
 
@@ -2865,6 +2890,8 @@
         let wsQuizModal;
         let wsCurrentQuizId = null;
         let wsCurrentStep = 1;
+        let wsSelectedSessions = []; // Array of {id, label}
+        let wsIsSessionLocked = false;
 
         const wsToast = (msg, icon = 'success') => {
             const Toast = Swal.mixin({
@@ -3384,19 +3411,17 @@
                     const s = wsAllSessions.find(x => x.sessionId == sessionId);
                     if (s) {
                         const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
-                        const label = `Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}`;
+                        const label = `Buổi ${s.sessionNumber} - ${dateStr} ${s.topic ? '| ' + s.topic : ''}`;
+                        wsIsSessionLocked = true;
                         wsSelectSession(s.sessionId, label);
 
                         // Lock selection UI
                         document.getElementById('wsSessionSearch').parentElement.classList.add('d-none');
-                        const closeBtn = document.querySelector('#wsSelectedSessionDisplay .btn-close');
-                        if (closeBtn) closeBtn.classList.add('d-none');
-
+                        
                         // Visual hint: make it look more permanent
                         const display = document.getElementById('wsSelectedSessionDisplay');
                         display.classList.remove('bg-primary', 'text-primary', 'border-primary');
                         display.classList.add('bg-secondary', 'text-dark', 'border-secondary', 'bg-opacity-10');
-                        display.querySelector('i').className = 'bi bi-lock-fill me-1';
                     }
                 }
             } catch (e) { wsAllSessions = []; wsRenderSessions([]); }
@@ -3422,7 +3447,7 @@
             list.forEach(s => {
                 const dateStr = s.sessionDate ? new Date(s.sessionDate).toLocaleDateString('vi-VN') : '';
                 const label = `Buổi ${s.sessionNumber} — ${dateStr} ${s.topic ? '| ' + s.topic : ''}`;
-                const isSelected = document.getElementById('wsSessionSelect').value == s.sessionId;
+                const isSelected = wsSelectedSessions.some(ss => ss.id == s.sessionId);
 
                 html += `
                 <button type="button" class="list-group-item list-group-item-action py-2 small ${isSelected ? 'bg-primary bg-opacity-10 fw-bold' : ''}" 
@@ -3434,6 +3459,48 @@
             html += '</div>';
             container.innerHTML = html;
         };
+
+        window.wsSelectSession = function (id, label) {
+            if (!id) {
+                wsSelectedSessions = []; // Clear for "No session"
+            } else {
+                if (!wsSelectedSessions.some(ss => ss.id == id)) {
+                    wsSelectedSessions.push({ id, label });
+                }
+            }
+            wsRefreshSelectedSessionsUI();
+            wsRenderSessions(wsAllSessions); // Refresh highlight
+
+            // Auto-fill title if empty or matches old pattern (from first selected session)
+            const titleInput = document.getElementById('wsQuizTitle');
+            if (wsSelectedSessions.length > 0) {
+                const firstLabel = wsSelectedSessions[0].label;
+                const match = firstLabel.match(/Buổi (\d+)/);
+                if (match && (!titleInput.value.trim() || titleInput.value.includes('Quiz - Buổi'))) {
+                    titleInput.value = `Quiz - Buổi ${match[1]}`;
+                }
+            }
+        };
+
+        window.wsDeselectSession = function (id) {
+            wsSelectedSessions = wsSelectedSessions.filter(ss => ss.id != id);
+            wsRefreshSelectedSessionsUI();
+            wsRenderSessions(wsAllSessions);
+        };
+
+        function wsRefreshSelectedSessionsUI() {
+            const container = document.getElementById('wsSelectedSessionDisplay');
+            if (wsSelectedSessions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            container.innerHTML = wsSelectedSessions.map(ss => `
+                <div class="p-2 bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-3 d-flex align-items-center gap-2">
+                    <i class="bi ${wsIsSessionLocked ? 'bi-lock-fill' : 'bi-link-45deg'}"></i> <span>${ss.label}</span>
+                    ${!wsIsSessionLocked ? `<button type="button" class="btn-close" style="font-size: 0.6rem;" onclick="wsDeselectSession(${ss.id})"></button>` : ''}
+                </div>
+            `).join('');
+        }
 
         window.wsFilterSessions = function (query) {
             const q = query.toLowerCase().trim();
@@ -3550,6 +3617,10 @@
             wsAllAiSelected = true;
             wsAiPassage = null;
             wsAiAudioUrl = null;
+            wsSelectedSessions = [];
+            wsIsSessionLocked = false;
+            wsRefreshSelectedSessionsUI();
+            
             document.getElementById('wsQuizModalSessionId').value = '';
             document.getElementById('wsQuizIdBadge').classList.add('d-none');
             document.getElementById('wsCreatedQuizId').textContent = '';
@@ -3557,7 +3628,8 @@
             document.getElementById('wsSessionSearch').value = '';
             document.getElementById('wsSessionListContainer').classList.add('d-none');
             const display = document.getElementById('wsSelectedSessionDisplay');
-            display.classList.add('d-none');
+            // display.classList.add('d-none'); // Removed as we use badges now
+            
             // Reset locked styles
             display.classList.remove('bg-secondary', 'text-dark', 'border-secondary', 'bg-opacity-10');
             display.classList.add('bg-primary', 'text-primary', 'border-primary');
@@ -3658,15 +3730,8 @@
         };
 
         window.wsNextStep = async function () {
-            // Đọc sessionId từ 2 nguồn:
-            // - wsSessionSelect: giá trị gốc khi user chọn ở Step 1
-            // - wsQuizModalSessionId: giá trị đã lưu lại sau khi hoàn tất Step 1
-            // Ưu tiên wsQuizModalSessionId vì nó luôn giữ giá trị đúng qua các bước
-            const rawSessionId = document.getElementById('wsSessionSelect').value;
-            const savedSessionId = document.getElementById('wsQuizModalSessionId').value;
-            const sessionId = savedSessionId || rawSessionId;
             const isPub = document.getElementById('wsStatusPublish').checked;
-            const sessionDisplay = document.getElementById('wsSelectedSessionDisplay');
+            const sessionIds = wsSelectedSessions.map(ss => ss.id);
 
             if (wsCurrentStep === 1) {
                 // --- Step 1 Validation ---
@@ -3676,9 +3741,9 @@
                 const passScore = document.getElementById('wsQuizPassScore').value;
                 const maxAttempts = document.getElementById('wsQuizMaxAttempts').value;
 
-                // Check if session has been selected (either a real one or "No session")
-                if (!wsIsEditing && sessionDisplay.classList.contains('d-none')) {
-                    Swal.fire('Chú ý', 'Vui lòng chọn hoặc tìm kiếm buổi học (hoặc chọn "Không gắn buổi")', 'warning');
+                // Check if session has been selected
+                if (!wsIsEditing && wsSelectedSessions.length === 0) {
+                    Swal.fire('Chú ý', 'Vui lòng chọn ít nhất 1 buổi học (hoặc chọn "Không gắn buổi")', 'warning');
                     return;
                 }
                 if (!title || title.length < 3) {
@@ -3733,7 +3798,8 @@
                     overallBand: overallBand ? parseFloat(overallBand) : null,
                     passScore: passScore ? parseFloat(passScore) : null,
                     maxAttempts: maxAttempts ? parseInt(maxAttempts) : null,
-                    showAnswerAfterSubmit: document.getElementById('wsQuizShowAnswer').checked
+                    showAnswerAfterSubmit: document.getElementById('wsQuizShowAnswer').checked,
+                    sessionIds: sessionIds
                 };
 
                 try {
@@ -3748,7 +3814,7 @@
                     const json = await res.json();
                     if (json.status === 200 || json.status === 201) {
                         wsCurrentQuizId = json.data.quizId || json.data.id;
-                        document.getElementById('wsQuizModalSessionId').value = sessionId;
+                        document.getElementById('wsQuizModalSessionId').value = sessionIds[0] || '';
                         document.getElementById('wsQuizIdBadge').classList.remove('d-none');
                         document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
 
@@ -3777,29 +3843,15 @@
                     if (!confirm.isConfirmed) return;
                 }
 
-                // 1. Gắn quiz vào session (nếu có chọn buổi học)
-                if (sessionId && wsCurrentQuizId) {
-                    console.log(`[QuizBuilder] Attaching quiz ${wsCurrentQuizId} to session ${sessionId} (raw=${rawSessionId}, saved=${savedSessionId})`);
-                    try {
-                        const attachRes = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ quizId: wsCurrentQuizId })
-                        });
-                        const attachJson = await attachRes.json();
-                        console.log(`[QuizBuilder] Attach result:`, attachJson);
-                    } catch (e) { console.error("Attach error", e); }
-                }
-
                 // 2. Publish nếu teacher chọn option Xuất bản
                 if (isPub && wsCurrentQuizId) {
                     try {
                         // Gọi API publish quiz
-                        const pubRes = await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/publish`, { method: 'POST' });
+                        await fetch(`/api/v1/teacher/quizzes/${wsCurrentQuizId}/publish`, { method: 'POST' });
 
-                        // Nếu có buổi học, đồng thời Sync mở quiz (isOpen = true)
-                        if (pubRes.ok && sessionId) {
-                            await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes/${wsCurrentQuizId}/toggle-open?isOpen=true`, {
+                        // Sync mở quiz cho các session (isOpen = true)
+                        for (const sId of sessionIds) {
+                            await fetch(`/api/v1/teacher/class-sessions/${sId}/quizzes/${wsCurrentQuizId}/toggle-open?isOpen=true`, {
                                 method: 'PATCH'
                             });
                         }
@@ -3810,12 +3862,12 @@
                 loadQuizzes();
                 if (isPub) {
                     wsToast('Đã xuất bản và hoàn tất!');
-                } else if (sessionId) {
+                } else if (sessionIds.length > 0) {
                     // DRAFT + có session → hint auto-publish
                     Swal.fire({
                         icon: 'success',
                         title: 'Đã lưu nháp!',
-                        html: '<div class="text-start"><p class="mb-2">Quiz đã được lưu dạng nháp và gắn vào buổi học.</p>' +
+                        html: '<div class="text-start"><p class="mb-2">Quiz đã được lưu dạng nháp và gắn vào các buổi học.</p>' +
                             '<div class="alert alert-info py-2 px-3 small mb-0">' +
                             '<i class="bi bi-clock-history me-1"></i> ' +
                             '<strong>Tự động xuất bản:</strong> Quiz sẽ được hệ thống tự động xuất bản khi buổi học bắt đầu. ' +
@@ -5796,7 +5848,7 @@
 
             container.innerHTML = sessionsToRender.map(s => `
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="ca-selected-session" id="ca-session-${s.sessionId}" value="${s.sessionId}">
+                    <input class="form-check-input" type="checkbox" name="ca-selected-session" id="ca-session-${s.sessionId}" value="${s.sessionId}">
                     <label class="form-check-label small" for="ca-session-${s.sessionId}">
                         <strong>Buổi ${s.sessionNumber}</strong>: ${wsSafeHtml(s.topic || 'Chưa có chủ đề')}
                     </label>
@@ -5804,10 +5856,10 @@
         }
 
         window.saveNewAssignments = async function () {
-            const sessionId = document.querySelector('input[name="ca-selected-session"]:checked')?.value;
+            const sessionIds = Array.from(document.querySelectorAll('input[name="ca-selected-session"]:checked')).map(el => el.value);
             const quizIds = Array.from(document.querySelectorAll('input[name="ca-selected-quiz"]:checked')).map(el => el.value);
 
-            if (!sessionId) { Swal.fire('Chú ý', "Vui lòng chọn 1 buổi học.", 'warning'); return; }
+            if (sessionIds.length === 0) { Swal.fire('Chú ý', "Vui lòng chọn ít nhất 1 buổi học.", 'warning'); return; }
             if (quizIds.length === 0) { Swal.fire('Chú ý', "Vui lòng chọn ít nhất 1 Quiz.", 'warning'); return; }
 
             const btn = document.getElementById('btn-save-ca');
@@ -5816,16 +5868,18 @@
 
             try {
                 let successCount = 0;
-                for (const qId of quizIds) {
-                    const res = await fetch(`/api/v1/teacher/class-sessions/${sessionId}/quizzes`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ quizId: parseInt(qId) })
-                    });
-                    if (res.ok) successCount++;
+                for (const sId of sessionIds) {
+                    for (const qId of quizIds) {
+                        const res = await fetch(`/api/v1/teacher/class-sessions/${sId}/quizzes`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ quizId: parseInt(qId) })
+                        });
+                        if (res.ok) successCount++;
+                    }
                 }
 
-                Swal.fire('Thành công', `Đã thêm thành công ${successCount} assignment(s) vào buổi học.`, 'success');
+                Swal.fire('Thành công', `Đã thêm thành công ${successCount} assignment(s) vào các buổi học.`, 'success');
                 bootstrap.Modal.getInstance(document.getElementById('createAssignmentModal')).hide();
                 loadAssignments();
             } catch (err) {
