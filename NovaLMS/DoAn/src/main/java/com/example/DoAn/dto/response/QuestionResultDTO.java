@@ -36,4 +36,10 @@ public class QuestionResultDTO {
     private java.math.BigDecimal writingCoherenceCohesion;
     private java.math.BigDecimal writingLexicalResource;
     private java.math.BigDecimal writingGrammarAccuracy;
+
+    // Speaking criteria breakdown
+    private java.math.BigDecimal speakingFluencyCoherence;
+    private java.math.BigDecimal speakingLexicalResource;
+    private java.math.BigDecimal speakingPronunciation;
+    private java.math.BigDecimal speakingGrammarAccuracy;
 }

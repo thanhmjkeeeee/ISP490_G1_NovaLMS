@@ -698,6 +698,10 @@ public class QuizResultServiceImpl implements QuizResultService {
                     .writingCoherenceCohesion(userAns != null ? userAns.getWritingCoherenceCohesion() : null)
                     .writingLexicalResource(userAns != null ? userAns.getWritingLexicalResource() : null)
                     .writingGrammarAccuracy(userAns != null ? userAns.getWritingGrammarAccuracy() : null)
+                    .speakingFluencyCoherence(userAns != null ? userAns.getSpeakingFluencyCoherence() : null)
+                    .speakingLexicalResource(userAns != null ? userAns.getSpeakingLexicalResource() : null)
+                    .speakingPronunciation(userAns != null ? userAns.getSpeakingPronunciation() : null)
+                    .speakingGrammarAccuracy(userAns != null ? userAns.getSpeakingGrammarAccuracy() : null)
                     .build());
         }
 
