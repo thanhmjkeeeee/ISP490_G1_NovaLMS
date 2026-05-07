@@ -169,7 +169,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
     List<QuizResult> findRecentSubmissionsByClassId(@org.springframework.data.repository.query.Param("classId") Integer classId, Pageable pageable);
 
     // Tính điểm trung bình của học viên trong các lớp được chỉ định và lọc ra những ai dưới mức điểm (threshold)
-    @Query("SELECT u.fullName, u.email, AVG(qr.score) " +
+    // Tính điểm trung bình của học viên trong các lớp được chỉ định và lọc ra những ai dưới mức điểm (threshold)
+    @Query("SELECT u.fullName, u.email, AVG(CASE WHEN qr.overallBand IS NOT NULL THEN qr.overallBand ELSE qr.score END) " +
             "FROM QuizResult qr " +
             "JOIN qr.user u " +
             "JOIN Registration r ON r.user.userId = u.userId " +
@@ -179,8 +180,8 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             "AND qr.score IS NOT NULL " +
             "AND (qc.classId IN :classIds OR (qc IS NULL AND qr.quiz.course.courseId = r.clazz.course.courseId)) " +
             "GROUP BY u.userId, u.fullName, u.email " +
-            "HAVING AVG(qr.score) < :threshold " +
-            "ORDER BY AVG(qr.score) ASC") // Sắp xếp ai điểm thấp nhất lên đầu
+            "HAVING AVG(CASE WHEN qr.overallBand IS NOT NULL THEN qr.overallBand ELSE qr.score END) < :threshold " +
+            "ORDER BY AVG(CASE WHEN qr.overallBand IS NOT NULL THEN qr.overallBand ELSE qr.score END) ASC") // Sắp xếp ai điểm thấp nhất lên đầu
     List<Object[]> findStudentsWithAverageScoreBelow(@Param("classIds") List<Integer> classIds, @Param("threshold") Double threshold);
 
     @Query("SELECT DISTINCT qr FROM QuizResult qr " +
