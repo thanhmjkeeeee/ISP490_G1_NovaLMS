@@ -54,7 +54,7 @@ public class TeacherDashboardServiceImpl implements ITeacherDashboardService {
         // 4. Today's Classes
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
-        LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
         List<ClassSession> todaySessions = classSessionRepository.findByTeacherAndDateRange(teacherId, startOfDay, endOfDay);
         dto.setTodayClasses(todaySessions.size());
 
