@@ -91,6 +91,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
                 .closeAt(request.getCloseAt())
                 .deadline(request.getDeadline())
                 .overallBand(request.getOverallBand())
+                .isOpen(true)
                 .build();
 
         // Set sequential + skill fields for COURSE_QUIZ and assignment types
