@@ -80,6 +80,7 @@ public class TeacherQuizService {
                     .status("DRAFT")
                     .timeLimitMinutes(request.getTimeLimitMinutes())
                     .passScore(request.getPassScore())
+                    .overallBand(request.getOverallBand())
                     .maxAttempts(request.getMaxAttempts())
                     .numberOfQuestions(request.getNumberOfQuestions())
                     .questionOrder(request.getQuestionOrder() != null ? request.getQuestionOrder() : "FIXED")
@@ -166,6 +167,8 @@ public class TeacherQuizService {
                 quiz.setPassScore(request.getPassScore());
             if (request.getMaxAttempts() != null)
                 quiz.setMaxAttempts(request.getMaxAttempts());
+            if (request.getOverallBand() != null)
+                quiz.setOverallBand(request.getOverallBand());
             if (request.getNumberOfQuestions() != null)
                 quiz.setNumberOfQuestions(request.getNumberOfQuestions());
             if (request.getQuestionOrder() != null)
