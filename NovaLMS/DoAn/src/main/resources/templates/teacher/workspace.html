@@ -5550,15 +5550,15 @@
             if (!container) return;
 
             if (classId === 'ALL') {
-                backBtn.style.display = 'none';
-                createBtn.style.display = 'none';
+                if (backBtn) backBtn.style.display = 'none';
+                if (createBtn) createBtn.style.display = 'none';
                 if (createNewBtn) createNewBtn.style.display = 'none';
                 renderClassSelectionTable(container, 'Cấu hình Assignment <i class="bi bi-chevron-right ms-1"></i>');
                 return;
             }
 
-            backBtn.style.display = 'inline-block';
-            createBtn.style.display = 'inline-block';
+            if (backBtn) backBtn.style.display = 'inline-block';
+            if (createBtn) createBtn.style.display = 'inline-block';
             if (createNewBtn) createNewBtn.style.display = 'none';
             container.innerHTML = `
             <div class="table-responsive mt-3">
