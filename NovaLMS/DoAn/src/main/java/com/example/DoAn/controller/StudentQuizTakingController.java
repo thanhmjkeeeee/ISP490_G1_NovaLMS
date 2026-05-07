@@ -35,7 +35,12 @@ public class StudentQuizTakingController {
     }
 
     @GetMapping("/student/quiz/take/{quizId}")
-    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes, javax.servlet.http.HttpServletResponse response) {
+        // Prevent caching for quiz taking page
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1
+        response.setHeader("Pragma", "no-cache"); // HTTP 1.0
+        response.setDateHeader("Expires", 0); // Proxies
+
         String email = getEmailFromPrincipal(principal);
         if (email == null) return "redirect:/login.html";
 

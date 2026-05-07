@@ -352,7 +352,14 @@ window.wsSpeak = function (text, onComplete) {
 
 /* ══════════════════════════════════════════════
    MODULE 1: INIT
+   Force reload on Back button to trigger server-side state check
 ══════════════════════════════════════════════ */
+window.onpageshow = function(event) {
+  if (event.persisted) {
+    window.location.reload();
+  }
+};
+
 document.addEventListener('DOMContentLoaded', initQuiz);
 
 function initQuiz() {
