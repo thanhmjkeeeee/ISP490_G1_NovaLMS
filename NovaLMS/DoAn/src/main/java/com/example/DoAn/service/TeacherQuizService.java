@@ -549,12 +549,21 @@ public class TeacherQuizService {
             List<Question> questions = questionRepository.findAll().stream()
                     .filter(q -> "PUBLISHED".equals(q.getStatus()))
                     .filter(q -> skill == null || skill.isBlank() || skill.equalsIgnoreCase(q.getSkill()))
-                    .filter(q -> cefrLevel == null || cefrLevel.isBlank()
-                            || cefrLevel.equalsIgnoreCase(q.getCefrLevel()))
-                    .filter(q -> questionType == null || questionType.isBlank()
-                            || questionType.equalsIgnoreCase(q.getQuestionType()))
-                    .filter(q -> keyword == null || keyword.isBlank() ||
-                            (q.getContent() != null && q.getContent().toLowerCase().contains(keyword.toLowerCase())))
+                    .filter(q -> {
+                        if (cefrLevel == null || cefrLevel.isBlank() || "null".equals(cefrLevel)) return true;
+                        String qCefr = q.getCefrLevel();
+                        if (qCefr == null) return false;
+                        return cefrLevel.trim().equalsIgnoreCase(qCefr.trim());
+                    })
+                    .filter(q -> {
+                        if (questionType == null || questionType.isBlank()) return true;
+                        return questionType.equalsIgnoreCase(q.getQuestionType());
+                    })
+                    .filter(q -> {
+                        if (keyword == null || keyword.isBlank()) return true;
+                        String content = q.getContent();
+                        return content != null && content.toLowerCase().contains(keyword.toLowerCase().trim());
+                    })
                     .collect(Collectors.toList());
 
             List<QuestionBankSimpleDTO> dtos = questions.stream().<QuestionBankSimpleDTO>map(q -> {

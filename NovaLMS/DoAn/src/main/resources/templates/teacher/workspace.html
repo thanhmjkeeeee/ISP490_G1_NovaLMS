@@ -3838,10 +3838,17 @@
                 const total = json.data.length;
                 const sk = document.getElementById('wsBankSkill').value;
                 const cf = document.getElementById('wsBankCefr').value;
-                const skCount = sk ? json.data.filter(q => q.skill === sk).length : total;
+
+                // Client-side guard: filter data again to match exactly what user selected
+                let filteredData = json.data;
+                if (cf) {
+                    filteredData = filteredData.filter(q => q.cefrLevel && q.cefrLevel.toString().trim() === cf.toString().trim());
+                }
+
+                const skCount = sk ? filteredData.filter(q => q.skill === sk).length : filteredData.length;
                 const sug = Math.min(Math.max(Math.round(skCount * 0.4), 3), 10);
                 const aiText = document.getElementById('wsAiAssistText');
-                let hint = `Bank có <strong>${total} câu</strong>`;
+                let hint = `Bank có <strong>${filteredData.length} câu</strong>`;
                 if (sk) hint += ` <strong>${sk}</strong>`;
                 if (cf) hint += ` <strong>${cf}</strong>`;
                 hint += ` — gợi ý chọn <strong>${sug} câu</strong> cho quiz.`;
@@ -3856,7 +3863,7 @@
                 const grouped = [];
                 const groupsMap = new Map();
 
-                json.data.forEach(q => {
+                filteredData.forEach(q => {
                     wsBankCache.set(q.questionId, q);
                     if (q.groupId) {
                         if (!groupsMap.has(q.groupId)) {
