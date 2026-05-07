@@ -173,10 +173,11 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Integer>
             "FROM QuizResult qr " +
             "JOIN qr.user u " +
             "JOIN Registration r ON r.user.userId = u.userId " +
+            "LEFT JOIN qr.quiz.clazz qc " +
             "WHERE r.clazz.classId IN :classIds " +
             "AND r.status = 'Approved' " +
             "AND qr.score IS NOT NULL " +
-            "AND (qr.quiz.clazz.classId IN :classIds OR qr.quiz.course.courseId = r.clazz.course.courseId) " +
+            "AND (qc.classId IN :classIds OR (qc IS NULL AND qr.quiz.course.courseId = r.clazz.course.courseId)) " +
             "GROUP BY u.userId, u.fullName, u.email " +
             "HAVING AVG(qr.score) < :threshold " +
             "ORDER BY AVG(qr.score) ASC") // Sắp xếp ai điểm thấp nhất lên đầu
