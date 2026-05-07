@@ -3684,12 +3684,35 @@
                     Swal.fire('Chú ý', 'Tên Quiz không được quá 200 ký tự', 'warning');
                     return;
                 }
-                if (timeLimit && (parseInt(timeLimit) < 1 || parseInt(timeLimit) > 60 || isNaN(timeLimit))) {
-                    Swal.fire('Chú ý', 'Thời gian làm bài phải từ 1 đến 60 phút (tối đa 1 tiếng)', 'warning');
+
+                // Overall Band Validation
+                if (!overallBand) {
+                    Swal.fire('Thông báo', 'Vui lòng nhập Band điểm tối đa', 'info');
                     return;
                 }
-                if (passScore && (parseFloat(passScore) < 0 || parseFloat(passScore) > 100 || isNaN(passScore))) {
-                    Swal.fire('Chú ý', 'Điểm đạt không hợp lệ (0-100 điểm hoặc 0-9 Band)', 'warning');
+                const obVal = parseFloat(overallBand);
+                if (obVal < 3.0 || obVal > 9.0) {
+                    Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Band điểm tối đa phải nằm trong khoảng từ 3.0 đến 9.0.' });
+                    return;
+                }
+
+                // Pass Score Validation
+                if (!passScore) {
+                    Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (Band hoặc Điểm)', 'info');
+                    return;
+                }
+                const psVal = parseFloat(passScore);
+                if (psVal < 0 || psVal > 100) {
+                    Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Điểm đạt phải nằm trong khoảng từ 0 đến 100 (Band hoặc Điểm).' });
+                    return;
+                }
+                if (psVal <= 9.0 && psVal > obVal) {
+                    Swal.fire({ icon: 'warning', title: 'Logic không hợp lệ', text: 'Điểm đạt (Band) không thể lớn hơn Band điểm tối đa của bài thi.' });
+                    return;
+                }
+
+                if (timeLimit && (parseInt(timeLimit) < 1 || parseInt(timeLimit) > 300 || isNaN(timeLimit))) {
+                    Swal.fire('Chú ý', 'Thời gian làm bài không hợp lệ (1-300 phút)', 'warning');
                     return;
                 }
                 if (maxAttempts && (parseInt(maxAttempts) < 1 || isNaN(maxAttempts))) {
