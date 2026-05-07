@@ -149,7 +149,18 @@ public class TeacherClassSessionService {
                 m.put("sessionDate", s.getSessionDate());
                 m.put("startTime", s.getStartTime());
                 m.put("endTime", s.getEndTime());
-                m.put("topic", s.getTopic());
+                String topic = s.getTopic();
+                List<SessionLesson> sLessons = sessionLessonRepository.findBySessionSessionId(s.getSessionId());
+                if (topic == null || topic.isBlank() || "Chưa cập nhật chủ đề...".equals(topic)) {
+                    List<String> lessonNames = sLessons.stream()
+                            .filter(sl -> sl.getLesson() != null)
+                            .map(sl -> sl.getLesson().getLessonName())
+                            .toList();
+                    if (!lessonNames.isEmpty()) {
+                        topic = String.join(", ", lessonNames);
+                    }
+                }
+                m.put("topic", topic);
                 m.put("notes", s.getNotes());
                 m.put("materials", parseMaterials(s.getMaterials()));
 
@@ -181,8 +192,7 @@ public class TeacherClassSessionService {
                 m.put("quizzes", quizzesList);
 
                 // Map to moduleIds via session_lesson
-                List<Integer> moduleIds = sessionLessonRepository.findBySessionSessionId(s.getSessionId())
-                        .stream()
+                List<Integer> moduleIds = sLessons.stream()
                         .filter(sl -> sl.getLesson() != null && sl.getLesson().getModule() != null)
                         .map(sl -> sl.getLesson().getModule().getModuleId())
                         .distinct().toList();

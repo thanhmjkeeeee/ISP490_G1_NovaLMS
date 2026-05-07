@@ -714,6 +714,8 @@ public class TeacherQuizService {
                 .className(quiz.getClazz() != null ? quiz.getClazz().getClassName() : null)
                 .courseId(quiz.getCourse() != null ? quiz.getCourse().getCourseId() : null)
                 .courseName(quiz.getCourse() != null ? quiz.getCourse().getCourseName() : null)
+                .moduleId(quiz.getModule() != null ? quiz.getModule().getModuleId() : null)
+                .moduleName(quiz.getModule() != null ? quiz.getModule().getModuleName() : null)
                 .status(quiz.getStatus())
                 .isOpen(quiz.getIsOpen() != null ? quiz.getIsOpen() : false)
                 .timeLimitMinutes(quiz.getTimeLimitMinutes())
@@ -779,6 +781,8 @@ public class TeacherQuizService {
         private String className;
         private Integer courseId;
         private String courseName;
+        private Integer moduleId;
+        private String moduleName;
         private String status;
         private Boolean isOpen; // Teacher mở/đóng quiz cho học sinh
         private Integer timeLimitMinutes;
