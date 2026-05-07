@@ -3571,6 +3571,11 @@
             document.getElementById('wsQuizTimeLimit').value = '';
             document.getElementById('wsQuizOverallBand').value = '';
             document.getElementById('wsQuizPassScore').value = '';
+            const bankCefr = document.getElementById('wsBankCefr');
+            if (bankCefr) {
+                bankCefr.value = '';
+                bankCefr.disabled = false;
+            }
             document.getElementById('wsQuizMaxAttempts').value = '3';
             document.getElementById('wsStatusDraft').checked = true;
             document.getElementById('wsQuizShowAnswer').checked = true;
@@ -3746,7 +3751,17 @@
                         document.getElementById('wsQuizModalSessionId').value = sessionId;
                         document.getElementById('wsQuizIdBadge').classList.remove('d-none');
                         document.getElementById('wsCreatedQuizId').textContent = wsCurrentQuizId;
+
+                        // Sync and lock Band in Master Bank filter
+                        const overallBand = document.getElementById('wsQuizOverallBand').value;
+                        const bankCefr = document.getElementById('wsBankCefr');
+                        if (overallBand && bankCefr) {
+                            bankCefr.value = overallBand;
+                            bankCefr.disabled = true; // Lock it
+                        }
+                        
                         wsSwitchStep(2);
+                        wsLoadBank(); // Auto load with filtered band
                     } else {
                         Swal.fire('Thất bại', json.message || 'Lỗi khi lưu quiz', 'error');
                     }
