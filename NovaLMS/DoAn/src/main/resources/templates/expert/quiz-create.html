@@ -584,7 +584,7 @@
                                     oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label fw-bold small text-muted">Điểm đạt (Band/%) <span
+                                <label class="form-label fw-bold small text-muted">Điểm đạt (Band/Điểm) <span
                                         class="text-danger">*</span></label>
                                 <input type="number" id="passScore" class="form-control" placeholder="VD: 6.5" min="0"
                                     max="100" step="0.1">
@@ -819,7 +819,7 @@
                         <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
                     </div>
                     <h3 class="fw-bold" id="previewTitle">Tên Quiz của bạn</h3>
-                    <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0%</p>
+                    <p class="text-muted mb-2" id="previewSummary">Tóm tắt: 0 câu hỏi | 0 phút | Điểm đạt 0 điểm</p>
                     <p class="text-muted small mb-4" id="previewQuestionCount">0 câu hỏi đã thêm</p>
 
                     <!-- Skill status cards -->
@@ -1660,10 +1660,10 @@
             }
 
             const passScore = document.getElementById('passScore').value;
-            if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (Band hoặc %)', 'info'); return; }
+            if (!passScore) { Swal.fire('Thông báo', 'Vui lòng nhập điểm đạt (Band hoặc Điểm)', 'info'); return; }
             const psVal = parseFloat(passScore);
             if (psVal < 0 || psVal > 100) {
-                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Điểm đạt phải nằm trong khoảng từ 0 đến 100 (Band hoặc %).' });
+                Swal.fire({ icon: 'warning', title: 'Giá trị không hợp lệ', text: 'Điểm đạt phải nằm trong khoảng từ 0 đến 100 (Band hoặc Điểm).' });
                 return;
             }
 
@@ -2050,7 +2050,7 @@
                 .map(([s, c]) => `${c} ${s.charAt(0) + s.slice(1).toLowerCase()}`)
                 .join(', ') || 'Chưa có câu hỏi nào';
 
-            document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút | Điểm đạt ${pass}%`;
+            document.getElementById('previewQuestionCount').textContent = `Tổng cộng: ${_quizQuestions.length} câu hỏi | Thời gian: ${time} phút | Điểm đạt ${pass} điểm`;
 
             const container = document.getElementById('skillStatusCards');
             const allSkills = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];

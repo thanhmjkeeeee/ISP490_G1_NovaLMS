@@ -756,9 +756,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                         quiz.getPassScore() != null
                                 ? (calculateQuizMaxBand(quiz) <= 9.0
                                         ? "Yêu cầu Band: " + quiz.getPassScore().toString()
-                                        : (quiz.getPassScore().doubleValue() <= 9.0 
-                                            ? "Yêu cầu đạt: " + quiz.getPassScore().toString() + " điểm"
-                                            : "Yêu cầu đạt: " + quiz.getPassScore().toString() + "%"))
+                                        : "Yêu cầu đạt: " + quiz.getPassScore().toString() + " điểm")
                                 : "Không yêu cầu điểm đạt")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)
@@ -1678,8 +1676,9 @@ public class QuizResultServiceImpl implements QuizResultService {
                         BigDecimal roundedBand = result.getOverallBand() != null ? result.getOverallBand() : BigDecimal.ZERO;
                         result.setPassed(roundedBand.compareTo(quiz.getPassScore()) >= 0);
                     } else {
-                        // Standard percentage comparison against correct rate
-                        result.setPassed(result.getCorrectRate().compareTo(quiz.getPassScore()) >= 0);
+                        // Comparison against achieved points (not percentage)
+                        BigDecimal achievedPoints = result.getScore() != null ? BigDecimal.valueOf(result.getScore()) : BigDecimal.ZERO;
+                        result.setPassed(achievedPoints.compareTo(quiz.getPassScore()) >= 0);
                     }
                 } else {
                     result.setPassed(true);
