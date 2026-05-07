@@ -754,9 +754,11 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .showAnswer(showAnswer)
                 .passScoreDescription(
                         quiz.getPassScore() != null
-                                ? (quiz.getPassScore().doubleValue() <= 9.0
+                                ? (calculateQuizMaxBand(quiz) <= 9.0
                                         ? "Yêu cầu Band: " + quiz.getPassScore().toString()
-                                        : "Yêu cầu đạt: " + quiz.getPassScore().toString() + "%")
+                                        : (quiz.getPassScore().doubleValue() <= 9.0 
+                                            ? "Yêu cầu đạt: " + quiz.getPassScore().toString() + " điểm"
+                                            : "Yêu cầu đạt: " + quiz.getPassScore().toString() + "%"))
                                 : "Không yêu cầu điểm đạt")
                 .questions(questionsRes)
                 .skillsPresent(skillsPresent)

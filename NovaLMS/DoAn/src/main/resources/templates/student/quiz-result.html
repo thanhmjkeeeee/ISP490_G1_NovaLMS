@@ -408,7 +408,7 @@
                         <div class="row g-5 align-items-center">
                             <div class="col-lg-5">
                                 <div class="overall-score-section">
-                                    <span class="band-label-premium">Điểm IELTS Tổng Kết</span>
+                                    <span class="band-label-premium" th:text="${result.quizMaxBand != null and result.quizMaxBand <= 9.0 ? 'Điểm IELTS Tổng Kết' : 'Kết Quả Điểm Số'}">Kết quả</span>
                                     <div th:if="${result.overallBand != null}">
                                         <span class="huge-band-number">
                                             <span th:text="${#numbers.formatDecimal(result.overallBand, 1, 1)}">8.5</span>
