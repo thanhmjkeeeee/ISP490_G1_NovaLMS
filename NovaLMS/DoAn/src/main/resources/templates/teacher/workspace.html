@@ -1143,9 +1143,9 @@
                                     placeholder="9.0" min="0" max="9" step="0.5">
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label fw-semibold">Điểm đạt (%)</label>
+                                <label class="form-label fw-semibold">Điểm đạt (Band/%)</label>
                                 <input type="number" class="form-control rounded-3" id="wsQuizPassScore"
-                                    placeholder="70" min="50" max="100">
+                                    placeholder="VD: 6.5 hoặc 70" min="0" max="100" step="0.1">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Số lần làm</label>
@@ -3062,9 +3062,9 @@
                 }
 
                 // Validate Pass Score
-                const passScore = parseInt(document.getElementById('asgn-pass-score').value);
+                const passScore = parseFloat(document.getElementById('asgn-pass-score').value);
                 if (isNaN(passScore) || passScore < 0 || passScore > 100) {
-                    Swal.fire('Dữ liệu không hợp lệ', 'Điểm đạt (%) phải từ 0 đến 100', 'warning');
+                    Swal.fire('Dữ liệu không hợp lệ', 'Điểm đạt (Band/%) phải từ 0 đến 100', 'warning');
                     return;
                 }
 
@@ -3671,8 +3671,8 @@
                     Swal.fire('Chú ý', 'Thời gian làm bài phải từ 1 đến 60 phút (tối đa 1 tiếng)', 'warning');
                     return;
                 }
-                if (passScore && (parseFloat(passScore) < 50 || parseFloat(passScore) > 100 || isNaN(passScore))) {
-                    Swal.fire('Chú ý', 'Điểm đạt phải từ 50 đến 100', 'warning');
+                if (passScore && (parseFloat(passScore) < 0 || parseFloat(passScore) > 100 || isNaN(passScore))) {
+                    Swal.fire('Chú ý', 'Điểm đạt không hợp lệ (0-100% hoặc 0-9 Band)', 'warning');
                     return;
                 }
                 if (maxAttempts && (parseInt(maxAttempts) < 1 || isNaN(maxAttempts))) {
@@ -4959,7 +4959,9 @@
 
                 // Meta info row
                 const timeTxt = q.timeLimitMinutes ? `${q.timeLimitMinutes} phút` : 'Không giới hạn';
-                const passTxt = q.passScore ? `Đạt: ${q.passScore}%` : '';
+                const passVal = q.passScore || 0;
+                const isBand = q.overallBand != null || passVal <= 9.0;
+                const passTxt = passVal ? `Đạt: ${isBand ? 'Band ' : ''}${passVal}${isBand ? '' : '%'}` : '';
                 const attemptTxt = q.maxAttempts ? `${q.maxAttempts} lần` : '∞ lần';
                 const createdTxt = q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : '';
 
@@ -5032,8 +5034,10 @@
 
                 const q = json.data;
                 document.getElementById('wsQuizPreviewTitle').textContent = q.title || 'Quiz';
+                const pVal = q.passScore || 0;
+                const isB = q.overallBand != null || pVal <= 9.0;
                 document.getElementById('wsQuizPreviewSubtitle').textContent =
-                    `${q.questions?.length || 0} câu hỏi · ${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'} · Đạt: ${q.passScore || 0}%`;
+                    `${q.questions?.length || 0} câu hỏi · ${q.timeLimitMinutes ? q.timeLimitMinutes + ' phút' : 'Không giới hạn'} · Đạt: ${isB ? 'Band ' : ''}${pVal}${isB ? '' : '%'}`;
 
                 if (!q.questions || q.questions.length === 0) {
                     body.innerHTML = '<div class="text-center py-5 text-muted">Quiz chưa có câu hỏi nào.</div>';
@@ -7468,8 +7472,8 @@
                                     placeholder="Hướng dẫn sinh viên làm bài..."></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Điểm đạt (%)</label>
-                                <input type="number" id="asgn-pass-score" class="form-control rounded-3" value="50">
+                                <label class="form-label small fw-bold">Điểm đạt (Band/%)</label>
+                                <input type="number" id="asgn-pass-score" class="form-control rounded-3" placeholder="6.5 hoặc 70" step="0.1" min="0" max="100">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Số lần làm tối đa</label>

@@ -28,8 +28,7 @@ class ResolveQuestionGroupSheetsTest {
     @BeforeEach
     void setUp() throws Exception {
         service = new ExcelQuestionImportServiceImpl(
-                null, null, null, null, null
-        );
+                null, null, null, null, null);
     }
 
     private Object invokeResolveMethod(Workbook workbook) throws Exception {
@@ -82,17 +81,29 @@ class ResolveQuestionGroupSheetsTest {
         final int groupHeaderRowIndex;
         final int childHeaderRowIndex;
 
-        ResolvedQuestionGroupExcel(Sheet groupSheet, Sheet childSheet, int groupHeaderRowIndex, int childHeaderRowIndex) {
+        ResolvedQuestionGroupExcel(Sheet groupSheet, Sheet childSheet, int groupHeaderRowIndex,
+                int childHeaderRowIndex) {
             this.groupSheet = groupSheet;
             this.childSheet = childSheet;
             this.groupHeaderRowIndex = groupHeaderRowIndex;
             this.childHeaderRowIndex = childHeaderRowIndex;
         }
 
-        Sheet getGroupSheet() { return groupSheet; }
-        Sheet getChildSheet() { return childSheet; }
-        int getGroupHeaderRowIdx() { return groupHeaderRowIndex; }
-        int getChildHeaderRowIdx() { return childHeaderRowIndex; }
+        Sheet getGroupSheet() {
+            return groupSheet;
+        }
+
+        Sheet getChildSheet() {
+            return childSheet;
+        }
+
+        int getGroupHeaderRowIdx() {
+            return groupHeaderRowIndex;
+        }
+
+        int getChildHeaderRowIdx() {
+            return childHeaderRowIndex;
+        }
     }
 
     private ResolvedQuestionGroupExcel castToResult(Object result) {
@@ -103,8 +114,7 @@ class ResolveQuestionGroupSheetsTest {
                 (Sheet) getFieldValue(result, "groupSheet"),
                 (Sheet) getFieldValue(result, "childSheet"),
                 (Integer) getFieldValue(result, "groupHeaderRowIndex"),
-                (Integer) getFieldValue(result, "childHeaderRowIndex")
-        );
+                (Integer) getFieldValue(result, "childHeaderRowIndex"));
     }
 
     private Object getFieldValue(Object obj, String fieldName) {
@@ -300,7 +310,8 @@ class ResolveQuestionGroupSheetsTest {
                 assertEquals(childSheet, resolved.getChildSheet(), "Child sheet should be 'Child Questions'");
                 assertEquals(0, resolved.getGroupHeaderRowIdx(), "Group header row index should be 0");
                 assertEquals(0, resolved.getChildHeaderRowIdx(), "Child header row index should be 0");
-                assertNotSame(resolved.getGroupSheet(), resolved.getChildSheet(), "Group and child sheets should be different");
+                assertNotSame(resolved.getGroupSheet(), resolved.getChildSheet(),
+                        "Group and child sheets should be different");
             } catch (Exception e) {
                 fail("Unexpected exception: " + e.getMessage());
             }

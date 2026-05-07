@@ -778,7 +778,7 @@ public class ExpertQuizServiceImpl implements IExpertQuizService {
         if (request.getPassScore() != null) {
             if (request.getPassScore().compareTo(BigDecimal.ZERO) < 0 ||
                     request.getPassScore().compareTo(new BigDecimal("100")) > 0) {
-                throw new InvalidDataException("Điểm đạt phải từ 0 đến 100%.");
+                throw new InvalidDataException("Điểm đạt không hợp lệ (0-100% hoặc 0-9 Band).");
             }
         }
         if (request.getStatus() != null && !VALID_STATUSES.contains(request.getStatus())) {

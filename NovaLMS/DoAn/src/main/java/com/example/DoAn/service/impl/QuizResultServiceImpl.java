@@ -750,7 +750,7 @@ public class QuizResultServiceImpl implements QuizResultService {
                 .showAnswer(showAnswer)
                 .passScoreDescription(
                         quiz.getPassScore() != null
-                                ? (Boolean.TRUE.equals(quiz.getIsSequential()) && quiz.getPassScore().doubleValue() <= 9.0
+                                ? (((quiz.getOverallBand() != null) || (quiz.getPassScore().doubleValue() <= 9.0))
                                         ? "Yêu cầu Band: " + quiz.getPassScore().toString()
                                         : "Điểm đạt: " + quiz.getPassScore().toString() + "%")
                                 : "Không yêu cầu điểm đạt")
@@ -1663,17 +1663,16 @@ public class QuizResultServiceImpl implements QuizResultService {
             // 2. AND (No manual content (!hasManual) OR Teacher has finalized (GRADED))
             if (!anyPending && (!hasManual || "GRADED".equals(result.getStatus()))) {
                 if (quiz.getPassScore() != null) {
-                    boolean isSequential = Boolean.TRUE.equals(result.getQuiz().getIsSequential());
-                    if (isSequential) {
-                        double passVal = quiz.getPassScore().doubleValue();
-                        if (passVal <= 9.0) {
-                            // Band-based comparison
-                            result.setPassed(BigDecimal.valueOf(overallBandScore).compareTo(quiz.getPassScore()) >= 0);
-                        } else {
-                            // Percentage-based comparison (e.g. 70%)
-                            result.setPassed(result.getCorrectRate().compareTo(quiz.getPassScore()) >= 0);
-                        }
+                    double passVal = quiz.getPassScore().doubleValue();
+                    // Treat as band-based if overallBand is configured OR passScore is in band range (0-9)
+                    boolean useBandLogic = (quiz.getOverallBand() != null) || (passVal <= 9.0);
+
+                    if (useBandLogic) {
+                        // Use rounded band for comparison to ensure 6.25 average (Band 6.5) passes 6.5 requirement
+                        BigDecimal roundedBand = result.getOverallBand() != null ? result.getOverallBand() : BigDecimal.ZERO;
+                        result.setPassed(roundedBand.compareTo(quiz.getPassScore()) >= 0);
                     } else {
+                        // Standard percentage comparison against correct rate
                         result.setPassed(result.getCorrectRate().compareTo(quiz.getPassScore()) >= 0);
                     }
                 } else {

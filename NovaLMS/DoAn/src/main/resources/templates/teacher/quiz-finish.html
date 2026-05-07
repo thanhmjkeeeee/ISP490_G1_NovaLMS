@@ -155,8 +155,9 @@ async function loadQuiz() {
             `<i class="bi bi-clock me-1"></i> Thời gian: <strong>${quiz.timeLimitMinutes} phút</strong>`;
     }
     if (quiz.passScore) {
+        const isBand = quiz.overallBand != null || quiz.passScore <= 9.0;
         document.getElementById('qPassRow').innerHTML =
-            `<i class="bi bi-trophy me-1"></i> Điểm đạt: <strong>${quiz.passScore}%</strong>`;
+            `<i class="bi bi-trophy me-1"></i> Điểm đạt: <strong>${isBand ? 'Band ' : ''}${quiz.passScore}${isBand ? '' : '%'}</strong>`;
     }
     if (quiz.maxAttempts) {
         document.getElementById('qAttemptsRow').innerHTML =
