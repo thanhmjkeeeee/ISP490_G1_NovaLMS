@@ -11,6 +11,7 @@ import java.util.Map;
 public class QuizResultDetailDTO {
     private Integer resultId;
     private Integer quizId;
+    private Integer classId;
     private String quizTitle;
     private String studentName;
     private String className;

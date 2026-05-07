@@ -753,6 +753,11 @@ public class QuizResultServiceImpl implements QuizResultService {
         return QuizResultDetailDTO.builder()
                 .resultId(qr.getResultId())
                 .quizId(quiz.getQuizId())
+                .classId(quiz.getClazz() != null ? quiz.getClazz().getClassId()
+                        : (quiz.getSessions() != null && !quiz.getSessions().isEmpty()
+                                ? quiz.getSessions().get(0).getClazz() != null
+                                        ? quiz.getSessions().get(0).getClazz().getClassId() : null
+                                : null))
                 .quizTitle(quiz.getTitle())
                 .studentName(qr.getUser().getFullName())
                 .className(quiz.getClazz() != null ? quiz.getClazz().getClassName()
