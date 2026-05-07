@@ -13,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.security.Principal;
 import java.util.List;
@@ -27,7 +28,8 @@ public class StudentQuizTakingController {
     private final QuizAnswerRepository quizAnswerRepository;
 
     private String getEmailFromPrincipal(Principal principal) {
-        if (principal == null) return null;
+        if (principal == null)
+            return null;
         if (principal instanceof OAuth2AuthenticationToken token) {
             return token.getPrincipal().getAttribute("email");
         }
@@ -35,14 +37,17 @@ public class StudentQuizTakingController {
     }
 
     @GetMapping("/student/quiz/take/{quizId}")
-    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal, org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes, javax.servlet.http.HttpServletResponse response) {
+    public String showQuizTakingPage(@PathVariable Integer quizId, Model model, Principal principal,
+            org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes,
+            HttpServletResponse response) {
         // Prevent caching for quiz taking page
         response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1
         response.setHeader("Pragma", "no-cache"); // HTTP 1.0
         response.setDateHeader("Expires", 0); // Proxies
 
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return "redirect:/login.html";
+        if (email == null)
+            return "redirect:/login.html";
 
         try {
             QuizTakingDTO dto = quizResultService.getQuizForTaking(quizId, email);
@@ -60,12 +65,14 @@ public class StudentQuizTakingController {
     @ResponseBody
     public ResponseEntity<?> reportViolation(@RequestBody Map<String, Object> payload, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
+        if (email == null)
+            return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             Integer quizId = (Integer) payload.get("quizId");
             String reason = (String) payload.get("reason");
-            if (reason == null) reason = "Chuyển tab / Rời khỏi màn hình";
-            
+            if (reason == null)
+                reason = "Chuyển tab / Rời khỏi màn hình";
+
             Map<String, Object> result = quizResultService.handleViolation(quizId, email, reason);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -77,7 +84,8 @@ public class StudentQuizTakingController {
     @ResponseBody
     public ResponseEntity<?> submitQuiz(@RequestBody QuizSubmissionDTO request, Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
+        if (email == null)
+            return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             Integer resultId = quizResultService.submitQuiz(request.getQuizId(), email, request.getAnswers());
             return ResponseEntity.ok(Map.of("resultId", resultId));
@@ -125,15 +133,16 @@ public class StudentQuizTakingController {
                 "status", 200,
                 "data", data,
                 "overallStatus", basicStatus.getOrDefault("status", "UNKNOWN"),
-                "passed", basicStatus.getOrDefault("passed", null)
-        ));
+                "passed", basicStatus.getOrDefault("passed", null)));
     }
 
     @PostMapping("/api/v1/student/quiz/result/{resultId}/request-unlock")
     @ResponseBody
-    public ResponseEntity<?> requestUnlock(@PathVariable Integer resultId, @RequestBody Map<String, String> payload, Principal principal) {
+    public ResponseEntity<?> requestUnlock(@PathVariable Integer resultId, @RequestBody Map<String, String> payload,
+            Principal principal) {
         String email = getEmailFromPrincipal(principal);
-        if (email == null) return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
+        if (email == null)
+            return ResponseEntity.status(401).body(Map.of("message", "Vui lòng đăng nhập."));
         try {
             String reason = payload.get("reason");
             quizResultService.requestUnlock(resultId, email, reason);
