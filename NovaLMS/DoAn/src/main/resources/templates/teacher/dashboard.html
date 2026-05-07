@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </span>
           </td>
           <td>${statusBadge}</td>
-          <td class="text-end"><a href="/teacher/quiz/grading/${item.resultId}" class="btn-detail">${isPending?'Chấm':'Xem'}</a></td>
+          <td class="text-end"><a href="/teacher/workspace?tab=grading&resultId=${item.resultId}" class="btn-detail">${isPending?'Chấm':'Xem'}</a></td>
         </tr>`;
     }).join('');
   };
