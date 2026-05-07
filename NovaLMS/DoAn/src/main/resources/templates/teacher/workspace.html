@@ -1863,10 +1863,8 @@
 
             // Initial load default: check URL param 'tab' to auto-switch
             const urlParams = new URLSearchParams(window.location.search);
-            const tabParam = urlParams.get('tab') || /*[[${initialTab}]]*/ null;
+            const tabParam = urlParams.get('tab');
             const classIdParam = urlParams.get('classId');
-            const resultIdParam = urlParams.get('resultId') || /*[[${initialResultId}]]*/ null;
-            const itemTypeParam = urlParams.get('type') || /*[[${initialType}]]*/ 'QUIZ';
 
             if (classIdParam) {
                 state.selectedClassId = classIdParam;
@@ -1883,13 +1881,6 @@
                 }
             } else {
                 refreshActiveTab();
-            }
-
-            // Auto-open grading detail if resultId is provided
-            if (resultIdParam && typeof wsOpenGradingDetail === 'function') {
-                setTimeout(() => {
-                    wsOpenGradingDetail(resultIdParam, itemTypeParam, 'URL');
-                }, 500);
             }
 
             document.getElementById('res-newDate').addEventListener('change', refreshRescheduleBusySlots);

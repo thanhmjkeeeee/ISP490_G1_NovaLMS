@@ -38,14 +38,24 @@ public class TeacherAssignmentGradingController {
         return "teacher/assignment-grading-list";
     }
 
-    /**
-     * Xem chi tiết kết quả/Chấm điểm tại Workspace (Dùng URL riêng cho Assignment).
-     */
     @GetMapping("/grading/{resultId}")
-    public String gradingDetail(@PathVariable Integer resultId, Model model) {
-        model.addAttribute("initialTab", "grading");
-        model.addAttribute("initialResultId", resultId);
-        model.addAttribute("initialType", "ASSIGNMENT");
-        return "teacher/workspace";
+    public String gradingDetail(
+            @PathVariable Integer resultId,
+            Model model,
+            Principal principal,
+            RedirectAttributes redirectAttributes) {
+        String email = getEmailFromPrincipal(principal);
+        if (email == null) return "redirect:/login";
+
+        try {
+            AssignmentGradingDetailDTO detail = gradingService.getGradingDetail(resultId, email);
+            model.addAttribute("resultId", resultId);
+            model.addAttribute("detail", detail);
+            return "teacher/assignment-grading-detail";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMsg",
+                    "Không tìm thấy bài nộp hoặc bạn không có quyền chấm điểm.");
+            return "redirect:/teacher/assignment/grading";
+        }
     }
 }
