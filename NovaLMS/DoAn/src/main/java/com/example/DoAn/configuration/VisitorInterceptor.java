@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -21,11 +23,36 @@ public class VisitorInterceptor implements HandlerInterceptor {
     private final VisitorLogRepository visitorLogRepository;
     private static final String VISITOR_COOKIE_NAME = "nova_visitor_token";
 
+    /** Chỉ track các public page — không track admin/teacher/student/api */
+    private boolean isPublicPage(String path) {
+        return path.startsWith("/courses") ||
+               path.startsWith("/course/") ||
+               path.equals("/") ||
+               path.startsWith("/home") ||
+               path.startsWith("/about") ||
+               path.startsWith("/contact") ||
+               path.startsWith("/login") ||
+               path.startsWith("/register") ||
+               path.startsWith("/public");
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        // Skip static resources and API calls if needed, but for tracking we usually want all page hits
         String path = request.getRequestURI();
-        if (path.contains(".") || path.startsWith("/api/")) {
+
+        // Bỏ qua static resources, API calls
+        if (path.contains(".") || path.startsWith("/api/") || path.startsWith("/ws/")) {
+            return true;
+        }
+
+        // Chỉ track public pages (không track /admin, /teacher, /student, /expert)
+        if (!isPublicPage(path)) {
+            return true;
+        }
+
+        // Bỏ qua nếu user đã đăng nhập (có authentication)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             return true;
         }
 
@@ -41,7 +68,7 @@ public class VisitorInterceptor implements HandlerInterceptor {
         }
 
         if (visitorToken == null) {
-            // New Visitor
+            // New anonymous visitor on a public page
             visitorToken = UUID.randomUUID().toString();
             Cookie visitorCookie = new Cookie(VISITOR_COOKIE_NAME, visitorToken);
             visitorCookie.setPath("/");
@@ -57,7 +84,7 @@ public class VisitorInterceptor implements HandlerInterceptor {
             visitorLogRepository.save(visitorLog);
             log.info("New guest visitor detected. Token: {}", visitorToken);
         } else {
-            // Existing Visitor
+            // Existing visitor — update last_visit
             final String token = visitorToken;
             visitorLogRepository.findByVisitorToken(token).ifPresent(logEntry -> {
                 logEntry.setLastVisit(LocalDateTime.now());
