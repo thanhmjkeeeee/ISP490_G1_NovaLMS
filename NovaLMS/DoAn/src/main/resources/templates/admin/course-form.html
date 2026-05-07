@@ -288,8 +288,27 @@
       const res = await fetch('/api/settings?type=COURSE_CATEGORY&activeOnly=true');
       const result = await res.json();
       if (result.data) {
-        window.allCategories = result.data;
-        initializeSearchableDropdown('category', result.data, 'name', 'settingId');
+        window.allCategories = result.data; // Keep all data for edit mode reference
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const selfStudyParam = urlParams.get('selfStudy');
+        let categoriesToLoad = result.data;
+
+        if (selfStudyParam === 'true') {
+          // Rule 1: For Self-Study Course
+          const selfStudyCat = result.data.find(item => item.value === 'IELTS_SELF_STUDY');
+          if (selfStudyCat) {
+            document.getElementById('categorySearch').value = selfStudyCat.name;
+            document.getElementById('categoryId').value = selfStudyCat.settingId;
+            document.getElementById('categorySearch').disabled = true;
+          }
+          categoriesToLoad = []; // No need for dropdown options
+        } else if (selfStudyParam === 'false') {
+          // Rule 2: For Standard Course
+          categoriesToLoad = result.data.filter(item => item.value !== 'IELTS_SELF_STUDY');
+        }
+
+        initializeSearchableDropdown('category', categoriesToLoad, 'name', 'settingId');
       }
     } catch (err) {
       console.error('Error loading categories:', err);
