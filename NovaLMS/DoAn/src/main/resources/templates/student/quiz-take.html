@@ -6,22 +6,6 @@
 <body class="dashboard-body nova-quiz-theme">
 
 
-<!-- anti-cheat overlay -->
-<div id="anti-cheat-overlay">
-  <div style="background:#fff;border-radius:20px;padding:44px 36px;max-width:500px;border:2px solid #fecaca;box-shadow:0 24px 64px rgba(0,0,0,.12);">
-    <div class="wpulse" style="margin-bottom:16px;">
-      <i class="bi bi-shield-exclamation" style="font-size:3.5rem;color:#ef4444;"></i>
-    </div>
-    <h3 style="font-weight:800;color:#0f1b2d;margin-bottom:8px;">Vui lòng quay lại!</h3>
-    <p style="color:#4a5568;font-size:.9rem;line-height:1.6;margin-bottom:14px;">
-      Hành động rời màn hình thi đã được ghi nhận.<br>Quay lại ngay để tiếp tục bài kiểm tra.
-    </p>
-    <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:.8rem;color:#991b1b;">
-      <i class="bi bi-info-circle-fill me-2"></i>Hệ thống sẽ <strong>KHÓA</strong> bài thi nếu vi phạm quá 3 lần.
-    </div>
-  </div>
-</div>
-
 <!-- Fragments -->
 <header th:replace="~{fragments/header :: dash-header(pageTitle='Bài Kiểm Tra', breadcrumb='Lớp học')}"></header>
 <aside  th:replace="~{fragments/sidebar :: dash-sidebar(activePage='my-classes')}"></aside>
@@ -953,66 +937,13 @@ async function uploadAudio(file, qid) {
 }
 
 /* ══════════════════════════════════════════════
-   MODULE 8: ANTI-CHEAT (cải tiến)
-   Chỉ trigger khi visibilityState === 'hidden',
-   không trigger khi focus SweetAlert/file dialog
+   MODULE 8: ANTI-CHEAT (DISABLED)
 ══════════════════════════════════════════════ */
-const overlay = document.getElementById('anti-cheat-overlay');
-
-window.addEventListener('blur', () => {
-  /* Chỉ hiện overlay nếu thực sự rời tab — không phải focus dialog */
-  setTimeout(() => {
-    if (!document.hasFocus() && !ES.isSubmitting && !ES.isLocked) {
-      overlay.style.display = 'flex';
-    }
-  }, 200);
-});
-window.addEventListener('focus', () => { overlay.style.display = 'none'; });
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && !ES.isSubmitting && !ES.isLocked) {
-    reportViolation('Chuyển tab hoặc rời trình duyệt');
-  }
-});
-
 const reportViolation = async (reason) => {
-  if (ES.isLocked || ES.isSubmitting) return;
-  const qId = parseInt(document.getElementById('quizId')?.value);
-  if (!qId) return;
-  try {
-    const res  = await fetch('/api/v1/student/quiz/lock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quizId: qId, reason }),
-    });
-    const data = await res.json();
-    if (data.status === 'LOCKED') {
-      ES.isLocked = true;
-      Swal.fire({ title:'BÀI THI ĐÃ KHÓA!', icon:'error', confirmButtonText:'Quay lại', allowOutsideClick:false })
-        .then(() => window.location.href = '/student/quiz');
-    } else if (data.status === 'WARNING') {
-      Swal.fire({ title:'CẢNH BÁO VI PHẠM!',
-        html:`<h4 class="text-danger fw-bold">Vi phạm lần ${data.violationCount}/3</h4><p class="small text-muted">Đến lần 3 bài thi sẽ bị KHÓA tự động.</p>`,
-        icon:'warning', confirmButtonText:'Đã hiểu',
-      });
-    }
-  } catch (e) { console.error('[ANTI-CHEAT] Error:', e); }
+  // Anti-cheat disabled for self-study
+  return;
 };
 
-window.addEventListener('beforeunload', e => {
-  if (!ES.isLocked && !ES.isSubmitting) { e.preventDefault(); e.returnValue = ''; }
-});
-
-document.addEventListener('click', async e => {
-  const link = e.target.closest('a');
-  if (!link || ES.isLocked || ES.isSubmitting) return;
-  const href = link.getAttribute('href');
-  if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-    e.preventDefault();
-    const r = await Swal.fire({ title:'Rời khỏi trang?', icon:'warning', showCancelButton:true, confirmButtonText:'Vẫn rời', cancelButtonText:'Ở lại' });
-    if (r.isConfirmed) { reportViolation('Nhấn link rời trang'); window.location.href = href; }
-  }
-});
 
 /* ══════════════════════════════════════════════
    MODULE 9: SUBMIT
