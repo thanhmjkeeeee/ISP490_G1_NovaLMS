@@ -365,11 +365,19 @@ window.onpageshow = function(event) {
     return;
   }
 
-  // 2. Immediate client-side redirect if localStorage marks this quiz as already submitted
+  // 2. Client-side redirect check with RETAKE logic
   const submittedKey = 'quiz_submitted_' + (typeof RAW_QUIZ !== 'undefined' ? RAW_QUIZ.quizId : '');
-  if (localStorage.getItem(submittedKey)) {
-    document.body.innerHTML = '<div style="text-align:center; padding:50px; font-family:sans-serif;"><h3>Bài thi đã hoàn thành. Đang chuyển hướng...</h3></div>';
-    window.location.href = '/student/my-courses';
+
+  // Kiểm tra quyền làm lại từ Backend (được map vào RAW_QUIZ)
+  const canRetake = RAW_QUIZ && (RAW_QUIZ.canRetake === true || RAW_QUIZ.attemptsLeft > 0);
+
+  if (canRetake) {
+      // Nếu được làm lại -> Xóa cờ cache cũ đi để làm mới
+      localStorage.removeItem(submittedKey);
+  } else if (localStorage.getItem(submittedKey)) {
+      // Nếu không được làm lại MÀ cache báo đã nộp -> Đá văng ra ngoài
+      document.body.innerHTML = '<div style="text-align:center; padding:50px; font-family:sans-serif;"><h3>Bài thi đã hoàn thành hoặc hết lượt làm. Đang chuyển hướng...</h3></div>';
+      window.location.href = '/student/my-courses';
   }
 };
 
