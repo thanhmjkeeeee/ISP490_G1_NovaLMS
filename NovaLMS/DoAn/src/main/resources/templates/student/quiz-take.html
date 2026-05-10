@@ -399,20 +399,6 @@ function initQuiz() {
   /* Attach form listeners */
   document.getElementById('quizForm').addEventListener('change', onAnswerChange);
   document.getElementById('quizForm').addEventListener('input',  onAnswerChange);
-  document.getElementById('quizForm').addEventListener('paste', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      e.preventDefault();
-      Swal.fire({
-        icon: 'warning',
-        title: 'Cảnh báo!',
-        text: 'Hành động dán văn bản bị cấm trong lúc làm bài.',
-        timer: 2000,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end'
-      });
-    }
-  });
 }
 
 /* ── Build skills (group by q.skill — BE field name) ── */
